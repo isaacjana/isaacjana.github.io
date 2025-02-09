@@ -77,7 +77,7 @@
             const dataList = document.getElementById("data-list");
             dataList.innerHTML = ""; // Clear the list
 
-            db.collection("users").get()
+            collection(db,"users").get()
             .then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
