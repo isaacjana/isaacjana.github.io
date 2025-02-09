@@ -50,7 +50,7 @@
       };
     // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const db = firestore();
+        const db = getFirestore(app);
 
         // Function to add data to Firestore
         function addData() {
