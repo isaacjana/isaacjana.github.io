@@ -57,7 +57,7 @@
             const name = document.getElementById("name").value;
             const email = document.getElementById("email").value;
 
-            db.collection("users").add({
+            collection(db,"users").add({
                 name: name,
                 email: email
             })
