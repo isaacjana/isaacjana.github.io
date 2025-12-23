@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Queue Manager</title>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        #root {
+            width: 100%;
+            min-height: 100vh;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .animate-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        .slide-down {
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(34, 197, 94, 0.95);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .toast.error {
+            background: rgba(239, 68, 68, 0.95);
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        @media (max-width: 1200px) {
+            .grid-container {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        
+        .button-hover {
+            transition: all 0.2s ease;
+        }
+        
+        .button-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .button-hover:active {
+            transform: translateY(0);
+        }
+        
+        .song-item {
+            transition: all 0.2s ease;
+        }
+        
+        .song-item:hover {
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+        // ==================== ICON COMPONENTS ====================
+        const Music = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+        );
+
+        const Trash2 = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        );
+
+        const Plus = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
+        const Play = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+        );
+
+        const Pause = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+        );
+
+        const SkipForward = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+        );
+
+        const FolderOpen = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+        );
+
+        const Search = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        );
+
+        const Keyboard = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"></path>
+            </svg>
+        );
+
+        const Volume2 = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+        );
+
+        const List = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+        );
+
+        const Shuffle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+        );
+
+        const X = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        );
+
+        // ==================== UTILITY FUNCTIONS ====================
+        const parseFileName = (fileName) => {
+            const nameWithoutExt = fileName.replace(/\.(mp4|webm|ogg|avi|mov|mkv)$/i, '');
+            const parts = nameWithoutExt.split('-');
+            
+            if (parts.length >= 2) {
+                return {
+                    artist: parts[0].trim(),
+                    title: parts.slice(1).join('-').trim()
+                };
+            }
+            
+            return {
+                artist: 'Unknown Artist',
+                title: nameWithoutExt.trim()
+            };
+        };
+
+        const formatDuration = (seconds) => {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        // ==================== CUSTOM HOOKS ====================
+        const useLocalStorage = (key, initialValue) => {
+            const [storedValue, setStoredValue] = useState(() => {
+                try {
+                    const item = window.localStorage.getItem(key);
+                    return item ? JSON.parse(item) : initialValue;
+                } catch (error) {
+                    console.error('Error loading from localStorage:', error);
+                    return initialValue;
+                }
+            });
+
+            const setValue = useCallback((value) => {
+                try {
+                    const valueToStore = value instanceof Function ? value(storedValue) : value;
+                    setStoredValue(valueToStore);
+                    window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                } catch (error) {
+                    console.error('Error saving to localStorage:', error);
+                }
+            }, [key, storedValue]);
+
+            return [storedValue, setValue];
+        };
+
+        // ==================== MAIN COMPONENT ====================
+        function VideoQueueManager() {
+            // State management
+            const [queue, setQueue] = useState([]);
+            const [localSongs, setLocalSongs] = useState([]);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [requesterName, setRequesterName] = useLocalStorage('lastRequester', '');
+            const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+            const [toast, setToast] = useState(null);
+            const [showShortcuts, setShowShortcuts] = useState(false);
+            const [sortBy, setSortBy] = useState('name'); // 'name', 'artist', 'recent'
+            const [isShuffleMode, setIsShuffleMode] = useState(false);
+            const [volume, setVolume] = useState(0.8);
+            
+            // Refs
+            const folderInputRef = useRef(null);
+            const videoRef = useRef(null);
+            const searchInputRef = useRef(null);
+
+            // Memoized filtered and sorted songs
+            const filteredAndSortedSongs = useMemo(() => {
+                let filtered = localSongs;
+
+                // Apply search filter
+                if (searchQuery) {
+                    filtered = filtered.filter(song => 
+                        song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        song.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                }
+
+                // Apply sorting
+                const sorted = [...filtered].sort((a, b) => {
+                    switch (sortBy) {
+                        case 'artist':
+                            return a.artist.localeCompare(b.artist);
+                        case 'title':
+                            return a.title.localeCompare(b.title);
+                        case 'recent':
+                            return b.id - a.id;
+                        default:
+                            return a.fileName.localeCompare(b.fileName);
+                    }
+                });
+
+                return sorted;
+            }, [localSongs, searchQuery, sortBy]);
+
+            // Toast notification system
+            const showToast = useCallback((message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            }, []);
+
+            // Keyboard shortcuts
+            useEffect(() => {
+                const handleKeyPress = (e) => {
+                    // Ignore if typing in input field
+                    if (document.activeElement.tagName === 'INPUT') {
+                        return;
+                    }
+
+                    switch (e.code) {
+                        case 'Space':
+                            e.preventDefault();
+                            if (queue.length > 0 && !currentlyPlaying) {
+                                playNext();
+                            }
+                            break;
+                        case 'KeyN':
+                            e.preventDefault();
+                            if (currentlyPlaying) {
+                                playNext();
+                            }
+                            break;
+                        case 'Escape':
+                            setSearchQuery('');
+                            setShowShortcuts(false);
+                            break;
+                        case 'Slash':
+                            if (e.shiftKey) { // '?' key
+                                e.preventDefault();
+                                setShowShortcuts(!showShortcuts);
+                            } else {
+                                e.preventDefault();
+                                searchInputRef.current?.focus();
+                            }
+                            break;
+                        case 'KeyS':
+                            if (e.shiftKey) {
+                                e.preventDefault();
+                                setIsShuffleMode(!isShuffleMode);
+                            }
+                            break;
+                    }
+                };
+
+                window.addEventListener('keydown', handleKeyPress);
+                return () => window.removeEventListener('keydown', handleKeyPress);
+            }, [queue, currentlyPlaying, showShortcuts, isShuffleMode]);
+
+            // Volume control
+            useEffect(() => {
+                if (videoRef.current) {
+                    videoRef.current.volume = volume;
+                }
+            }, [volume]);
+
+            // File handling
+            const handleFolderSelect = useCallback(async (e) => {
+                const files = Array.from(e.target.files);
+                const videoFiles = files.filter(file => 
+                    /\.(mp4|webm|ogg|avi|mov|mkv)$/i.test(file.name)
+                );
+
+                if (videoFiles.length === 0) {
+                    showToast('No video files found in folder', 'error');
+                    return;
+                }
+
+                const songs = videoFiles.map(file => {
+                    const { artist, title } = parseFileName(file.name);
+                    return {
+                        id: Date.now() + Math.random(),
+                        fileName: file.name,
+                        artist,
+                        title,
+                        file,
+                        url: URL.createObjectURL(file),
+                        duration: null
+                    };
+                });
+
+                setLocalSongs(songs);
+                showToast(`Loaded ${songs.length} videos`);
+            }, [showToast]);
+
+            // Queue management
+            const addToQueue = useCallback((song) => {
+                if (!requesterName.trim()) {
+                    showToast('Please enter your name first', 'error');
+                    return;
+                }
+
+                const newSong = {
+                    ...song,
+                    id: Date.now() + Math.random(),
+                    requester: requesterName.trim(),
+                    addedAt: new Date().toLocaleTimeString()
+                };
+                
+                setQueue(prev => [...prev, newSong]);
+                showToast(`Added "${song.artist} - ${song.title}"`);
+            }, [requesterName, showToast]);
+
+            const removeFromQueue = useCallback((id) => {
+                setQueue(prev => {
+                    const song = prev.find(s => s.id === id);
+                    if (song) {
+                        showToast(`Removed "${song.artist} - ${song.title}"`);
+                    }
+                    return prev.filter(s => s.id !== id);
+                });
+                
+                if (currentlyPlaying?.id === id) {
+                    setCurrentlyPlaying(null);
+                }
+            }, [currentlyPlaying, showToast]);
+
+            const playNext = useCallback(() => {
+                if (queue.length === 0) return;
+
+                let nextSong;
+                if (isShuffleMode && queue.length > 1) {
+                    const randomIndex = Math.floor(Math.random() * queue.length);
+                    nextSong = queue[randomIndex];
+                    setQueue(prev => prev.filter((_, i) => i !== randomIndex));
+                } else {
+                    nextSong = queue[0];
+                    setQueue(prev => prev.slice(1));
+                }
+
+                setCurrentlyPlaying(nextSong);
+                
+                // Auto-play video
+                setTimeout(() => {
+                    if (videoRef.current) {
+                        videoRef.current.play().catch(err => {
+                            console.error('Auto-play failed:', err);
+                            showToast('Click play to start video', 'error');
+                        });
+                    }
+                }, 100);
+            }, [queue, isShuffleMode, showToast]);
+
+            const clearQueue = useCallback(() => {
+                if (window.confirm('Clear entire queue?')) {
+                    setQueue([]);
+                    showToast('Queue cleared');
+                }
+            }, [showToast]);
+
+            const shuffleQueue = useCallback(() => {
+                setQueue(prev => {
+                    const shuffled = [...prev];
+                    for (let i = shuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    }
+                    return shuffled;
+                });
+                showToast('Queue shuffled');
+            }, [showToast]);
+
+            const handleVideoEnded = useCallback(() => {
+                if (queue.length > 0) {
+                    playNext();
+                } else {
+                    setCurrentlyPlaying(null);
+                    showToast('Queue complete!');
+                }
+            }, [queue, playNext, showToast]);
+
+            // ==================== RENDER ====================
+            return (
+                <div style={{
+                    minHeight: '100vh',
+                    background: 'linear-gradient(to bottom right, #581c87, #1e3a8a, #312e81)',
+                    padding: '1.5rem'
+                }}>
+                    {/* Toast Notification */}
+                    {toast && (
+                        <div className={`toast ${toast.type === 'error' ? 'error' : ''}`}>
+                            {toast.message}
+                        </div>
+                    )}
+
+                    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+                        {/* Header */}
+                        <div className="slide-down" style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            backdropFilter: 'blur(12px)',
+                            borderRadius: '1rem',
+                            padding: '1.5rem',
+                            marginBottom: '1.5rem',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '1rem'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '2.5rem', height: '2.5rem', color: '#f9a8d4' }}>
+                                    <Music />
+                                </div>
+                                <div>
+                                    <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', margin: 0 }}>
+                                        Video Queue Manager
+                                    </h1>
+                                    <p style={{ color: '#e9d5ff', fontSize: '0.875rem', margin: 0 }}>
+                                        {localSongs.length} videos • {queue.length} queued
+                                        {currentlyPlaying && ' • 1 playing'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <button
+                                    onClick={() => setShowShortcuts(!showShortcuts)}
+                                    className="button-hover"
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        background: 'rgba(255, 255, 255, 0.1)',
+                                        color: 'white',
+                                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                                        borderRadius: '0.5rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        fontSize: '0.875rem'
+                                    }}
+                                >
+                                    <Keyboard />
+                                    Shortcuts
+                                </button>
+                                {queue.length > 1 && (
+                                    <button
+                                        onClick={shuffleQueue}
+                                        className="button-hover"
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            background: isShuffleMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                                            color: 'white',
+                                            border: `1px solid ${isShuffleMode ? 'rgba(168, 85, 247, 0.5)' : 'rgba(255, 255, 255, 0.2)'}`,
+                                            borderRadius: '0.5rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            fontSize: '0.875rem'
+                                        }}
+                                    >
+                                        <Shuffle />
+                                        Shuffle
+                                    </button>
+                                )}
+                                {queue.length > 0 && (
+                                    <button
+                                        onClick={clearQueue}
+                                        className="button-hover"
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            background: 'rgba(239, 68, 68, 0.2)',
+                                            color: '#fca5a5',
+                                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                                            borderRadius: '0.5rem',
+                                            cursor: 'pointer',
+                                            fontSize: '0.875rem'
+                                        }}
+                                    >
+                                        Clear Queue
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Keyboard Shortcuts Panel */}
+                        {showShortcuts && (
+                            <div className="slide-down" style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                backdropFilter: 'blur(12px)',
+                                borderRadius: '1rem',
+                                padding: '1.5rem',
+                                marginBottom: '1.5rem',
+                                border: '1px solid rgba(255, 255, 255, 0.2)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h3 style={{ color: 'white', fontSize: '1.125rem', margin: 0 }}>Keyboard Shortcuts</h3>
+                                    <button
+                                        onClick={() => setShowShortcuts(false)}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#e9d5ff',
+                                            cursor: 'pointer',
+                                            padding: '0.5rem'
+                                        }}
+                                    >
+                                        <X />
+                                    </button>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '0.75rem' }}>
+                                    {[
+                                        { key: 'Space', action: 'Play next (when queue has items)' },
+                                        { key: 'N', action: 'Skip to next song' },
+                                        { key: '/', action: 'Focus search' },
+                                        { key: 'Shift + S', action: 'Toggle shuffle mode' },
+                                        { key: 'Esc', action: 'Clear search / Close panels' },
+                                        { key: '?', action: 'Toggle shortcuts' }
+                                    ].map((shortcut, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', color: '#e9d5ff', fontSize: '0.875rem', padding: '0.5rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '0.375rem' }}>
+                                            <kbd style={{ 
+                                                color: '#f9a8d4', 
+                                                fontWeight: '600',
+                                                padding: '0.125rem 0.5rem',
+                                                background: 'rgba(255, 255, 255, 0.1)',
+                                                borderRadius: '0.25rem',
+                                                fontFamily: 'monospace'
+                                            }}>{shortcut.key}</kbd>
+                                            <span>{shortcut.action}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Main Grid */}
+                        <div className="grid-container" style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: currentlyPlaying ? '380px 1fr 380px' : '380px 1fr', 
+                            gap: '1.5rem',
+                            alignItems: 'start'
+                        }}>
+                            {/* Library Sidebar */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {/* User Info Card */}
+                                <div className="fade-in" style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    backdropFilter: 'blur(12px)',
+                                    borderRadius: '1rem',
+                                    padding: '1.5rem',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                                }}>
+                                    <h3 style={{ color: 'white', marginBottom: '1rem', fontSize: '1.125rem' }}>Your Name</h3>
+                                    <input
+                                        type="text"
+                                        value={requesterName}
+                                        onChange={(e) => setRequesterName(e.target.value)}
+                                        placeholder="Enter your name..."
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.15)',
+                                            border: '2px solid rgba(255, 255, 255, 0.2)',
+                                            borderRadius: '0.5rem',
+                                            color: 'white',
+                                            outline: 'none',
+                                            fontSize: '1rem',
+                                            marginBottom: '1rem'
+                                        }}
+                                    />
+                                    
+                                    <input
+                                        ref={folderInputRef}
+                                        type="file"
+                                        webkitdirectory=""
+                                        directory=""
+                                        multiple
+                                        onChange={handleFolderSelect}
+                                        style={{ display: 'none' }}
+                                    />
+                                    <button
+                                        onClick={() => folderInputRef.current?.click()}
+                                        className="button-hover"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.875rem',
+                                            background: 'linear-gradient(to right, #ec4899, #a855f7)',
+                                            color: 'white',
+                                            borderRadius: '0.5rem',
+                                            fontWeight: '600',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.5rem',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        <FolderOpen />
+                                        Load Video Folder
+                                    </button>
+                                </div>
+
+                                {/* Library Card */}
+                                <div className="fade-in" style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    backdropFilter: 'blur(12px)',
+                                    borderRadius: '1rem',
+                                    padding: '1.5rem',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    maxHeight: '600px',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <h3 style={{ color: 'white', fontSize: '1.125rem', margin: 0 }}>Library</h3>
+                                        {localSongs.length > 0 && (
+                                            <select
+                                                value={sortBy}
+                                                onChange={(e) => setSortBy(e.target.value)}
+                                                style={{
+                                                    padding: '0.375rem 0.75rem',
+                                                    background: 'rgba(255, 255, 255, 0.1)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: '0.375rem',
+                                                    color: 'white',
+                                                    fontSize: '0.75rem',
+                                                    cursor: 'pointer',
+                                                    outline: 'none'
+                                                }}
+                                            >
+                                                <option value="name" style={{ background: '#312e81' }}>Name</option>
+                                                <option value="artist" style={{ background: '#312e81' }}>Artist</option>
+                                                <option value="title" style={{ background: '#312e81' }}>Title</option>
+                                                <option value="recent" style={{ background: '#312e81' }}>Recent</option>
+                                            </select>
+                                        )}
+                                    </div>
+                                    
+                                    {localSongs.length > 0 && (
+                                        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                                            <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#d8b4fe', width: '1.25rem', height: '1.25rem' }}>
+                                                <Search />
+                                            </div>
+                                            <input
+                                                ref={searchInputRef}
+                                                type="text"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                placeholder="Search library..."
+                                                style={{
+                                                    width: '100%',
+                                                    paddingLeft: '2.5rem',
+                                                    padding: '0.75rem',
+                                                    background: 'rgba(255, 255, 255, 0.15)',
+                                                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: '0.5rem',
+                                                    color: 'white',
+                                                    outline: 'none',
+                                                    fontSize: '0.875rem'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="scrollbar-custom" style={{ flex: 1, overflowY: 'auto' }}>
+                                        {filteredAndSortedSongs.length === 0 ? (
+                                            <div style={{ textAlign: 'center', padding: '2rem 0', color: 'rgba(233, 213, 255, 0.5)' }}>
+                                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎵</div>
+                                                <p style={{ fontSize: '0.875rem' }}>
+                                                    {localSongs.length === 0 ? 'Load a folder to get started' : 'No videos match your search'}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                {filteredAndSortedSongs.map((song) => (
+                                                    <div
+                                                        key={song.id}
+                                                        className="song-item"
+                                                        style={{
+                                                            background: 'rgba(255, 255, 255, 0.05)',
+                                                            borderRadius: '0.5rem',
+                                                            padding: '0.75rem',
+                                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onClick={() => addToQueue(song)}
+                                                    >
+                                                        <p style={{ color: '#f9a8d4', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.25rem' }}>
+                                                            {song.artist}
+                                                        </p>
+                                                        <p style={{ color: 'white', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {song.title}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Queue Section */}
+                            <div className="fade-in" style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                backdropFilter: 'blur(12px)',
+                                borderRadius: '1rem',
+                                padding: '1.5rem',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                minHeight: '600px'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <List />
+                                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'white', margin: 0 }}>
+                                            Up Next
+                                        </h2>
+                                    </div>
+                                    {queue.length > 0 && !currentlyPlaying && (
+                                        <button
+                                            onClick={playNext}
+                                            className="button-hover"
+                                            style={{
+                                                padding: '0.75rem 1.5rem',
+                                                background: '#22c55e',
+                                                color: 'white',
+                                                borderRadius: '0.5rem',
+                                                fontWeight: '600',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            <Play />
+                                            Play Now
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="scrollbar-custom" style={{ flex: 1, overflowY: 'auto' }}>
+                                    {queue.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '4rem 0', color: 'rgba(233, 213, 255, 0.5)' }}>
+                                            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎬</div>
+                                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'white' }}>Queue is empty</p>
+                                            <p style={{ fontSize: '0.875rem' }}>Click videos from the library to add them</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {queue.map((song, index) => (
+                                                <div
+                                                    key={song.id}
+                                                    className="animate-in"
+                                                    style={{
+                                                        background: 'rgba(255, 255, 255, 0.05)',
+                                                        borderRadius: '0.75rem',
+                                                        padding: '1rem',
+                                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                        display: 'flex',
+                                                        gap: '1rem',
+                                                        alignItems: 'center'
+                                                    }}
+                                                >
+                                                    <span style={{ 
+                                                        color: '#f9a8d4', 
+                                                        fontWeight: 'bold', 
+                                                        fontSize: '1.5rem', 
+                                                        minWidth: '40px',
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        {index + 1}
+                                                    </span>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p style={{ color: '#f9a8d4', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.25rem' }}>
+                                                            {song.artist}
+                                                        </p>
+                                                        <h3 style={{ 
+                                                            color: 'white', 
+                                                            fontWeight: '600', 
+                                                            fontSize: '1rem', 
+                                                            margin: '0 0 0.25rem 0', 
+                                                            overflow: 'hidden', 
+                                                            textOverflow: 'ellipsis', 
+                                                            whiteSpace: 'nowrap' 
+                                                        }}>
+                                                            {song.title}
+                                                        </h3>
+                                                        <p style={{ color: 'rgba(233, 213, 255, 0.7)', fontSize: '0.75rem', margin: 0 }}>
+                                                            Requested by {song.requester}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeFromQueue(song.id)}
+                                                        className="button-hover"
+                                                        style={{
+                                                            padding: '0.625rem',
+                                                            background: 'rgba(239, 68, 68, 0.2)',
+                                                            color: '#f87171',
+                                                            border: 'none',
+                                                            borderRadius: '0.5rem',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        title="Remove from queue"
+                                                    >
+                                                        <Trash2 />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Now Playing Section */}
+                            {currentlyPlaying && (
+                                <div className="animate-in" style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    backdropFilter: 'blur(12px)',
+                                    borderRadius: '1rem',
+                                    padding: '1.5rem',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1rem',
+                                    height: 'fit-content',
+                                    position: 'sticky',
+                                    top: '1.5rem'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                        <div style={{ color: '#22c55e' }}>
+                                            <Play />
+                                        </div>
+                                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'white', margin: 0 }}>
+                                            Now Playing
+                                        </h2>
+                                    </div>
+
+                                    <div className="video-container" style={{ 
+                                        borderRadius: '0.75rem', 
+                                        overflow: 'hidden', 
+                                        background: 'black', 
+                                        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)' 
+                                    }}>
+                                        <video
+                                            ref={videoRef}
+                                            src={currentlyPlaying.url}
+                                            controls
+                                            autoPlay
+                                            onEnded={handleVideoEnded}
+                                            style={{ width: '100%', height: '100%' }}
+                                        />
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <h3 style={{ 
+                                            color: 'white', 
+                                            fontWeight: 'bold', 
+                                            fontSize: '1.125rem', 
+                                            lineHeight: '1.4',
+                                            margin: 0
+                                        }}>
+                                            {currentlyPlaying.title}
+                                        </h3>
+                                        <p style={{ color: '#f9a8d4', fontWeight: '600', fontSize: '0.875rem', margin: 0 }}>
+                                            {currentlyPlaying.artist}
+                                        </p>
+                                        <div style={{ 
+                                            display: 'inline-block', 
+                                            background: 'rgba(255, 255, 255, 0.1)', 
+                                            padding: '0.375rem 0.75rem', 
+                                            borderRadius: '1rem', 
+                                            fontSize: '0.75rem', 
+                                            color: '#e9d5ff',
+                                            alignSelf: 'flex-start',
+                                            marginTop: '0.25rem'
+                                        }}>
+                                            👤 {currentlyPlaying.requester}
+                                        </div>
+                                    </div>
+
+                                    {queue.length > 0 && (
+                                        <div style={{ 
+                                            marginTop: '0.5rem', 
+                                            paddingTop: '1rem', 
+                                            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                                        }}>
+                                            <button
+                                                onClick={playNext}
+                                                className="button-hover"
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.875rem',
+                                                    background: 'linear-gradient(to right, #3b82f6, #2563eb)',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    borderRadius: '0.5rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem',
+                                                    fontWeight: '600',
+                                                    fontSize: '1rem',
+                                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                                                }}
+                                            >
+                                                <SkipForward /> Skip to Next
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render application
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<VideoQueueManager />);
+    </script>
+</body>
+</html>
