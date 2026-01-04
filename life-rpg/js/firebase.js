@@ -22,12 +22,13 @@ const db = getFirestore(app);
 
 const USER_ID = "default"; // later replaced by auth
 
-window.cloudSave = async (data) => {
-  await setDoc(doc(db, "users", USER_ID), data);
-};
-
 window.cloudLoad = async () => {
   const snap = await getDoc(doc(db, "users", USER_ID));
   return snap.exists() ? snap.data() : null;
 };
+
+window.cloudSave = async (data) => {
+  await setDoc(doc(db, "users", USER_ID), data);
+};
+
 
