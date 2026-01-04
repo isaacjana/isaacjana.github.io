@@ -1,12 +1,3 @@
-(async () => {
-  const cloudData = await cloudLoad();
-  if (cloudData) {
-    state = cloudData;
-    localStorage.setItem("lifeRPG", JSON.stringify(state));
-  }
-  render();
-})();
-
 const habits = ["Morning", "Workout", "Deep Work", "Study", "No Junk", "Review"];
 window.state = JSON.parse(localStorage.getItem("lifeRPG")) || {
   checks: {},
@@ -16,6 +7,14 @@ window.state = JSON.parse(localStorage.getItem("lifeRPG")) || {
   skills: {}
 };
 
+(async () => {
+  const cloudData = await cloudLoad();
+  if (cloudData) {
+    state = cloudData;
+    localStorage.setItem("lifeRPG", JSON.stringify(state));
+  }
+  render();
+})();
 
 // Build days
 let dayRow = "<tr><th>Habit</th>";
