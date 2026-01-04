@@ -1,4 +1,5 @@
 const habits = ["Morning", "Workout", "Deep Work", "Study", "No Junk", "Review"];
+// 1️⃣ Create global state FIRST
 window.state = JSON.parse(localStorage.getItem("lifeRPG")) || {
   checks: {},
   xp: 0,
@@ -7,14 +8,28 @@ window.state = JSON.parse(localStorage.getItem("lifeRPG")) || {
   skills: {}
 };
 
-(async () => {
-  const cloudData = await cloudLoad();
-  if (cloudData) {
-    state = cloudData;
-    localStorage.setItem("lifeRPG", JSON.stringify(state));
+// 2️⃣ WAIT for Firebase to exist, then load cloud
+(async function init() {
+  // Wait until cloudLoad exists
+  while (typeof window.cloudLoad !== "function") {
+    await new Promise(r => setTimeout(r, 50));
   }
+
+  try {
+    const cloudData = await window.cloudLoad();
+
+    if (cloudData) {
+      window.state = cloudData;
+      localStorage.setItem("lifeRPG", JSON.stringify(window.state));
+    }
+  } catch (err) {
+    console.warn("Cloud load failed, using local data", err);
+  }
+
+  // 3️⃣ Now render AFTER state is ready
   render();
 })();
+
 
 // Build days
 let dayRow = "<tr><th>Habit</th>";
