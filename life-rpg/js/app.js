@@ -8,13 +8,14 @@
 })();
 
 const habits = ["Morning", "Workout", "Deep Work", "Study", "No Junk", "Review"];
-let state = JSON.parse(localStorage.getItem("lifeRPG")) || {
+window.state = JSON.parse(localStorage.getItem("lifeRPG")) || {
   checks: {},
   xp: 0,
   level: 0,
   sp: 0,
   skills: {}
 };
+
 
 // Build days
 let dayRow = "<tr><th>Habit</th>";
