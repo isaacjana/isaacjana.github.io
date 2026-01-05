@@ -147,187 +147,217 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+<script type="module">
+    // We use the CDN URLs so this works directly in the browser
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-analytics.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-        // --- REPLACE WITH YOUR FIREBASE CONFIG ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyAdAoFYS_j2r58mZZeadwEz9h91zKj78zU",
-          authDomain: "life-rpg-e7808.firebaseapp.com",
-          projectId: "life-rpg-e7808",
-          storageBucket: "life-rpg-e7808.firebasestorage.app",
-          messagingSenderId: "1003021084182",
-          appId: "1:1003021084182:web:0b84ad6782f8dc3034b737",
-          measurementId: "G-KNSRPK9PM1"
-        };
+    // --- YOUR SPECIFIC CONFIGURATION ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAdAoFYS_j2r58mZZeadwEz9h91zKj78zU",
+      authDomain: "life-rpg-e7808.firebaseapp.com",
+      projectId: "life-rpg-e7808",
+      storageBucket: "life-rpg-e7808.firebasestorage.app",
+      messagingSenderId: "1003021084182",
+      appId: "1:1003021084182:web:0b84ad6782f8dc3034b737",
+      measurementId: "G-KNSRPK9PM1"
+    };
 
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app); // Analytics enabled
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    let currentUser = null;
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        let currentUser = null;
-
-        // --- AUTH LOGIC ---
-        $('#btn-signup').click(async () => {
-            const email = $('#email').val();
-            const password = $('#password').val();
-            try {
-                const cred = await createUserWithEmailAndPassword(auth, email, password);
-                // Initialize User Stats
-                await setDoc(doc(db, "users", cred.user.uid), { xp: 0, level: 1 });
-            } catch (e) { alert(e.message); }
-        });
-
-        $('#btn-login').click(async () => {
-            const email = $('#email').val();
-            const password = $('#password').val();
-            try { await signInWithEmailAndPassword(auth, email, password); } 
-            catch (e) { alert(e.message); }
-        });
-
-        $('#btn-logout').click(() => signOut(auth));
-
-        // --- STATE MANAGEMENT ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                $('#auth-section').addClass('hidden');
-                $('#app-section').removeClass('hidden');
-                $('#user-email').text(user.email);
-                initGameSystem();
-                loadTasks();
-            } else {
-                currentUser = null;
-                $('#auth-section').removeClass('hidden');
-                $('#app-section').addClass('hidden');
-            }
-        });
-
-        // --- GAME SYSTEM ---
-        function initGameSystem() {
-            // Listen to User Stats
-            onSnapshot(doc(db, "users", currentUser.uid), (doc) => {
-                const data = doc.data();
-                if(!data) return;
-                
-                const level = data.level || 1;
-                const xp = data.xp || 0;
-                
-                // Simple Level Formula: Level Up every 100 XP
-                const xpNeeded = level * 100; 
-                const progressPercent = (xp / xpNeeded) * 100;
-
-                $('#user-level').text(level);
-                $('#xp-text').text(`${xp} / ${xpNeeded} XP`);
-                $('#xp-bar').css('width', `${progressPercent}%`);
-
-                // Check Level Up logic
-                if (xp >= xpNeeded) {
-                    levelUp(level, xp);
-                }
-            });
-        }
-
-        async function levelUp(currentLevel, currentXP) {
-             // Reset XP (or carry over) and increase level
-             const nextLevel = currentLevel + 1;
-             const carryOverXp = currentXP - (currentLevel * 100);
-             
-             await updateDoc(doc(db, "users", currentUser.uid), {
-                 level: nextLevel,
-                 xp: carryOverXp 
-             });
-             alert(`🎉 LEVEL UP! You are now level ${nextLevel}!`);
-        }
-
-        // --- KANBAN LOGIC ---
-        function loadTasks() {
-            const q = query(collection(db, "tasks"), where("uid", "==", currentUser.uid));
-            
-            onSnapshot(q, (snapshot) => {
-                $('#col-todo, #col-doing, #col-done').empty(); // Clear columns
-
-                snapshot.forEach((docSnap) => {
-                    const task = docSnap.data();
-                    const taskId = docSnap.id;
-                    renderTask(taskId, task);
-                });
-            });
-        }
-
-        function renderTask(id, task) {
-            let actionBtn = '';
-            let colorClass = 'border-secondary';
-
-            // Define Buttons based on status
-            if (task.status === 'todo') {
-                actionBtn = `<button class="btn btn-sm btn-outline-primary move-btn" data-id="${id}" data-status="doing" data-xp="${task.xp}">Start ▶</button>`;
-                colorClass = 'border-secondary';
-            } else if (task.status === 'doing') {
-                actionBtn = `<button class="btn btn-sm btn-success move-btn" data-id="${id}" data-status="done" data-xp="${task.xp}">Complete ✅</button>`;
-                colorClass = 'border-primary';
-            } else {
-                actionBtn = `<span class="badge bg-success">+${task.xp} XP</span>`;
-                colorClass = 'border-success';
-            }
-
-            const html = `
-                <div class="card task-card shadow-sm mb-2 ${colorClass}">
-                    <div class="card-body p-2 d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${task.title}</strong>
-                            <div class="small text-muted">${task.xp} XP</div>
-                        </div>
-                        ${actionBtn}
-                    </div>
-                </div>
-            `;
-
-            $(`#col-${task.status}`).append(html);
-        }
-
-        // --- ACTIONS ---
-        // 1. Create Task
-        $('#btn-save-task').click(async () => {
-            const title = $('#task-title').val();
-            const xp = parseInt($('#task-difficulty').val());
-            
-            if (title) {
-                await addDoc(collection(db, "tasks"), {
-                    uid: currentUser.uid,
-                    title: title,
-                    xp: xp,
-                    status: 'todo',
-                    createdAt: Date.now()
-                });
-                $('#task-title').val('');
-                $('#addTaskModal').modal('hide');
-            }
-        });
-
-        // 2. Move Task (Event Delegation for dynamically created elements)
-        $(document).on('click', '.move-btn', async function() {
-            const id = $(this).data('id');
-            const newStatus = $(this).data('status');
-            const xpReward = $(this).data('xp');
-
-            // Update Status
-            await updateDoc(doc(db, "tasks", id), { status: newStatus });
-
-            // If task completed, give XP
-            if (newStatus === 'done') {
-                await updateDoc(doc(db, "users", currentUser.uid), {
-                    xp: increment(xpReward)
-                });
-            }
-        });
+    // --- 1. AUTH LOGIC ---
+    $('#btn-signup').click(async () => {
+        const email = $('#email').val();
+        const password = $('#password').val();
+        if(password.length < 6) { alert("Password must be at least 6 characters"); return; }
         
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, email, password);
+            // Create the user document in Firestore with initial Level 1
+            await setDoc(doc(db, "users", cred.user.uid), { 
+                email: email,
+                xp: 0, 
+                level: 1 
+            });
+            console.log("User created:", cred.user.uid);
+        } catch (e) { 
+            console.error(e);
+            alert("Signup Error: " + e.message); 
         }
-    </script>
+    });
+
+    $('#btn-login').click(async () => {
+        const email = $('#email').val();
+        const password = $('#password').val();
+        try { 
+            await signInWithEmailAndPassword(auth, email, password); 
+        } catch (e) { 
+            console.error(e);
+            alert("Login Error: " + e.message); 
+        }
+    });
+
+    $('#btn-logout').click(() => signOut(auth));
+
+    // --- 2. STATE MANAGEMENT ---
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            $('#auth-section').addClass('hidden');
+            $('#app-section').removeClass('hidden');
+            $('#user-email').text(user.email);
+            
+            // Load Game Data & Tasks
+            initGameSystem();
+            loadTasks();
+        } else {
+            currentUser = null;
+            $('#auth-section').removeClass('hidden');
+            $('#app-section').addClass('hidden');
+        }
+    });
+
+    // --- 3. GAME SYSTEM (XP & LEVEL) ---
+    function initGameSystem() {
+        // Listen to User Stats in real-time
+        onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
+            if (!docSnap.exists()) return;
+            
+            const data = docSnap.data();
+            const level = data.level || 1;
+            const xp = data.xp || 0;
+            
+            // Logic: XP needed increases with level (Level * 100)
+            const xpNeeded = level * 100; 
+            const progressPercent = Math.min((xp / xpNeeded) * 100, 100);
+
+            // Update UI
+            $('#user-level').text(level);
+            $('#xp-text').text(`${xp} / ${xpNeeded} XP`);
+            $('#xp-bar').css('width', `${progressPercent}%`);
+
+            // Check if Level Up is needed
+            if (xp >= xpNeeded) {
+                levelUp(level, xp, xpNeeded);
+            }
+        });
+    }
+
+    async function levelUp(currentLevel, currentXP, xpNeeded) {
+         const nextLevel = currentLevel + 1;
+         const carryOverXp = currentXP - xpNeeded;
+         
+         // Update Firestore
+         await updateDoc(doc(db, "users", currentUser.uid), {
+             level: nextLevel,
+             xp: carryOverXp 
+         });
+         
+         // Optional: Play a sound or show an alert
+         alert(`🎉 LEVEL UP! You reached Level ${nextLevel}!`);
+    }
+
+    // --- 4. KANBAN LOGIC ---
+    function loadTasks() {
+        const q = query(collection(db, "tasks"), where("uid", "==", currentUser.uid));
+        
+        onSnapshot(q, (snapshot) => {
+            // Clear current lists
+            $('#col-todo, #col-doing, #col-done').empty(); 
+
+            snapshot.forEach((docSnap) => {
+                const task = docSnap.data();
+                const taskId = docSnap.id;
+                renderTask(taskId, task);
+            });
+        });
+    }
+
+    function renderTask(id, task) {
+        let actionBtn = '';
+        let colorClass = 'border-secondary';
+
+        // Decide button logic based on status
+        if (task.status === 'todo') {
+            actionBtn = `<button class="btn btn-sm btn-outline-primary move-btn" data-id="${id}" data-status="doing" data-xp="${task.xp}">Start ▶</button>`;
+        } else if (task.status === 'doing') {
+            actionBtn = `<button class="btn btn-sm btn-success move-btn" data-id="${id}" data-status="done" data-xp="${task.xp}">Complete ✅</button>`;
+            colorClass = 'border-primary';
+        } else {
+            // Done state
+            actionBtn = `<span class="badge bg-success">+${task.xp} XP</span>`;
+            colorClass = 'border-success opacity-75';
+        }
+
+        const html = `
+            <div class="card task-card shadow-sm mb-2 ${colorClass}">
+                <div class="card-body p-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${task.title}</strong>
+                        <div class="small text-muted">${task.xp} XP</div>
+                    </div>
+                    ${actionBtn}
+                </div>
+            </div>
+        `;
+
+        // Append to correct column
+        $(`#col-${task.status}`).append(html);
+    }
+
+    // --- 5. USER ACTIONS ---
+    
+    // Create New Task
+    $('#btn-save-task').click(async () => {
+        const title = $('#task-title').val();
+        const xp = parseInt($('#task-difficulty').val());
+        
+        if (title) {
+            await addDoc(collection(db, "tasks"), {
+                uid: currentUser.uid,
+                title: title,
+                xp: xp,
+                status: 'todo',
+                createdAt: Date.now()
+            });
+            
+            // Reset and close modal
+            $('#task-title').val('');
+            const modalEl = document.getElementById('addTaskModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+        }
+    });
+
+    // Move Task (Dynamic Event Listener)
+    $(document).on('click', '.move-btn', async function() {
+        const id = $(this).data('id');
+        const newStatus = $(this).data('status');
+        const xpReward = $(this).data('xp');
+
+        // 1. Update Task Status
+        await updateDoc(doc(db, "tasks", id), { status: newStatus });
+
+        // 2. If completing task, Give XP to User
+        if (newStatus === 'done') {
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                xp: increment(xpReward)
+            });
+        }
+    });
+    
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+</script>
 </body>
 </html>
