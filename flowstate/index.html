@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Kanban</title>
+    <title>FlowState Kanban</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
@@ -15,12 +15,11 @@
         :root {
             --bg-light: #f8f9fa;
             --border-color: #e9ecef;
-            --text-muted: #6c757d;
         }
         body { background-color: #ffffff; color: #212529; font-family: 'Segoe UI', sans-serif; }
         .hidden { display: none !important; }
         
-        /* Minimalist Nav */
+        /* Navbar */
         .navbar { border-bottom: 1px solid var(--border-color); background: #fff; }
         
         /* Project Cards */
@@ -29,28 +28,37 @@
             border-radius: 8px;
             transition: all 0.2s;
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
         .project-card:hover { border-color: #0d6efd; background: var(--bg-light); }
+        .project-date { font-size: 0.8rem; color: #6c757d; }
 
-        /* Kanban */
+        /* Kanban Columns */
         .kanban-col {
             background: var(--bg-light);
             border-radius: 6px;
             padding: 12px;
-            min-height: 70vh;
+            min-height: 75vh;
         }
+        
+        /* Task Cards */
         .task-card {
             background: #fff;
             border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 8px;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: transform 0.1s;
         }
-        .task-card:hover { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         
-        /* Badges */
-        .badge-role { font-size: 0.7em; opacity: 0.8; }
+        /* Date Badges */
+        .badge-date { font-size: 0.75rem; font-weight: normal; }
+        .bg-urgent { background-color: #ffc107; color: #000; } /* Yellow for 3 days */
+        .bg-overdue { background-color: #dc3545; color: #fff; } /* Red for late */
+        .bg-normal { background-color: #e9ecef; color: #6c757d; } /* Grey for normal */
     </style>
 </head>
 <body>
@@ -58,7 +66,7 @@
     <div id="auth-section" class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-5">
-                <h2 class="text-center mb-4 fw-light">Workspace Login</h2>
+                <h2 class="text-center mb-4 fw-light">FlowState Login</h2>
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <input type="email" id="email" class="form-control mb-3" placeholder="name@example.com">
@@ -75,10 +83,12 @@
 
     <div id="app-section" class="hidden">
         
-        <nav class="navbar navbar-expand-lg px-3">
-            <a class="navbar-brand fw-bold" href="#" onclick="showDashboard()">My Workspace</a>
+        <nav class="navbar navbar-expand-lg px-3 sticky-top">
+            <a class="navbar-brand fw-bold" href="#" onclick="showDashboard()">
+                <i class="fas fa-layer-group text-primary me-2"></i>FlowState
+            </a>
             <div class="ms-auto d-flex align-items-center">
-                <span id="user-display" class="small text-muted me-3"></span>
+                <span id="user-display" class="small text-muted me-3 d-none d-md-block"></span>
                 <button id="btn-logout" class="btn btn-sm btn-outline-danger">Log Out</button>
             </div>
         </nav>
@@ -86,7 +96,9 @@
         <div id="view-dashboard" class="container mt-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-light">Your Projects</h4>
-                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#newProjectModal">+ New Project</button>
+                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                    <i class="fas fa-plus"></i> New Project
+                </button>
             </div>
             <div id="project-list" class="row g-3">
                 </div>
@@ -97,7 +109,8 @@
                 <div>
                     <button class="btn btn-sm btn-link text-decoration-none text-dark ps-0" onclick="showDashboard()">← Back</button>
                     <span class="mx-2 text-muted">/</span>
-                    <strong id="current-project-title" class="fs-5">Project Name</strong>
+                    <strong id="current-project-title" class="fs-5">Loading...</strong>
+                    <span id="current-project-deadline" class="badge bg-light text-dark border ms-2 fw-normal"></span>
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary me-2" id="btn-manage-members">
@@ -109,22 +122,22 @@
                 </div>
             </div>
 
-            <div class="row g-3">
-                <div class="col-md-4">
+            <div class="row g-3 overflow-auto flex-nowrap flex-md-wrap pb-5">
+                <div class="col-10 col-md-4">
                     <div class="kanban-col">
-                        <h6 class="text-secondary small fw-bold text-uppercase">To Do</h6>
+                        <h6 class="text-secondary small fw-bold text-uppercase mb-3">To Do</h6>
                         <div id="col-todo" class="d-grid"></div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-10 col-md-4">
                     <div class="kanban-col">
-                        <h6 class="text-secondary small fw-bold text-uppercase">In Progress</h6>
+                        <h6 class="text-primary small fw-bold text-uppercase mb-3">In Progress</h6>
                         <div id="col-doing" class="d-grid"></div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-10 col-md-4">
                     <div class="kanban-col">
-                        <h6 class="text-secondary small fw-bold text-uppercase">Done</h6>
+                        <h6 class="text-success small fw-bold text-uppercase mb-3">Done</h6>
                         <div id="col-done" class="d-grid"></div>
                     </div>
                 </div>
@@ -137,14 +150,20 @@
             <div class="modal-content">
                 <div class="modal-header border-0"><h5 class="modal-title">Create Project</h5></div>
                 <div class="modal-body">
-                    <input type="text" id="inp-project-title" class="form-control mb-3" placeholder="Project Name">
+                    <label class="small text-muted">Project Name</label>
+                    <input type="text" id="inp-project-title" class="form-control mb-3" placeholder="e.g. Website Redesign">
+                    
+                    <label class="small text-muted">Deadline (Optional)</label>
+                    <input type="date" id="inp-project-deadline" class="form-control mb-3">
+
+                    <label class="small text-muted">Type</label>
                     <select id="inp-project-type" class="form-select">
                         <option value="individual">Individual (Private)</option>
                         <option value="group">Group Project</option>
                     </select>
                 </div>
                 <div class="modal-footer border-0">
-                    <button class="btn btn-dark w-100" id="btn-create-project">Create</button>
+                    <button class="btn btn-dark w-100" id="btn-create-project">Create Project</button>
                 </div>
             </div>
         </div>
@@ -156,7 +175,6 @@
                 <div class="modal-header border-0"><h5 class="modal-title">Team Members</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <ul id="member-list" class="list-group list-group-flush mb-3"></ul>
-                    
                     <div class="border-top pt-3">
                         <label class="small text-muted mb-1">Add Member by Email</label>
                         <div class="input-group">
@@ -178,7 +196,11 @@
             <div class="modal-content">
                 <div class="modal-header border-0"><h5 class="modal-title">New Task</h5></div>
                 <div class="modal-body">
-                    <input type="text" id="inp-task-title" class="form-control" placeholder="What needs to be done?">
+                    <label class="small text-muted">Task Description</label>
+                    <input type="text" id="inp-task-title" class="form-control mb-3" placeholder="What needs to be done?">
+                    
+                    <label class="small text-muted">Due Date</label>
+                    <input type="date" id="inp-task-date" class="form-control">
                 </div>
                 <div class="modal-footer border-0">
                     <button class="btn btn-dark w-100" id="btn-save-task">Add Task</button>
@@ -191,9 +213,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script type="module">
+        // Added 'getDoc' to imports to fix the error
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
         // --- CONFIG ---
         const firebaseConfig = {
@@ -211,7 +234,7 @@
 
         let currentUser = null;
         let currentProjectId = null;
-        let currentRole = null; // 'owner', 'editor', 'viewer'
+        let currentRole = null; 
 
         // --- AUTH ---
         $('#btn-login').click(async () => {
@@ -223,7 +246,6 @@
             const email = $('#email').val();
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, $('#password').val());
-                // Save user to 'users' collection so we can find them later by email
                 await setDoc(doc(db, "users", cred.user.uid), { email: email });
             } catch (e) { alert(e.message); }
         });
@@ -244,7 +266,7 @@
             }
         });
 
-        // --- DASHBOARD: PROJECT LIST ---
+        // --- DASHBOARD ---
         window.showDashboard = function() {
             $('#view-project').addClass('hidden');
             $('#view-dashboard').removeClass('hidden');
@@ -252,7 +274,6 @@
         }
 
         function loadDashboard() {
-            // Query projects where 'memberIds' array contains currentUser.uid
             const q = query(collection(db, "projects"), where("memberIds", "array-contains", currentUser.uid));
             
             onSnapshot(q, (snapshot) => {
@@ -262,14 +283,24 @@
                     const p = docSnap.data();
                     const role = p.roles[currentUser.uid];
                     
+                    // Format Date for Dashboard
+                    let deadlineHtml = '';
+                    if (p.deadline) {
+                        const d = new Date(p.deadline);
+                        deadlineHtml = `<div class="project-date mt-2"><i class="far fa-clock"></i> Due: ${d.toLocaleDateString()}</div>`;
+                    }
+
                     const html = `
                         <div class="col-md-4 col-lg-3">
-                            <div class="project-card p-3" onclick="openProject('${docSnap.id}')">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="mb-1 fw-bold">${p.title}</h6>
+                            <div class="project-card p-3 h-100 d-flex flex-column" onclick="openProject('${docSnap.id}')">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <h6 class="mb-0 fw-bold text-truncate">${p.title}</h6>
                                     ${p.type === 'group' ? '<i class="fas fa-users text-muted"></i>' : '<i class="fas fa-user text-muted"></i>'}
                                 </div>
-                                <span class="badge bg-secondary badge-role text-uppercase">${role}</span>
+                                <span class="badge bg-secondary badge-role text-uppercase align-self-start" style="font-size:0.6rem;">${role}</span>
+                                <div class="mt-auto">
+                                    ${deadlineHtml}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -281,44 +312,52 @@
         $('#btn-create-project').click(async () => {
             const title = $('#inp-project-title').val();
             const type = $('#inp-project-type').val();
+            const deadline = $('#inp-project-deadline').val(); // Get date string YYYY-MM-DD
+            
             if(!title) return;
 
-            // Initialize Roles: Creator is Owner
             const roles = {};
             roles[currentUser.uid] = "owner";
 
             await addDoc(collection(db, "projects"), {
                 title: title,
                 type: type,
+                deadline: deadline, // Save deadline
                 createdAt: Date.now(),
-                memberIds: [currentUser.uid], // Array for querying
-                roles: roles // Map for permissions
+                memberIds: [currentUser.uid],
+                roles: roles
             });
 
             $('#inp-project-title').val('');
+            $('#inp-project-deadline').val('');
             $('#newProjectModal').modal('hide');
         });
 
-        // --- SINGLE PROJECT LOGIC ---
+        // --- SINGLE PROJECT ---
         window.openProject = function(projectId) {
             currentProjectId = projectId;
             
-            // Get Project Details to check Role
-            // We use a realtime listener on the project document itself
             onSnapshot(doc(db, "projects", projectId), (docSnap) => {
                 if(!docSnap.exists()) return;
                 const p = docSnap.data();
                 
                 $('#current-project-title').text(p.title);
+                
+                // Show Project Deadline
+                if(p.deadline) {
+                    $('#current-project-deadline').text(`Due: ${p.deadline}`).show();
+                } else {
+                    $('#current-project-deadline').hide();
+                }
+
                 currentRole = p.roles[currentUser.uid];
                 
-                // UI Toggle based on role
+                // Permissions
                 if(currentRole === 'viewer') {
                     $('#btn-add-task-modal').hide();
                     $('#btn-manage-members').hide();
                 } else {
                     $('#btn-add-task-modal').show();
-                    // Only owners can manage members in group projects
                     if(p.type === 'group' && currentRole === 'owner') {
                         $('#btn-manage-members').show();
                     } else {
@@ -327,7 +366,6 @@
                 }
             });
 
-            // Load Tasks
             loadTasks(projectId);
 
             $('#view-dashboard').addClass('hidden');
@@ -336,9 +374,6 @@
 
         function loadTasks(projectId) {
             const q = query(collection(db, "tasks"), where("projectId", "==", projectId));
-            
-            // Note: We need a composite index for this query usually? 
-            // Actually, "projectId" == "X" is simple. No complex index needed unless sorting.
             
             onSnapshot(q, (snapshot) => {
                 $('#col-todo, #col-doing, #col-done').empty();
@@ -350,22 +385,44 @@
         }
 
         function renderTask(id, task) {
-            // Permission Check: Viewers cannot move tasks
             let controls = '';
             
+            // 1. Move Controls
             if (currentRole !== 'viewer') {
                 if(task.status === 'todo') 
-                    controls = `<button class="btn btn-sm text-primary move-btn" data-id="${id}" data-status="doing">Start <i class="fas fa-play"></i></button>`;
+                    controls = `<button class="btn btn-sm text-primary move-btn p-0" data-id="${id}" data-status="doing">Start <i class="fas fa-play"></i></button>`;
                 else if(task.status === 'doing')
-                    controls = `<button class="btn btn-sm text-success move-btn" data-id="${id}" data-status="done">Finish <i class="fas fa-check"></i></button>`;
-                else 
-                    controls = `<button class="btn btn-sm text-muted" disabled>Done</button>`;
+                    controls = `<button class="btn btn-sm text-success move-btn p-0" data-id="${id}" data-status="done">Finish <i class="fas fa-check"></i></button>`;
+            }
+
+            // 2. Date Logic & Reminders
+            let dateBadge = '';
+            if (task.dueDate && task.status !== 'done') {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const due = new Date(task.dueDate);
+                
+                // Calculate difference in days
+                const diffTime = due - today; 
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+                if (diffDays < 0) {
+                    // Overdue
+                    dateBadge = `<span class="badge badge-date bg-overdue"><i class="fas fa-exclamation-circle"></i> Overdue (${task.dueDate})</span>`;
+                } else if (diffDays <= 3) {
+                    // Approaching (3 days or less)
+                    dateBadge = `<span class="badge badge-date bg-urgent"><i class="fas fa-clock"></i> Due in ${diffDays} days</span>`;
+                } else {
+                    // Normal
+                    dateBadge = `<span class="badge badge-date bg-normal"><i class="far fa-calendar"></i> ${task.dueDate}</span>`;
+                }
             }
 
             const html = `
                 <div class="task-card">
-                    <div class="mb-2">${task.title}</div>
-                    <div class="d-flex justify-content-end">
+                    <div class="mb-2 fw-medium">${task.title}</div>
+                    <div class="mb-2">${dateBadge}</div>
+                    <div class="d-flex justify-content-end border-top pt-2 mt-2">
                         ${controls}
                     </div>
                 </div>
@@ -374,15 +431,21 @@
         }
 
         // --- TASK ACTIONS ---
-        $('#btn-add-task-modal').click(() => $('#addTaskModal').modal('show'));
+        $('#btn-add-task-modal').click(() => {
+            // Set default date to today in the modal input
+            document.getElementById('inp-task-date').valueAsDate = new Date();
+            $('#addTaskModal').modal('show')
+        });
 
         $('#btn-save-task').click(async () => {
             const title = $('#inp-task-title').val();
+            const date = $('#inp-task-date').val();
             if(!title) return;
 
             await addDoc(collection(db, "tasks"), {
                 projectId: currentProjectId,
                 title: title,
+                dueDate: date, // Save Due Date
                 status: 'todo',
                 createdBy: currentUser.uid,
                 createdAt: Date.now()
@@ -400,72 +463,55 @@
         // --- MEMBER MANAGEMENT ---
         $('#btn-manage-members').click(loadMembers);
 
+        // Fixed Function (ReferenceError: getDoc is not defined)
         async function loadMembers() {
-            const pRef = doc(db, "projects", currentProjectId);
-            const pSnap = await getDocs(query(collection(db, "projects"), where("__name__", "==", currentProjectId))); // getting doc directly is better
-            // Reuse the realtime listener data if possible, but let's fetch fresh for modal
-            // Simplified: we rely on data loaded in openProject logic usually, but here:
-            
-            // We just read the current 'roles' map from the project
-            // Getting specific details requires reading the 'users' collection for names/emails
-            
-            // For MVP: We just show UIDs if we don't have emails, 
-            // BUT we saved emails in 'users' collection on signup.
-            // Complex JOINs are hard in NoSQL.
-            // Strategy: We list the UIDs/Emails from the project data if we stored them there?
-            // Better: Store { uid: { email: "...", role: "..." } } ? 
-            // NO. Firestore best practice: Store minimal user data in the project doc or fetch client side.
-            
-            // Let's keep it simple: We will just display the modal logic.
             $('#membersModal').modal('show');
-            renderMemberList(); 
-        }
+            
+            // 1. Get Project Data to see who is in it
+            const snap = await getDoc(doc(db, "projects", currentProjectId)); 
+            if(!snap.exists()) return;
+            
+            const data = snap.data();
+            const memberIds = data.memberIds;
+            const rolesMap = data.roles;
 
-        async function renderMemberList() {
-             // 1. Get Project Data
-             // (We need a way to get the project data inside this function)
-             // Using getDoc for simplicity
-             const snap = await getDoc(doc(db, "projects", currentProjectId));
-             const data = snap.data();
-             const rolesMap = data.roles;
-             const memberIds = data.memberIds;
+            const list = $('#member-list');
+            list.empty();
 
-             const list = $('#member-list');
-             list.empty();
-
-             // 2. For every member ID, we ideally fetch their email from 'users' collection
-             // This implies N reads. For small teams, this is fine.
-             for(const uid of memberIds) {
-                 const userSnap = await getDoc(doc(db, "users", uid));
-                 const email = userSnap.exists() ? userSnap.data().email : "Unknown";
-                 const role = rolesMap[uid];
-                 
-                 list.append(`
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>${email}</span>
+            // 2. Fetch User Emails
+            for(const uid of memberIds) {
+                const userSnap = await getDoc(doc(db, "users", uid));
+                const email = userSnap.exists() ? userSnap.data().email : "Unknown User";
+                const role = rolesMap[uid];
+                
+                list.append(`
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>
+                            <i class="fas fa-user-circle text-muted me-2"></i>${email}
+                        </span>
                         <span class="badge bg-light text-dark border">${role}</span>
                     </li>
-                 `);
-             }
+                `);
+            }
         }
 
         $('#btn-invite-member').click(async () => {
             const email = $('#inp-member-email').val();
             const newRole = $('#inp-member-role').val();
             
-            // 1. Find User UID by Email
+            // Search for user by email
             const q = query(collection(db, "users"), where("email", "==", email));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
-                alert("User not found! They must sign up first.");
+                alert("User not found! Ask them to sign up first.");
                 return;
             }
 
             let foundUid = null;
             querySnapshot.forEach(doc => foundUid = doc.id);
 
-            // 2. Add to Project
+            // Add to project
             const projectRef = doc(db, "projects", currentProjectId);
             const pSnap = await getDoc(projectRef);
             const pData = pSnap.data();
@@ -482,9 +528,13 @@
             });
 
             $('#inp-member-email').val('');
-            renderMemberList(); // Refresh list
+            loadMembers(); // Refresh the modal list
         });
 
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
     </script>
 </body>
 </html>
