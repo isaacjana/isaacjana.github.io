@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowState Kanban</title>
+    <title>FlowState Pro</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
     <style>
         :root {
-            --bg-light: #f8f9fa;
-            --border-color: #e9ecef;
+            --bg-light: #f4f5f7;
+            --border-color: #dfe1e6;
         }
-        body { background-color: #ffffff; color: #212529; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #ffffff; color: #172b4d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
         .hidden { display: none !important; }
         
         /* Navbar */
-        .navbar { border-bottom: 1px solid var(--border-color); background: #fff; }
+        .navbar { border-bottom: 1px solid var(--border-color); background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         
         /* Project Cards */
         .project-card {
@@ -29,49 +30,108 @@
             transition: all 0.2s;
             cursor: pointer;
             position: relative;
-            overflow: hidden;
+            background: #fff;
         }
-        .project-card:hover { border-color: #0d6efd; background: var(--bg-light); }
+        .project-card:hover { border-color: #0d6efd; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .project-date { font-size: 0.8rem; color: #6c757d; }
 
         /* Kanban Columns */
         .kanban-col {
             background: var(--bg-light);
             border-radius: 6px;
-            padding: 12px;
+            padding: 10px;
             min-height: 75vh;
+            display: flex;
+            flex-direction: column;
         }
         
         /* Task Cards */
         .task-card {
             background: #fff;
-            border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            padding: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             transition: transform 0.1s;
             position: relative;
+            cursor: grab;
+            border: 1px solid transparent;
         }
-        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .task-card:hover { background-color: #ebecf0; }
+        .task-card:active { cursor: grabbing; transform: rotate(1deg); }
+        
+        /* Drag Ghost */
+        .sortable-ghost { opacity: 0.4; background: #cce5ff; border: 1px dashed #007bff; }
+        .sortable-drag { opacity: 1; transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+
+        /* Avatars */
+        .avatar-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        .avatar-stack { display: flex; padding-left: 8px; }
+        .avatar-stack .avatar-circle { margin-left: -8px; }
+
+        /* Tags */
+        .task-tag {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-right: 4px;
+            text-transform: uppercase;
+        }
+        .tag-bug { background-color: #ffebe6; color: #de350b; }
+        .tag-feature { background-color: #e6fcff; color: #008da6; }
+        .tag-urgent { background-color: #fff0b3; color: #172b4d; }
         
         /* Delete Task Icon */
         .btn-delete-task {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            color: #dc3545;
+            top: 8px;
+            right: 8px;
+            color: #6c757d;
             cursor: pointer;
-            opacity: 0.5;
+            opacity: 0;
             transition: opacity 0.2s;
+            z-index: 10;
         }
-        .btn-delete-task:hover { opacity: 1; }
+        .task-card:hover .btn-delete-task { opacity: 1; }
+        .btn-delete-task:hover { color: #dc3545; }
+
+        /* Chat Layout in Modal */
+        #modal-comments-area {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .comment-bubble {
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .comment-meta { font-size: 0.75rem; color: #adb5bd; margin-bottom: 2px; }
 
         /* Date Badges */
-        .badge-date { font-size: 0.75rem; font-weight: normal; }
-        .bg-urgent { background-color: #ffc107; color: #000; } /* Yellow for 3 days */
-        .bg-overdue { background-color: #dc3545; color: #fff; } /* Red for late */
-        .bg-normal { background-color: #e9ecef; color: #6c757d; } /* Grey for normal */
+        .badge-date { font-size: 0.7rem; font-weight: normal; border-radius: 3px; padding: 2px 6px;}
+        .bg-urgent { background-color: #ffc107; color: #000; }
+        .bg-overdue { background-color: #dc3545; color: #fff; }
+        .bg-normal { color: #6c757d; }
     </style>
 </head>
 <body>
@@ -79,13 +139,13 @@
     <div id="auth-section" class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-5">
-                <h2 class="text-center mb-4 fw-light">FlowState Login</h2>
+                <h2 class="text-center mb-4 fw-light">FlowState <span class="fw-bold">Pro</span></h2>
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <input type="email" id="email" class="form-control mb-3" placeholder="name@example.com">
                         <input type="password" id="password" class="form-control mb-3" placeholder="Password">
                         <div class="d-grid gap-2">
-                            <button id="btn-login" class="btn btn-dark">Log In</button>
+                            <button id="btn-login" class="btn btn-primary">Log In</button>
                             <button id="btn-signup" class="btn btn-outline-secondary">Create Account</button>
                         </div>
                     </div>
@@ -116,49 +176,58 @@
                     <i class="fas fa-plus"></i> New Project
                 </button>
             </div>
-            <div id="project-list" class="row g-3">
-                </div>
+            <div id="project-list" class="row g-3"></div>
         </div>
 
         <div id="view-project" class="container-fluid mt-3 hidden">
-            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                <div>
-                    <button class="btn btn-sm btn-link text-decoration-none text-dark ps-0" onclick="showDashboard()">← Back</button>
-                    <span class="mx-2 text-muted">/</span>
-                    <strong id="current-project-title" class="fs-5">Loading...</strong>
-                    <span id="current-project-deadline" class="badge bg-light text-dark border ms-2 fw-normal"></span>
+            <div class="mb-3 border-bottom pb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <button class="btn btn-sm btn-link text-decoration-none text-dark ps-0" onclick="showDashboard()">← Back</button>
+                        <span class="mx-2 text-muted">/</span>
+                        <strong id="current-project-title" class="fs-5">Loading...</strong>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-danger me-2 hidden" id="btn-delete-project">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary me-2" id="btn-manage-members">
+                            <i class="fas fa-users"></i> Team
+                        </button>
+                        <button class="btn btn-sm btn-dark" id="btn-add-task-modal">
+                            + Task
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-danger me-2 hidden" id="btn-delete-project">
-                        <i class="fas fa-trash"></i> Delete Project
-                    </button>
-
-                    <button class="btn btn-sm btn-outline-secondary me-2" id="btn-manage-members">
-                        <i class="fas fa-users"></i> Members
-                    </button>
-                    <button class="btn btn-sm btn-dark" id="btn-add-task-modal">
-                        + Add Task
-                    </button>
+                
+                <div class="row align-items-center g-2">
+                    <div class="col-auto"><span class="small text-muted fw-bold">Progress</span></div>
+                    <div class="col">
+                        <div class="progress" style="height: 8px;">
+                            <div id="project-progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="col-auto"><span id="project-progress-text" class="small text-muted">0%</span></div>
                 </div>
             </div>
 
             <div class="row g-3 overflow-auto flex-nowrap flex-md-wrap pb-5">
                 <div class="col-10 col-md-4">
                     <div class="kanban-col">
-                        <h6 class="text-secondary small fw-bold text-uppercase mb-3">To Do</h6>
-                        <div id="col-todo" class="d-grid"></div>
+                        <h6 class="text-secondary small fw-bold text-uppercase mb-3 px-1">To Do <span id="count-todo" class="badge bg-white text-dark border ms-1">0</span></h6>
+                        <div id="col-todo" class="d-grid gap-2" data-status="todo"></div>
                     </div>
                 </div>
                 <div class="col-10 col-md-4">
                     <div class="kanban-col">
-                        <h6 class="text-primary small fw-bold text-uppercase mb-3">In Progress</h6>
-                        <div id="col-doing" class="d-grid"></div>
+                        <h6 class="text-primary small fw-bold text-uppercase mb-3 px-1">In Progress <span id="count-doing" class="badge bg-white text-dark border ms-1">0</span></h6>
+                        <div id="col-doing" class="d-grid gap-2" data-status="doing"></div>
                     </div>
                 </div>
                 <div class="col-10 col-md-4">
                     <div class="kanban-col">
-                        <h6 class="text-success small fw-bold text-uppercase mb-3">Done</h6>
-                        <div id="col-done" class="d-grid"></div>
+                        <h6 class="text-success small fw-bold text-uppercase mb-3 px-1">Done <span id="count-done" class="badge bg-white text-dark border ms-1">0</span></h6>
+                        <div id="col-done" class="d-grid gap-2" data-status="done"></div>
                     </div>
                 </div>
             </div>
@@ -172,13 +241,11 @@
                 <div class="modal-body">
                     <label class="small text-muted">Project Name</label>
                     <input type="text" id="inp-project-title" class="form-control mb-3" placeholder="e.g. Website Redesign">
-                    
-                    <label class="small text-muted fw-bold">Project Deadline</label>
+                    <label class="small text-muted">Deadline</label>
                     <input type="date" id="inp-project-deadline" class="form-control mb-3">
-
                     <label class="small text-muted">Type</label>
                     <select id="inp-project-type" class="form-select">
-                        <option value="individual">Individual (Private)</option>
+                        <option value="individual">Individual</option>
                         <option value="group">Group Project</option>
                     </select>
                 </div>
@@ -195,14 +262,11 @@
                 <div class="modal-header border-0"><h5 class="modal-title">Team Members</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <ul id="member-list" class="list-group list-group-flush mb-3"></ul>
-                    
                     <div class="border-top pt-3">
                         <label class="small text-muted mb-1">Add Existing User</label>
                         <div class="input-group">
                             <input type="email" id="inp-member-email" class="form-control" list="dl-users" placeholder="Search user email...">
-                            <datalist id="dl-users">
-                                </datalist>
-
+                            <datalist id="dl-users"></datalist>
                             <select class="form-select" id="inp-member-role" style="max-width: 100px;">
                                 <option value="editor">Editor</option>
                                 <option value="viewer">Viewer</option>
@@ -220,14 +284,65 @@
             <div class="modal-content">
                 <div class="modal-header border-0"><h5 class="modal-title">New Task</h5></div>
                 <div class="modal-body">
-                    <label class="small text-muted">Task Description</label>
-                    <input type="text" id="inp-task-title" class="form-control mb-3" placeholder="What needs to be done?">
+                    <div class="mb-3">
+                        <label class="small text-muted">Task Description</label>
+                        <input type="text" id="inp-task-title" class="form-control" placeholder="What needs to be done?">
+                    </div>
                     
-                    <label class="small text-muted fw-bold">Task Deadline</label>
-                    <input type="date" id="inp-task-date" class="form-control">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-muted">Due Date</label>
+                            <input type="date" id="inp-task-date" class="form-control">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted">Tag</label>
+                            <select id="inp-task-tag" class="form-select">
+                                <option value="">None</option>
+                                <option value="bug">Bug 🐞</option>
+                                <option value="feature">Feature ✨</option>
+                                <option value="urgent">Urgent 🔥</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-muted">Assign To</label>
+                        <select id="inp-task-assign" class="form-select">
+                            </select>
+                    </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button class="btn btn-dark w-100" id="btn-save-task">Add Task</button>
+                    <button class="btn btn-dark w-100" id="btn-save-task">Create Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="taskDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <span id="detail-task-tag"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h4 id="detail-task-title" class="mb-3 fw-bold"></h4>
+                    
+                    <div class="d-flex gap-4 mb-4 text-muted small">
+                        <div><i class="far fa-calendar me-1"></i> <span id="detail-task-date"></span></div>
+                        <div><i class="far fa-user me-1"></i> <span id="detail-task-assignee">Unassigned</span></div>
+                    </div>
+
+                    <hr>
+                    <h6 class="fw-bold mb-3"><i class="far fa-comments"></i> Discussion</h6>
+                    
+                    <div id="modal-comments-area">
+                        </div>
+
+                    <div class="input-group">
+                        <input type="text" id="inp-new-comment" class="form-control" placeholder="Write a comment...">
+                        <button class="btn btn-primary" id="btn-post-comment">Send</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -237,10 +352,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script type="module">
-        // IMPORTED: writeBatch for mass deletion
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, getDoc, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, getDoc, setDoc, deleteDoc, writeBatch, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
         // --- CONFIG ---
         const firebaseConfig = {
@@ -258,7 +372,9 @@
 
         let currentUser = null;
         let currentProjectId = null;
-        let currentRole = null; 
+        let currentRole = null;
+        let projectMembersCache = {}; // Cache for {uid: email}
+        let currentDetailTaskId = null; // ID of task currently open in modal
 
         // --- AUTH ---
         $('#btn-login').click(async () => {
@@ -276,16 +392,12 @@
 
         $('#btn-logout').click(() => signOut(auth));
 
-        // --- DELETE ACCOUNT ---
         $('#btn-delete-account').click(async () => {
-            if(!confirm("Are you sure you want to delete your account? This will permanently remove your user data.")) return;
+            if(!confirm("Are you sure? This deletes all your data.")) return;
             try {
                 await deleteDoc(doc(db, "users", currentUser.uid));
                 await deleteUser(currentUser);
-                alert("Account deleted.");
-            } catch (e) {
-                alert("Error deleting account. Please re-login and try again.");
-            }
+            } catch (e) { alert("Please re-login to delete account."); }
         });
 
         onAuthStateChanged(auth, (user) => {
@@ -311,30 +423,13 @@
 
         function loadDashboard() {
             const q = query(collection(db, "projects"), where("memberIds", "array-contains", currentUser.uid));
-            
             onSnapshot(q, (snapshot) => {
                 const list = $('#project-list');
                 list.empty();
                 snapshot.forEach(docSnap => {
                     const p = docSnap.data();
-                    const role = p.roles[currentUser.uid];
+                    const d = p.deadline ? new Date(p.deadline).toLocaleDateString() : '';
                     
-                    let deadlineHtml = '';
-                    if (p.deadline) {
-                        const d = new Date(p.deadline);
-                        const today = new Date();
-                        const diffTime = d - today; 
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                        
-                        let colorClass = diffDays < 0 ? 'text-danger' : 'text-muted';
-                        let text = diffDays < 0 ? 'Overdue' : (diffDays === 0 ? 'Due Today' : `${diffDays} days left`);
-
-                        deadlineHtml = `
-                            <div class="project-date mt-2 ${colorClass}">
-                                <i class="far fa-clock"></i> ${d.toLocaleDateString()} (${text})
-                            </div>`;
-                    }
-
                     const html = `
                         <div class="col-md-4 col-lg-3">
                             <div class="project-card p-3 h-100 d-flex flex-column" onclick="openProject('${docSnap.id}')">
@@ -342,13 +437,10 @@
                                     <h6 class="mb-0 fw-bold text-truncate">${p.title}</h6>
                                     ${p.type === 'group' ? '<i class="fas fa-users text-muted"></i>' : '<i class="fas fa-user text-muted"></i>'}
                                 </div>
-                                <span class="badge bg-secondary badge-role text-uppercase align-self-start" style="font-size:0.6rem;">${role}</span>
-                                <div class="mt-auto">
-                                    ${deadlineHtml}
-                                </div>
+                                <span class="badge bg-secondary badge-role text-uppercase align-self-start" style="font-size:0.6rem;">${p.roles[currentUser.uid]}</span>
+                                ${d ? `<div class="project-date mt-auto"><i class="far fa-clock"></i> Due: ${d}</div>` : ''}
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                     list.append(html);
                 });
             });
@@ -356,278 +448,327 @@
 
         $('#btn-create-project').click(async () => {
             const title = $('#inp-project-title').val();
-            const type = $('#inp-project-type').val();
-            const deadline = $('#inp-project-deadline').val();
-            
             if(!title) return;
-
-            const roles = {};
-            roles[currentUser.uid] = "owner";
-
             await addDoc(collection(db, "projects"), {
                 title: title,
-                type: type,
-                deadline: deadline,
+                type: $('#inp-project-type').val(),
+                deadline: $('#inp-project-deadline').val(),
                 createdAt: Date.now(),
                 memberIds: [currentUser.uid],
-                roles: roles
+                roles: { [currentUser.uid]: "owner" }
             });
-
-            $('#inp-project-title').val('');
-            $('#inp-project-deadline').val('');
             $('#newProjectModal').modal('hide');
         });
 
-        // --- SINGLE PROJECT ---
-        window.openProject = function(projectId) {
+        // --- PROJECT VIEW ---
+        window.openProject = async function(projectId) {
             currentProjectId = projectId;
             
+            // Fetch Project Metadata
             onSnapshot(doc(db, "projects", projectId), (docSnap) => {
-                if(!docSnap.exists()) {
-                    // Project might have been deleted while looking at it
-                    showDashboard();
-                    return;
-                }
+                if(!docSnap.exists()) { showDashboard(); return; }
                 const p = docSnap.data();
-                
                 $('#current-project-title').text(p.title);
                 
-                if(p.deadline) {
-                    const d = new Date(p.deadline);
-                    const today = new Date();
-                    const diffTime = d - today; 
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    let extraText = diffDays < 0 ? "(Overdue)" : `(${diffDays} days left)`;
-                    
-                    $('#current-project-deadline').text(`Deadline: ${p.deadline} ${extraText}`).show();
-                    if(diffDays < 0) $('#current-project-deadline').removeClass('bg-light text-dark').addClass('bg-danger text-white');
-                    else $('#current-project-deadline').removeClass('bg-danger text-white').addClass('bg-light text-dark');
-                } else {
-                    $('#current-project-deadline').hide();
-                }
-
                 currentRole = p.roles[currentUser.uid];
                 
-                // Show/Hide Elements based on Role
-                $('#btn-delete-project').addClass('hidden'); // Reset
-                if(currentRole === 'owner') {
-                    $('#btn-delete-project').removeClass('hidden'); // Show Delete for Owner
-                    $('#btn-manage-members').show();
-                    $('#btn-add-task-modal').show();
-                } else if(currentRole === 'viewer') {
-                    $('#btn-manage-members').hide();
-                    $('#btn-add-task-modal').hide();
-                } else {
-                    $('#btn-manage-members').hide(); // Editor can add tasks but not manage members
-                    $('#btn-add-task-modal').show();
-                }
+                // Toggle Delete Button
+                if(currentRole === 'owner') $('#btn-delete-project').removeClass('hidden');
+                else $('#btn-delete-project').addClass('hidden');
+
+                // Cache Member emails for Avatars
+                cacheMembers(p.memberIds);
             });
 
+            // Initialize Drag & Drop
+            initSortable();
+
+            // Load Tasks
             loadTasks(projectId);
 
             $('#view-dashboard').addClass('hidden');
             $('#view-project').removeClass('hidden');
         }
 
-        // --- DELETE PROJECT FUNCTION ---
-        $('#btn-delete-project').click(async () => {
-            if(!confirm("WARNING: Are you sure? This will delete the Project AND ALL its Tasks. This cannot be undone.")) return;
+        async function cacheMembers(memberIds) {
+            projectMembersCache = {};
+            const dropdown = $('#inp-task-assign');
+            dropdown.empty().append('<option value="">Unassigned</option>');
 
-            try {
-                // 1. Delete all tasks for this project first (Clean up)
-                const q = query(collection(db, "tasks"), where("projectId", "==", currentProjectId));
-                const querySnapshot = await getDocs(q);
-                
-                const batch = writeBatch(db);
-                querySnapshot.forEach((doc) => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
-
-                // 2. Delete the project document
-                await deleteDoc(doc(db, "projects", currentProjectId));
-                
-                showDashboard();
-            } catch (e) {
-                alert("Error deleting project: " + e.message);
+            for(const uid of memberIds) {
+                const s = await getDoc(doc(db, "users", uid));
+                if(s.exists()) {
+                    const email = s.data().email;
+                    projectMembersCache[uid] = email;
+                    dropdown.append(`<option value="${uid}">${email}</option>`);
+                }
             }
-        });
+        }
 
+        function initSortable() {
+            const columns = ['col-todo', 'col-doing', 'col-done'];
+            columns.forEach(colId => {
+                new Sortable(document.getElementById(colId), {
+                    group: 'kanban', // Allow dragging between lists
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    delay: 100, // slight delay to prevent accidental drags on click
+                    delayOnTouchOnly: true,
+                    onEnd: async function (evt) {
+                        const itemEl = evt.item;
+                        const newStatus = evt.to.getAttribute('data-status');
+                        const taskId = itemEl.getAttribute('data-id');
+                        
+                        // Update Firestore
+                        if(taskId && newStatus) {
+                            await updateDoc(doc(db, "tasks", taskId), { status: newStatus });
+                        }
+                    }
+                });
+            });
+        }
+
+        // --- TASK LOGIC ---
         function loadTasks(projectId) {
             const q = query(collection(db, "tasks"), where("projectId", "==", projectId));
             
             onSnapshot(q, (snapshot) => {
                 $('#col-todo, #col-doing, #col-done').empty();
+                let counts = { todo: 0, doing: 0, done: 0 };
                 
                 snapshot.forEach(docSnap => {
-                    renderTask(docSnap.id, docSnap.data());
+                    const t = docSnap.data();
+                    counts[t.status]++;
+                    renderTask(docSnap.id, t);
                 });
+
+                // Update Counts
+                $('#count-todo').text(counts.todo);
+                $('#count-doing').text(counts.doing);
+                $('#count-done').text(counts.done);
+
+                // Update Progress Bar
+                const total = counts.todo + counts.doing + counts.done;
+                const percent = total === 0 ? 0 : Math.round((counts.done / total) * 100);
+                $('#project-progress-bar').css('width', percent + '%');
+                $('#project-progress-text').text(percent + '%');
             });
         }
 
         function renderTask(id, task) {
-            let controls = '';
-            let deleteBtn = '';
-
-            // Render controls based on role
-            if (currentRole !== 'viewer') {
-                if(task.status === 'todo') 
-                    controls = `<button class="btn btn-sm text-primary move-btn p-0" data-id="${id}" data-status="doing">Start <i class="fas fa-play"></i></button>`;
-                else if(task.status === 'doing')
-                    controls = `<button class="btn btn-sm text-success move-btn p-0" data-id="${id}" data-status="done">Finish <i class="fas fa-check"></i></button>`;
+            // Tag Logic
+            let tagHtml = '';
+            if(task.tag) {
+                const tagClasses = {
+                    'bug': 'tag-bug',
+                    'feature': 'tag-feature',
+                    'urgent': 'tag-urgent'
+                };
+                tagHtml = `<span class="task-tag ${tagClasses[task.tag] || ''}">${task.tag}</span>`;
             }
 
-            // Render Delete Button ONLY if Owner
-            if (currentRole === 'owner') {
-                deleteBtn = `<i class="fas fa-trash-alt btn-delete-task" onclick="deleteTask('${id}')" title="Delete Task"></i>`;
+            // Assignee Avatar
+            let avatarHtml = '';
+            if(task.assignedTo && projectMembersCache[task.assignedTo]) {
+                const initial = projectMembersCache[task.assignedTo].charAt(0).toUpperCase();
+                avatarHtml = `<div class="avatar-circle" title="${projectMembersCache[task.assignedTo]}">${initial}</div>`;
             }
 
+            // Date Logic
             let dateBadge = '';
-            if (task.dueDate && task.status !== 'done') {
-                const today = new Date();
-                today.setHours(0,0,0,0);
+            if(task.dueDate) {
                 const due = new Date(task.dueDate);
-                const diffTime = due - today; 
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-
-                if (diffDays < 0) {
-                    dateBadge = `<span class="badge badge-date bg-overdue"><i class="fas fa-exclamation-circle"></i> Overdue (${task.dueDate})</span>`;
-                } else if (diffDays <= 3) {
-                    dateBadge = `<span class="badge badge-date bg-urgent"><i class="fas fa-clock"></i> Due in ${diffDays} days</span>`;
-                } else {
-                    dateBadge = `<span class="badge badge-date bg-normal"><i class="far fa-calendar"></i> ${task.dueDate}</span>`;
-                }
+                const today = new Date(); today.setHours(0,0,0,0);
+                const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+                let colorClass = 'bg-normal';
+                if(diffDays < 0 && task.status !== 'done') colorClass = 'bg-overdue';
+                else if(diffDays <= 3 && task.status !== 'done') colorClass = 'bg-urgent';
+                
+                dateBadge = `<span class="badge badge-date ${colorClass}"><i class="far fa-clock"></i> ${diffDays < 0 ? 'Late' : (diffDays===0 ? 'Today' : diffDays+'d')}</span>`;
             }
+
+            // Delete Button (Owner Only)
+            let deleteBtn = currentRole === 'owner' ? `<i class="fas fa-trash-alt btn-delete-task" onclick="event.stopPropagation(); window.deleteTask('${id}')"></i>` : '';
 
             const html = `
-                <div class="task-card">
+                <div class="task-card" data-id="${id}" onclick="openTaskDetails('${id}')">
                     ${deleteBtn}
-                    <div class="mb-2 fw-medium pe-4">${task.title}</div>
-                    <div class="mb-2">${dateBadge}</div>
-                    <div class="d-flex justify-content-end border-top pt-2 mt-2">
-                        ${controls}
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        ${tagHtml}
+                    </div>
+                    <div class="mb-2 fw-medium" style="font-size: 0.95rem;">${task.title}</div>
+                    <div class="d-flex justify-content-between align-items-end mt-2">
+                        ${dateBadge}
+                        ${avatarHtml}
                     </div>
                 </div>
             `;
             $(`#col-${task.status}`).append(html);
         }
 
-        // --- DELETE TASK FUNCTION ---
-        window.deleteTask = async function(id) {
-            if(!confirm("Delete this task?")) return;
-            await deleteDoc(doc(db, "tasks", id));
-        };
+        // --- TASK DETAILS & COMMENTS ---
+        window.openTaskDetails = async function(taskId) {
+            currentDetailTaskId = taskId;
+            const snap = await getDoc(doc(db, "tasks", taskId));
+            if(!snap.exists()) return;
+            const t = snap.data();
 
-        // --- TASK ACTIONS ---
+            $('#detail-task-title').text(t.title);
+            $('#detail-task-date').text(t.dueDate || 'No Due Date');
+            
+            // Resolve Assignee Name
+            const assigneeName = (t.assignedTo && projectMembersCache[t.assignedTo]) 
+                ? projectMembersCache[t.assignedTo] 
+                : 'Unassigned';
+            $('#detail-task-assignee').text(assigneeName);
+
+            // Tag
+            if(t.tag) $('#detail-task-tag').html(`<span class="badge bg-secondary text-uppercase">${t.tag}</span>`);
+            else $('#detail-task-tag').empty();
+
+            // Load Comments (Real-time)
+            loadComments(taskId);
+
+            $('#taskDetailModal').modal('show');
+        }
+
+        function loadComments(taskId) {
+            const q = query(collection(db, "comments"), where("taskId", "==", taskId), orderBy("createdAt", "asc"));
+            
+            // Detach previous listener if exists? For simplicity in this structure, we just overwrite
+            onSnapshot(q, (snapshot) => {
+                const area = $('#modal-comments-area');
+                area.empty();
+                if(snapshot.empty) {
+                    area.append('<div class="text-center text-muted py-3 small">No comments yet.</div>');
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const c = docSnap.data();
+                    const isMe = c.userId === currentUser.uid;
+                    const dateStr = c.createdAt ? new Date(c.createdAt.toDate()).toLocaleString() : 'Just now';
+                    
+                    area.append(`
+                        <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}">
+                            <div class="comment-meta">${c.userEmail} • ${dateStr}</div>
+                            <div class="comment-bubble ${isMe ? 'bg-primary text-white border-primary' : ''}">${c.text}</div>
+                        </div>
+                    `);
+                });
+                
+                // Scroll to bottom
+                area.scrollTop(area[0].scrollHeight);
+            });
+        }
+
+        $('#btn-post-comment').click(async () => {
+            const txt = $('#inp-new-comment').val().trim();
+            if(!txt || !currentDetailTaskId) return;
+
+            await addDoc(collection(db, "comments"), {
+                taskId: currentDetailTaskId,
+                text: txt,
+                userId: currentUser.uid,
+                userEmail: currentUser.email,
+                createdAt: serverTimestamp()
+            });
+            $('#inp-new-comment').val('');
+        });
+
+        // --- CRUD OPERATIONS ---
         $('#btn-add-task-modal').click(() => {
-            document.getElementById('inp-task-date').valueAsDate = new Date();
-            $('#addTaskModal').modal('show')
+            $('#inp-task-date').val('');
+            $('#inp-task-title').val('');
+            $('#addTaskModal').modal('show');
         });
 
         $('#btn-save-task').click(async () => {
             const title = $('#inp-task-title').val();
-            const date = $('#inp-task-date').val();
             if(!title) return;
 
             await addDoc(collection(db, "tasks"), {
                 projectId: currentProjectId,
                 title: title,
-                dueDate: date,
+                dueDate: $('#inp-task-date').val(),
+                tag: $('#inp-task-tag').val(),
+                assignedTo: $('#inp-task-assign').val(), // Save UID
                 status: 'todo',
                 createdBy: currentUser.uid,
                 createdAt: Date.now()
             });
-            $('#inp-task-title').val('');
             $('#addTaskModal').modal('hide');
         });
 
-        $(document).on('click', '.move-btn', async function() {
-            const id = $(this).data('id');
-            const status = $(this).data('status');
-            await updateDoc(doc(db, "tasks", id), { status: status });
+        window.deleteTask = async function(id) {
+            if(!confirm("Delete this task?")) return;
+            await deleteDoc(doc(db, "tasks", id));
+        };
+
+        $('#btn-delete-project').click(async () => {
+            if(!confirm("DELETE PROJECT? This will delete all tasks and comments.")) return;
+            
+            // 1. Delete Tasks
+            const q = query(collection(db, "tasks"), where("projectId", "==", currentProjectId));
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+
+            // 2. Delete Project
+            await deleteDoc(doc(db, "projects", currentProjectId));
+            showDashboard();
         });
 
-        // --- MEMBER MANAGEMENT ---
-        $('#btn-manage-members').click(loadMembers);
-
-        async function loadMembers() {
+        // --- MEMBERS ---
+        $('#btn-manage-members').click(async () => {
             $('#membersModal').modal('show');
             const snap = await getDoc(doc(db, "projects", currentProjectId)); 
-            if(!snap.exists()) return;
-            
             const data = snap.data();
-            const memberIds = data.memberIds;
-            const rolesMap = data.roles;
-
+            
             const list = $('#member-list');
             list.empty();
 
-            for(const uid of memberIds) {
-                const userSnap = await getDoc(doc(db, "users", uid));
-                const email = userSnap.exists() ? userSnap.data().email : "Unknown User";
-                const role = rolesMap[uid];
-                
-                list.append(`
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span>
-                            <i class="fas fa-user-circle text-muted me-2"></i>${email}
-                        </span>
-                        <span class="badge bg-light text-dark border">${role}</span>
-                    </li>
-                `);
+            for(const uid of data.memberIds) {
+                const uSnap = await getDoc(doc(db, "users", uid));
+                const email = uSnap.exists() ? uSnap.data().email : "Unknown";
+                list.append(`<li class="list-group-item d-flex justify-content-between"><span>${email}</span> <span class="badge bg-light text-dark border">${data.roles[uid]}</span></li>`);
             }
-
-            // Populate Datalist
-            const allUsersSnap = await getDocs(collection(db, "users"));
-            const dl = $('#dl-users');
-            dl.empty();
             
-            allUsersSnap.forEach(u => {
-                const uData = u.data();
-                if(!memberIds.includes(u.id)) {
-                    dl.append(`<option value="${uData.email}">`);
-                }
+            // Populate Datalist
+            const allUsers = await getDocs(collection(db, "users"));
+            $('#dl-users').empty();
+            allUsers.forEach(u => {
+                if(!data.memberIds.includes(u.id)) $('#dl-users').append(`<option value="${u.data().email}">`);
             });
-        }
+        });
 
         $('#btn-invite-member').click(async () => {
             const email = $('#inp-member-email').val();
-            const newRole = $('#inp-member-role').val();
+            const role = $('#inp-member-role').val();
+            const uQ = query(collection(db, "users"), where("email", "==", email));
+            const uSnap = await getDocs(uQ);
             
-            const q = query(collection(db, "users"), where("email", "==", email));
-            const querySnapshot = await getDocs(q);
+            if(uSnap.empty) { alert("User not found"); return; }
+            const newUid = uSnap.docs[0].id;
 
-            if (querySnapshot.empty) {
-                alert("User not found!");
-                return;
-            }
-
-            let foundUid = null;
-            querySnapshot.forEach(doc => foundUid = doc.id);
-
-            const projectRef = doc(db, "projects", currentProjectId);
-            const pSnap = await getDoc(projectRef);
+            const pRef = doc(db, "projects", currentProjectId);
+            const pSnap = await getDoc(pRef);
             const pData = pSnap.data();
-
-            const updatedRoles = pData.roles;
-            updatedRoles[foundUid] = newRole;
             
-            const updatedMembers = pData.memberIds;
-            if(!updatedMembers.includes(foundUid)) updatedMembers.push(foundUid);
+            const newRoles = pData.roles;
+            newRoles[newUid] = role;
+            const newMembers = [...pData.memberIds];
+            if(!newMembers.includes(newUid)) newMembers.push(newUid);
 
-            await updateDoc(projectRef, {
-                roles: updatedRoles,
-                memberIds: updatedMembers
-            });
-
+            await updateDoc(pRef, { roles: newRoles, memberIds: newMembers });
             $('#inp-member-email').val('');
-            loadMembers(); 
+            $('#btn-manage-members').click(); // Reload list
+            cacheMembers(newMembers); // Refresh assign dropdown
         });
 
-        // Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     </script>
 </body>
 </html>
