@@ -1,6 +1,6 @@
 {
-  "name": "LifeRPG Progress",
-  "short_name": "LifeRPG",
+  "name": "FlowState Progress",
+  "short_name": "FlowState",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f0f2f5",
