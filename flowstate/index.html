@@ -354,7 +354,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script type="module">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, getDoc, setDoc, deleteDoc, writeBatch, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
@@ -377,7 +377,10 @@
         let currentProjectId = null;
         let currentRole = null;
         let projectMembersCache = {}; 
-        let currentDetailTaskId = null; 
+        let currentDetailTaskId = null;
+        
+        // NEW: Variable to hold the listener so we can kill it later
+        let currentCommentUnsubscribe = null; 
 
         // --- AUTH ---
         $('#btn-login').click(async () => {
@@ -467,7 +470,6 @@
         window.openProject = async function(projectId) {
             currentProjectId = projectId;
             
-            // Fetch Project Metadata
             onSnapshot(doc(db, "projects", projectId), (docSnap) => {
                 if(!docSnap.exists()) { showDashboard(); return; }
                 const p = docSnap.data();
@@ -490,7 +492,6 @@
 
         async function cacheMembers(memberIds) {
             projectMembersCache = {};
-            // Populate "New Task" dropdown
             const dropdown = $('#inp-task-assign');
             dropdown.empty().append('<option value="">Unassigned</option>');
 
@@ -537,7 +538,7 @@
                 
                 snapshot.forEach(docSnap => {
                     const t = docSnap.data();
-                    counts[t.status]++;
+                    if(counts[t.status] !== undefined) counts[t.status]++;
                     renderTask(docSnap.id, t);
                 });
 
@@ -592,10 +593,12 @@
                     </div>
                 </div>
             `;
-            $(`#col-${task.status}`).append(html);
+            if($(`#col-${task.status}`).length) {
+                $(`#col-${task.status}`).append(html);
+            }
         }
 
-        // --- TASK DETAILS & REASSIGN & COMMENTS ---
+        // --- TASK DETAILS & COMMENTS (FIXED) ---
         window.openTaskDetails = async function(taskId) {
             currentDetailTaskId = taskId;
             const snap = await getDoc(doc(db, "tasks", taskId));
@@ -605,38 +608,50 @@
             $('#detail-task-title').text(t.title);
             $('#detail-task-date').text(t.dueDate || 'No Due Date');
             
-            // 1. POPULATE REASSIGN DROPDOWN
-            const assignSelect = $('#detail-task-assign-select');
-            assignSelect.empty().append('<option value="">Unassigned</option>');
-            
-            // Fill with project members
+            const reassignSelect = $('#detail-task-reassign');
+            reassignSelect.empty().append('<option value="">Unassigned</option>');
             Object.keys(projectMembersCache).forEach(uid => {
-                const email = projectMembersCache[uid];
-                const selected = t.assignedTo === uid ? 'selected' : '';
-                assignSelect.append(`<option value="${uid}" ${selected}>${email}</option>`);
+                reassignSelect.append(`<option value="${uid}">${projectMembersCache[uid]}</option>`);
             });
-
-            // 2. REASSIGN EVENT LISTENER
-            // Remove old listeners to prevent stacking, then add new one
-            assignSelect.off('change').on('change', async function() {
-                const newUid = $(this).val();
-                await updateDoc(doc(db, "tasks", taskId), { assignedTo: newUid });
-                // Note: The UI updates automatically via onSnapshot
-            });
+            reassignSelect.val(t.assignedTo || "");
 
             if(t.tag) $('#detail-task-tag').html(`<span class="badge bg-secondary text-uppercase">${t.tag}</span>`);
             else $('#detail-task-tag').empty();
 
+            // Load Comments (and clean up previous listener)
             loadComments(taskId);
+            
             $('#taskDetailModal').modal('show');
         }
 
+        // Clean up when modal closes
+        $('#taskDetailModal').on('hidden.bs.modal', function () {
+            if (currentCommentUnsubscribe) {
+                currentCommentUnsubscribe();
+                currentCommentUnsubscribe = null;
+            }
+        });
+
+        $('#detail-task-reassign').change(async function() {
+            const newUid = $(this).val();
+            if(currentDetailTaskId) {
+                await updateDoc(doc(db, "tasks", currentDetailTaskId), { assignedTo: newUid });
+            }
+        });
+
         function loadComments(taskId) {
+            // FIX: Stop listening to the previous task first!
+            if (currentCommentUnsubscribe) {
+                currentCommentUnsubscribe();
+            }
+
             const q = query(collection(db, "comments"), where("taskId", "==", taskId), orderBy("createdAt", "asc"));
             
-            onSnapshot(q, (snapshot) => {
+            // Assign the new listener to our variable
+            currentCommentUnsubscribe = onSnapshot(q, (snapshot) => {
                 const area = $('#modal-comments-area');
                 area.empty();
+                
                 if(snapshot.empty) {
                     area.append('<div class="text-center text-muted py-3 small">No comments yet.</div>');
                     return;
@@ -656,8 +671,7 @@
                 });
                 area.scrollTop(area[0].scrollHeight);
             }, (error) => {
-                // This catches the permission error visually if rules aren't updated
-                console.error("Comments error:", error);
+                console.log("Comment Permission Error:", error);
             });
         }
 
@@ -675,7 +689,7 @@
                 });
                 $('#inp-new-comment').val('');
             } catch (e) {
-                alert("Error: " + e.message + "\n\nDid you update the Firestore Rules?");
+                alert("Error sending comment. Ensure your Rules allow 'create' on comments.");
             }
         });
 
@@ -695,7 +709,7 @@
                 title: title,
                 dueDate: $('#inp-task-date').val(),
                 tag: $('#inp-task-tag').val(),
-                assignedTo: $('#inp-task-assign').val(), 
+                assignedTo: $('#inp-task-assign').val(),
                 status: 'todo',
                 createdBy: currentUser.uid,
                 createdAt: Date.now()
@@ -764,7 +778,7 @@
             await updateDoc(pRef, { roles: newRoles, memberIds: newMembers });
             $('#inp-member-email').val('');
             $('#btn-manage-members').click(); 
-            cacheMembers(newMembers); 
+            cacheMembers(newMembers);
         });
 
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
