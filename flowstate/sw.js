@@ -1,4 +1,4 @@
-const CACHE_NAME = 'liferpg-v1';
+const CACHE_NAME = 'flowstate-v1';
 const urlsToCache = [
   './',
   './index.html',
