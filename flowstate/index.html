@@ -212,8 +212,8 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script type="module">
-        // Added 'getDoc' to imports to fix the error
+<script type="module">
+        // 1. IMPORTS: Notice 'getDoc' is explicitly listed here
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
@@ -283,7 +283,6 @@
                     const p = docSnap.data();
                     const role = p.roles[currentUser.uid];
                     
-                    // Format Date for Dashboard
                     let deadlineHtml = '';
                     if (p.deadline) {
                         const d = new Date(p.deadline);
@@ -312,7 +311,7 @@
         $('#btn-create-project').click(async () => {
             const title = $('#inp-project-title').val();
             const type = $('#inp-project-type').val();
-            const deadline = $('#inp-project-deadline').val(); // Get date string YYYY-MM-DD
+            const deadline = $('#inp-project-deadline').val(); 
             
             if(!title) return;
 
@@ -322,7 +321,7 @@
             await addDoc(collection(db, "projects"), {
                 title: title,
                 type: type,
-                deadline: deadline, // Save deadline
+                deadline: deadline,
                 createdAt: Date.now(),
                 memberIds: [currentUser.uid],
                 roles: roles
@@ -343,7 +342,6 @@
                 
                 $('#current-project-title').text(p.title);
                 
-                // Show Project Deadline
                 if(p.deadline) {
                     $('#current-project-deadline').text(`Due: ${p.deadline}`).show();
                 } else {
@@ -352,7 +350,6 @@
 
                 currentRole = p.roles[currentUser.uid];
                 
-                // Permissions
                 if(currentRole === 'viewer') {
                     $('#btn-add-task-modal').hide();
                     $('#btn-manage-members').hide();
@@ -387,7 +384,6 @@
         function renderTask(id, task) {
             let controls = '';
             
-            // 1. Move Controls
             if (currentRole !== 'viewer') {
                 if(task.status === 'todo') 
                     controls = `<button class="btn btn-sm text-primary move-btn p-0" data-id="${id}" data-status="doing">Start <i class="fas fa-play"></i></button>`;
@@ -395,25 +391,19 @@
                     controls = `<button class="btn btn-sm text-success move-btn p-0" data-id="${id}" data-status="done">Finish <i class="fas fa-check"></i></button>`;
             }
 
-            // 2. Date Logic & Reminders
             let dateBadge = '';
             if (task.dueDate && task.status !== 'done') {
                 const today = new Date();
                 today.setHours(0,0,0,0);
                 const due = new Date(task.dueDate);
-                
-                // Calculate difference in days
                 const diffTime = due - today; 
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
                 if (diffDays < 0) {
-                    // Overdue
                     dateBadge = `<span class="badge badge-date bg-overdue"><i class="fas fa-exclamation-circle"></i> Overdue (${task.dueDate})</span>`;
                 } else if (diffDays <= 3) {
-                    // Approaching (3 days or less)
                     dateBadge = `<span class="badge badge-date bg-urgent"><i class="fas fa-clock"></i> Due in ${diffDays} days</span>`;
                 } else {
-                    // Normal
                     dateBadge = `<span class="badge badge-date bg-normal"><i class="far fa-calendar"></i> ${task.dueDate}</span>`;
                 }
             }
@@ -432,7 +422,6 @@
 
         // --- TASK ACTIONS ---
         $('#btn-add-task-modal').click(() => {
-            // Set default date to today in the modal input
             document.getElementById('inp-task-date').valueAsDate = new Date();
             $('#addTaskModal').modal('show')
         });
@@ -445,7 +434,7 @@
             await addDoc(collection(db, "tasks"), {
                 projectId: currentProjectId,
                 title: title,
-                dueDate: date, // Save Due Date
+                dueDate: date,
                 status: 'todo',
                 createdBy: currentUser.uid,
                 createdAt: Date.now()
@@ -463,11 +452,10 @@
         // --- MEMBER MANAGEMENT ---
         $('#btn-manage-members').click(loadMembers);
 
-        // Fixed Function (ReferenceError: getDoc is not defined)
         async function loadMembers() {
             $('#membersModal').modal('show');
             
-            // 1. Get Project Data to see who is in it
+            // This line was causing your error because getDoc wasn't imported
             const snap = await getDoc(doc(db, "projects", currentProjectId)); 
             if(!snap.exists()) return;
             
@@ -478,7 +466,6 @@
             const list = $('#member-list');
             list.empty();
 
-            // 2. Fetch User Emails
             for(const uid of memberIds) {
                 const userSnap = await getDoc(doc(db, "users", uid));
                 const email = userSnap.exists() ? userSnap.data().email : "Unknown User";
@@ -499,7 +486,6 @@
             const email = $('#inp-member-email').val();
             const newRole = $('#inp-member-role').val();
             
-            // Search for user by email
             const q = query(collection(db, "users"), where("email", "==", email));
             const querySnapshot = await getDocs(q);
 
@@ -511,7 +497,6 @@
             let foundUid = null;
             querySnapshot.forEach(doc => foundUid = doc.id);
 
-            // Add to project
             const projectRef = doc(db, "projects", currentProjectId);
             const pSnap = await getDoc(projectRef);
             const pData = pSnap.data();
@@ -528,7 +513,7 @@
             });
 
             $('#inp-member-email').val('');
-            loadMembers(); // Refresh the modal list
+            loadMembers(); 
         });
 
         // Service Worker
