@@ -601,8 +601,19 @@
         // --- TASK DETAILS & COMMENTS (FIXED) ---
         window.openTaskDetails = async function(taskId) {
             currentDetailTaskId = taskId;
+            
+            // 1. CLEAR UI INSTANTLY (Fixes the "ghost comments" bug)
+            $('#modal-comments-area').empty().append('<div class="text-center text-muted py-3 small"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>');
+            $('#detail-task-title').text("Loading...");
+            $('#detail-task-date').text("");
+            $('#detail-task-tag').empty();
+
+            // 2. Load Task Data
             const snap = await getDoc(doc(db, "tasks", taskId));
-            if(!snap.exists()) return;
+            if(!snap.exists()) {
+                $('#taskDetailModal').modal('hide');
+                return;
+            }
             const t = snap.data();
 
             $('#detail-task-title').text(t.title);
@@ -616,9 +627,8 @@
             reassignSelect.val(t.assignedTo || "");
 
             if(t.tag) $('#detail-task-tag').html(`<span class="badge bg-secondary text-uppercase">${t.tag}</span>`);
-            else $('#detail-task-tag').empty();
 
-            // Load Comments (and clean up previous listener)
+            // 3. Load Comments
             loadComments(taskId);
             
             $('#taskDetailModal').modal('show');
