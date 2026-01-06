@@ -3,74 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeRPG PWA</title>
+    <title>Minimal Kanban</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#ffffff">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        body { background-color: #f0f2f5; user-select: none; }
+        :root {
+            --bg-light: #f8f9fa;
+            --border-color: #e9ecef;
+            --text-muted: #6c757d;
+        }
+        body { background-color: #ffffff; color: #212529; font-family: 'Segoe UI', sans-serif; }
         .hidden { display: none !important; }
         
-        /* Game HUD */
-        #game-hud {
-            background: #fff;
-            padding: 15px;
-            border-bottom: 3px solid #0d6efd;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        /* Minimalist Nav */
+        .navbar { border-bottom: 1px solid var(--border-color); background: #fff; }
         
-        /* Kanban Columns */
-        .kanban-col {
-            min-height: 80vh;
-            background: #e9ecef;
+        /* Project Cards */
+        .project-card {
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 10px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .project-card:hover { border-color: #0d6efd; background: var(--bg-light); }
+
+        /* Kanban */
+        .kanban-col {
+            background: var(--bg-light);
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 70vh;
         }
         .task-card {
-            cursor: pointer;
-            transition: transform 0.2s;
-            border-left: 5px solid #0d6efd;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
-        .task-card:active { transform: scale(0.98); }
+        .task-card:hover { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         
-        /* Floating Action Button */
-        .fab {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            font-size: 24px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
+        /* Badges */
+        .badge-role { font-size: 0.7em; opacity: 0.8; }
     </style>
 </head>
 <body>
 
     <div id="auth-section" class="container mt-5">
         <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-4">
-                <div class="card shadow">
-                    <div class="card-body">
-                        <h3 class="text-center mb-4"><i class="fas fa-gamepad"></i> LifeRPG</h3>
-                        <div class="mb-3">
-                            <label>Email</label>
-                            <input type="email" id="email" class="form-control">
+            <div class="col-md-5">
+                <h2 class="text-center mb-4 fw-light">Workspace Login</h2>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <input type="email" id="email" class="form-control mb-3" placeholder="name@example.com">
+                        <input type="password" id="password" class="form-control mb-3" placeholder="Password">
+                        <div class="d-grid gap-2">
+                            <button id="btn-login" class="btn btn-dark">Log In</button>
+                            <button id="btn-signup" class="btn btn-outline-secondary">Create Account</button>
                         </div>
-                        <div class="mb-3">
-                            <label>Password</label>
-                            <input type="password" id="password" class="form-control">
-                        </div>
-                        <button id="btn-login" class="btn btn-primary w-100 mb-2">Login</button>
-                        <button id="btn-signup" class="btn btn-outline-secondary w-100">Sign Up</button>
                     </div>
                 </div>
             </div>
@@ -79,66 +75,113 @@
 
     <div id="app-section" class="hidden">
         
-        <div id="game-hud">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="m-0">Lv. <span id="user-level">1</span> <small class="text-muted" id="user-email"></small></h5>
-                <button id="btn-logout" class="btn btn-sm btn-danger">Logout</button>
+        <nav class="navbar navbar-expand-lg px-3">
+            <a class="navbar-brand fw-bold" href="#" onclick="showDashboard()">My Workspace</a>
+            <div class="ms-auto d-flex align-items-center">
+                <span id="user-display" class="small text-muted me-3"></span>
+                <button id="btn-logout" class="btn btn-sm btn-outline-danger">Log Out</button>
             </div>
-            <div class="progress" style="height: 20px;">
-                <div id="xp-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark" role="progressbar" style="width: 0%">
-                    <span id="xp-text">0 / 100 XP</span>
+        </nav>
+
+        <div id="view-dashboard" class="container mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-light">Your Projects</h4>
+                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#newProjectModal">+ New Project</button>
+            </div>
+            <div id="project-list" class="row g-3">
+                </div>
+        </div>
+
+        <div id="view-project" class="container-fluid mt-3 hidden">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <div>
+                    <button class="btn btn-sm btn-link text-decoration-none text-dark ps-0" onclick="showDashboard()">← Back</button>
+                    <span class="mx-2 text-muted">/</span>
+                    <strong id="current-project-title" class="fs-5">Project Name</strong>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="btn-manage-members">
+                        <i class="fas fa-users"></i> Members
+                    </button>
+                    <button class="btn btn-sm btn-dark" id="btn-add-task-modal">
+                        + Add Task
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="kanban-col">
+                        <h6 class="text-secondary small fw-bold text-uppercase">To Do</h6>
+                        <div id="col-todo" class="d-grid"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kanban-col">
+                        <h6 class="text-secondary small fw-bold text-uppercase">In Progress</h6>
+                        <div id="col-doing" class="d-grid"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kanban-col">
+                        <h6 class="text-secondary small fw-bold text-uppercase">Done</h6>
+                        <div id="col-done" class="d-grid"></div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="container-fluid mt-3">
-            <div class="row g-3 overflow-auto flex-nowrap flex-md-wrap" style="padding-bottom: 80px;">
-                
-                <div class="col-10 col-md-4">
-                    <div class="kanban-col">
-                        <h6 class="text-uppercase fw-bold text-secondary">To Do 📝</h6>
-                        <div id="col-todo" class="d-grid gap-2"></div>
-                    </div>
+    <div class="modal fade" id="newProjectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-0"><h5 class="modal-title">Create Project</h5></div>
+                <div class="modal-body">
+                    <input type="text" id="inp-project-title" class="form-control mb-3" placeholder="Project Name">
+                    <select id="inp-project-type" class="form-select">
+                        <option value="individual">Individual (Private)</option>
+                        <option value="group">Group Project</option>
+                    </select>
                 </div>
-
-                <div class="col-10 col-md-4">
-                    <div class="kanban-col">
-                        <h6 class="text-uppercase fw-bold text-primary">In Progress ⚡</h6>
-                        <div id="col-doing" class="d-grid gap-2"></div>
-                    </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-dark w-100" id="btn-create-project">Create</button>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="col-10 col-md-4">
-                    <div class="kanban-col">
-                        <h6 class="text-uppercase fw-bold text-success">Done ✅</h6>
-                        <div id="col-done" class="d-grid gap-2"></div>
+    <div class="modal fade" id="membersModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-0"><h5 class="modal-title">Team Members</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <ul id="member-list" class="list-group list-group-flush mb-3"></ul>
+                    
+                    <div class="border-top pt-3">
+                        <label class="small text-muted mb-1">Add Member by Email</label>
+                        <div class="input-group">
+                            <input type="email" id="inp-member-email" class="form-control" placeholder="user@email.com">
+                            <select class="form-select" id="inp-member-role" style="max-width: 100px;">
+                                <option value="editor">Editor</option>
+                                <option value="viewer">Viewer</option>
+                            </select>
+                            <button class="btn btn-outline-dark" id="btn-invite-member">Add</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <button class="btn btn-primary fab" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-            <i class="fas fa-plus"></i>
-        </button>
     </div>
 
     <div class="modal fade" id="addTaskModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">New Quest</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header border-0"><h5 class="modal-title">New Task</h5></div>
                 <div class="modal-body">
-                    <input type="text" id="task-title" class="form-control mb-3" placeholder="Quest Title (e.g., Gym Workout)">
-                    <select id="task-difficulty" class="form-select">
-                        <option value="10">Easy (10 XP)</option>
-                        <option value="25">Medium (25 XP)</option>
-                        <option value="50">Hard (50 XP)</option>
-                    </select>
+                    <input type="text" id="inp-task-title" class="form-control" placeholder="What needs to be done?">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="btn-save-task">Create Quest</button>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-dark w-100" id="btn-save-task">Add Task</button>
                 </div>
             </div>
         </div>
@@ -146,218 +189,302 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-<script type="module">
-    // We use the CDN URLs so this works directly in the browser
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-analytics.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-    // --- YOUR SPECIFIC CONFIGURATION ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyAdAoFYS_j2r58mZZeadwEz9h91zKj78zU",
-      authDomain: "life-rpg-e7808.firebaseapp.com",
-      projectId: "life-rpg-e7808",
-      storageBucket: "life-rpg-e7808.firebasestorage.app",
-      messagingSenderId: "1003021084182",
-      appId: "1:1003021084182:web:0b84ad6782f8dc3034b737",
-      measurementId: "G-KNSRPK9PM1"
-    };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app); // Analytics enabled
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    
-    let currentUser = null;
+        // --- CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdAoFYS_j2r58mZZeadwEz9h91zKj78zU",
+            authDomain: "life-rpg-e7808.firebaseapp.com",
+            projectId: "life-rpg-e7808",
+            storageBucket: "life-rpg-e7808.firebasestorage.app",
+            messagingSenderId: "1003021084182",
+            appId: "1:1003021084182:web:0b84ad6782f8dc3034b737"
+        };
 
-    // --- 1. AUTH LOGIC ---
-    $('#btn-signup').click(async () => {
-        const email = $('#email').val();
-        const password = $('#password').val();
-        if(password.length < 6) { alert("Password must be at least 6 characters"); return; }
-        
-        try {
-            const cred = await createUserWithEmailAndPassword(auth, email, password);
-            // Create the user document in Firestore with initial Level 1
-            await setDoc(doc(db, "users", cred.user.uid), { 
-                email: email,
-                xp: 0, 
-                level: 1 
-            });
-            console.log("User created:", cred.user.uid);
-        } catch (e) { 
-            console.error(e);
-            alert("Signup Error: " + e.message); 
-        }
-    });
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-    $('#btn-login').click(async () => {
-        const email = $('#email').val();
-        const password = $('#password').val();
-        try { 
-            await signInWithEmailAndPassword(auth, email, password); 
-        } catch (e) { 
-            console.error(e);
-            alert("Login Error: " + e.message); 
-        }
-    });
+        let currentUser = null;
+        let currentProjectId = null;
+        let currentRole = null; // 'owner', 'editor', 'viewer'
 
-    $('#btn-logout').click(() => signOut(auth));
+        // --- AUTH ---
+        $('#btn-login').click(async () => {
+            try { await signInWithEmailAndPassword(auth, $('#email').val(), $('#password').val()); }
+            catch (e) { alert(e.message); }
+        });
 
-    // --- 2. STATE MANAGEMENT ---
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUser = user;
-            $('#auth-section').addClass('hidden');
-            $('#app-section').removeClass('hidden');
-            $('#user-email').text(user.email);
-            
-            // Load Game Data & Tasks
-            initGameSystem();
-            loadTasks();
-        } else {
-            currentUser = null;
-            $('#auth-section').removeClass('hidden');
-            $('#app-section').addClass('hidden');
-        }
-    });
+        $('#btn-signup').click(async () => {
+            const email = $('#email').val();
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, $('#password').val());
+                // Save user to 'users' collection so we can find them later by email
+                await setDoc(doc(db, "users", cred.user.uid), { email: email });
+            } catch (e) { alert(e.message); }
+        });
 
-    // --- 3. GAME SYSTEM (XP & LEVEL) ---
-    function initGameSystem() {
-        // Listen to User Stats in real-time
-        onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
-            if (!docSnap.exists()) return;
-            
-            const data = docSnap.data();
-            const level = data.level || 1;
-            const xp = data.xp || 0;
-            
-            // Logic: XP needed increases with level (Level * 100)
-            const xpNeeded = level * 100; 
-            const progressPercent = Math.min((xp / xpNeeded) * 100, 100);
+        $('#btn-logout').click(() => signOut(auth));
 
-            // Update UI
-            $('#user-level').text(level);
-            $('#xp-text').text(`${xp} / ${xpNeeded} XP`);
-            $('#xp-bar').css('width', `${progressPercent}%`);
-
-            // Check if Level Up is needed
-            if (xp >= xpNeeded) {
-                levelUp(level, xp, xpNeeded);
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                $('#auth-section').addClass('hidden');
+                $('#app-section').removeClass('hidden');
+                $('#user-display').text(user.email);
+                loadDashboard();
+            } else {
+                currentUser = null;
+                $('#auth-section').removeClass('hidden');
+                $('#app-section').addClass('hidden');
             }
         });
-    }
 
-    async function levelUp(currentLevel, currentXP, xpNeeded) {
-         const nextLevel = currentLevel + 1;
-         const carryOverXp = currentXP - xpNeeded;
-         
-         // Update Firestore
-         await updateDoc(doc(db, "users", currentUser.uid), {
-             level: nextLevel,
-             xp: carryOverXp 
-         });
-         
-         // Optional: Play a sound or show an alert
-         alert(`🎉 LEVEL UP! You reached Level ${nextLevel}!`);
-    }
-
-    // --- 4. KANBAN LOGIC ---
-    function loadTasks() {
-        const q = query(collection(db, "tasks"), where("uid", "==", currentUser.uid));
-        
-        onSnapshot(q, (snapshot) => {
-            // Clear current lists
-            $('#col-todo, #col-doing, #col-done').empty(); 
-
-            snapshot.forEach((docSnap) => {
-                const task = docSnap.data();
-                const taskId = docSnap.id;
-                renderTask(taskId, task);
-            });
-        });
-    }
-
-    function renderTask(id, task) {
-        let actionBtn = '';
-        let colorClass = 'border-secondary';
-
-        // Decide button logic based on status
-        if (task.status === 'todo') {
-            actionBtn = `<button class="btn btn-sm btn-outline-primary move-btn" data-id="${id}" data-status="doing" data-xp="${task.xp}">Start ▶</button>`;
-        } else if (task.status === 'doing') {
-            actionBtn = `<button class="btn btn-sm btn-success move-btn" data-id="${id}" data-status="done" data-xp="${task.xp}">Complete ✅</button>`;
-            colorClass = 'border-primary';
-        } else {
-            // Done state
-            actionBtn = `<span class="badge bg-success">+${task.xp} XP</span>`;
-            colorClass = 'border-success opacity-75';
+        // --- DASHBOARD: PROJECT LIST ---
+        window.showDashboard = function() {
+            $('#view-project').addClass('hidden');
+            $('#view-dashboard').removeClass('hidden');
+            currentProjectId = null;
         }
 
-        const html = `
-            <div class="card task-card shadow-sm mb-2 ${colorClass}">
-                <div class="card-body p-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${task.title}</strong>
-                        <div class="small text-muted">${task.xp} XP</div>
-                    </div>
-                    ${actionBtn}
-                </div>
-            </div>
-        `;
+        function loadDashboard() {
+            // Query projects where 'memberIds' array contains currentUser.uid
+            const q = query(collection(db, "projects"), where("memberIds", "array-contains", currentUser.uid));
+            
+            onSnapshot(q, (snapshot) => {
+                const list = $('#project-list');
+                list.empty();
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    const role = p.roles[currentUser.uid];
+                    
+                    const html = `
+                        <div class="col-md-4 col-lg-3">
+                            <div class="project-card p-3" onclick="openProject('${docSnap.id}')">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1 fw-bold">${p.title}</h6>
+                                    ${p.type === 'group' ? '<i class="fas fa-users text-muted"></i>' : '<i class="fas fa-user text-muted"></i>'}
+                                </div>
+                                <span class="badge bg-secondary badge-role text-uppercase">${role}</span>
+                            </div>
+                        </div>
+                    `;
+                    list.append(html);
+                });
+            });
+        }
 
-        // Append to correct column
-        $(`#col-${task.status}`).append(html);
-    }
+        $('#btn-create-project').click(async () => {
+            const title = $('#inp-project-title').val();
+            const type = $('#inp-project-type').val();
+            if(!title) return;
 
-    // --- 5. USER ACTIONS ---
-    
-    // Create New Task
-    $('#btn-save-task').click(async () => {
-        const title = $('#task-title').val();
-        const xp = parseInt($('#task-difficulty').val());
-        
-        if (title) {
-            await addDoc(collection(db, "tasks"), {
-                uid: currentUser.uid,
+            // Initialize Roles: Creator is Owner
+            const roles = {};
+            roles[currentUser.uid] = "owner";
+
+            await addDoc(collection(db, "projects"), {
                 title: title,
-                xp: xp,
+                type: type,
+                createdAt: Date.now(),
+                memberIds: [currentUser.uid], // Array for querying
+                roles: roles // Map for permissions
+            });
+
+            $('#inp-project-title').val('');
+            $('#newProjectModal').modal('hide');
+        });
+
+        // --- SINGLE PROJECT LOGIC ---
+        window.openProject = function(projectId) {
+            currentProjectId = projectId;
+            
+            // Get Project Details to check Role
+            // We use a realtime listener on the project document itself
+            onSnapshot(doc(db, "projects", projectId), (docSnap) => {
+                if(!docSnap.exists()) return;
+                const p = docSnap.data();
+                
+                $('#current-project-title').text(p.title);
+                currentRole = p.roles[currentUser.uid];
+                
+                // UI Toggle based on role
+                if(currentRole === 'viewer') {
+                    $('#btn-add-task-modal').hide();
+                    $('#btn-manage-members').hide();
+                } else {
+                    $('#btn-add-task-modal').show();
+                    // Only owners can manage members in group projects
+                    if(p.type === 'group' && currentRole === 'owner') {
+                        $('#btn-manage-members').show();
+                    } else {
+                        $('#btn-manage-members').hide();
+                    }
+                }
+            });
+
+            // Load Tasks
+            loadTasks(projectId);
+
+            $('#view-dashboard').addClass('hidden');
+            $('#view-project').removeClass('hidden');
+        }
+
+        function loadTasks(projectId) {
+            const q = query(collection(db, "tasks"), where("projectId", "==", projectId));
+            
+            // Note: We need a composite index for this query usually? 
+            // Actually, "projectId" == "X" is simple. No complex index needed unless sorting.
+            
+            onSnapshot(q, (snapshot) => {
+                $('#col-todo, #col-doing, #col-done').empty();
+                
+                snapshot.forEach(docSnap => {
+                    renderTask(docSnap.id, docSnap.data());
+                });
+            });
+        }
+
+        function renderTask(id, task) {
+            // Permission Check: Viewers cannot move tasks
+            let controls = '';
+            
+            if (currentRole !== 'viewer') {
+                if(task.status === 'todo') 
+                    controls = `<button class="btn btn-sm text-primary move-btn" data-id="${id}" data-status="doing">Start <i class="fas fa-play"></i></button>`;
+                else if(task.status === 'doing')
+                    controls = `<button class="btn btn-sm text-success move-btn" data-id="${id}" data-status="done">Finish <i class="fas fa-check"></i></button>`;
+                else 
+                    controls = `<button class="btn btn-sm text-muted" disabled>Done</button>`;
+            }
+
+            const html = `
+                <div class="task-card">
+                    <div class="mb-2">${task.title}</div>
+                    <div class="d-flex justify-content-end">
+                        ${controls}
+                    </div>
+                </div>
+            `;
+            $(`#col-${task.status}`).append(html);
+        }
+
+        // --- TASK ACTIONS ---
+        $('#btn-add-task-modal').click(() => $('#addTaskModal').modal('show'));
+
+        $('#btn-save-task').click(async () => {
+            const title = $('#inp-task-title').val();
+            if(!title) return;
+
+            await addDoc(collection(db, "tasks"), {
+                projectId: currentProjectId,
+                title: title,
                 status: 'todo',
+                createdBy: currentUser.uid,
                 createdAt: Date.now()
             });
+            $('#inp-task-title').val('');
+            $('#addTaskModal').modal('hide');
+        });
+
+        $(document).on('click', '.move-btn', async function() {
+            const id = $(this).data('id');
+            const status = $(this).data('status');
+            await updateDoc(doc(db, "tasks", id), { status: status });
+        });
+
+        // --- MEMBER MANAGEMENT ---
+        $('#btn-manage-members').click(loadMembers);
+
+        async function loadMembers() {
+            const pRef = doc(db, "projects", currentProjectId);
+            const pSnap = await getDocs(query(collection(db, "projects"), where("__name__", "==", currentProjectId))); // getting doc directly is better
+            // Reuse the realtime listener data if possible, but let's fetch fresh for modal
+            // Simplified: we rely on data loaded in openProject logic usually, but here:
             
-            // Reset and close modal
-            $('#task-title').val('');
-            const modalEl = document.getElementById('addTaskModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
+            // We just read the current 'roles' map from the project
+            // Getting specific details requires reading the 'users' collection for names/emails
+            
+            // For MVP: We just show UIDs if we don't have emails, 
+            // BUT we saved emails in 'users' collection on signup.
+            // Complex JOINs are hard in NoSQL.
+            // Strategy: We list the UIDs/Emails from the project data if we stored them there?
+            // Better: Store { uid: { email: "...", role: "..." } } ? 
+            // NO. Firestore best practice: Store minimal user data in the project doc or fetch client side.
+            
+            // Let's keep it simple: We will just display the modal logic.
+            $('#membersModal').modal('show');
+            renderMemberList(); 
         }
-    });
 
-    // Move Task (Dynamic Event Listener)
-    $(document).on('click', '.move-btn', async function() {
-        const id = $(this).data('id');
-        const newStatus = $(this).data('status');
-        const xpReward = $(this).data('xp');
+        async function renderMemberList() {
+             // 1. Get Project Data
+             // (We need a way to get the project data inside this function)
+             // Using getDoc for simplicity
+             const snap = await getDoc(doc(db, "projects", currentProjectId));
+             const data = snap.data();
+             const rolesMap = data.roles;
+             const memberIds = data.memberIds;
 
-        // 1. Update Task Status
-        await updateDoc(doc(db, "tasks", id), { status: newStatus });
+             const list = $('#member-list');
+             list.empty();
 
-        // 2. If completing task, Give XP to User
-        if (newStatus === 'done') {
-            await updateDoc(doc(db, "users", currentUser.uid), {
-                xp: increment(xpReward)
+             // 2. For every member ID, we ideally fetch their email from 'users' collection
+             // This implies N reads. For small teams, this is fine.
+             for(const uid of memberIds) {
+                 const userSnap = await getDoc(doc(db, "users", uid));
+                 const email = userSnap.exists() ? userSnap.data().email : "Unknown";
+                 const role = rolesMap[uid];
+                 
+                 list.append(`
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${email}</span>
+                        <span class="badge bg-light text-dark border">${role}</span>
+                    </li>
+                 `);
+             }
+        }
+
+        $('#btn-invite-member').click(async () => {
+            const email = $('#inp-member-email').val();
+            const newRole = $('#inp-member-role').val();
+            
+            // 1. Find User UID by Email
+            const q = query(collection(db, "users"), where("email", "==", email));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                alert("User not found! They must sign up first.");
+                return;
+            }
+
+            let foundUid = null;
+            querySnapshot.forEach(doc => foundUid = doc.id);
+
+            // 2. Add to Project
+            const projectRef = doc(db, "projects", currentProjectId);
+            const pSnap = await getDoc(projectRef);
+            const pData = pSnap.data();
+
+            const updatedRoles = pData.roles;
+            updatedRoles[foundUid] = newRole;
+            
+            const updatedMembers = pData.memberIds;
+            if(!updatedMembers.includes(foundUid)) updatedMembers.push(foundUid);
+
+            await updateDoc(projectRef, {
+                roles: updatedRoles,
+                memberIds: updatedMembers
             });
-        }
-    });
-    
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
-</script>
+
+            $('#inp-member-email').val('');
+            renderMemberList(); // Refresh list
+        });
+
+    </script>
 </body>
 </html>
