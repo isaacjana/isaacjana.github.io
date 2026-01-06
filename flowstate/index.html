@@ -124,8 +124,8 @@
             font-size: 0.9rem;
         }
         .comment-meta { font-size: 0.75rem; color: #adb5bd; margin-bottom: 2px; }
-
-        /* Date Badges */
+        
+        /* Badge Dates */
         .badge-date { font-size: 0.7rem; font-weight: normal; border-radius: 3px; padding: 2px 6px;}
         .bg-urgent { background-color: #ffc107; color: #000; }
         .bg-overdue { background-color: #dc3545; color: #fff; }
@@ -189,7 +189,7 @@
                         <button class="btn btn-sm btn-outline-danger me-2 hidden" id="btn-delete-project">
                             <i class="fas fa-trash"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary me-2" id="btn-manage-members">
+                        <button class="btn btn-sm btn-outline-secondary me-2 hidden" id="btn-manage-members">
                             <i class="fas fa-users"></i> Team
                         </button>
                         <button class="btn btn-sm btn-dark" id="btn-add-task-modal">
@@ -303,7 +303,7 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3" id="div-task-assign">
                         <label class="small text-muted">Assign To</label>
                         <select id="inp-task-assign" class="form-select">
                             </select>
@@ -326,12 +326,12 @@
                 <div class="modal-body">
                     <h4 id="detail-task-title" class="mb-3 fw-bold"></h4>
                     
-                    <div class="d-flex align-items-center gap-3 mb-4 p-2 bg-light rounded">
-                        <div class="text-muted small"><i class="far fa-calendar me-1"></i> <span id="detail-task-date"></span></div>
+                    <div class="d-flex gap-4 mb-4 align-items-center text-muted small">
+                        <div><i class="far fa-calendar me-1"></i> <span id="detail-task-date"></span></div>
                         
-                        <div class="d-flex align-items-center">
-                            <i class="far fa-user me-2 text-muted small"></i> 
-                            <select id="detail-task-assign-select" class="form-select form-select-sm border-0 bg-transparent fw-bold" style="width: auto; cursor: pointer;">
+                        <div class="d-flex align-items-center" id="div-detail-reassign">
+                            <i class="far fa-user me-2"></i> 
+                            <select id="detail-task-reassign" class="form-select form-select-sm" style="width: auto; max-width: 200px;">
                                 </select>
                         </div>
                     </div>
@@ -354,7 +354,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script type="module">
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, getDoc, setDoc, deleteDoc, writeBatch, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
@@ -376,10 +376,9 @@
         let currentUser = null;
         let currentProjectId = null;
         let currentRole = null;
+        let currentProjectType = null; // NEW: Track project type (individual/group)
         let projectMembersCache = {}; 
         let currentDetailTaskId = null;
-        
-        // NEW: Variable to hold the listener so we can kill it later
         let currentCommentUnsubscribe = null; 
 
         // --- AUTH ---
@@ -476,9 +475,18 @@
                 $('#current-project-title').text(p.title);
                 
                 currentRole = p.roles[currentUser.uid];
+                currentProjectType = p.type; // Save type
                 
+                // Owner Options
                 if(currentRole === 'owner') $('#btn-delete-project').removeClass('hidden');
                 else $('#btn-delete-project').addClass('hidden');
+
+                // Team Button: Show only if Group Project
+                if(currentProjectType === 'group') {
+                    $('#btn-manage-members').removeClass('hidden');
+                } else {
+                    $('#btn-manage-members').addClass('hidden');
+                }
 
                 cacheMembers(p.memberIds);
             });
@@ -561,7 +569,8 @@
             }
 
             let avatarHtml = '';
-            if(task.assignedTo && projectMembersCache[task.assignedTo]) {
+            // Only show avatars if it's a Group Project
+            if(currentProjectType === 'group' && task.assignedTo && projectMembersCache[task.assignedTo]) {
                 const initial = projectMembersCache[task.assignedTo].charAt(0).toUpperCase();
                 avatarHtml = `<div class="avatar-circle" title="${projectMembersCache[task.assignedTo]}">${initial}</div>`;
             }
@@ -598,17 +607,17 @@
             }
         }
 
-        // --- TASK DETAILS & COMMENTS (FIXED) ---
+        // --- TASK DETAILS & COMMENTS ---
         window.openTaskDetails = async function(taskId) {
             currentDetailTaskId = taskId;
             
-            // 1. CLEAR UI INSTANTLY (Fixes the "ghost comments" bug)
+            // UI Reset
             $('#modal-comments-area').empty().append('<div class="text-center text-muted py-3 small"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>');
             $('#detail-task-title').text("Loading...");
             $('#detail-task-date').text("");
             $('#detail-task-tag').empty();
+            $('#detail-task-reassign').empty();
 
-            // 2. Load Task Data
             const snap = await getDoc(doc(db, "tasks", taskId));
             if(!snap.exists()) {
                 $('#taskDetailModal').modal('hide');
@@ -619,16 +628,21 @@
             $('#detail-task-title').text(t.title);
             $('#detail-task-date').text(t.dueDate || 'No Due Date');
             
-            const reassignSelect = $('#detail-task-reassign');
-            reassignSelect.empty().append('<option value="">Unassigned</option>');
-            Object.keys(projectMembersCache).forEach(uid => {
-                reassignSelect.append(`<option value="${uid}">${projectMembersCache[uid]}</option>`);
-            });
-            reassignSelect.val(t.assignedTo || "");
+            // Logic to Show/Hide Reassign Dropdown based on Project Type
+            if (currentProjectType === 'group') {
+                $('#div-detail-reassign').removeClass('hidden');
+                const reassignSelect = $('#detail-task-reassign');
+                reassignSelect.append('<option value="">Unassigned</option>');
+                Object.keys(projectMembersCache).forEach(uid => {
+                    reassignSelect.append(`<option value="${uid}">${projectMembersCache[uid]}</option>`);
+                });
+                reassignSelect.val(t.assignedTo || "");
+            } else {
+                $('#div-detail-reassign').addClass('hidden');
+            }
 
             if(t.tag) $('#detail-task-tag').html(`<span class="badge bg-secondary text-uppercase">${t.tag}</span>`);
 
-            // 3. Load Comments
             loadComments(taskId);
             
             $('#taskDetailModal').modal('show');
@@ -650,14 +664,13 @@
         });
 
         function loadComments(taskId) {
-            // FIX: Stop listening to the previous task first!
             if (currentCommentUnsubscribe) {
                 currentCommentUnsubscribe();
+                currentCommentUnsubscribe = null;
             }
 
             const q = query(collection(db, "comments"), where("taskId", "==", taskId), orderBy("createdAt", "asc"));
             
-            // Assign the new listener to our variable
             currentCommentUnsubscribe = onSnapshot(q, (snapshot) => {
                 const area = $('#modal-comments-area');
                 area.empty();
@@ -707,6 +720,14 @@
         $('#btn-add-task-modal').click(() => {
             $('#inp-task-date').val('');
             $('#inp-task-title').val('');
+            
+            // Logic to Show/Hide Assign Dropdown based on Project Type
+            if(currentProjectType === 'group') {
+                $('#div-task-assign').removeClass('hidden');
+            } else {
+                $('#div-task-assign').addClass('hidden');
+            }
+
             $('#addTaskModal').modal('show');
         });
 
@@ -729,7 +750,16 @@
 
         window.deleteTask = async function(id) {
             if(!confirm("Delete this task?")) return;
+            
+            // Delete Task
             await deleteDoc(doc(db, "tasks", id));
+
+            // Delete Associated Comments (Cleanup)
+            const q = query(collection(db, "comments"), where("taskId", "==", id));
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.delete(d.ref));
+            await batch.commit();
         };
 
         $('#btn-delete-project').click(async () => {
