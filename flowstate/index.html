@@ -78,8 +78,6 @@
             font-weight: bold;
             border: 2px solid #fff;
         }
-        .avatar-stack { display: flex; padding-left: 8px; }
-        .avatar-stack .avatar-circle { margin-left: -8px; }
 
         /* Tags */
         .task-tag {
@@ -108,7 +106,7 @@
         .task-card:hover .btn-delete-task { opacity: 1; }
         .btn-delete-task:hover { color: #dc3545; }
 
-        /* Chat Layout in Modal */
+        /* Chat Layout */
         #modal-comments-area {
             background-color: #f8f9fa;
             border-radius: 8px;
@@ -328,9 +326,14 @@
                 <div class="modal-body">
                     <h4 id="detail-task-title" class="mb-3 fw-bold"></h4>
                     
-                    <div class="d-flex gap-4 mb-4 text-muted small">
-                        <div><i class="far fa-calendar me-1"></i> <span id="detail-task-date"></span></div>
-                        <div><i class="far fa-user me-1"></i> <span id="detail-task-assignee">Unassigned</span></div>
+                    <div class="d-flex align-items-center gap-3 mb-4 p-2 bg-light rounded">
+                        <div class="text-muted small"><i class="far fa-calendar me-1"></i> <span id="detail-task-date"></span></div>
+                        
+                        <div class="d-flex align-items-center">
+                            <i class="far fa-user me-2 text-muted small"></i> 
+                            <select id="detail-task-assign-select" class="form-select form-select-sm border-0 bg-transparent fw-bold" style="width: auto; cursor: pointer;">
+                                </select>
+                        </div>
                     </div>
 
                     <hr>
@@ -373,8 +376,8 @@
         let currentUser = null;
         let currentProjectId = null;
         let currentRole = null;
-        let projectMembersCache = {}; // Cache for {uid: email}
-        let currentDetailTaskId = null; // ID of task currently open in modal
+        let projectMembersCache = {}; 
+        let currentDetailTaskId = null; 
 
         // --- AUTH ---
         $('#btn-login').click(async () => {
@@ -472,18 +475,13 @@
                 
                 currentRole = p.roles[currentUser.uid];
                 
-                // Toggle Delete Button
                 if(currentRole === 'owner') $('#btn-delete-project').removeClass('hidden');
                 else $('#btn-delete-project').addClass('hidden');
 
-                // Cache Member emails for Avatars
                 cacheMembers(p.memberIds);
             });
 
-            // Initialize Drag & Drop
             initSortable();
-
-            // Load Tasks
             loadTasks(projectId);
 
             $('#view-dashboard').addClass('hidden');
@@ -492,6 +490,7 @@
 
         async function cacheMembers(memberIds) {
             projectMembersCache = {};
+            // Populate "New Task" dropdown
             const dropdown = $('#inp-task-assign');
             dropdown.empty().append('<option value="">Unassigned</option>');
 
@@ -509,18 +508,17 @@
             const columns = ['col-todo', 'col-doing', 'col-done'];
             columns.forEach(colId => {
                 new Sortable(document.getElementById(colId), {
-                    group: 'kanban', // Allow dragging between lists
+                    group: 'kanban', 
                     animation: 150,
                     ghostClass: 'sortable-ghost',
                     dragClass: 'sortable-drag',
-                    delay: 100, // slight delay to prevent accidental drags on click
+                    delay: 100, 
                     delayOnTouchOnly: true,
                     onEnd: async function (evt) {
                         const itemEl = evt.item;
                         const newStatus = evt.to.getAttribute('data-status');
                         const taskId = itemEl.getAttribute('data-id');
                         
-                        // Update Firestore
                         if(taskId && newStatus) {
                             await updateDoc(doc(db, "tasks", taskId), { status: newStatus });
                         }
@@ -543,12 +541,10 @@
                     renderTask(docSnap.id, t);
                 });
 
-                // Update Counts
                 $('#count-todo').text(counts.todo);
                 $('#count-doing').text(counts.doing);
                 $('#count-done').text(counts.done);
 
-                // Update Progress Bar
                 const total = counts.todo + counts.doing + counts.done;
                 const percent = total === 0 ? 0 : Math.round((counts.done / total) * 100);
                 $('#project-progress-bar').css('width', percent + '%');
@@ -557,25 +553,18 @@
         }
 
         function renderTask(id, task) {
-            // Tag Logic
             let tagHtml = '';
             if(task.tag) {
-                const tagClasses = {
-                    'bug': 'tag-bug',
-                    'feature': 'tag-feature',
-                    'urgent': 'tag-urgent'
-                };
+                const tagClasses = { 'bug': 'tag-bug', 'feature': 'tag-feature', 'urgent': 'tag-urgent' };
                 tagHtml = `<span class="task-tag ${tagClasses[task.tag] || ''}">${task.tag}</span>`;
             }
 
-            // Assignee Avatar
             let avatarHtml = '';
             if(task.assignedTo && projectMembersCache[task.assignedTo]) {
                 const initial = projectMembersCache[task.assignedTo].charAt(0).toUpperCase();
                 avatarHtml = `<div class="avatar-circle" title="${projectMembersCache[task.assignedTo]}">${initial}</div>`;
             }
 
-            // Date Logic
             let dateBadge = '';
             if(task.dueDate) {
                 const due = new Date(task.dueDate);
@@ -588,7 +577,6 @@
                 dateBadge = `<span class="badge badge-date ${colorClass}"><i class="far fa-clock"></i> ${diffDays < 0 ? 'Late' : (diffDays===0 ? 'Today' : diffDays+'d')}</span>`;
             }
 
-            // Delete Button (Owner Only)
             let deleteBtn = currentRole === 'owner' ? `<i class="fas fa-trash-alt btn-delete-task" onclick="event.stopPropagation(); window.deleteTask('${id}')"></i>` : '';
 
             const html = `
@@ -607,7 +595,7 @@
             $(`#col-${task.status}`).append(html);
         }
 
-        // --- TASK DETAILS & COMMENTS ---
+        // --- TASK DETAILS & REASSIGN & COMMENTS ---
         window.openTaskDetails = async function(taskId) {
             currentDetailTaskId = taskId;
             const snap = await getDoc(doc(db, "tasks", taskId));
@@ -617,26 +605,35 @@
             $('#detail-task-title').text(t.title);
             $('#detail-task-date').text(t.dueDate || 'No Due Date');
             
-            // Resolve Assignee Name
-            const assigneeName = (t.assignedTo && projectMembersCache[t.assignedTo]) 
-                ? projectMembersCache[t.assignedTo] 
-                : 'Unassigned';
-            $('#detail-task-assignee').text(assigneeName);
+            // 1. POPULATE REASSIGN DROPDOWN
+            const assignSelect = $('#detail-task-assign-select');
+            assignSelect.empty().append('<option value="">Unassigned</option>');
+            
+            // Fill with project members
+            Object.keys(projectMembersCache).forEach(uid => {
+                const email = projectMembersCache[uid];
+                const selected = t.assignedTo === uid ? 'selected' : '';
+                assignSelect.append(`<option value="${uid}" ${selected}>${email}</option>`);
+            });
 
-            // Tag
+            // 2. REASSIGN EVENT LISTENER
+            // Remove old listeners to prevent stacking, then add new one
+            assignSelect.off('change').on('change', async function() {
+                const newUid = $(this).val();
+                await updateDoc(doc(db, "tasks", taskId), { assignedTo: newUid });
+                // Note: The UI updates automatically via onSnapshot
+            });
+
             if(t.tag) $('#detail-task-tag').html(`<span class="badge bg-secondary text-uppercase">${t.tag}</span>`);
             else $('#detail-task-tag').empty();
 
-            // Load Comments (Real-time)
             loadComments(taskId);
-
             $('#taskDetailModal').modal('show');
         }
 
         function loadComments(taskId) {
             const q = query(collection(db, "comments"), where("taskId", "==", taskId), orderBy("createdAt", "asc"));
             
-            // Detach previous listener if exists? For simplicity in this structure, we just overwrite
             onSnapshot(q, (snapshot) => {
                 const area = $('#modal-comments-area');
                 area.empty();
@@ -657,9 +654,10 @@
                         </div>
                     `);
                 });
-                
-                // Scroll to bottom
                 area.scrollTop(area[0].scrollHeight);
+            }, (error) => {
+                // This catches the permission error visually if rules aren't updated
+                console.error("Comments error:", error);
             });
         }
 
@@ -667,14 +665,18 @@
             const txt = $('#inp-new-comment').val().trim();
             if(!txt || !currentDetailTaskId) return;
 
-            await addDoc(collection(db, "comments"), {
-                taskId: currentDetailTaskId,
-                text: txt,
-                userId: currentUser.uid,
-                userEmail: currentUser.email,
-                createdAt: serverTimestamp()
-            });
-            $('#inp-new-comment').val('');
+            try {
+                await addDoc(collection(db, "comments"), {
+                    taskId: currentDetailTaskId,
+                    text: txt,
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    createdAt: serverTimestamp()
+                });
+                $('#inp-new-comment').val('');
+            } catch (e) {
+                alert("Error: " + e.message + "\n\nDid you update the Firestore Rules?");
+            }
         });
 
         // --- CRUD OPERATIONS ---
@@ -693,7 +695,7 @@
                 title: title,
                 dueDate: $('#inp-task-date').val(),
                 tag: $('#inp-task-tag').val(),
-                assignedTo: $('#inp-task-assign').val(), // Save UID
+                assignedTo: $('#inp-task-assign').val(), 
                 status: 'todo',
                 createdBy: currentUser.uid,
                 createdAt: Date.now()
@@ -709,14 +711,12 @@
         $('#btn-delete-project').click(async () => {
             if(!confirm("DELETE PROJECT? This will delete all tasks and comments.")) return;
             
-            // 1. Delete Tasks
             const q = query(collection(db, "tasks"), where("projectId", "==", currentProjectId));
             const snap = await getDocs(q);
             const batch = writeBatch(db);
             snap.forEach(d => batch.delete(d.ref));
             await batch.commit();
 
-            // 2. Delete Project
             await deleteDoc(doc(db, "projects", currentProjectId));
             showDashboard();
         });
@@ -736,7 +736,6 @@
                 list.append(`<li class="list-group-item d-flex justify-content-between"><span>${email}</span> <span class="badge bg-light text-dark border">${data.roles[uid]}</span></li>`);
             }
             
-            // Populate Datalist
             const allUsers = await getDocs(collection(db, "users"));
             $('#dl-users').empty();
             allUsers.forEach(u => {
@@ -764,8 +763,8 @@
 
             await updateDoc(pRef, { roles: newRoles, memberIds: newMembers });
             $('#inp-member-email').val('');
-            $('#btn-manage-members').click(); // Reload list
-            cacheMembers(newMembers); // Refresh assign dropdown
+            $('#btn-manage-members').click(); 
+            cacheMembers(newMembers); 
         });
 
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
