@@ -89,7 +89,10 @@
             </a>
             <div class="ms-auto d-flex align-items-center">
                 <span id="user-display" class="small text-muted me-3 d-none d-md-block"></span>
-                <button id="btn-logout" class="btn btn-sm btn-outline-danger">Log Out</button>
+                <button id="btn-logout" class="btn btn-sm btn-outline-secondary me-2">Log Out</button>
+                <button id="btn-delete-account" class="btn btn-sm btn-danger" title="Delete Account">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </div>
         </nav>
 
@@ -153,7 +156,7 @@
                     <label class="small text-muted">Project Name</label>
                     <input type="text" id="inp-project-title" class="form-control mb-3" placeholder="e.g. Website Redesign">
                     
-                    <label class="small text-muted">Deadline (Optional)</label>
+                    <label class="small text-muted fw-bold">Project Deadline</label>
                     <input type="date" id="inp-project-deadline" class="form-control mb-3">
 
                     <label class="small text-muted">Type</label>
@@ -175,10 +178,14 @@
                 <div class="modal-header border-0"><h5 class="modal-title">Team Members</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <ul id="member-list" class="list-group list-group-flush mb-3"></ul>
+                    
                     <div class="border-top pt-3">
-                        <label class="small text-muted mb-1">Add Member by Email</label>
+                        <label class="small text-muted mb-1">Add Existing User</label>
                         <div class="input-group">
-                            <input type="email" id="inp-member-email" class="form-control" placeholder="user@email.com">
+                            <input type="email" id="inp-member-email" class="form-control" list="dl-users" placeholder="Search user email...">
+                            <datalist id="dl-users">
+                                </datalist>
+
                             <select class="form-select" id="inp-member-role" style="max-width: 100px;">
                                 <option value="editor">Editor</option>
                                 <option value="viewer">Viewer</option>
@@ -199,7 +206,7 @@
                     <label class="small text-muted">Task Description</label>
                     <input type="text" id="inp-task-title" class="form-control mb-3" placeholder="What needs to be done?">
                     
-                    <label class="small text-muted">Due Date</label>
+                    <label class="small text-muted fw-bold">Task Deadline</label>
                     <input type="date" id="inp-task-date" class="form-control">
                 </div>
                 <div class="modal-footer border-0">
@@ -212,10 +219,10 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script type="module">
-        // 1. IMPORTS: Notice 'getDoc' is explicitly listed here
+    <script type="module">
+        // Added deleteUser to imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
         // --- CONFIG ---
@@ -252,6 +259,28 @@
 
         $('#btn-logout').click(() => signOut(auth));
 
+        // --- DELETE ACCOUNT FEATURE ---
+        $('#btn-delete-account').click(async () => {
+            if(!confirm("Are you sure you want to delete your account? This will permanently remove your user data. Projects you own may become inaccessible.")) return;
+            
+            try {
+                const uid = currentUser.uid;
+                // 1. Delete Firestore User Document
+                await deleteDoc(doc(db, "users", uid));
+                
+                // 2. Delete Authentication User
+                await deleteUser(currentUser);
+                alert("Account deleted.");
+                // onAuthStateChanged will handle the UI switch
+            } catch (e) {
+                if(e.code === 'auth/requires-recent-login') {
+                    alert("For security, please Log Out and Log In again before deleting your account.");
+                } else {
+                    alert("Error deleting account: " + e.message);
+                }
+            }
+        });
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -286,7 +315,17 @@
                     let deadlineHtml = '';
                     if (p.deadline) {
                         const d = new Date(p.deadline);
-                        deadlineHtml = `<div class="project-date mt-2"><i class="far fa-clock"></i> Due: ${d.toLocaleDateString()}</div>`;
+                        const today = new Date();
+                        const diffTime = d - today; 
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                        
+                        let colorClass = diffDays < 0 ? 'text-danger' : 'text-muted';
+                        let text = diffDays < 0 ? 'Overdue' : (diffDays === 0 ? 'Due Today' : `${diffDays} days left`);
+
+                        deadlineHtml = `
+                            <div class="project-date mt-2 ${colorClass}">
+                                <i class="far fa-clock"></i> ${d.toLocaleDateString()} (${text})
+                            </div>`;
                     }
 
                     const html = `
@@ -311,7 +350,7 @@
         $('#btn-create-project').click(async () => {
             const title = $('#inp-project-title').val();
             const type = $('#inp-project-type').val();
-            const deadline = $('#inp-project-deadline').val(); 
+            const deadline = $('#inp-project-deadline').val(); // Project Deadline
             
             if(!title) return;
 
@@ -343,7 +382,16 @@
                 $('#current-project-title').text(p.title);
                 
                 if(p.deadline) {
-                    $('#current-project-deadline').text(`Due: ${p.deadline}`).show();
+                    const d = new Date(p.deadline);
+                    const today = new Date();
+                    const diffTime = d - today; 
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    let extraText = diffDays < 0 ? "(Overdue)" : `(${diffDays} days left)`;
+                    
+                    $('#current-project-deadline').text(`Deadline: ${p.deadline} ${extraText}`).show();
+                    if(diffDays < 0) $('#current-project-deadline').removeClass('bg-light text-dark').addClass('bg-danger text-white');
+                    else $('#current-project-deadline').removeClass('bg-danger text-white').addClass('bg-light text-dark');
+
                 } else {
                     $('#current-project-deadline').hide();
                 }
@@ -428,7 +476,7 @@
 
         $('#btn-save-task').click(async () => {
             const title = $('#inp-task-title').val();
-            const date = $('#inp-task-date').val();
+            const date = $('#inp-task-date').val(); // Task Deadline
             if(!title) return;
 
             await addDoc(collection(db, "tasks"), {
@@ -455,7 +503,7 @@
         async function loadMembers() {
             $('#membersModal').modal('show');
             
-            // This line was causing your error because getDoc wasn't imported
+            // 1. Load Current Members
             const snap = await getDoc(doc(db, "projects", currentProjectId)); 
             if(!snap.exists()) return;
             
@@ -480,6 +528,20 @@
                     </li>
                 `);
             }
+
+            // 2. FETCH ALL USERS FOR DROPDOWN SELECTION
+            // This allows the user to see existing users instead of guessing
+            const allUsersSnap = await getDocs(collection(db, "users"));
+            const dl = $('#dl-users');
+            dl.empty();
+            
+            allUsersSnap.forEach(u => {
+                const uData = u.data();
+                // Don't show users already in the project
+                if(!memberIds.includes(u.id)) {
+                    dl.append(`<option value="${uData.email}">`);
+                }
+            });
         }
 
         $('#btn-invite-member').click(async () => {
@@ -490,7 +552,7 @@
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
-                alert("User not found! Ask them to sign up first.");
+                alert("User not found in the system! Please ask them to register first.");
                 return;
             }
 
