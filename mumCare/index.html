@@ -182,25 +182,25 @@
 
                 // === ONE-TIME UPLOAD START ===
                 // Run this once to populate your Firestore, then delete this block.
-                const checkData = await db.collection("checklists").limit(1).get();
-                if (checkData.empty) {
-                    const importData = [
-                        { "task_name": "KK Pink Book Registration", "budget_level": "minimal", "trimester": 1, "category": "Medical", "cost": 5 },
-                        { "task_name": "Private Clinic Initial Scan", "budget_level": "premium", "trimester": 1, "category": "Medical", "cost": 350 },
-                        { "task_name": "Folic Acid & Obimin (Pharmacy)", "budget_level": "minimal", "trimester": 1, "category": "Health", "cost": 40 },
-                        { "task_name": "Premium Prenatal Supplements", "budget_level": "premium", "trimester": 1, "category": "Health", "cost": 250 },
-                        { "task_name": "MGTT Glucose Test (KK)", "budget_level": "minimal", "trimester": 2, "category": "Medical", "cost": 0 },
-                        { "task_name": "Detailed Scan (Private)", "budget_level": "premium", "trimester": 2, "category": "Medical", "cost": 450 },
-                        { "task_name": "Newborn Clothes (Mydin/Tesco)", "budget_level": "minimal", "trimester": 2, "category": "Shopping", "cost": 150 },
-                        { "task_name": "Designer Nursery Furniture", "budget_level": "premium", "trimester": 2, "category": "Shopping", "cost": 5000 },
-                        { "task_name": "Gov Hospital Delivery", "budget_level": "minimal", "trimester": 3, "category": "Medical", "cost": 500 },
-                        { "task_name": "Private Delivery Package", "budget_level": "premium", "trimester": 3, "category": "Medical", "cost": 12000 },
-                        { "task_name": "Malay Tukang Urut", "budget_level": "minimal", "trimester": 3, "category": "Confinement", "cost": 700 },
-                        { "task_name": "Luxury Confinement Centre", "budget_level": "premium", "trimester": 3, "category": "Confinement", "cost": 25000 }
-                    ];
-                    importData.forEach(item => db.collection("checklists").add(item));
-                    console.log("Checklists Initialized!");
-                }
+//               const checkData = await db.collection("checklists").limit(1).get();
+//               if (checkData.empty) {
+//                   const importData = [
+//                       { "task_name": "KK Pink Book Registration", "budget_level": "minimal", "trimester": 1, "category": "Medical", "cost": 5 },
+//                       { "task_name": "Private Clinic Initial Scan", "budget_level": "premium", "trimester": 1, "category": "Medical", "cost": 350 },
+//                       { "task_name": "Folic Acid & Obimin (Pharmacy)", "budget_level": "minimal", "trimester": 1, "category": "Health", "cost": 40 },
+//                       { "task_name": "Premium Prenatal Supplements", "budget_level": "premium", "trimester": 1, "category": "Health", "cost": 250 },
+//                       { "task_name": "MGTT Glucose Test (KK)", "budget_level": "minimal", "trimester": 2, "category": "Medical", "cost": 0 },
+//                       { "task_name": "Detailed Scan (Private)", "budget_level": "premium", "trimester": 2, "category": "Medical", "cost": 450 },
+//                       { "task_name": "Newborn Clothes (Mydin/Tesco)", "budget_level": "minimal", "trimester": 2, "category": "Shopping", "cost": 150 },
+//                       { "task_name": "Designer Nursery Furniture", "budget_level": "premium", "trimester": 2, "category": "Shopping", "cost": 5000 },
+//                       { "task_name": "Gov Hospital Delivery", "budget_level": "minimal", "trimester": 3, "category": "Medical", "cost": 500 },
+//                       { "task_name": "Private Delivery Package", "budget_level": "premium", "trimester": 3, "category": "Medical", "cost": 12000 },
+//                       { "task_name": "Malay Tukang Urut", "budget_level": "minimal", "trimester": 3, "category": "Confinement", "cost": 700 },
+//                       { "task_name": "Luxury Confinement Centre", "budget_level": "premium", "trimester": 3, "category": "Confinement", "cost": 25000 }
+//                   ];
+//                   importData.forEach(item => db.collection("checklists").add(item));
+//                   console.log("Checklists Initialized!");
+//               }
                 // === ONE-TIME UPLOAD END ===
 
                 loadDashboard(user.uid);
