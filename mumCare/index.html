@@ -209,6 +209,25 @@
         </div>
 
         <div id="tab-guide" class="page-section px-4 pt-6 space-y-6">
+            <div class="glass-panel p-5 rounded-[2rem] mb-6 border-indigo-100 bg-indigo-50/30">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-base flex items-center gap-2 text-indigo-900">
+                        <i class="fas fa-suitcase-medical text-indigo-500"></i> Beg Hospital 👜
+                    </h3>
+                    <span id="bag-progress" class="text-[9px] bg-indigo-100 text-indigo-600 px-2 py-1 rounded font-bold uppercase">0% Ready</span>
+                </div>
+
+                <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+                    <button class="bag-filter-btn bg-indigo-500 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-sm transition" onclick="filterBag('all')">All</button>
+                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('docs')">Docs</button>
+                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('mama')">Mama</button>
+                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('baby')">Baby</button>
+                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('dad')">Dad</button>
+                </div>
+
+                <div id="bag-list" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+                    </div>
+            </div>            
             <div class="glass-panel p-5 rounded-[2rem]">
                 <h3 class="font-bold text-base mb-3">Confinement Culture 🌸</h3>
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
@@ -346,6 +365,7 @@
             loadWeight(uid);
             loadContractions(uid);
             loadBP(uid);
+            loadHospitalBag(uid);
         }
 
         // --- 1. CHECKLIST ---
@@ -590,6 +610,120 @@
             if($(this).is(':checked')) await db.collection('baby_milestones').add({uid, milestoneId:id});
             else { const s=await db.collection('baby_milestones').where('uid','==',uid).where('milestoneId','==',id).get(); s.forEach(d=>d.ref.delete()); }
         });
+
+    // --- HOSPITAL BAG DATA & LOGIC ---
+
+    // 1. The List (Malaysian Context)
+    const hospitalBagItems = [
+        // Documents (Wajib)
+        {id:'b1', t:"IC / MyKad (Original)", cat:"docs", imp:true},
+        {id:'b2', t:"Pink Book (Buku Merah)", cat:"docs", imp:true},
+        {id:'b3', t:"Marriage Cert (Copy)", cat:"docs", imp:false},
+        {id:'b4', t:"GL / Insurance Card", cat:"docs", imp:false},
+        
+        // Mama (Labor & Ward)
+        {id:'b5', t:"Kain Batik / Sarung (Labor)", cat:"mama", imp:true},
+        {id:'b6', t:"Maternity Pads (Loop/Adhesive)", cat:"mama", imp:true},
+        {id:'b7', t:"Nursing Bras (3 pairs)", cat:"mama", imp:false},
+        {id:'b8', t:"Disposable Panties", cat:"mama", imp:false},
+        {id:'b9', t:"Toiletries (Soap/Brush)", cat:"mama", imp:false},
+        {id:'b10', t:"Socks & Sweater (Cold Ward)", cat:"mama", imp:true},
+        {id:'b11', t:"Going Home Outfit", cat:"mama", imp:false},
+        {id:'b12', t:"Thermos / Water Bottle", cat:"mama", imp:false},
+        {id:'b13', t:"Kurma / Snacks (Energy)", cat:"mama", imp:false},
+
+        // Baby
+        {id:'b14', t:"Newborn Diapers (1 Pack)", cat:"baby", imp:true},
+        {id:'b15', t:"Baby Clothes (3 sets)", cat:"baby", imp:true},
+        {id:'b16', t:"Swaddle (Kain Bedung)", cat:"baby", imp:true},
+        {id:'b17', t:"Mittens & Booties", cat:"baby", imp:false},
+        {id:'b18', t:"Wet Wipes", cat:"baby", imp:true},
+        {id:'b19', t:"Receiving Blanket", cat:"baby", imp:false},
+
+        // Dad / Partner
+        {id:'b20', t:"Powerbank & Cables", cat:"dad", imp:true},
+        {id:'b21', t:"Jacket (Hospital is cold)", cat:"dad", imp:false},
+        {id:'b22', t:"Snacks & Mineral Water", cat:"dad", imp:false},
+        {id:'b23', t:"Change of Clothes", cat:"dad", imp:false}
+    ];
+
+    // 2. Load Bag Function
+    async function loadHospitalBag(uid) {
+        // Fetch saved items
+        const snap = await db.collection('user_bag').where('uid', '==', uid).get();
+        const checkedIds = snap.docs.map(d => d.data().itemId);
+        
+        // Update Progress UI
+        const progress = Math.round((checkedIds.length / hospitalBagItems.length) * 100);
+        $('#bag-progress').text(`${progress}% Ready`);
+
+        renderBagItems('all', checkedIds);
+    }
+
+    // 3. Render Helper (Supports Filtering)
+    function renderBagItems(filter, checkedIds) {
+        $('#bag-list').empty();
+        
+        hospitalBagItems.forEach(item => {
+            if(filter !== 'all' && item.cat !== filter) return;
+
+            const isChecked = checkedIds.includes(item.id);
+            const impBadge = item.imp ? '<span class="text-[9px] text-red-500 font-bold bg-red-50 px-1 rounded ml-2">MUST</span>' : '';
+            
+            // Category Icon
+            let icon = "👜";
+            if(item.cat === 'docs') icon = "📄";
+            if(item.cat === 'mama') icon = "🤰";
+            if(item.cat === 'baby') icon = "👶";
+            if(item.cat === 'dad') icon = "👨";
+
+            $('#bag-list').append(`
+                <label class="flex justify-between items-center p-3 bg-white border border-indigo-50 rounded-xl hover:shadow-sm transition cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" class="bag-check w-4 h-4 rounded border-2 border-slate-300 checked:bg-indigo-500 checked:border-indigo-500 appearance-none transition" 
+                            data-id="${item.id}" ${isChecked ? 'checked' : ''}>
+                        <div class="leading-tight">
+                            <span class="text-xs font-bold text-slate-700">${item.t}</span>
+                            ${impBadge}
+                        </div>
+                    </div>
+                    <span class="text-lg opacity-30 grayscale">${icon}</span>
+                </label>
+            `);
+        });
+    }
+
+    // 4. Toggle Logic (Save to Firebase)
+    $(document).on('change', '.bag-check', async function() {
+        const uid = auth.currentUser.uid;
+        const itemId = $(this).data('id');
+        
+        if($(this).is(':checked')) {
+            await db.collection('user_bag').add({ uid, itemId });
+        } else {
+            const s = await db.collection('user_bag').where('uid','==',uid).where('itemId','==',itemId).get();
+            s.forEach(d => d.ref.delete());
+        }
+        
+        // Update progress bar text only (No need full reload)
+        const total = hospitalBagItems.length;
+        const current = $('.bag-check:checked').length; // Estimate for instant UI feedback
+        // Ideally call loadHospitalBag(uid) to be precise, but this works for instant feel
+    });
+
+    // 5. Filter Tab Logic
+    window.filterBag = function(category) {
+        // Visual update for buttons
+        $('.bag-filter-btn').removeClass('bg-indigo-500 text-white').addClass('bg-white text-slate-400 border border-indigo-100');
+        $(event.target).removeClass('bg-white text-slate-400 border-indigo-100').addClass('bg-indigo-500 text-white border-transparent');
+        
+        // Re-render list (needs current checked state)
+        // We grab checked state from DOM to avoid API call
+        const currentChecked = [];
+        $('.bag-check:checked').each(function() { currentChecked.push($(this).data('id')); });
+        
+        renderBagItems(category, currentChecked);
+    }        
 
         // --- HELPERS ---
         $('.cul-btn').click(function() {
