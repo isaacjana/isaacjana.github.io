@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MamaJourney MY | Pregnancy Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        .trimester-1 { border-color: #10b981; background-color: #ecfdf5; }
+        .trimester-2 { border-color: #f59e0b; background-color: #fffbeb; }
+        .trimester-3 { border-color: #3b82f6; background-color: #eff6ff; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900">
+
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <h2 id="auth-title" class="text-3xl font-bold text-rose-500 mb-2 text-center">MamaJourney</h2>
+            <p class="text-center text-slate-500 mb-8">Pregnancy Guide & Tracker (MY)</p>
+            
+            <div class="space-y-4">
+                <input type="email" id="email" placeholder="Email Address" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-rose-300">
+                <input type="password" id="password" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-rose-300">
+                
+                <div id="signup-fields" class="hidden space-y-4">
+                    <input type="text" id="full-name" placeholder="Full Name" class="w-full p-3 border rounded-lg">
+                    <label class="block text-sm text-slate-600 font-medium">Estimated Due Date</label>
+                    <input type="date" id="due-date" class="w-full p-3 border rounded-lg">
+                    <select id="budget-pref" class="w-full p-3 border rounded-lg bg-white">
+                        <option value="minimal">Minimalist Budget (KK Focus)</option>
+                        <option value="premium">Premium Budget (Private Focus)</option>
+                    </select>
+                </div>
+
+                <button id="main-auth-btn" class="w-full bg-rose-500 text-white font-bold py-3 rounded-lg hover:bg-rose-600 transition">Login</button>
+                <p id="toggle-auth" class="text-center text-sm text-rose-400 cursor-pointer hover:underline">New here? Create a profile</p>
+            </div>
+        </div>
+    </div>
+
+    <main id="dashboard" class="hidden min-h-screen pb-20">
+        <nav class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+            <span class="text-2xl font-bold text-rose-500">MamaJourney</span>
+            <button id="logout-btn" class="text-sm text-slate-400 underline">Logout</button>
+        </nav>
+
+        <div class="max-w-5xl mx-auto p-6 grid lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-2 space-y-8">
+                <div id="print-area" class="bg-gradient-to-r from-rose-500 to-pink-500 rounded-3xl p-8 text-white shadow-lg">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <p class="opacity-80">Spending Summary (MYR)</p>
+                            <h2 id="spent-display" class="text-4xl font-bold">RM 0.00</h2>
+                        </div>
+                        <button onclick="exportToPDF()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm no-print">Export Plan PDF</button>
+                    </div>
+                    <div class="w-full bg-black/10 rounded-full h-3 mb-2">
+                        <div id="budget-progress" class="bg-white h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                    <p id="budget-status" class="text-sm opacity-80 italic">Select your tasks below</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border p-6">
+                    <h3 class="text-xl font-bold mb-4">Pregnancy Milestones</h3>
+                    <div id="task-list" class="space-y-3"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border p-6">
+                    <h3 class="text-xl font-bold mb-2">Confinement Checklist</h3>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button class="cul-btn px-4 py-1 border rounded-full text-sm" data-cul="malay">Malay</button>
+                        <button class="cul-btn px-4 py-1 border rounded-full text-sm" data-cul="chinese">Chinese</button>
+                        <button class="cul-btn px-4 py-1 border rounded-full text-sm" data-cul="indian">Indian</button>
+                        <button class="cul-btn px-4 py-1 border rounded-full text-sm" data-cul="iban">Iban</button>
+                    </div>
+                    <ul id="confinement-list" class="space-y-2 text-sm text-slate-600"></ul>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div id="tip-card" class="border-l-8 p-6 rounded-2xl shadow-sm border transition-all duration-500">
+                    <div class="flex justify-between items-center mb-2">
+                        <span id="tri-label" class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-white/50 rounded"></span>
+                        <span id="tri-icon" class="text-2xl"></span>
+                    </div>
+                    <h4 id="tri-title" class="font-bold text-lg mb-1"></h4>
+                    <p id="tri-text" class="text-sm leading-relaxed opacity-90"></p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                    <h4 class="font-bold mb-4">Weight Log (kg)</h4>
+                    <div class="flex gap-2 mb-4">
+                        <input type="number" id="weight-in" placeholder="0.0" class="w-full p-2 border rounded-lg">
+                        <button id="save-weight" class="bg-rose-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-rose-600">Log</button>
+                    </div>
+                    <div id="weight-history" class="space-y-2 text-xs max-h-32 overflow-y-auto"></div>
+                </div>
+
+                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-sm">
+                    <h4 class="font-bold mb-1">Contraction Timer</h4>
+                    <p class="text-[10px] opacity-60 mb-4 italic">5-1-1 Rule Tracker</p>
+                    <div id="c-timer" class="text-3xl font-mono font-bold text-rose-400 mb-4 text-center">00:00</div>
+                    <button id="c-btn" class="w-full bg-rose-500 py-3 rounded-xl font-bold">START CONTRACTION</button>
+                    <div id="c-history" class="mt-4 space-y-1 text-[10px] max-h-24 overflow-y-auto"></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                    <h4 class="font-bold mb-3">Boleh Makan Tak?</h4>
+                    <input type="text" id="food-search" placeholder="Search food (e.g. Durian)" class="w-full p-2 border rounded-lg text-sm mb-2">
+                    <div id="food-box" class="hidden p-3 rounded-lg text-xs leading-tight"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPn8ifAQiRuPpw02JvWdJCKv7KpQIAuXA",
+            authDomain: "mum-care.firebaseapp.com",
+            projectId: "mum-care",
+            storageBucket: "mum-care.firebasestorage.app",
+            messagingSenderId: "1011450259230",
+            appId: "1:1011450259230:web:6428b90fb4966e748a0b0f",
+            measurementId: "G-H56SXZSBHL"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // --- GLOBAL DATA ---
+        const tasks = [
+            { id: 't1', name: 'KK Pink Book Registration', budget: 'minimal', cost: 5 },
+            { id: 't2', name: 'Private Clinic 1st Visit', budget: 'premium', cost: 350 },
+            { id: 't3', name: 'Basic Baby Clothes Set', budget: 'minimal', cost: 150 },
+            { id: 't4', name: 'Premium Nuna/Chicco Stroller', budget: 'premium', cost: 2800 },
+            { id: 't5', name: 'Hospital Delivery (Gov)', budget: 'minimal', cost: 500 },
+            { id: 't6', name: 'Luxury Confinement Center Deposit', budget: 'premium', cost: 15000 }
+        ];
+
+        const foodDB = [
+            { name: "Durian", status: "Moderate", info: "High sugar, safe if no GDM.", color: "bg-amber-100 text-amber-800" },
+            { name: "Pineapple", status: "Safe", info: "Normal servings are fine. Bromelain myth.", color: "bg-emerald-100 text-emerald-800" },
+            { name: "Tapai", status: "Avoid", info: "Fermented/alcohol content.", color: "bg-rose-100 text-rose-800" }
+        ];
+
+        const cultureCheck = {
+            malay: ["Tukang Urut 7 Days", "Bengkung & Pilis", "Air Selusuh", "Barut Baby"],
+            chinese: ["Red Date Tea", "Sesame Oil Ginger Chicken", "Sheng Hua Tang Soup", "Confinement Nanny"],
+            indian: ["Vethu Kuli Medicated Bath", "Ayurvedic Massage", "Garlic Pepper Diet", "Baby Thottil"],
+            iban: ["Mandi Daun Forest Herbs", "Betungku Hot Stone", "Tukang Urut Bekaroh", "Berdiang Session"]
+        };
+
+        // --- AUTH LOGIC ---
+        let isSignUp = false;
+        $('#toggle-auth').click(() => {
+            isSignUp = !isSignUp;
+            $('#signup-fields').toggleClass('hidden');
+            $('#auth-title').text(isSignUp ? 'Create Profile' : 'MamaJourney');
+            $('#main-auth-btn').text(isSignUp ? 'Sign Up' : 'Login');
+        });
+
+        $('#main-auth-btn').click(async () => {
+            const email = $('#email').val();
+            const pass = $('#password').val();
+            try {
+                if (isSignUp) {
+                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                    await db.collection('users').doc(cred.user.uid).set({
+                        name: $('#full-name').val(),
+                        budget: $('#budget-pref').val(),
+                        dueDate: $('#due-date').val()
+                    });
+                } else {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
+            } catch (e) { alert(e.message); }
+        });
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                $('#auth-screen').addClass('hidden');
+                $('#dashboard').removeClass('hidden');
+                loadDashboard(user.uid);
+            } else {
+                $('#auth-screen').removeClass('hidden');
+                $('#dashboard').addClass('hidden');
+            }
+        });
+
+        // --- DASHBOARD LOGIC ---
+        async function loadDashboard(uid) {
+            const doc = await db.collection('users').doc(uid).get();
+            const u = doc.data();
+            renderMilestones(u.budget);
+            updateTips(u.dueDate);
+            loadWeight(uid);
+        }
+
+        function renderMilestones(pref) {
+            const filtered = tasks.filter(t => t.budget === pref);
+            $('#task-list').empty();
+            filtered.forEach(t => {
+                $('#task-list').append(`
+                    <label class="flex justify-between items-center p-3 border rounded-xl cursor-pointer">
+                        <div class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" class="w-4 h-4 accent-rose-500 task-check" data-cost="${t.cost}">
+                            <span>${t.name}</span>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400">RM ${t.cost}</span>
+                    </label>
+                `);
+            });
+        }
+
+        $(document).on('change', '.task-check', function() {
+            let spent = 0;
+            let done = 0;
+            $('.task-check:checked').each(function() {
+                spent += parseInt($(this).data('cost'));
+                done++;
+            });
+            $('#spent-display').text(`RM ${spent.toLocaleString()}`);
+            const progress = (done / $('.task-check').length) * 100;
+            $('#budget-progress').css('width', progress + '%');
+            $('#budget-status').text(`${done} milestones reached`);
+        });
+
+        $('.cul-btn').click(function() {
+            const cul = $(this).data('cul');
+            $('.cul-btn').removeClass('bg-rose-500 text-white');
+            $(this).addClass('bg-rose-500 text-white');
+            $('#confinement-list').empty();
+            cultureCheck[cul].forEach(i => $('#confinement-list').append(`<li>🌸 ${i}</li>`));
+        });
+
+        // --- TOOLS ---
+        function updateTips(dueDate) {
+            const diff = Math.ceil((new Date(dueDate) - new Date()) / (1000 * 60 * 60 * 24));
+            let tri = 3; if (diff > 186) tri = 1; else if (diff > 93) tri = 2;
+            const content = {
+                1: { t: "Growth Phase", d: "Early scans are key. Register your Buku Pink soon.", i: "🌱", c: "trimester-1" },
+                2: { t: "The Golden Era", d: "Energy is back! Best time for shopping and walking.", i: "☀️", c: "trimester-2" },
+                3: { t: "The Final Stretch", d: "Hospital bag ready? Track those kicks daily.", i: "☁️", c: "trimester-3" }
+            }[tri];
+            $('#tip-card').removeClass('trimester-1 trimester-2 trimester-3').addClass(content.c);
+            $('#tri-label').text(`Trimester ${tri}`); $('#tri-icon').text(content.i);
+            $('#tri-title').text(content.t); $('#tri-text').text(content.d);
+        }
+
+        $('#food-search').on('input', function() {
+            const val = $(this).val().toLowerCase();
+            const res = foodDB.find(f => f.name.toLowerCase().includes(val));
+            if (val && res) {
+                $('#food-box').removeClass().addClass(`p-3 rounded-lg text-xs ${res.color}`).html(`<b>${res.status}</b>: ${res.info}`).fadeIn();
+            } else { $('#food-box').hide(); }
+        });
+
+        let cStartTime, cInt, isCTiming = false;
+        $('#c-btn').click(function() {
+            if (!isCTiming) {
+                isCTiming = true; cStartTime = new Date();
+                $(this).text("STOP CONTRACTION").addClass('bg-rose-700');
+                cInt = setInterval(() => {
+                    const diff = Math.floor((new Date() - cStartTime) / 1000);
+                    $('#c-timer').text(`00:${String(diff % 60).padStart(2, '0')}`);
+                }, 1000);
+            } else {
+                isCTiming = false; clearInterval(cInt);
+                const dur = Math.floor((new Date() - cStartTime) / 1000);
+                $('#c-history').prepend(`<div>${new Date().toLocaleTimeString()} - ${dur}s</div>`);
+                $(this).text("START CONTRACTION").removeClass('bg-rose-700');
+                $('#c-timer').text("00:00");
+            }
+        });
+
+        $('#save-weight').click(async () => {
+            const w = $('#weight-in').val();
+            if (!w) return;
+            await db.collection('weight_logs').add({
+                uid: auth.currentUser.uid,
+                weight: w,
+                date: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            $('#weight-in').val(''); loadWeight(auth.currentUser.uid);
+        });
+
+        async function loadWeight(uid) {
+            const snap = await db.collection('weight_logs').where('uid', '==', uid).orderBy('date', 'desc').limit(5).get();
+            $('#weight-history').empty();
+            snap.forEach(d => $('#weight-history').append(`<div>${d.data().weight}kg - ${d.data().date?.toDate().toLocaleDateString() || ''}</div>`));
+        }
+
+        window.exportToPDF = async function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            $('.no-print').hide();
+            const canvas = await html2canvas(document.querySelector("#print-area"));
+            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 20, 20, 550, (canvas.height * 550) / canvas.width);
+            doc.save("MamaJourneyPlan.pdf");
+            $('.no-print').show();
+        };
+
+        $('#logout-btn').click(() => auth.signOut());
+    </script>
+</body>
+</html>
