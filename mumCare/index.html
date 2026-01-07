@@ -489,6 +489,75 @@
             alert("Database Updated! Refreshing...");
             location.reload();
         }
+        // --- MISSING LOGIC FIXES ---
+
+            // 1. WEIGHT TRACKER LOGIC
+            $('#save-weight').click(async () => {
+                const w = $('#weight-in').val();
+                if(!w) return alert("Please enter your weight!");
+                
+                try {
+                    await db.collection('weight_logs').add({
+                        uid: auth.currentUser.uid,
+                        weight: w,
+                        date: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    $('#weight-in').val(''); // Clear input
+                    loadWeight(auth.currentUser.uid); // Refresh the list
+                } catch (error) {
+                    console.error("Error saving weight:", error);
+                    alert("Error: Check Console (F12) for Index Link");
+                }
+            });
+
+            async function loadWeight(uid) {
+                // NOTE: This query REQUIRES a Composite Index in Firestore
+                const snap = await db.collection('weight_logs')
+                    .where('uid', '==', uid)
+                    .orderBy('date', 'desc')
+                    .limit(5)
+                    .get();
+                    
+                $('#weight-history').empty();
+                snap.forEach(d => {
+                    const data = d.data();
+                    const dateStr = data.date ? data.date.toDate().toLocaleDateString() : 'Just now';
+                    $('#weight-history').append(`
+                        <div class="flex justify-between border-b border-slate-100 py-2 text-xs">
+                            <span class="font-bold">${data.weight} kg</span>
+                            <span class="text-slate-400 text-[9px] uppercase">${dateStr}</span>
+                        </div>
+                    `);
+                });
+            }
+
+            // 2. CONTRACTION TIMER LOGIC
+            let cInt, cStart, cRun = false;
+            $('#c-btn').click(function() {
+                if(!cRun) {
+                    // Start Timer
+                    cRun = true; 
+                    cStart = new Date();
+                    $(this).text("STOP TIMING").removeClass('bg-rose-500').addClass('bg-rose-800');
+                    
+                    cInt = setInterval(() => {
+                        const diff = Math.floor((new Date() - cStart) / 1000);
+                        const m = String(Math.floor(diff / 60)).padStart(2, '0');
+                        const s = String(diff % 60).padStart(2, '0');
+                        $('#c-timer').text(`${m}:${s}`);
+                    }, 1000);
+                } else {
+                    // Stop Timer
+                    cRun = false; 
+                    clearInterval(cInt);
+                    $(this).text("START").removeClass('bg-rose-800').addClass('bg-rose-500');
+                    
+                    // Optional: Alert the duration
+                    const duration = $('#c-timer').text();
+                    alert(`Contraction lasted: ${duration}`);
+                    $('#c-timer').text("00:00");
+                }
+            });
     </script>
 </body>
 </html>
