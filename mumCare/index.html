@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MamaJourney MY | Full Pregnancy System</title>
+    <title>MamaJourney MY | Premium Pregnancy Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -13,10 +13,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        .trimester-1 { border-color: #10b981; background-color: #ecfdf5; }
-        .trimester-2 { border-color: #f59e0b; background-color: #fffbeb; }
-        .trimester-3 { border-color: #3b82f6; background-color: #eff6ff; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .active-cul { background-color: #f43f5e !important; color: white !important; border-color: #f43f5e !important; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -25,11 +23,9 @@
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-rose-100">
             <h2 id="auth-title" class="text-3xl font-bold text-rose-500 mb-2 text-center">MamaJourney</h2>
             <p class="text-center text-slate-400 mb-8 text-sm">Safe & Private Pregnancy Tracking</p>
-            
             <div class="space-y-4">
                 <input type="email" id="email" placeholder="Email Address" class="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-300">
                 <input type="password" id="password" placeholder="Password" class="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-300">
-                
                 <div id="signup-fields" class="hidden space-y-4">
                     <input type="text" id="full-name" placeholder="Full Name" class="w-full p-4 bg-slate-50 border-none rounded-2xl">
                     <label class="block text-xs text-slate-500 px-2">Estimated Due Date</label>
@@ -39,8 +35,7 @@
                         <option value="premium">Premium Budget (Private Focus)</option>
                     </select>
                 </div>
-
-                <button id="main-auth-btn" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 hover:bg-rose-600 transition">Continue</button>
+                <button id="main-auth-btn" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-rose-600 transition">Continue</button>
                 <p id="toggle-auth" class="text-center text-sm text-rose-400 cursor-pointer hover:underline">New mama? Create a profile</p>
             </div>
         </div>
@@ -48,18 +43,19 @@
 
     <main id="dashboard" class="hidden min-h-screen pb-24">
         <nav class="bg-white/80 backdrop-blur-md border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-            <span class="text-2xl font-black text-rose-500">MamaJourney</span>
-            <button id="logout-btn" class="text-xs font-bold text-slate-400 uppercase tracking-widest">Logout</button>
+            <div class="flex flex-col">
+                <span class="text-xl font-black text-rose-500">MamaJourney</span>
+                <span id="user-display-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Welcome, Mama</span>
+            </div>
+            <button id="logout-btn" class="text-xs font-bold text-slate-400 hover:text-rose-500">LOGOUT</button>
         </nav>
 
         <div class="max-w-6xl mx-auto p-6 grid lg:grid-cols-12 gap-8">
-            
             <div class="lg:col-span-8 space-y-8">
-                
                 <div id="print-area" class="bg-gradient-to-br from-rose-500 to-orange-400 rounded-[2.5rem] p-8 text-white shadow-xl">
                     <div class="flex justify-between items-start mb-10">
                         <div>
-                            <p class="text-rose-100 text-sm font-medium mb-1">Total Estimated Spent</p>
+                            <p class="text-rose-100 text-sm mb-1">Total Estimated Spent</p>
                             <h2 id="spent-display" class="text-5xl font-black">RM 0.00</h2>
                         </div>
                         <button onclick="exportToPDF()" class="bg-white/20 hover:bg-white/40 px-6 py-2 rounded-full text-xs font-bold no-print backdrop-blur-sm transition">EXPORT PLAN</button>
@@ -70,261 +66,199 @@
                             <span id="progress-percent">0%</span>
                         </div>
                         <div class="w-full bg-black/10 rounded-full h-4">
-                            <div id="budget-progress" class="bg-white h-full rounded-full transition-all duration-1000 shadow-sm" style="width: 0%"></div>
+                            <div id="budget-progress" class="bg-white h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8">
-                    <div id="baby-size-icon" class="text-7xl bg-rose-50 w-32 h-32 flex items-center justify-center rounded-full shadow-inner border-4 border-white">✨</div>
-                    <div class="text-center md:text-left">
-                        <span id="baby-week-label" class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-xs font-black uppercase mb-2 inline-block">Calculating...</span>
-                        <h3 id="baby-size-text" class="text-2xl font-bold text-slate-800 mb-2">Size: Small Seed</h3>
-                        <p id="milestone-detail" class="text-slate-500 leading-relaxed max-w-md italic">Your baby's journey is just beginning. Stay healthy, Mama!</p>
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
+                    <h3 class="text-xl font-bold mb-4">🏥 Hospital Packing List</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-xs font-black text-rose-400 mb-3 uppercase">For Mama</h4>
+                            <ul class="text-sm space-y-2 text-slate-600">
+                                <li>✅ Pink Book (Buku Rekod Ibu)</li>
+                                <li>✅ IC Card & Insurance Docs</li>
+                                <li>✅ Loose clothes/Sarong</li>
+                                <li>✅ Maternity Pads & Nursing Bra</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black text-blue-400 mb-3 uppercase">For Baby</h4>
+                            <ul class="text-sm space-y-2 text-slate-600">
+                                <li>✅ Swaddle blankets (Kain Bedung)</li>
+                                <li>✅ Newborn Diapers & Wipes</li>
+                                <li>✅ Mittens, Booties & Hat</li>
+                                <li>✅ Going-home outfit</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
-                    <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-                        <span class="w-2 h-6 bg-rose-500 rounded-full"></span> Milestones & Budget
-                    </h3>
+                    <h3 class="text-xl font-bold mb-6">Milestones & Budget</h3>
                     <div id="task-list" class="grid md:grid-cols-2 gap-4"></div>
                 </div>
 
                 <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
                     <h3 class="text-xl font-bold mb-6">Cultural Confinement Checklist</h3>
-                    <div class="flex flex-wrap gap-3 mb-8 no-scrollbar overflow-x-auto">
-                        <button class="cul-btn px-6 py-2 rounded-2xl border-2 font-bold text-sm transition" data-cul="malay">Malay</button>
-                        <button class="cul-btn px-6 py-2 rounded-2xl border-2 font-bold text-sm transition" data-cul="chinese">Chinese</button>
-                        <button class="cul-btn px-6 py-2 rounded-2xl border-2 font-bold text-sm transition" data-cul="indian">Indian</button>
-                        <button class="cul-btn px-6 py-2 rounded-2xl border-2 font-bold text-sm transition" data-cul="iban">Iban</button>
+                    <div class="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+                        <button class="cul-btn px-4 py-2 rounded-xl border font-bold text-xs" data-cul="malay">Malay</button>
+                        <button class="cul-btn px-4 py-2 rounded-xl border font-bold text-xs" data-cul="chinese">Chinese</button>
+                        <button class="cul-btn px-4 py-2 rounded-xl border font-bold text-xs" data-cul="indian">Indian</button>
+                        <button class="cul-btn px-4 py-2 rounded-xl border font-bold text-xs" data-cul="iban">Iban</button>
                     </div>
-                    <ul id="confinement-list" class="grid md:grid-cols-2 gap-3 text-sm text-slate-600 font-medium"></ul>
+                    <ul id="confinement-list" class="grid md:grid-cols-2 gap-3 text-sm text-slate-600"></ul>
                 </div>
             </div>
 
             <div class="lg:col-span-4 space-y-8">
-                
-                <div class="bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-lg">
-                    <h4 class="font-bold text-lg mb-1">Mama's Wellness Check</h4>
-                    <p class="text-xs text-indigo-200 mb-6 italic">Private Mood Tracker</p>
-                    <div class="flex justify-between gap-2 mb-6">
-                        <button onclick="logMood('Happy')" class="bg-white/10 hover:bg-white/30 p-3 rounded-2xl transition text-2xl">😊</button>
-                        <button onclick="logMood('Tired')" class="bg-white/10 hover:bg-white/30 p-3 rounded-2xl transition text-2xl">😴</button>
-                        <button onclick="logMood('Anxious')" class="bg-white/10 hover:bg-white/30 p-3 rounded-2xl transition text-2xl">😟</button>
-                        <button onclick="logMood('Sad')" class="bg-white/10 hover:bg-white/30 p-3 rounded-2xl transition text-2xl">😢</button>
-                    </div>
-                    <div id="mood-alert" class="hidden p-3 bg-white/10 rounded-xl text-[10px] leading-tight border border-white/20">
-                        <b>Resource:</b> If you feel overwhelmed, call Talian Kasih at <b>15999</b>.
-                    </div>
-                </div>
-
                 <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h4 class="font-bold mb-4">Weight History (kg)</h4>
-                    <div class="flex gap-2 mb-6">
-                        <input type="number" id="weight-in" placeholder="0.0" class="w-full p-3 bg-slate-50 border-none rounded-xl">
-                        <button id="save-weight" class="bg-slate-800 text-white px-6 py-2 rounded-xl font-bold">LOG</button>
+                    <h4 class="font-bold mb-4">Weight Tracker (kg)</h4>
+                    <div class="flex gap-2 mb-4">
+                        <input type="number" id="weight-in" placeholder="0.0" class="w-full p-3 bg-slate-50 rounded-xl">
+                        <button id="save-weight" class="bg-slate-800 text-white px-4 rounded-xl font-bold">LOG</button>
                     </div>
-                    <div id="weight-history" class="space-y-2 max-h-40 overflow-y-auto no-scrollbar"></div>
+                    <div id="weight-history" class="space-y-2 text-sm"></div>
                 </div>
-
-                <div class="bg-slate-900 text-white p-8 rounded-[2rem] shadow-xl overflow-hidden relative">
-                    <div class="relative z-10">
-                        <h4 class="font-bold mb-1">Contraction Timer</h4>
-                        <p class="text-[10px] opacity-50 mb-6 uppercase tracking-tighter italic font-black">Follow the 5-1-1 Rule</p>
-                        <div id="c-timer" class="text-5xl font-mono font-black text-rose-500 mb-6 text-center tracking-tighter">00:00</div>
-                        <button id="c-btn" class="w-full bg-rose-500 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-rose-900/50">Start Timer</button>
-                        <div id="c-history" class="mt-6 space-y-2 text-[10px] max-h-24 overflow-y-auto no-scrollbar opacity-70"></div>
-                    </div>
+                
+                <div class="bg-slate-900 text-white p-8 rounded-[2rem] shadow-xl">
+                    <h4 class="font-bold mb-1">Contraction Timer</h4>
+                    <p class="text-[10px] opacity-50 mb-6 uppercase">5-1-1 Rule</p>
+                    <div id="c-timer" class="text-5xl font-mono font-black text-rose-500 mb-6 text-center">00:00</div>
+                    <button id="c-btn" class="w-full bg-rose-500 py-4 rounded-2xl font-black">START TIMER</button>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDPn8ifAQiRuPpw02JvWdJCKv7KpQIAuXA",
             authDomain: "mum-care.firebaseapp.com",
             projectId: "mum-care",
             storageBucket: "mum-care.firebasestorage.app",
             messagingSenderId: "1011450259230",
-            appId: "1:1011450259230:web:6428b90fb4966e748a0b0f",
-            measurementId: "G-H56SXZSBHL"
+            appId: "1:1011450259230:web:6428b90fb4966e748a0b0f"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- DATA ---
         const cultureCheck = {
-            malay: ["Hire Tukang Urut (Confinement Lady)", "Bengkung & Pilis preparation", "Air Selusuh (Traditional water)", "Set Bersalin Postnatal Herbs", "Barut (Baby binders)"],
-            chinese: ["Book Confinement Centre (6 months early)", "Stock Red Dates & Goji Berries", "Prepare Ginger & Sesame Oil", "Sheng Hua Tang Herbal Soup", "Confinement Nanny booking"],
-            indian: ["Vethu Kuli Medicated Bath preparation", "Ayurvedic Postnatal Massage Oils", "Garlic & Pepper specialized diet", "Baby Thottil (Cloth cradle)", "Suthi (Protection) rituals"],
-            iban: ["Mandi Daun Forest Herbs", "Betungku (Hot Stone compression)", "Identify Tukang Urut for Bekaroh", "Stock wood for Berdiang session", "Identify forest herbs for healing soup"]
+            malay: ["Tukang Urut booking", "Bengkung & Pilis", "Air Selusuh", "Set Bersalin Herbs"],
+            chinese: ["Confinement Center", "Red Dates & Goji", "Ginger Oil", "Herbal Soups"],
+            indian: ["Vethu Kuli Bath", "Ayurvedic Oils", "Pathiya Samayal diet", "Thottil Setup"],
+            iban: ["Mandi Daun Herbs", "Betungku Stones", "Berdiang Session", "Healing Soup"]
         };
 
-        const babyMilestones = {
-            8: { size: "Lime", icon: "🍋", d: "Baby's heart is beating and limbs are forming." },
-            12: { size: "Plum", icon: "🍑", d: "Baby can now open and close their fists." },
-            20: { size: "Banana", icon: "🍌", d: "Halfway! Baby can hear your heartbeat." },
-            28: { size: "Eggplant", icon: "🍆", d: "Baby can open eyes and sense light." },
-            32: { size: "Durian", icon: "🍈", d: "Lungs are maturing and bones are hardening." },
-            40: { size: "Watermelon", icon: "🍉", d: "Ready for delivery. See you soon, Mama!" }
-        };
-
-        // --- AUTH ---
+        // AUTH LOGIC
         let isSignUp = false;
         $('#toggle-auth').click(() => {
             isSignUp = !isSignUp;
             $('#signup-fields').toggleClass('hidden');
             $('#auth-title').text(isSignUp ? 'New Account' : 'MamaJourney');
-            $('#main-auth-btn').text(isSignUp ? 'Create Profile' : 'Continue');
         });
 
         $('#main-auth-btn').click(async () => {
             const email = $('#email').val();
             const pass = $('#password').val();
-            try {
-                if (isSignUp) {
-                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
-                    await db.collection('users').doc(cred.user.uid).set({
-                        name: $('#full-name').val(),
-                        budget: $('#budget-pref').val(),
-                        dueDate: $('#due-date').val()
-                    });
-                } else {
-                    await auth.signInWithEmailAndPassword(email, pass);
-                }
-            } catch (e) { alert("Error: " + e.message); }
+            if(isSignUp) {
+                const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                await db.collection('users').doc(cred.user.uid).set({
+                    name: $('#full-name').val(),
+                    budget: $('#budget-pref').val(),
+                    dueDate: $('#due-date').val()
+                });
+            } else {
+                await auth.signInWithEmailAndPassword(email, pass);
+            }
         });
 
-        auth.onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged(user => {
             if (user) {
                 $('#auth-screen').addClass('hidden');
                 $('#dashboard').removeClass('hidden');
-
-                // MIGRATION SCRIPT (ONE-TIME)
-                const checkData = await db.collection("checklists").limit(1).get();
-                if (checkData.empty) {
-                    const importData = [
-                        { "task_name": "KK Pink Book Registration", "budget_level": "minimal", "trimester": 1, "cost": 5 },
-                        { "task_name": "Private Clinic Initial Scan", "budget_level": "premium", "trimester": 1, "cost": 350 },
-                        { "task_name": "Folic Acid Supplements", "budget_level": "minimal", "trimester": 1, "cost": 40 },
-                        { "task_name": "Detailed Scan (Private)", "budget_level": "premium", "trimester": 2, "cost": 450 },
-                        { "task_name": "Government Hospital Delivery", "budget_level": "minimal", "trimester": 3, "cost": 500 },
-                        { "task_name": "Private Hospital Delivery", "budget_level": "premium", "trimester": 3, "cost": 12000 }
-                    ];
-                    importData.forEach(item => db.collection("checklists").add(item));
-                }
-                loadDashboard(user.uid);
+                initUser(user.uid);
             } else {
                 $('#auth-screen').removeClass('hidden');
                 $('#dashboard').addClass('hidden');
             }
         });
 
-        // --- LOGIC ---
-        async function loadDashboard(uid) {
+        async function initUser(uid) {
             const userDoc = await db.collection('users').doc(uid).get();
             const u = userDoc.data();
+            $('#user-display-name').text(`Welcome, Mama ${u.name}`);
             
-            // Checklists
-            const snap = await db.collection('checklists').where('budget_level', '==', u.budget).get();
+            // Load Tasks with saved state
+            const tasksSnap = await db.collection('checklists').where('budget_level', '==', u.budget).get();
+            const userTasksSnap = await db.collection('user_tasks').where('uid', '==', uid).get();
+            const completedIds = userTasksSnap.docs.map(d => d.data().taskId);
+
             $('#task-list').empty();
-            snap.forEach(doc => {
+            tasksSnap.forEach(doc => {
                 const t = doc.data();
+                const isChecked = completedIds.includes(doc.id) ? 'checked' : '';
                 $('#task-list').append(`
-                    <label class="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-white transition">
+                    <label class="flex justify-between items-center p-4 bg-slate-50 border rounded-2xl cursor-pointer">
                         <div class="flex items-center gap-3">
-                            <input type="checkbox" class="w-5 h-5 accent-rose-500 task-check" data-cost="${t.cost}">
-                            <span class="text-sm font-bold text-slate-700">${t.task_name}</span>
+                            <input type="checkbox" class="task-check" data-id="${doc.id}" data-cost="${t.cost}" ${isChecked}>
+                            <span class="text-sm font-bold">${t.task_name}</span>
                         </div>
-                        <span class="text-xs font-black text-slate-300 tracking-tighter">RM ${t.cost}</span>
+                        <span class="text-xs text-slate-400">RM ${t.cost}</span>
                     </label>
                 `);
             });
-
-            // Baby & Trimester
-            const week = Math.floor((280 - Math.ceil((new Date(u.dueDate) - new Date()) / 86400000)) / 7);
-            const mKey = Object.keys(babyMilestones).reverse().find(k => week >= k) || 8;
-            const m = babyMilestones[mKey];
-            $('#baby-week-label').text(`Week ${week}`);
-            $('#baby-size-icon').text(m.icon);
-            $('#baby-size-text').text(`Size of a ${m.size}`);
-            $('#milestone-detail').text(m.d);
-
+            updateSummary();
             loadWeight(uid);
         }
 
-        $(document).on('change', '.task-check', function() {
+        // SAVE TASK PROGRESS
+        $(document).on('change', '.task-check', async function() {
+            const taskId = $(this).data('id');
+            const uid = auth.currentUser.uid;
+            if($(this).is(':checked')) {
+                await db.collection('user_tasks').add({ uid, taskId });
+            } else {
+                const snap = await db.collection('user_tasks').where('uid', '==', uid).where('taskId', '==', taskId).get();
+                snap.forEach(d => d.ref.delete());
+            }
+            updateSummary();
+        });
+
+        function updateSummary() {
             let spent = 0; let done = 0;
             $('.task-check:checked').each(function() { spent += parseInt($(this).data('cost')); done++; });
             $('#spent-display').text(`RM ${spent.toLocaleString()}`);
-            const progress = (done / $('.task-check').length) * 100;
+            const progress = (done / $('.task-check').length) * 100 || 0;
             $('#budget-progress').css('width', progress + '%');
             $('#progress-percent').text(Math.round(progress) + '%');
-        });
+        }
 
         $('.cul-btn').click(function() {
+            $('.cul-btn').removeClass('active-cul');
+            $(this).addClass('active-cul');
             const cul = $(this).data('cul');
-            $('.cul-btn').removeClass('bg-rose-500 text-white border-rose-500').addClass('text-slate-400 border-slate-100');
-            $(this).addClass('bg-rose-500 text-white border-rose-500').removeClass('text-slate-400 border-slate-100');
             $('#confinement-list').empty();
             cultureCheck[cul].forEach(i => $('#confinement-list').append(`<li>✨ ${i}</li>`));
         });
 
+        // WEIGHT LOGIC
         $('#save-weight').click(async () => {
-            const w = $('#weight-in').val();
-            if (!w) return;
             await db.collection('weight_logs').add({
                 uid: auth.currentUser.uid,
-                weight: w,
+                weight: $('#weight-in').val(),
                 date: firebase.firestore.FieldValue.serverTimestamp()
             });
             $('#weight-in').val(''); loadWeight(auth.currentUser.uid);
         });
 
         async function loadWeight(uid) {
-            const snap = await db.collection('weight_logs').where('uid', '==', uid).orderBy('date', 'desc').limit(5).get();
+            const snap = await db.collection('weight_logs').where('uid', '==', uid).orderBy('date', 'desc').limit(3).get();
             $('#weight-history').empty();
-            snap.forEach(d => $('#weight-history').append(`<div class="flex justify-between p-2 bg-slate-50 rounded-lg"><b>${d.data().weight} kg</b> <span class="opacity-30 italic">${d.data().date?.toDate().toLocaleDateString() || 'Today'}</span></div>`));
+            snap.forEach(d => $('#weight-history').append(`<div class="flex justify-between border-b py-2"><span>${d.data().weight} kg</span><span class="text-slate-300">Logged</span></div>`));
         }
-
-        async function logMood(mood) {
-            await db.collection('mental_health_logs').add({
-                uid: auth.currentUser.uid, mood: mood, date: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            $('#mood-alert').fadeIn(); setTimeout(() => $('#mood-alert').fadeOut(), 4000);
-        }
-
-        let cS, cI, isCT = false;
-        $('#c-btn').click(function() {
-            if (!isCT) {
-                isCT = true; cS = new Date();
-                $(this).text("Timing...").addClass('bg-rose-700');
-                cI = setInterval(() => {
-                    const d = Math.floor((new Date() - cS) / 1000);
-                    $('#c-timer').text(`00:${String(d % 60).padStart(2, '0')}`);
-                }, 1000);
-            } else {
-                isCT = false; clearInterval(cI);
-                const dur = Math.floor((new Date() - cS) / 1000);
-                $('#c-history').prepend(`<div>Entry: ${dur}s at ${new Date().toLocaleTimeString()}</div>`);
-                $(this).text("Start Timer").removeClass('bg-rose-700');
-                $('#c-timer').text("00:00");
-            }
-        });
-
-        window.exportToPDF = async function() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'pt', 'a4');
-            $('.no-print').hide();
-            const canvas = await html2canvas(document.querySelector("#dashboard"), { scale: 0.8 });
-            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 40, 40, 520, (canvas.height * 520) / canvas.width);
-            doc.save("MamaJourneyPlan.pdf");
-            $('.no-print').show();
-        };
 
         $('#logout-btn').click(() => auth.signOut());
     </script>
