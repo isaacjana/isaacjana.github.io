@@ -29,7 +29,7 @@
     </script>
     <style>
         body { background-color: #fdfdfd; -webkit-tap-highlight-color: transparent; }
-        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .page-section { display: none; animation: fadeIn 0.3s ease-out; }
         .page-section.active { display: block; }
@@ -82,7 +82,6 @@
         </header>
 
         <div id="tab-home" class="page-section active px-4 pt-6 space-y-6">
-            
             <div id="export-area" class="bg-gradient-to-br from-rose-400 to-orange-300 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden">
                 <div class="flex justify-between items-start mb-6">
                     <div>
@@ -94,7 +93,6 @@
                         <h2 id="days-left-display" class="text-2xl font-black">-- Days</h2>
                     </div>
                 </div>
-                
                 <div class="space-y-1">
                     <div class="flex justify-between text-[9px] font-bold uppercase tracking-widest opacity-90">
                         <span id="tasks-fraction">0/0 Tasks</span>
@@ -130,7 +128,7 @@
                     <h3 class="font-bold text-base text-orange-800">Carta Gerak Bayi</h3>
                     <span class="text-[9px] bg-orange-200 text-orange-700 px-2 py-1 rounded font-bold">TARGET: 10</span>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 mb-4">
                     <button id="btn-kick" class="w-20 h-20 bg-orange-400 rounded-full shadow-lg shadow-orange-200 text-3xl active:scale-90 transition border-4 border-white">👣</button>
                     <div>
                         <div class="text-3xl font-black text-slate-800"><span id="kick-count">0</span><span class="text-sm font-medium text-slate-400">/10</span></div>
@@ -138,43 +136,46 @@
                         <button onclick="resetKick()" class="text-[9px] font-bold text-orange-500 underline mt-1">RESET</button>
                     </div>
                 </div>
+                <div class="border-t border-orange-200 pt-3">
+                    <p class="text-[9px] font-bold text-orange-800 uppercase mb-2">Recent Sessions</p>
+                    <div id="kick-history" class="space-y-2 max-h-24 overflow-y-auto no-scrollbar text-[10px]"></div>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div class="glass-panel p-4 rounded-[1.5rem]">
-                    <h4 class="font-bold text-xs mb-2">Weight (kg)</h4>
-                    <div class="flex gap-1 mb-2">
-                        <input type="number" id="weight-in" class="w-full bg-slate-50 rounded-lg p-1 text-sm border">
-                        <button id="save-weight" class="bg-slate-800 text-white px-2 rounded-lg text-xs">OK</button>
+                    <h4 class="font-bold text-xs mb-2 flex items-center gap-1"><i class="fas fa-weight-scale text-slate-400"></i> Weight (kg)</h4>
+                    <div class="flex gap-1 mb-3">
+                        <input type="number" id="weight-in" class="w-full bg-slate-50 rounded-lg p-1 text-sm border focus:ring-1 focus:ring-rose-300">
+                        <button id="save-weight" class="bg-slate-800 text-white px-3 rounded-lg text-xs font-bold">OK</button>
                     </div>
-                    <div id="weight-history" class="text-[9px] space-y-1 h-12 overflow-y-auto"></div>
+                    <div id="weight-history" class="text-[9px] space-y-2 h-24 overflow-y-auto no-scrollbar"></div>
                 </div>
+                
                 <div class="glass-panel p-4 rounded-[1.5rem] bg-rose-50 border-rose-100">
-                    <h4 class="font-bold text-xs mb-1 text-rose-800">Contractions</h4>
-                    <div id="c-timer" class="text-xl font-mono font-black text-rose-600 mb-1">00:00</div>
-                    <button id="c-btn" class="w-full bg-rose-500 text-white py-1 rounded-lg text-[9px] font-bold">START</button>
+                    <h4 class="font-bold text-xs mb-1 text-rose-800 flex items-center gap-1"><i class="fas fa-stopwatch text-rose-400"></i> Contractions</h4>
+                    <div id="c-timer" class="text-xl font-mono font-black text-rose-600 mb-2">00:00</div>
+                    <button id="c-btn" class="w-full bg-rose-500 text-white py-2 rounded-lg text-[9px] font-bold shadow-md active:scale-95 transition">START</button>
+                    <div id="contraction-history" class="mt-3 pt-2 border-t border-rose-200 text-[9px] space-y-1 h-12 overflow-y-auto no-scrollbar text-rose-600"></div>
                 </div>
             </div>
         </div>
 
         <div id="tab-baby" class="page-section px-4 pt-6 space-y-6">
-            
             <div class="bg-blue-500 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200">
                 <h3 class="font-bold text-base mb-4 flex items-center gap-2"><i class="fas fa-stopwatch"></i> Newborn Log</h3>
                 <div class="grid grid-cols-4 gap-2 mb-4">
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm" data-type="feed-l">🤱 L</button>
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm" data-type="feed-r">🤱 R</button>
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm" data-type="bottle">🍼 Bot</button>
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm" data-type="diaper">💩 Diap</button>
+                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition" data-type="feed-l">🤱 L</button>
+                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition" data-type="feed-r">🤱 R</button>
+                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition" data-type="bottle">🍼 Bot</button>
+                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition" data-type="diaper">💩 Diap</button>
                 </div>
                 <div id="baby-log-recent" class="text-[10px] opacity-80 font-mono">Last activity: None</div>
             </div>
-
             <div class="glass-panel p-5 rounded-[2rem]">
                 <h3 class="font-bold text-base mb-4 text-slate-700">Imunisasi KKM 💉</h3>
                 <div id="vax-container" class="space-y-2"></div>
             </div>
-
             <div class="glass-panel p-5 rounded-[2rem]">
                 <h3 class="font-bold text-base mb-4 text-slate-700">Development Timeline</h3>
                 <div id="milestone-container" class="space-y-2"></div>
@@ -192,7 +193,6 @@
                 </div>
                 <ul id="confinement-list" class="mt-2 space-y-2 text-xs text-slate-600"></ul>
             </div>
-            
             <div class="glass-panel p-5 rounded-[2rem] bg-emerald-50/50 border-emerald-100">
                 <h3 class="font-bold text-base mb-3 text-emerald-800">Postnatal Rehab 🌿</h3>
                 <div class="grid grid-cols-2 gap-2 text-[10px] font-bold text-emerald-700 uppercase">
@@ -221,6 +221,13 @@
                     <button onclick="updateProfile()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs uppercase">Save</button>
                 </div>
             </div>
+            <div class="glass-panel p-5 rounded-[2rem] mt-4 border-rose-200 bg-rose-50">
+                <h4 class="font-bold text-xs text-rose-800 uppercase tracking-widest mb-2">System Fix</h4>
+                <p class="text-[10px] text-rose-600 mb-2">Checklist looking weird? Click this to reset it.</p>
+                <button onclick="fixDatabase()" class="w-full bg-white border border-rose-200 text-rose-500 font-bold py-3 rounded-xl text-xs uppercase shadow-sm active:scale-95 transition">
+                    <i class="fas fa-sync"></i> Reset Checklist DB
+                </button>
+            </div>
             <button onclick="auth.signOut()" class="w-full text-rose-500 font-bold text-xs py-4 bg-rose-50 rounded-xl mb-10">LOG OUT</button>
         </div>
     </main>
@@ -228,7 +235,7 @@
     <div id="appt-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm">
             <h3 class="font-bold text-lg mb-4">Add Appointment</h3>
-            <input type="text" id="appt-title" placeholder="Clinic/Event (e.g. KK Checkup)" class="w-full p-3 bg-slate-50 rounded-xl mb-2 text-sm">
+            <input type="text" id="appt-title" placeholder="Clinic/Event" class="w-full p-3 bg-slate-50 rounded-xl mb-2 text-sm">
             <input type="datetime-local" id="appt-date" class="w-full p-3 bg-slate-50 rounded-xl mb-4 text-sm">
             <div class="flex gap-2">
                 <button onclick="$('#appt-modal').fadeOut()" class="flex-1 py-3 text-slate-400 font-bold text-xs">CANCEL</button>
@@ -304,98 +311,67 @@
             const u = doc.data();
             $('#header-greeting').text(`Hi Mama ${u.name}`);
             $('#profile-name').text(u.name); $('#profile-email').text(auth.currentUser.email);
-            $('#budget-badge').text(u.budget);
             $('#edit-name').val(u.name); $('#edit-date').val(u.dueDate); $('#edit-budget').val(u.budget);
 
-            // Week Calc
             const week = Math.max(0, Math.floor((280 - Math.ceil((new Date(u.dueDate) - new Date())/86400000))/7));
             $('#header-week').text(`Week ${week}`);
-
             const daysLeft = Math.max(0, 280 - Math.ceil((new Date(u.dueDate) - new Date())/86400000));
-            $('#days-left-display').text(`${daysLeft} Days`); // <--- Add This
+            $('#days-left-display').text(`${daysLeft} Days`);
 
-            // Load Modules
-            loadChecklist(uid, u.budget);
+            // Load All Data
+            loadChecklist(uid);
             loadAppointments(uid);
             loadKickHistory(uid);
             loadBabyLog(uid);
             loadModules(uid);
+            loadWeight(uid);
+            loadContractions(uid);
         }
 
-        // --- 1. NEW CHECKLIST LOGIC (Readiness) ---
-            async function loadChecklist(uid) {
-                // No longer filtering by 'budget_level'. Just order by Trimester.
-                let snap = await db.collection('checklists').orderBy('trimester').get();
-                
-                // Auto-populate if empty
-                if(snap.empty) { await populateDB(); return; }
-                
-                const uTasks = await db.collection('user_tasks').where('uid', '==', uid).get();
-                const doneIds = uTasks.docs.map(d => d.data().taskId);
-                
-                $('#task-list').empty();
-                let totalTasks = snap.size;
-                let doneTasks = 0;
-                let curTri = 0;
-
-                snap.forEach(d => {
-                    const t = d.data();
-                    
-                    // Trimester Headers
-                    if(t.trimester !== curTri) {
-                        curTri = t.trimester;
-                        let triName = `Trimester ${curTri}`;
-                        if(curTri === 4) triName = "Post-Birth / Confinement";
-                        
-                        $('#task-list').append(`
-                            <h4 class="text-[10px] font-bold text-rose-400 uppercase mt-6 mb-2 tracking-widest border-b pb-1">
-                                ${triName}
-                            </h4>
-                        `);
-                    }
-
-                    const isDone = doneIds.includes(d.id);
-                    if(isDone) doneTasks++;
-                    
-                    // Category Tags styling
-                    let tagColor = "bg-slate-100 text-slate-500";
-                    if(t.category === 'Medical') tagColor = "bg-rose-100 text-rose-500";
-                    if(t.category === 'Admin') tagColor = "bg-blue-100 text-blue-500";
-                    if(t.category === 'Gear') tagColor = "bg-orange-100 text-orange-500";
-
-                    $('#task-list').append(`
-                        <label class="flex justify-between items-center p-3 bg-white border border-slate-50 rounded-xl mb-2 hover:shadow-sm transition">
-                            <div class="flex items-center gap-3">
-                                <input type="checkbox" class="task-check w-5 h-5 rounded border-2 border-slate-200 checked:bg-rose-500 checked:border-rose-500 appearance-none transition" 
-                                    data-id="${d.id}" ${isDone?'checked':''}> 
-                                <div>
-                                    <span class="text-xs font-bold text-slate-700 block">${t.task_name}</span>
-                                </div>
-                            </div>
-                            <span class="text-[9px] font-bold px-2 py-1 rounded ${tagColor}">${t.category}</span>
-                        </label>
-                    `);
-                });
-
-                // Update UI Progress
-                const percent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-                $('#readiness-display').text(`${percent}%`);
-                $('#tasks-fraction').text(`${doneTasks}/${totalTasks} Tasks`);
-                $('#progress-bar').css('width', `${percent}%`);
-            }
-
-            // Toggle Logic
-            $(document).on('change', '.task-check', async function() {
-                const uid = auth.currentUser.uid, id = $(this).data('id');
-                if($(this).is(':checked')) await db.collection('user_tasks').add({uid, taskId:id});
-                else { 
-                    const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',id).get(); 
-                    s.forEach(d=>d.ref.delete()); 
+        // --- 1. CHECKLIST ---
+        async function loadChecklist(uid) {
+            let snap = await db.collection('checklists').orderBy('trimester').get();
+            if(snap.empty) { await fixDatabase(); return; }
+            const uTasks = await db.collection('user_tasks').where('uid', '==', uid).get();
+            const done = uTasks.docs.map(d => d.data().taskId);
+            
+            $('#task-list').empty();
+            let total=snap.size, checked=0, curTri=0;
+            snap.forEach(d => {
+                const t = d.data();
+                if(t.trimester !== curTri) {
+                    curTri = t.trimester;
+                    let triName = curTri === 4 ? "Post-Birth" : `Trimester ${curTri}`;
+                    $('#task-list').append(`<h4 class="text-[10px] font-bold text-rose-400 uppercase mt-4 mb-2 tracking-widest border-b pb-1">${triName}</h4>`);
                 }
-                loadChecklist(uid); // Refresh progress bar
-            });
+                const isDone = done.includes(d.id);
+                if(isDone) checked++;
+                let tc = "bg-slate-100 text-slate-500";
+                if(t.category==='Medical') tc="bg-rose-100 text-rose-500";
+                if(t.category==='Admin') tc="bg-blue-100 text-blue-500";
+                if(t.category==='Gear') tc="bg-orange-100 text-orange-500";
 
-        // --- 2. APPOINTMENTS ---
+                $('#task-list').append(`
+                    <label class="flex justify-between items-center p-3 bg-white border border-slate-50 rounded-xl mb-2">
+                        <div class="flex items-center gap-2"><input type="checkbox" class="task-check accent-rose-500" data-id="${d.id}" ${isDone?'checked':''}> <span class="text-xs font-bold text-slate-600">${t.task_name}</span></div>
+                        <span class="text-[9px] font-bold px-2 py-1 rounded ${tc}">${t.category}</span>
+                    </label>
+                `);
+            });
+            $('#readiness-display').text(`${total>0 ? Math.round((checked/total)*100) : 0}%`);
+            $('#tasks-fraction').text(`${checked}/${total} Tasks`);
+            $('#progress-bar').css('width', (total>0 ? (checked/total)*100 : 0) + '%');
+        }
+        $(document).on('change', '.task-check', async function() {
+            const uid = auth.currentUser.uid, id = $(this).data('id');
+            if($(this).is(':checked')) await db.collection('user_tasks').add({uid, taskId:id});
+            else { const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',id).get(); s.forEach(d=>d.ref.delete()); }
+            loadChecklist(uid);
+        });
+
+        // --- 2. MOM TAB (REFINED) ---
+        
+        // Appointments
         async function saveAppointment() {
             const t = $('#appt-title').val(), d = $('#appt-date').val();
             if(!t || !d) return;
@@ -418,7 +394,7 @@
             });
         }
 
-        // --- 3. KICK COUNTER ---
+        // Kick Counter (With Save & History)
         let kCount = 0, kStart = null, kInt;
         $('#btn-kick').click(async function() {
             if(kCount===0) { kStart = new Date(); kInt = setInterval(() => {
@@ -428,14 +404,73 @@
             kCount++; $('#kick-count').text(kCount);
             if(kCount>=10) {
                 clearInterval(kInt);
-                await db.collection('kick_logs').add({uid:auth.currentUser.uid, duration:$('#kick-timer').text(), timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+                const duration = $('#kick-timer').text();
+                await db.collection('kick_logs').add({uid:auth.currentUser.uid, duration:duration, timestamp:firebase.firestore.FieldValue.serverTimestamp()});
                 alert("10 Kicks Recorded!"); resetKick(); loadKickHistory(auth.currentUser.uid);
             }
         });
         function resetKick() { clearInterval(kInt); kCount=0; kStart=null; $('#kick-count').text(0); $('#kick-timer').text("00:00:00"); }
-        async function loadKickHistory(uid) { /* Simplified for brevity, same logic as appt list */ }
+        
+        async function loadKickHistory(uid) {
+            const snap = await db.collection('kick_logs').where('uid','==',uid).orderBy('timestamp','desc').limit(5).get();
+            $('#kick-history').empty();
+            snap.forEach(d => {
+                const data = d.data();
+                const date = data.timestamp ? data.timestamp.toDate().toLocaleDateString() : 'Just now';
+                $('#kick-history').append(`<div class="flex justify-between border-b border-orange-100 py-1"><span class="text-slate-500">${date}</span><span class="font-bold text-orange-500">10 kicks in ${data.duration}</span></div>`);
+            });
+        }
 
-        // --- 4. NEWBORN TRACKER ---
+        // Weight Tracker (With Save & History)
+        $('#save-weight').click(async () => {
+            const w = $('#weight-in').val();
+            if(!w) return;
+            await db.collection('weight_logs').add({uid: auth.currentUser.uid, weight: w, date: firebase.firestore.FieldValue.serverTimestamp()});
+            $('#weight-in').val(''); loadWeight(auth.currentUser.uid);
+        });
+        async function loadWeight(uid) {
+            const snap = await db.collection('weight_logs').where('uid', '==', uid).orderBy('date', 'desc').limit(5).get();
+            $('#weight-history').empty();
+            snap.forEach(d => {
+                const data = d.data();
+                const dateStr = data.date ? data.date.toDate().toLocaleDateString() : 'Just now';
+                $('#weight-history').append(`<div class="flex justify-between border-b border-slate-100 py-1"><span class="font-bold">${data.weight} kg</span><span class="text-slate-400 text-[9px]">${dateStr}</span></div>`);
+            });
+        }
+
+        // Contraction Timer (With Save & History)
+        let cInt, cStart, cRun = false;
+        $('#c-btn').click(async function() {
+            if(!cRun) {
+                cRun = true; cStart = new Date();
+                $(this).text("STOP").removeClass('bg-rose-500').addClass('bg-rose-800');
+                cInt = setInterval(() => {
+                    const diff = Math.floor((new Date() - cStart) / 1000);
+                    const m = String(Math.floor(diff / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    $('#c-timer').text(`${m}:${s}`);
+                }, 1000);
+            } else {
+                cRun = false; clearInterval(cInt);
+                $(this).text("START").removeClass('bg-rose-800').addClass('bg-rose-500');
+                const duration = $('#c-timer').text();
+                // SAVE LOGIC ADDED HERE
+                await db.collection('contraction_logs').add({uid: auth.currentUser.uid, duration: duration, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
+                $('#c-timer').text("00:00");
+                loadContractions(auth.currentUser.uid);
+            }
+        });
+        async function loadContractions(uid) {
+            const snap = await db.collection('contraction_logs').where('uid', '==', uid).orderBy('timestamp', 'desc').limit(3).get();
+            $('#contraction-history').empty();
+            snap.forEach(d => {
+                const data = d.data();
+                const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Just now';
+                $('#contraction-history').append(`<div class="flex justify-between"><span class="opacity-70">${time}</span><span class="font-bold">${data.duration}</span></div>`);
+            });
+        }
+
+        // --- 3. BABY, GUIDE, ME ---
         $('.baby-act-btn').click(async function() {
             const type = $(this).data('type');
             await db.collection('baby_logs').add({uid:auth.currentUser.uid, type:type, timestamp:firebase.firestore.FieldValue.serverTimestamp()});
@@ -449,11 +484,7 @@
                 $('#baby-log-recent').text(`Last: ${l.type.toUpperCase()} at ${time}`);
             }
         }
-
-        // --- 5. MODULES (Weight, Vaccine, Milestones, Culture) ---
-        // (Simplified logic reuse from previous fully written code for brevity in this consolidated view)
         async function loadModules(uid) {
-            // Vaccines
             const vSnap = await db.collection('baby_vaccines').where('uid','==',uid).get();
             const vDone = vSnap.docs.map(d=>d.data().vaxId);
             $('#vax-container').empty();
@@ -461,7 +492,6 @@
                 const done = vDone.includes(v.id);
                 $('#vax-container').append(`<label class="flex justify-between p-2 bg-white rounded-lg border items-center"><span class="text-xs font-bold">${v.t} <span class="text-[9px] text-slate-400">(${v.age})</span></span><input type="checkbox" class="vax-check" data-id="${v.id}" ${done?'checked':''}></label>`);
             });
-            // Milestones
             const mSnap = await db.collection('baby_milestones').where('uid','==',uid).get();
             const mDone = mSnap.docs.map(d=>d.data().milestoneId);
             $('#milestone-container').empty();
@@ -470,8 +500,6 @@
                 $('#milestone-container').append(`<label class="flex justify-between p-2 bg-white rounded-lg border items-center"><span class="text-xs font-bold">${m.t} <span class="text-[9px] text-slate-400">(${m.age})</span></span><input type="checkbox" class="milestone-check" data-id="${m.id}" ${done?'checked':''}></label>`);
             });
         }
-        
-        // Listeners for Vax/Milestone checkboxes
         $(document).on('change', '.vax-check', async function() {
             const id = $(this).data('id'), uid = auth.currentUser.uid;
             if($(this).is(':checked')) await db.collection('baby_vaccines').add({uid, vaxId:id});
@@ -491,123 +519,28 @@
         window.switchTab = function(t) { $('.page-section').removeClass('active'); $(`#tab-${t}`).addClass('active'); $('.nav-btn').removeClass('nav-active text-rose-500').addClass('text-slate-300'); $(event.currentTarget).addClass('nav-active text-rose-500').removeClass('text-slate-300'); window.scrollTo(0,0); }
         async function updateProfile() { await db.collection('users').doc(auth.currentUser.uid).update({name:$('#edit-name').val(), dueDate:$('#edit-date').val(), budget:$('#edit-budget').val()}); location.reload(); }
         
-        // DB POPULATION (Comprehensive)
-        async function populateDB() {
-                // Clear old checklist first (Optional, but recommended to avoid duplicates)
-                // You can also just delete the 'checklists' collection in Firebase Console manually.
+        async function fixDatabase() {
+            if(!confirm("Reset checklist database?")) return;
+            const snap = await db.collection('checklists').get();
+            const batchDelete = db.batch(); snap.forEach(doc => batchDelete.delete(doc.ref)); await batchDelete.commit();
 
-                const checklistData = [
-                    // TRIMESTER 1
-                    { task_name: "Open Pink Book (Buku Merah)", category: "Medical", trimester: 1 },
-                    { task_name: "Dating Scan (Confirm Due Date)", category: "Medical", trimester: 1 },
-                    { task_name: "Dental Checkup (Stamp Book)", category: "Medical", trimester: 1 },
-                    { task_name: "NIPT / Down Syndrome Test", category: "Medical", trimester: 1 },
-                    { task_name: "Review Maternity Leave Policy", category: "Admin", trimester: 1 },
-                    
-                    // TRIMESTER 2
-                    { task_name: "Detailed Anomaly Scan (20w)", category: "Medical", trimester: 2 },
-                    { task_name: "Drink Air Gula (MGTT)", category: "Medical", trimester: 2 },
-                    { task_name: "Tetanus (ATT) Injection 1", category: "Medical", trimester: 2 },
-                    { task_name: "Tetanus (ATT) Injection 2", category: "Medical", trimester: 2 },
-                    { task_name: "Book Confinement Lady/Center", category: "Admin", trimester: 2 },
-                    { task_name: "Buy Basic Nursery Gear", category: "Gear", trimester: 2 },
-                    
-                    // TRIMESTER 3
-                    { task_name: "Start Kick Counter Chart", category: "Medical", trimester: 3 },
-                    { task_name: "Pack Hospital Bag (Mama)", category: "Gear", trimester: 3 },
-                    { task_name: "Pack Hospital Bag (Baby)", category: "Gear", trimester: 3 },
-                    { task_name: "Wash Baby Clothes", category: "Gear", trimester: 3 },
-                    { task_name: "Install Car Seat", category: "Gear", trimester: 3 },
-                    { task_name: "Prepare Documents (IC/GL)", category: "Admin", trimester: 3 },
-                    
-                    // POST-BIRTH
-                    { task_name: "Register Birth (JPN)", category: "Admin", trimester: 4 },
-                    { task_name: "Apply for MyKid", category: "Admin", trimester: 4 },
-                    { task_name: "Submit Leave to HR", category: "Admin", trimester: 4 },
-                    { task_name: "Newborn Hearing Test", category: "Medical", trimester: 4 },
-                    { task_name: "Hepatitis B Dose 2", category: "Medical", trimester: 4 }
-                ];
-
-                const batch = db.batch();
-                checklistData.forEach(item => {
-                    const ref = db.collection('checklists').doc();
-                    batch.set(ref, item);
-                });
-                
-                await batch.commit();
-                alert("Checklist Updated to New Format! Refreshing...");
-                location.reload();
-            }
-        // --- MISSING LOGIC FIXES ---
-
-            // 1. WEIGHT TRACKER LOGIC
-            $('#save-weight').click(async () => {
-                const w = $('#weight-in').val();
-                if(!w) return alert("Please enter your weight!");
-                
-                try {
-                    await db.collection('weight_logs').add({
-                        uid: auth.currentUser.uid,
-                        weight: w,
-                        date: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    $('#weight-in').val(''); // Clear input
-                    loadWeight(auth.currentUser.uid); // Refresh the list
-                } catch (error) {
-                    console.error("Error saving weight:", error);
-                    alert("Error: Check Console (F12) for Index Link");
-                }
-            });
-
-            async function loadWeight(uid) {
-                // NOTE: This query REQUIRES a Composite Index in Firestore
-                const snap = await db.collection('weight_logs')
-                    .where('uid', '==', uid)
-                    .orderBy('date', 'desc')
-                    .limit(5)
-                    .get();
-                    
-                $('#weight-history').empty();
-                snap.forEach(d => {
-                    const data = d.data();
-                    const dateStr = data.date ? data.date.toDate().toLocaleDateString() : 'Just now';
-                    $('#weight-history').append(`
-                        <div class="flex justify-between border-b border-slate-100 py-2 text-xs">
-                            <span class="font-bold">${data.weight} kg</span>
-                            <span class="text-slate-400 text-[9px] uppercase">${dateStr}</span>
-                        </div>
-                    `);
-                });
-            }
-
-            // 2. CONTRACTION TIMER LOGIC
-            let cInt, cStart, cRun = false;
-            $('#c-btn').click(function() {
-                if(!cRun) {
-                    // Start Timer
-                    cRun = true; 
-                    cStart = new Date();
-                    $(this).text("STOP TIMING").removeClass('bg-rose-500').addClass('bg-rose-800');
-                    
-                    cInt = setInterval(() => {
-                        const diff = Math.floor((new Date() - cStart) / 1000);
-                        const m = String(Math.floor(diff / 60)).padStart(2, '0');
-                        const s = String(diff % 60).padStart(2, '0');
-                        $('#c-timer').text(`${m}:${s}`);
-                    }, 1000);
-                } else {
-                    // Stop Timer
-                    cRun = false; 
-                    clearInterval(cInt);
-                    $(this).text("START").removeClass('bg-rose-800').addClass('bg-rose-500');
-                    
-                    // Optional: Alert the duration
-                    const duration = $('#c-timer').text();
-                    alert(`Contraction lasted: ${duration}`);
-                    $('#c-timer').text("00:00");
-                }
-            });
-
+            const checklistData = [
+                { task_name: "Open Pink Book (Buku Merah)", category: "Medical", trimester: 1 },
+                { task_name: "Dating Scan (Confirm Date)", category: "Medical", trimester: 1 },
+                { task_name: "Review Maternity Leave", category: "Admin", trimester: 1 },
+                { task_name: "Detailed Anomaly Scan (20w)", category: "Medical", trimester: 2 },
+                { task_name: "Drink Air Gula (MGTT)", category: "Medical", trimester: 2 },
+                { task_name: "Book Confinement Lady", category: "Admin", trimester: 2 },
+                { task_name: "Buy Nursery Gear", category: "Gear", trimester: 2 },
+                { task_name: "Start Kick Counter Chart", category: "Medical", trimester: 3 },
+                { task_name: "Pack Hospital Bag", category: "Gear", trimester: 3 },
+                { task_name: "Register Birth (JPN)", category: "Admin", trimester: 4 },
+                { task_name: "Submit Leave to HR", category: "Admin", trimester: 4 }
+            ];
+            const batch = db.batch();
+            checklistData.forEach(item => { const ref = db.collection('checklists').doc(); batch.set(ref, item); });
+            await batch.commit(); alert("Database Fixed!"); location.reload();
+        }
     </script>
 </body>
 </html>
