@@ -123,7 +123,6 @@
     </main>
 
     <script>
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDPn8ifAQiRuPpw02JvWdJCKv7KpQIAuXA",
             authDomain: "mum-care.firebaseapp.com",
@@ -137,20 +136,11 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- GLOBAL DATA ---
-        const tasks = [
-            { id: 't1', name: 'KK Pink Book Registration', budget: 'minimal', cost: 5 },
-            { id: 't2', name: 'Private Clinic 1st Visit', budget: 'premium', cost: 350 },
-            { id: 't3', name: 'Basic Baby Clothes Set', budget: 'minimal', cost: 150 },
-            { id: 't4', name: 'Premium Nuna/Chicco Stroller', budget: 'premium', cost: 2800 },
-            { id: 't5', name: 'Hospital Delivery (Gov)', budget: 'minimal', cost: 500 },
-            { id: 't6', name: 'Luxury Confinement Center Deposit', budget: 'premium', cost: 15000 }
-        ];
-
         const foodDB = [
             { name: "Durian", status: "Moderate", info: "High sugar, safe if no GDM.", color: "bg-amber-100 text-amber-800" },
             { name: "Pineapple", status: "Safe", info: "Normal servings are fine. Bromelain myth.", color: "bg-emerald-100 text-emerald-800" },
-            { name: "Tapai", status: "Avoid", info: "Fermented/alcohol content.", color: "bg-rose-100 text-rose-800" }
+            { name: "Tapai", status: "Avoid", info: "Fermented/alcohol content.", color: "bg-rose-100 text-rose-800" },
+            { name: "Half-Boiled Eggs", status: "Avoid", info: "Risk of Salmonella. Cook yolks fully.", color: "bg-rose-100 text-rose-800" }
         ];
 
         const cultureCheck = {
@@ -160,7 +150,6 @@
             iban: ["Mandi Daun Forest Herbs", "Betungku Hot Stone", "Tukang Urut Bekaroh", "Berdiang Session"]
         };
 
-        // --- AUTH LOGIC ---
         let isSignUp = false;
         $('#toggle-auth').click(() => {
             isSignUp = !isSignUp;
@@ -186,10 +175,34 @@
             } catch (e) { alert(e.message); }
         });
 
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
                 $('#auth-screen').addClass('hidden');
                 $('#dashboard').removeClass('hidden');
+
+                // === ONE-TIME UPLOAD START ===
+                // Run this once to populate your Firestore, then delete this block.
+                const checkData = await db.collection("checklists").limit(1).get();
+                if (checkData.empty) {
+                    const importData = [
+                        { "task_name": "KK Pink Book Registration", "budget_level": "minimal", "trimester": 1, "category": "Medical", "cost": 5 },
+                        { "task_name": "Private Clinic Initial Scan", "budget_level": "premium", "trimester": 1, "category": "Medical", "cost": 350 },
+                        { "task_name": "Folic Acid & Obimin (Pharmacy)", "budget_level": "minimal", "trimester": 1, "category": "Health", "cost": 40 },
+                        { "task_name": "Premium Prenatal Supplements", "budget_level": "premium", "trimester": 1, "category": "Health", "cost": 250 },
+                        { "task_name": "MGTT Glucose Test (KK)", "budget_level": "minimal", "trimester": 2, "category": "Medical", "cost": 0 },
+                        { "task_name": "Detailed Scan (Private)", "budget_level": "premium", "trimester": 2, "category": "Medical", "cost": 450 },
+                        { "task_name": "Newborn Clothes (Mydin/Tesco)", "budget_level": "minimal", "trimester": 2, "category": "Shopping", "cost": 150 },
+                        { "task_name": "Designer Nursery Furniture", "budget_level": "premium", "trimester": 2, "category": "Shopping", "cost": 5000 },
+                        { "task_name": "Gov Hospital Delivery", "budget_level": "minimal", "trimester": 3, "category": "Medical", "cost": 500 },
+                        { "task_name": "Private Delivery Package", "budget_level": "premium", "trimester": 3, "category": "Medical", "cost": 12000 },
+                        { "task_name": "Malay Tukang Urut", "budget_level": "minimal", "trimester": 3, "category": "Confinement", "cost": 700 },
+                        { "task_name": "Luxury Confinement Centre", "budget_level": "premium", "trimester": 3, "category": "Confinement", "cost": 25000 }
+                    ];
+                    importData.forEach(item => db.collection("checklists").add(item));
+                    console.log("Checklists Initialized!");
+                }
+                // === ONE-TIME UPLOAD END ===
+
                 loadDashboard(user.uid);
             } else {
                 $('#auth-screen').removeClass('hidden');
@@ -197,29 +210,31 @@
             }
         });
 
-        // --- DASHBOARD LOGIC ---
         async function loadDashboard(uid) {
             const doc = await db.collection('users').doc(uid).get();
             const u = doc.data();
-            renderMilestones(u.budget);
-            updateTips(u.dueDate);
-            loadWeight(uid);
-        }
-
-        function renderMilestones(pref) {
-            const filtered = tasks.filter(t => t.budget === pref);
+            
+            // Fetch dynamically from Firestore based on budget pref
+            const snapshot = await db.collection('checklists')
+                .where('budget_level', '==', u.budget)
+                .get();
+            
             $('#task-list').empty();
-            filtered.forEach(t => {
+            snapshot.forEach(doc => {
+                const t = doc.data();
                 $('#task-list').append(`
                     <label class="flex justify-between items-center p-3 border rounded-xl cursor-pointer">
                         <div class="flex items-center gap-2 text-sm">
                             <input type="checkbox" class="w-4 h-4 accent-rose-500 task-check" data-cost="${t.cost}">
-                            <span>${t.name}</span>
+                            <span>${t.task_name}</span>
                         </div>
                         <span class="text-xs font-bold text-slate-400">RM ${t.cost}</span>
                     </label>
                 `);
             });
+
+            updateTips(u.dueDate);
+            loadWeight(uid);
         }
 
         $(document).on('change', '.task-check', function() {
@@ -243,7 +258,6 @@
             cultureCheck[cul].forEach(i => $('#confinement-list').append(`<li>🌸 ${i}</li>`));
         });
 
-        // --- TOOLS ---
         function updateTips(dueDate) {
             const diff = Math.ceil((new Date(dueDate) - new Date()) / (1000 * 60 * 60 * 24));
             let tri = 3; if (diff > 186) tri = 1; else if (diff > 93) tri = 2;
@@ -253,7 +267,7 @@
                 3: { t: "The Final Stretch", d: "Hospital bag ready? Track those kicks daily.", i: "☁️", c: "trimester-3" }
             }[tri];
             $('#tip-card').removeClass('trimester-1 trimester-2 trimester-3').addClass(content.c);
-            $('#tri-label').text(`Trimester ${tri}`); $('#tri-icon').text(content.i);
+            $('#tri-label').text(`Trimester ${tri}`); $('#tri-icon').text(content.icon);
             $('#tri-title').text(content.t); $('#tri-text').text(content.d);
         }
 
