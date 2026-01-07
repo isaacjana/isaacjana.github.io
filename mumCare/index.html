@@ -205,6 +205,13 @@
         </div>
 
         <div id="tab-me" class="page-section px-4 pt-6 space-y-6">
+            <div class="glass-panel p-5 rounded-[2rem] mt-4 border-rose-200 bg-rose-50">
+    <h4 class="font-bold text-xs text-rose-800 uppercase tracking-widest mb-2">System Fix</h4>
+    <p class="text-[10px] text-rose-600 mb-2">Checklist looking weird? Click this to reset it.</p>
+    <button onclick="fixDatabase()" class="w-full bg-white border border-rose-200 text-rose-500 font-bold py-3 rounded-xl text-xs uppercase shadow-sm active:scale-95 transition">
+        <i class="fas fa-sync"></i> Reset Checklist DB
+    </button>
+</div>
             <div class="glass-panel p-6 rounded-[2rem] text-center">
                 <h3 id="profile-name" class="font-bold text-xl">Mama</h3>
                 <p id="profile-email" class="text-xs text-slate-400">user@email.com</p>
@@ -607,6 +614,59 @@
                     $('#c-timer').text("00:00");
                 }
             });
+
+        async function fixDatabase() {
+        if(!confirm("This will reset your checklist tasks. Your checked status will remain. Continue?")) return;
+
+        // 1. DELETE ALL EXISTING CHECKLISTS
+        const snap = await db.collection('checklists').get();
+        const batchDelete = db.batch();
+        snap.forEach(doc => batchDelete.delete(doc.ref));
+        await batchDelete.commit();
+        console.log("Old data deleted.");
+
+        // 2. DEFINE CORRECT DATA (All keys matched: task_name + category + trimester)
+        const newData = [
+            // TRIMESTER 1
+            { task_name: "Open Pink Book (Buku Merah)", category: "Medical", trimester: 1 },
+            { task_name: "Dating Scan (Confirm Date)", category: "Medical", trimester: 1 },
+            { task_name: "Dental Checkup (Stamp Book)", category: "Medical", trimester: 1 },
+            { task_name: "Review Maternity Leave", category: "Admin", trimester: 1 },
+            { task_name: "Folic Acid Stock", category: "Medical", trimester: 1 },
+            
+            // TRIMESTER 2
+            { task_name: "Detailed Anomaly Scan (20w)", category: "Medical", trimester: 2 },
+            { task_name: "Drink Air Gula (MGTT)", category: "Medical", trimester: 2 },
+            { task_name: "Tetanus (ATT) Injection 1", category: "Medical", trimester: 2 },
+            { task_name: "Book Confinement Lady", category: "Admin", trimester: 2 },
+            { task_name: "Buy Nursery Gear", category: "Gear", trimester: 2 },
+            
+            // TRIMESTER 3
+            { task_name: "Start Kick Counter Chart", category: "Medical", trimester: 3 },
+            { task_name: "Pack Hospital Bag (Mama)", category: "Gear", trimester: 3 },
+            { task_name: "Pack Hospital Bag (Baby)", category: "Gear", trimester: 3 },
+            { task_name: "Wash Baby Clothes", category: "Gear", trimester: 3 },
+            { task_name: "Prepare Documents (IC/GL)", category: "Admin", trimester: 3 },
+            
+            // POST-BIRTH
+            { task_name: "Register Birth (JPN)", category: "Admin", trimester: 4 },
+            { task: "Apply for MyKid", category: "Admin", trimester: 4 },
+            { task: "Newborn Hearing Test", category: "Medical", trimester: 4 },
+            { task: "Hepatitis B Dose 2", category: "Medical", trimester: 4 },
+            { task: "Submit Leave to HR", category: "Admin", trimester: 4 }
+        ];
+
+        // 3. WRITE NEW DATA
+        const batchWrite = db.batch();
+        newData.forEach(item => {
+            const ref = db.collection('checklists').doc();
+            batchWrite.set(ref, item);
+        });
+        
+        await batchWrite.commit();
+        alert("Database Fixed! Refreshing page...");
+        location.reload();
+    }
     </script>
 </body>
 </html>
