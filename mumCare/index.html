@@ -271,404 +271,455 @@
         </button>
     </nav>
 
-    <script>
-        // --- CONFIGURATION ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPn8ifAQiRuPpw02JvWdJCKv7KpQIAuXA",
-            authDomain: "mum-care.firebaseapp.com",
-            projectId: "mum-care",
-            storageBucket: "mum-care.firebasestorage.app",
-            messagingSenderId: "1011450259230",
-            appId: "1:1011450259230:web:6428b90fb4966e748a0b0f"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        // --- STATIC DATA ---
-        const foodDB = [
-            {n:"durian",s:"Limit",d:"High sugar. Watch out if you have GDM.",c:"text-yellow-600 bg-yellow-50"},
-            {n:"sushi",s:"Avoid Raw",d:"Risk of bacteria. Cooked sushi is fine.",c:"text-rose-600 bg-rose-50"},
-            {n:"coffee",s:"Limit",d:"Max 200mg (1 cup) caffeine daily.",c:"text-yellow-600 bg-yellow-50"},
-            {n:"pineapple",s:"Safe",d:"Bromelain myth. Normal servings are safe.",c:"text-emerald-600 bg-emerald-50"},
-            {n:"tapai",s:"Avoid",d:"Fermented alcohol content.",c:"text-rose-600 bg-rose-50"},
-            {n:"half boiled egg",s:"Avoid",d:"Salmonella risk. Cook fully.",c:"text-rose-600 bg-rose-50"}
-        ];
-
-        const cultureCheck = {
-            malay: ["Tukang Urut (7 Days)", "Bengkung & Pilis", "Air Selusuh", "Barut Baby", "Ikan Haruan (Heals cuts)"],
-            chinese: ["Confinement Lady", "Red Dates Tea", "Ginger Vinegar", "Sesame Oil Chicken", "No cold water"],
-            indian: ["Vethu Kuli Bath", "Garlic/Pepper Diet", "Thottil Cradle", "Omam Water", "Kayam (Herbs)"],
-            iban: ["Mandi Daun (Herbs)", "Betungku (Hot Stone)", "Berdiang (Fire)", "Manuk Pansuh (Plain)", "Ginger Roots"]
-        };
-
-        const babyGrowth = {
-            8: {s:"Raspberry", i:"🍇"}, 12: {s:"Plum", i:"🍑"}, 20: {s:"Banana", i:"🍌"},
-            28: {s:"Eggplant", i:"🍆"}, 32: {s:"Durian", i:"🍈"}, 40: {s:"Watermelon", i:"🍉"}
-        };
-
-        const babyMilestoneList = [
-            // 0-3 Months
-            {id:'m1', t:"Lifts Head (Tummy Time)", age:"1-2m", cat:"Physical"},
-            {id:'m2', t:"Tracks Objects with Eyes", age:"2m", cat:"Sensory"},
-            {id:'m3', t:"First Social Smile 😊", age:"2m", cat:"Social"},
-            
-            // 4-6 Months
-            {id:'m4', t:"Rolls Over (Both ways)", age:"4-5m", cat:"Physical"},
-            {id:'m5', t:"Laughs & Giggles", age:"4m", cat:"Social"},
-            {id:'m6', t:"Starts Solid Food (Bubur)", age:"6m", cat:"Feeding"},
-            
-            // 7-9 Months
-            {id:'m7', t:"Sits Without Support", age:"7m", cat:"Physical"},
-            {id:'m8', t:"Crawling / Scooting", age:"8m", cat:"Physical"},
-            {id:'m9', t:"Pincer Grasp (Finger Food)", age:"9m", cat:"Motor"},
-            
-            // 10-12 Months
-            {id:'m10', t:"Pulls to Stand", age:"10m", cat:"Physical"},
-            {id:'m11', t:"Waves Bye / Salam", age:"11m", cat:"Social"},
-            {id:'m12', t:"First Steps / Cruising", age:"12m", cat:"Physical"}
-        ];
+        <script>
+            // --- 1. FIREBASE CONFIGURATION ---
+            const firebaseConfig = {
+                apiKey: "AIzaSyDPn8ifAQiRuPpw02JvWdJCKv7KpQIAuXA",
+                authDomain: "mum-care.firebaseapp.com",
+                projectId: "mum-care",
+                storageBucket: "mum-care.firebasestorage.app",
+                messagingSenderId: "1011450259230",
+                appId: "1:1011450259230:web:6428b90fb4966e748a0b0f"
+            };
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
         
-        const vaccineList = [
-            {id:'v1', t:"BCG & Hep B (Dose 1)", age:"At Birth", note:"Hospital"},
-            {id:'v2', t:"Hep B (Dose 2)", age:"1 Month", note:"KK/Private"},
-            {id:'v3', t:"6-in-1 (Dose 1)", age:"2 Months", note:"DTaP,Hib,IPV,HepB"},
-            {id:'v4', t:"6-in-1 (Dose 2)", age:"3 Months", note:"DTaP,Hib,IPV,HepB"},
-            {id:'v5', t:"Pneumococcal (PCV 1)", age:"4 Months", note:"Prevent pneumonia"},
-            {id:'v6', t:"6-in-1 (Dose 3)", age:"5 Months", note:"DTaP,Hib,IPV,HepB"},
-            {id:'v7', t:"Pneumococcal (PCV 2)", age:"6 Months", note:"Prevent pneumonia"},
-            {id:'v8', t:"Measles / MMR (Dose 1)", age:"9 Months", note:"Measles,Mumps,Rubella"},
-            {id:'v9', t:"MMR (Dose 2)", age:"12 Months", note:"Booster"},
-            {id:'v10', t:"Pneumococcal (Booster)", age:"15 Months", note:"PCV Booster"},
-            {id:'v11', t:"6-in-1 (Booster)", age:"18 Months", note:"Final Infant Dose"}
-        ];
-        // --- AUTH LOGIC ---
-        let isSignUp = false;
-        $('#toggle-auth').click(() => {
-            isSignUp = !isSignUp;
-            $('#signup-fields').slideToggle();
-            $('#auth-btn').text(isSignUp ? 'CREATE ACCOUNT' : 'LOGIN');
-            $('#toggle-auth').text(isSignUp ? 'Already have an account? Login' : 'Create New Account');
-        });
-
-        $('#auth-btn').click(async () => {
-            const email = $('#email').val();
-            const pass = $('#password').val();
-            try {
-                if(isSignUp) {
-                    if(!$('#full-name').val() || !$('#due-date').val()) return alert("Please fill all details.");
-                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
-                    await db.collection('users').doc(cred.user.uid).set({
-                        name: $('#full-name').val(),
-                        dueDate: $('#due-date').val(),
-                        budget: $('#budget-pref').val(),
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+            // --- 2. STATIC DATA LIBRARIES ---
+            
+            // Food Safety Database
+            const foodDB = [
+                {n:"durian",s:"Limit",d:"High sugar/calories. Watch out if you have GDM.",c:"text-yellow-600 bg-yellow-50"},
+                {n:"sushi",s:"Avoid Raw",d:"Risk of bacteria/parasites. Cooked sushi is fine.",c:"text-rose-600 bg-rose-50"},
+                {n:"coffee",s:"Limit",d:"Max 200mg (1 cup) caffeine daily.",c:"text-yellow-600 bg-yellow-50"},
+                {n:"pineapple",s:"Safe",d:"Bromelain causing labor is a myth. Safe in moderation.",c:"text-emerald-600 bg-emerald-50"},
+                {n:"tapai",s:"Avoid",d:"Contains fermented alcohol.",c:"text-rose-600 bg-rose-50"},
+                {n:"half boiled egg",s:"Avoid",d:"Salmonella risk. Ensure yolks are fully cooked.",c:"text-rose-600 bg-rose-50"},
+                {n:"green tea",s:"Limit",d:"Contains caffeine. Don't drink with iron tablets.",c:"text-yellow-600 bg-yellow-50"}
+            ];
+        
+            // Confinement Traditions
+            const cultureCheck = {
+                malay: ["Tukang Urut (7 Days)", "Bengkung & Pilis", "Air Selusuh", "Barut Baby", "Ikan Haruan (Heals cuts)", "Mandian Herba"],
+                chinese: ["Confinement Lady", "Red Dates Tea", "Ginger Vinegar", "Sesame Oil Chicken", "No washing hair (Traditional)", "Sheng Hua Tang"],
+                indian: ["Vethu Kuli Bath", "Garlic/Pepper Diet", "Thottil Cradle", "Omam Water", "Kayam (Herbs)", "Suthi Ritual"],
+                iban: ["Mandi Daun (Herbs)", "Betungku (Hot Stone)", "Berdiang (Fire)", "Manuk Pansuh (Plain)", "Ginger Roots"]
+            };
+        
+            // Pregnancy Week Sizes
+            const babyGrowth = {
+                8: {s:"Raspberry", i:"🍇"}, 12: {s:"Plum", i:"🍑"}, 20: {s:"Banana", i:"🍌"},
+                28: {s:"Eggplant", i:"🍆"}, 32: {s:"Durian", i:"🍈"}, 40: {s:"Watermelon", i:"🍉"}
+            };
+        
+            // Detailed Baby Milestones (0-12 Months)
+            const babyMilestoneList = [
+                {id:'m1', t:"Lifts Head (Tummy Time)", age:"1-2m", cat:"Physical"},
+                {id:'m2', t:"Tracks Objects with Eyes", age:"2m", cat:"Sensory"},
+                {id:'m3', t:"First Social Smile 😊", age:"2m", cat:"Social"},
+                {id:'m4', t:"Rolls Over (Both ways)", age:"4-5m", cat:"Physical"},
+                {id:'m5', t:"Laughs & Giggles", age:"4m", cat:"Social"},
+                {id:'m6', t:"Starts Solid Food (Bubur)", age:"6m", cat:"Feeding"},
+                {id:'m7', t:"Sits Without Support", age:"7m", cat:"Physical"},
+                {id:'m8', t:"Crawling / Scooting", age:"8m", cat:"Physical"},
+                {id:'m9', t:"Pincer Grasp", age:"9m", cat:"Motor"},
+                {id:'m10', t:"Pulls to Stand", age:"10m", cat:"Physical"},
+                {id:'m11', t:"Waves Bye / Salam", age:"11m", cat:"Social"},
+                {id:'m12', t:"First Steps / Cruising", age:"12m", cat:"Physical"}
+            ];
+        
+            // KKM Vaccination Schedule
+            const vaccineList = [
+                {id:'v1', t:"BCG & Hep B (Dose 1)", age:"At Birth", note:"Hospital"},
+                {id:'v2', t:"Hep B (Dose 2)", age:"1 Month", note:"KK/Private"},
+                {id:'v3', t:"6-in-1 (Dose 1)", age:"2 Months", note:"DTaP,Hib,IPV,HepB"},
+                {id:'v4', t:"6-in-1 (Dose 2)", age:"3 Months", note:"DTaP,Hib,IPV,HepB"},
+                {id:'v5', t:"Pneumococcal (PCV 1)", age:"4 Months", note:"Prevent pneumonia"},
+                {id:'v6', t:"6-in-1 (Dose 3)", age:"5 Months", note:"DTaP,Hib,IPV,HepB"},
+                {id:'v7', t:"Pneumococcal (PCV 2)", age:"6 Months", note:"Prevent pneumonia"},
+                {id:'v8', t:"Measles / MMR (Dose 1)", age:"9 Months", note:"Mumps,Rubella"},
+                {id:'v9', t:"MMR (Dose 2)", age:"12 Months", note:"Booster"},
+                {id:'v10', t:"Pneumococcal (Booster)", age:"15 Months", note:"PCV Booster"},
+                {id:'v11', t:"6-in-1 (Booster)", age:"18 Months", note:"Final Infant Dose"}
+            ];
+        
+            // --- 3. AUTHENTICATION LOGIC ---
+            let isSignUp = false;
+            
+            $('#toggle-auth').click(() => {
+                isSignUp = !isSignUp;
+                $('#signup-fields').slideToggle();
+                $('#auth-btn').text(isSignUp ? 'CREATE ACCOUNT' : 'LOGIN');
+                $('#toggle-auth').text(isSignUp ? 'Already have an account? Login' : 'Create New Account');
+            });
+        
+            $('#auth-btn').click(async () => {
+                const email = $('#email').val();
+                const pass = $('#password').val();
+                try {
+                    if(isSignUp) {
+                        if(!$('#full-name').val() || !$('#due-date').val()) return alert("Please fill all details.");
+                        const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                        await db.collection('users').doc(cred.user.uid).set({
+                            name: $('#full-name').val(),
+                            dueDate: $('#due-date').val(),
+                            budget: $('#budget-pref').val(),
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        await auth.signInWithEmailAndPassword(email, pass);
+                    }
+                } catch(e) { alert(e.message); }
+            });
+        
+            auth.onAuthStateChanged(async (user) => {
+                if(user) {
+                    $('#auth-screen').fadeOut();
+                    $('#app-interface').fadeIn().removeClass('hidden');
+                    initApp(user.uid);
                 } else {
-                    await auth.signInWithEmailAndPassword(email, pass);
+                    $('#app-interface').hide();
+                    $('#auth-screen').fadeIn();
                 }
-            } catch(e) { alert(e.message); }
-        });
-
-        auth.onAuthStateChanged(async (user) => {
-            if(user) {
-                $('#auth-screen').fadeOut();
-                $('#app-interface').fadeIn().removeClass('hidden');
-                initApp(user.uid);
-            } else {
-                $('#app-interface').hide();
-                $('#auth-screen').fadeIn();
-            }
-        });
-
-        // --- CORE LOGIC ---
-        async function initApp(uid) {
-            const doc = await db.collection('users').doc(uid).get();
-            const data = doc.data();
-
-            // 1. Set Profile Data
-            $('#header-greeting').text(`Welcome back, ${data.name}`);
-            $('#profile-name').text(data.name);
-            $('#profile-email').text(auth.currentUser.email);
-            $('#budget-badge').text(data.budget === 'premium' ? 'Premium' : 'Minimalist');
-            
-            // Edit Form Pre-fill
-            $('#edit-name').val(data.name);
-            $('#edit-date').val(data.dueDate);
-            $('#edit-budget').val(data.budget);
-
-            // 2. Baby Logic
-            const week = Math.floor((280 - Math.ceil((new Date(data.dueDate) - new Date()) / 86400000)) / 7);
-            const safeWeek = Math.max(0, Math.min(42, week)); // Clamp between 0-42
-            const sizeKey = Object.keys(babyGrowth).reverse().find(k => safeWeek >= k) || 8;
-            $('#baby-week').text(`Week ${safeWeek}`);
-            $('#baby-size').text(babyGrowth[sizeKey].s);
-            $('#baby-icon').text(babyGrowth[sizeKey].i);
-
-            // 3. Checklist Logic - Trimester Based
-            // Ensure you have an index for budget_level + trimester
-            const listRef = db.collection('checklists').where('budget_level', '==', data.budget).orderBy('trimester', 'asc');
-            let listSnap = await listRef.get();
-            
-            // Auto-populate if empty
-            if(listSnap.empty) { await populateDB(); return; }
-
-            // 4. Load Progress
-            const progressSnap = await db.collection('user_tasks').where('uid', '==', uid).get();
-            const doneIds = progressSnap.docs.map(d => d.data().taskId);
-
-            $('#task-list').empty();
-            let total = 0, checked = 0;
-            let currentTri = 0;
-
-            listSnap.forEach(d => {
-                const t = d.data();
+            });
+        
+            // --- 4. CORE APPLICATION INITIALIZATION ---
+            async function initApp(uid) {
+                const doc = await db.collection('users').doc(uid).get();
+                if(!doc.exists) return; // Handle rare case of deleted user
+                const data = doc.data();
+        
+                // A. Set Profile Data
+                $('#header-greeting').text(`Welcome back, ${data.name}`);
+                $('#profile-name').text(data.name);
+                $('#profile-email').text(auth.currentUser.email);
+                $('#budget-badge').text(data.budget === 'premium' ? 'Premium' : 'Minimalist');
                 
-                // Add Headers
-                if (t.trimester !== currentTri) {
-                    currentTri = t.trimester;
-                    let title = `Trimester ${currentTri}`;
-                    let icon = "🌱";
-                    if(currentTri === 2) { title = "Trimester 2 (Weeks 13-27)"; icon = "☀️"; }
-                    if(currentTri === 3) { title = "Trimester 3 (Weeks 28+)"; icon = "🤰"; }
-                    if(currentTri === 4) { title = "Post-Birth (Admin & Baby)"; icon = "👶"; }
+                // B. Pre-fill Edit Forms
+                $('#edit-name').val(data.name);
+                $('#edit-date').val(data.dueDate);
+                $('#edit-budget').val(data.budget);
+        
+                // C. Baby Week Calculation
+                const week = Math.floor((280 - Math.ceil((new Date(data.dueDate) - new Date()) / 86400000)) / 7);
+                const safeWeek = Math.max(0, Math.min(42, week));
+                const sizeKey = Object.keys(babyGrowth).reverse().find(k => safeWeek >= k) || 8;
+                $('#baby-week').text(`Week ${safeWeek}`);
+                $('#baby-size').text(babyGrowth[sizeKey].s);
+                $('#baby-icon').text(babyGrowth[sizeKey].i);
+        
+                // D. Checklist Logic (Trimester Based)
+                const listRef = db.collection('checklists')
+                    .where('budget_level', '==', data.budget)
+                    .orderBy('trimester', 'asc');
+                
+                let listSnap = await listRef.get();
+                
+                // Auto-populate trigger for new databases
+                if(listSnap.empty) { 
+                    console.log("Empty DB detected, running population script...");
+                    await populateDB(); 
+                    return; 
+                }
+        
+                // E. Load Checklist Progress
+                const progressSnap = await db.collection('user_tasks').where('uid', '==', uid).get();
+                const doneIds = progressSnap.docs.map(d => d.data().taskId);
+        
+                $('#task-list').empty();
+                let total = 0, checked = 0, currentTri = 0;
+        
+                listSnap.forEach(d => {
+                    const t = d.data();
+                    
+                    // Render Headers for Trimesters
+                    if (t.trimester !== currentTri) {
+                        currentTri = t.trimester;
+                        let title = `Trimester ${currentTri}`;
+                        let icon = "🌱";
+                        if(currentTri === 2) { title = "Trimester 2 (Weeks 13-27)"; icon = "☀️"; }
+                        if(currentTri === 3) { title = "Trimester 3 (Weeks 28+)"; icon = "🤰"; }
+                        if(currentTri === 4) { title = "Post-Birth (Admin & Baby)"; icon = "👶"; }
+                        
+                        $('#task-list').append(`
+                            <h4 class="font-black text-[10px] text-rose-400 uppercase tracking-widest mt-6 mb-2 border-b border-slate-100 pb-1">
+                                ${icon} ${title}
+                            </h4>
+                        `);
+                    }
+        
+                    const isDone = doneIds.includes(d.id);
+                    if(isDone) { total += t.cost; checked++; }
                     
                     $('#task-list').append(`
-                        <h4 class="font-black text-xs text-rose-400 uppercase tracking-widest mt-6 mb-2 border-b border-slate-100 pb-1">
-                            ${icon} ${title}
-                        </h4>
-                    `);
-                }
-
-                const isDone = doneIds.includes(d.id);
-                if(isDone) { total += t.cost; checked++; }
-                
-                $('#task-list').append(`
-                    <label class="flex justify-between items-center p-4 bg-white border border-slate-50 rounded-2xl cursor-pointer hover:shadow-md transition mb-2">
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" class="task-check w-5 h-5 rounded-md border-2 border-slate-200 checked:bg-rose-500 checked:border-rose-500 appearance-none transition" 
-                                data-id="${d.id}" data-cost="${t.cost}" ${isDone ? 'checked' : ''}>
-                            <span class="text-xs font-bold text-slate-700">${t.task_name}</span>
-                        </div>
-                        <span class="text-[10px] font-black text-slate-300">RM ${t.cost}</span>
-                    </label>
-                `);
-            });
-            updateBudgetUI(total, checked, listSnap.size);
-            
-            loadWeight(uid);
-            loadBabyMilestones(uid);
-        }
-
-        // --- FEATURES ---
-
-        // Checklist Checkbox
-        $(document).on('change', '.task-check', async function() {
-            const uid = auth.currentUser.uid;
-            const tid = $(this).data('id');
-            
-            if($(this).is(':checked')) {
-                await db.collection('user_tasks').add({ uid, taskId: tid });
-            } else {
-                const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',tid).get();
-                s.forEach(d => d.ref.delete());
-            }
-            
-            // Recalc UI
-            let total = 0, count = 0;
-            $('.task-check:checked').each(function() { total += parseInt($(this).data('cost')); count++; });
-            updateBudgetUI(total, count, $('.task-check').length);
-        });
-
-        function updateBudgetUI(total, count, all) {
-            $('#spent-display').text(`RM ${total.toLocaleString()}`);
-            const pct = all > 0 ? (count / all) * 100 : 0;
-            $('#budget-progress').css('width', pct + '%');
-            $('#progress-percent').text(`${Math.round(pct)}%`);
-        }
-
-        // Baby Milestones (Postnatal)
-        async function loadBabyMilestones(uid) {
-            const snap = await db.collection('baby_milestones').where('uid', '==', uid).get();
-            const doneIds = snap.docs.map(d => d.data().milestoneId);
-            
-            $('#milestone-container').empty();
-            
-            babyMilestoneList.forEach(m => {
-                const isDone = doneIds.includes(m.id);
-                
-                // Color coding for age badges
-                let badgeColor = "bg-blue-100 text-blue-600";
-                if(m.age.includes("6m") || m.age.includes("5m") || m.age.includes("4m")) badgeColor = "bg-emerald-100 text-emerald-600";
-                if(parseInt(m.age) > 6) badgeColor = "bg-purple-100 text-purple-600";
-        
-                $('#milestone-container').append(`
-                    <label class="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-50 cursor-pointer hover:shadow-sm transition">
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" class="milestone-check w-5 h-5 rounded border-2 border-slate-200 checked:bg-blue-500 checked:border-blue-500 appearance-none transition" 
-                                data-id="${m.id}" ${isDone ? 'checked' : ''}>
-                            <div>
-                                <span class="text-xs font-bold text-slate-700 block">${m.t}</span>
-                                <span class="text-[9px] text-slate-400 uppercase tracking-wide font-bold">${m.cat}</span>
+                        <label class="flex justify-between items-center p-4 bg-white border border-slate-50 rounded-2xl cursor-pointer hover:shadow-md transition mb-2">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" class="task-check w-5 h-5 rounded-md border-2 border-slate-200 checked:bg-rose-500 checked:border-rose-500 appearance-none transition" 
+                                    data-id="${d.id}" data-cost="${t.cost}" ${isDone ? 'checked' : ''}>
+                                <span class="text-xs font-bold text-slate-700 leading-tight">${t.task_name}</span>
                             </div>
-                        </div>
-                        <span class="text-[9px] font-black px-2 py-1 rounded-lg ${badgeColor}">${m.age}</span>
-                    </label>
-                `);
-            });
-        }
-
-        $(document).on('change', '.milestone-check', async function() {
-            const uid = auth.currentUser.uid;
-            const mid = $(this).data('id');
-            if($(this).is(':checked')) {
-                await db.collection('baby_milestones').add({ uid, milestoneId: mid });
-            } else {
-                const s = await db.collection('baby_milestones').where('uid','==',uid).where('milestoneId','==',mid).get();
-                s.forEach(d => d.ref.delete());
-            }
-        });
-
-        // Food Search
-        $('#food-search').on('input', function() {
-            const v = $(this).val().toLowerCase();
-            const f = foodDB.find(i => i.n.includes(v));
-            const div = $('#food-result');
-            if(v && f) {
-                div.removeClass('hidden').attr('class', `p-4 mt-4 rounded-2xl text-sm font-medium ${f.c} block`);
-                div.html(`<strong class="uppercase text-[10px] tracking-widest block mb-1 opacity-70">${f.s}</strong>${f.d}`);
-            } else { div.addClass('hidden'); }
-        });
-
-        // Culture Tabs
-        $('.cul-btn').click(function() {
-            $('.cul-btn').removeClass('bg-rose-500 text-white border-transparent').addClass('bg-white text-slate-400 border-slate-100');
-            $(this).addClass('bg-rose-500 text-white border-transparent').removeClass('bg-white text-slate-400 border-slate-100');
-            const c = $(this).data('cul');
-            $('#confinement-list').empty();
-            cultureCheck[c].forEach(x => $('#confinement-list').append(`<li>✨ ${x}</li>`));
-        });
-
-        // Weight Log
-        $('#save-weight').click(async () => {
-            const w = $('#weight-in').val();
-            if(!w) return;
-            await db.collection('weight_logs').add({
-                uid: auth.currentUser.uid, weight: w, date: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            loadWeight(auth.currentUser.uid);
-            $('#weight-in').val('');
-        });
-
-        async function loadWeight(uid) {
-            const s = await db.collection('weight_logs').where('uid','==',uid).orderBy('date','desc').limit(3).get();
-            $('#weight-history').empty();
-            s.forEach(d => $('#weight-history').append(
-                `<div class="flex justify-between border-b border-slate-100 py-2 text-xs"><span>${d.data().weight} kg</span><span class="text-slate-400 text-[10px] uppercase">${d.data().date?.toDate().toLocaleDateString() || 'Today'}</span></div>`
-            ));
-        }
-
-        // Contraction Timer
-        let cInt, cStart, cRun = false;
-        $('#c-btn').click(function() {
-            if(!cRun) {
-                cRun = true; cStart = new Date();
-                $(this).text("STOP").addClass('bg-rose-800');
-                cInt = setInterval(() => {
-                    const d = Math.floor((new Date()-cStart)/1000);
-                    $('#c-timer').text(`00:${String(d%60).padStart(2,'0')}`);
-                }, 1000);
-            } else {
-                cRun = false; clearInterval(cInt);
-                const dur = Math.floor((new Date()-cStart)/1000);
-                $('#c-history').prepend(`<div class="border-b border-white/10 py-1 flex justify-between"><span>Dur: ${dur}s</span><span>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>`);
-                $(this).text("START TIMER").removeClass('bg-rose-800');
-                $('#c-timer').text("00:00");
-            }
-        });
-
-        // Profile Actions
-        async function updateProfile() {
-            try {
-                await db.collection('users').doc(auth.currentUser.uid).update({
-                    name: $('#edit-name').val(),
-                    dueDate: $('#edit-date').val(),
-                    budget: $('#edit-budget').val()
+                            <span class="text-[10px] font-black text-slate-300 whitespace-nowrap ml-2">RM ${t.cost}</span>
+                        </label>
+                    `);
                 });
-                alert("Profile Updated!"); location.reload();
-            } catch(e) { alert("Error"); }
-        }
-
-        async function deleteAccount() {
-            if(!confirm("Are you sure? This is permanent.")) return;
-            await db.collection('users').doc(auth.currentUser.uid).delete();
-            auth.currentUser.delete();
-            alert("Account Deleted."); location.reload();
-        }
-
-        function logout() { auth.signOut(); }
-
-        // Navigation
-        window.switchTab = function(tab) {
-            $('.page-section').removeClass('active');
-            $(`#tab-${tab}`).addClass('active');
-            $('.nav-btn').removeClass('nav-active');
-            $(event.currentTarget).addClass('nav-active');
-            window.scrollTo(0,0);
-        }
-
-        // PDF
-        window.exportToPDF = async function() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            $('.no-print').hide();
-            const canvas = await html2canvas(document.querySelector("#tab-home"), {scale: 2});
-            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 0);
-            doc.save("MamaJourney_MY_Plan.pdf");
-            $('.no-print').show();
-        };
-
-        // NEW DB POPULATION (Comprehensive)
-        async function populateDB() {
-            const checklistData = [
-                // T1
-                { task: "Register Pink Book (Buku Merah)", budget: "minimal", cost: 0, tri: 1 },
-                { task: "First Scan (Private)", budget: "premium", cost: 150, tri: 1 },
-                { task: "Folic Acid Stock", budget: "minimal", cost: 30, tri: 1 },
-                { task: "NIPT Test", budget: "premium", cost: 1500, tri: 1 },
-                // T2
-                { task: "Anomaly Scan (20w)", budget: "premium", cost: 350, tri: 2 },
-                { task: "MGTT Sugar Test", budget: "minimal", cost: 0, tri: 2 },
-                { task: "Book Confinement (Deposit)", budget: "minimal", cost: 500, tri: 2 },
-                { task: "Baby Clothes (Basic)", budget: "minimal", cost: 150, tri: 2 },
-                { task: "Premium Nursery Set", budget: "premium", cost: 3000, tri: 2 },
-                // T3
-                { task: "Kick Counter Start", budget: "minimal", cost: 0, tri: 3 },
-                { task: "Hospital Bag Prep", budget: "minimal", cost: 200, tri: 3 },
-                { task: "Breast Pump", budget: "premium", cost: 800, tri: 3 },
-                { task: "Isofix Car Seat", budget: "premium", cost: 1200, tri: 3 },
-                { task: "Hospital Deposit (Gov)", budget: "minimal", cost: 30, tri: 3 },
-                { task: "Hospital Deposit (Private)", budget: "premium", cost: 5000, tri: 3 },
-                // Post
-                { task: "Register MyKid (JPN)", budget: "minimal", cost: 0, tri: 4 },
-                { task: "Newborn Hearing Test", budget: "premium", cost: 150, tri: 4 },
-                { task: "Confinement Herbal Bath", budget: "minimal", cost: 100, tri: 4 }
-            ];
-
-            const batch = db.batch();
-            checklistData.forEach(item => {
-                const ref = db.collection('checklists').doc();
-                batch.set(ref, {
-                    task_name: item.task,
-                    budget_level: item.budget,
-                    cost: item.cost,
-                    trimester: item.tri 
-                });
+                updateBudgetUI(total, checked, listSnap.size);
+                
+                // F. Load Other Modules
+                loadWeight(uid);
+                loadBabyMilestones(uid);
+                loadVaccinations(uid);
+            }
+        
+            // --- 5. FEATURE LOGIC ---
+        
+            // A. Checklist Toggle
+            $(document).on('change', '.task-check', async function() {
+                const uid = auth.currentUser.uid;
+                const tid = $(this).data('id');
+                
+                if($(this).is(':checked')) {
+                    await db.collection('user_tasks').add({ uid, taskId: tid });
+                } else {
+                    const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',tid).get();
+                    s.forEach(d => d.ref.delete());
+                }
+                
+                // Recalc UI locally
+                let total = 0, count = 0;
+                $('.task-check:checked').each(function() { total += parseInt($(this).data('cost')); count++; });
+                updateBudgetUI(total, count, $('.task-check').length);
             });
-            await batch.commit();
-            alert("Database Updated! Refreshing...");
-            location.reload();
-        }
-    </script>
+        
+            function updateBudgetUI(total, count, all) {
+                $('#spent-display').text(`RM ${total.toLocaleString()}`);
+                const pct = all > 0 ? (count / all) * 100 : 0;
+                $('#budget-progress').css('width', pct + '%');
+                $('#progress-percent').text(`${Math.round(pct)}%`);
+            }
+        
+            // B. Baby Milestones (Timeline)
+            async function loadBabyMilestones(uid) {
+                const snap = await db.collection('baby_milestones').where('uid', '==', uid).get();
+                const doneIds = snap.docs.map(d => d.data().milestoneId);
+                
+                $('#milestone-container').empty();
+                
+                babyMilestoneList.forEach(m => {
+                    const isDone = doneIds.includes(m.id);
+                    // Badge color logic
+                    let badgeColor = "bg-blue-100 text-blue-600";
+                    if(m.age.includes("6m") || m.age.includes("5m") || m.age.includes("4m")) badgeColor = "bg-emerald-100 text-emerald-600";
+                    if(parseInt(m.age) > 6) badgeColor = "bg-purple-100 text-purple-600";
+        
+                    $('#milestone-container').append(`
+                        <label class="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-50 cursor-pointer hover:shadow-sm transition">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" class="milestone-check w-5 h-5 rounded border-2 border-slate-200 checked:bg-blue-500 checked:border-blue-500 appearance-none transition" 
+                                    data-id="${m.id}" ${isDone ? 'checked' : ''}>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-700 block">${m.t}</span>
+                                    <span class="text-[9px] text-slate-400 uppercase tracking-wide font-bold">${m.cat}</span>
+                                </div>
+                            </div>
+                            <span class="text-[9px] font-black px-2 py-1 rounded-lg ${badgeColor}">${m.age}</span>
+                        </label>
+                    `);
+                });
+            }
+        
+            $(document).on('change', '.milestone-check', async function() {
+                const uid = auth.currentUser.uid;
+                const mid = $(this).data('id');
+                if($(this).is(':checked')) {
+                    await db.collection('baby_milestones').add({ uid, milestoneId: mid });
+                } else {
+                    const s = await db.collection('baby_milestones').where('uid','==',uid).where('milestoneId','==',mid).get();
+                    s.forEach(d => d.ref.delete());
+                }
+            });
+        
+            // C. Vaccination Tracker
+            async function loadVaccinations(uid) {
+                const snap = await db.collection('baby_vaccines').where('uid', '==', uid).get();
+                const doneIds = snap.docs.map(d => d.data().vaxId);
+                
+                $('#vax-container').empty();
+                
+                vaccineList.forEach(v => {
+                    const isDone = doneIds.includes(v.id);
+                    const statusColor = isDone ? "border-blue-500 bg-blue-500" : "border-slate-300";
+                    
+                    $('#vax-container').append(`
+                        <label class="flex items-center justify-between p-3 bg-white rounded-xl border border-blue-100 cursor-pointer hover:shadow-sm transition">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" class="vax-check w-4 h-4 rounded border-2 ${isDone ? 'border-blue-500 bg-blue-500' : 'border-slate-300'} appearance-none transition" 
+                                    data-id="${v.id}" ${isDone ? 'checked' : ''}>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-700 block">${v.t}</span>
+                                    <span class="text-[9px] text-slate-400 font-bold">${v.note}</span>
+                                </div>
+                            </div>
+                            <span class="text-[9px] font-black px-2 py-1 rounded-lg bg-blue-50 text-blue-600 w-16 text-center">${v.age}</span>
+                        </label>
+                    `);
+                });
+            }
+        
+            $(document).on('change', '.vax-check', async function() {
+                const uid = auth.currentUser.uid;
+                const vid = $(this).data('id');
+                
+                if($(this).is(':checked')) {
+                    await db.collection('baby_vaccines').add({ uid, vaxId: vid });
+                    $(this).addClass('bg-blue-500 border-blue-500').removeClass('border-slate-300');
+                } else {
+                    const s = await db.collection('baby_vaccines').where('uid','==',uid).where('vaxId','==',vid).get();
+                    s.forEach(d => d.ref.delete());
+                    $(this).removeClass('bg-blue-500 border-blue-500').addClass('border-slate-300');
+                }
+            });
+        
+            // D. Food Search
+            $('#food-search').on('input', function() {
+                const v = $(this).val().toLowerCase();
+                const f = foodDB.find(i => i.n.includes(v));
+                const div = $('#food-result');
+                if(v && f) {
+                    div.removeClass('hidden').attr('class', `p-4 mt-4 rounded-2xl text-sm font-medium ${f.c} block`);
+                    div.html(`<strong class="uppercase text-[10px] tracking-widest block mb-1 opacity-70">${f.s}</strong>${f.d}`);
+                } else { div.addClass('hidden'); }
+            });
+        
+            // E. Culture Tabs
+            $('.cul-btn').click(function() {
+                $('.cul-btn').removeClass('bg-rose-500 text-white border-transparent').addClass('bg-white text-slate-400 border-slate-100');
+                $(this).addClass('bg-rose-500 text-white border-transparent').removeClass('bg-white text-slate-400 border-slate-100');
+                const c = $(this).data('cul');
+                $('#confinement-list').empty();
+                cultureCheck[c].forEach(x => $('#confinement-list').append(`<li>✨ ${x}</li>`));
+            });
+        
+            // F. Weight Log
+            $('#save-weight').click(async () => {
+                const w = $('#weight-in').val();
+                if(!w) return;
+                await db.collection('weight_logs').add({
+                    uid: auth.currentUser.uid, weight: w, date: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                loadWeight(auth.currentUser.uid);
+                $('#weight-in').val('');
+            });
+        
+            async function loadWeight(uid) {
+                const s = await db.collection('weight_logs').where('uid','==',uid).orderBy('date','desc').limit(3).get();
+                $('#weight-history').empty();
+                s.forEach(d => $('#weight-history').append(
+                    `<div class="flex justify-between border-b border-slate-100 py-2 text-xs"><span>${d.data().weight} kg</span><span class="text-slate-400 text-[10px] uppercase">${d.data().date?.toDate().toLocaleDateString() || 'Today'}</span></div>`
+                ));
+            }
+        
+            // G. Contraction Timer
+            let cInt, cStart, cRun = false;
+            $('#c-btn').click(function() {
+                if(!cRun) {
+                    cRun = true; cStart = new Date();
+                    $(this).text("STOP").addClass('bg-rose-800');
+                    cInt = setInterval(() => {
+                        const d = Math.floor((new Date()-cStart)/1000);
+                        $('#c-timer').text(`00:${String(d%60).padStart(2,'0')}`);
+                    }, 1000);
+                } else {
+                    cRun = false; clearInterval(cInt);
+                    const dur = Math.floor((new Date()-cStart)/1000);
+                    $('#c-history').prepend(`<div class="border-b border-white/10 py-1 flex justify-between"><span>Dur: ${dur}s</span><span>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>`);
+                    $(this).text("START TIMER").removeClass('bg-rose-800');
+                    $('#c-timer').text("00:00");
+                }
+            });
+        
+            // H. Profile & Account
+            async function updateProfile() {
+                try {
+                    await db.collection('users').doc(auth.currentUser.uid).update({
+                        name: $('#edit-name').val(),
+                        dueDate: $('#edit-date').val(),
+                        budget: $('#edit-budget').val()
+                    });
+                    alert("Profile Updated!"); location.reload();
+                } catch(e) { alert("Error updating profile."); }
+            }
+        
+            async function deleteAccount() {
+                if(!confirm("Are you sure? This is permanent.")) return;
+                await db.collection('users').doc(auth.currentUser.uid).delete();
+                auth.currentUser.delete();
+                alert("Account Deleted."); location.reload();
+            }
+        
+            function logout() { auth.signOut(); }
+        
+            window.switchTab = function(tab) {
+                $('.page-section').removeClass('active');
+                $(`#tab-${tab}`).addClass('active');
+                $('.nav-btn').removeClass('nav-active');
+                $(event.currentTarget).addClass('nav-active');
+                window.scrollTo(0,0);
+            }
+        
+            window.exportToPDF = async function() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                $('.no-print').hide();
+                const canvas = await html2canvas(document.querySelector("#tab-home"), {scale: 2});
+                doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 0);
+                doc.save("MamaJourney_MY_Plan.pdf");
+                $('.no-print').show();
+            };
+        
+            // --- 6. DATABASE POPULATION (Comprehensive) ---
+            async function populateDB() {
+                const checklistData = [
+                    // TRIMESTER 1
+                    { task: "Register Pink Book (Buku Merah)", budget: "minimal", cost: 0, tri: 1 },
+                    { task: "First Scan (Private)", budget: "premium", cost: 150, tri: 1 },
+                    { task: "Folic Acid Stock", budget: "minimal", cost: 30, tri: 1 },
+                    { task: "Prenatal Vitamins", budget: "premium", cost: 150, tri: 1 },
+                    { task: "NIPT Test (Optional)", budget: "premium", cost: 1500, tri: 1 },
+                    // TRIMESTER 2
+                    { task: "Anomaly Scan (20w)", budget: "premium", cost: 350, tri: 2 },
+                    { task: "MGTT Sugar Test", budget: "minimal", cost: 0, tri: 2 },
+                    { task: "Book Confinement (Deposit)", budget: "minimal", cost: 500, tri: 2 },
+                    { task: "Book Confinement Centre (Deposit)", budget: "premium", cost: 5000, tri: 2 },
+                    { task: "Baby Clothes (Basic)", budget: "minimal", cost: 150, tri: 2 },
+                    { task: "Premium Nursery Set", budget: "premium", cost: 3000, tri: 2 },
+                    // TRIMESTER 3
+                    { task: "Kick Counter Start", budget: "minimal", cost: 0, tri: 3 },
+                    { task: "Hospital Bag Prep", budget: "minimal", cost: 200, tri: 3 },
+                    { task: "Breast Pump", budget: "premium", cost: 800, tri: 3 },
+                    { task: "Isofix Car Seat", budget: "premium", cost: 1200, tri: 3 },
+                    { task: "Hospital Deposit (Gov)", budget: "minimal", cost: 30, tri: 3 },
+                    { task: "Hospital Deposit (Private)", budget: "premium", cost: 5000, tri: 3 },
+                    // POST-BIRTH
+                    { task: "Register MyKid (JPN)", budget: "minimal", cost: 0, tri: 4 },
+                    { task: "Newborn Hearing Test", budget: "premium", cost: 150, tri: 4 },
+                    { task: "Confinement Herbal Bath", budget: "minimal", cost: 100, tri: 4 },
+                    { task: "Newborn Photoshoot", budget: "premium", cost: 800, tri: 4 }
+                ];
+        
+                const batch = db.batch();
+                checklistData.forEach(item => {
+                    const ref = db.collection('checklists').doc();
+                    batch.set(ref, {
+                        task_name: item.task,
+                        budget_level: item.budget,
+                        cost: item.cost,
+                        trimester: item.tri 
+                    });
+                });
+                await batch.commit();
+                alert("Database Updated! Refreshing...");
+                location.reload();
+            }
+        </script>
 </body>
 </html>
