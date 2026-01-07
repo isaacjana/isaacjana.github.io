@@ -82,29 +82,34 @@
         </header>
 
         <div id="tab-home" class="page-section active px-4 pt-6 space-y-6">
+            
             <div id="export-area" class="bg-gradient-to-br from-rose-400 to-orange-300 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden">
                 <div class="flex justify-between items-start mb-6">
                     <div>
-                        <p class="text-[9px] font-bold uppercase tracking-widest opacity-80">Total Estimated Cost</p>
-                        <h2 id="spent-display" class="text-4xl font-black">RM 0</h2>
+                        <p class="text-[9px] font-bold uppercase tracking-widest opacity-80">Pregnancy Readiness</p>
+                        <h2 id="readiness-display" class="text-4xl font-black">0%</h2>
                     </div>
-                    <button onclick="exportToPDF()" class="bg-white/20 p-2 rounded-xl backdrop-blur-md no-print"><i class="fas fa-file-arrow-down"></i></button>
+                    <div class="text-right">
+                        <p class="text-[9px] font-bold uppercase tracking-widest opacity-80">Time Left</p>
+                        <h2 id="days-left-display" class="text-2xl font-black">-- Days</h2>
+                    </div>
                 </div>
+                
                 <div class="space-y-1">
                     <div class="flex justify-between text-[9px] font-bold uppercase tracking-widest opacity-90">
-                        <span>Checklist Progress</span>
-                        <span id="progress-percent">0%</span>
+                        <span id="tasks-fraction">0/0 Tasks</span>
+                        <span>Complete</span>
                     </div>
-                    <div class="w-full bg-black/10 rounded-full h-2">
-                        <div id="budget-progress" class="bg-white h-full rounded-full transition-all duration-1000 w-0"></div>
+                    <div class="w-full bg-black/10 rounded-full h-3">
+                        <div id="progress-bar" class="bg-white h-full rounded-full transition-all duration-1000 w-0 shadow-sm"></div>
                     </div>
                 </div>
             </div>
 
             <div class="glass-panel p-5 rounded-[2rem]">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-base">Pregnancy Tasks</h3>
-                    <span id="budget-badge" class="text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold uppercase">Minimal</span>
+                    <h3 class="font-bold text-base">To-Do List</h3>
+                    <span class="text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold uppercase">All Trimesters</span>
                 </div>
                 <div id="task-list" class="space-y-2"></div>
             </div>
@@ -306,6 +311,9 @@
             const week = Math.max(0, Math.floor((280 - Math.ceil((new Date(u.dueDate) - new Date())/86400000))/7));
             $('#header-week').text(`Week ${week}`);
 
+            const daysLeft = Math.max(0, 280 - Math.ceil((new Date(u.dueDate) - new Date())/86400000));
+            $('#days-left-display').text(`${daysLeft} Days`); // <--- Add This
+
             // Load Modules
             loadChecklist(uid, u.budget);
             loadAppointments(uid);
@@ -314,42 +322,78 @@
             loadModules(uid);
         }
 
-        // --- 1. CHECKLIST ---
-        async function loadChecklist(uid, budget) {
-            let snap = await db.collection('checklists').where('budget_level', '==', budget).orderBy('trimester').get();
-            if(snap.empty) { await populateDB(); return; }
-            
-            const uTasks = await db.collection('user_tasks').where('uid', '==', uid).get();
-            const done = uTasks.docs.map(d => d.data().taskId);
-            
-            $('#task-list').empty();
-            let total=0, checked=0, curTri=0;
-            snap.forEach(d => {
-                const t = d.data();
-                if(t.trimester !== curTri) {
-                    curTri = t.trimester;
-                    $('#task-list').append(`<h4 class="text-[10px] font-bold text-rose-400 uppercase mt-4 mb-2 tracking-widest border-b pb-1">Trimester ${curTri}</h4>`);
-                }
-                const isDone = done.includes(d.id);
-                if(isDone) { total += t.cost; checked++; }
-                $('#task-list').append(`
-                    <label class="flex justify-between items-center p-3 bg-white border border-slate-50 rounded-xl mb-2">
-                        <div class="flex items-center gap-2"><input type="checkbox" class="task-check accent-rose-500" data-id="${d.id}" data-cost="${t.cost}" ${isDone?'checked':''}> <span class="text-xs font-bold text-slate-600">${t.task_name}</span></div>
-                        <span class="text-[9px] font-bold text-slate-300">RM${t.cost}</span>
-                    </label>
-                `);
-            });
-            $('#spent-display').text(`RM ${total.toLocaleString()}`);
-            $('#budget-progress').css('width', (snap.size>0 ? (checked/snap.size)*100 : 0) + '%');
-            $('#progress-percent').text(Math.round(snap.size>0 ? (checked/snap.size)*100 : 0) + '%');
-        }
+        // --- 1. NEW CHECKLIST LOGIC (Readiness) ---
+            async function loadChecklist(uid) {
+                // No longer filtering by 'budget_level'. Just order by Trimester.
+                let snap = await db.collection('checklists').orderBy('trimester').get();
+                
+                // Auto-populate if empty
+                if(snap.empty) { await populateDB(); return; }
+                
+                const uTasks = await db.collection('user_tasks').where('uid', '==', uid).get();
+                const doneIds = uTasks.docs.map(d => d.data().taskId);
+                
+                $('#task-list').empty();
+                let totalTasks = snap.size;
+                let doneTasks = 0;
+                let curTri = 0;
 
-        $(document).on('change', '.task-check', async function() {
-            const uid = auth.currentUser.uid, id = $(this).data('id');
-            if($(this).is(':checked')) await db.collection('user_tasks').add({uid, taskId:id});
-            else { const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',id).get(); s.forEach(d=>d.ref.delete()); }
-            loadChecklist(uid, $('#edit-budget').val()); // crude refresh
-        });
+                snap.forEach(d => {
+                    const t = d.data();
+                    
+                    // Trimester Headers
+                    if(t.trimester !== curTri) {
+                        curTri = t.trimester;
+                        let triName = `Trimester ${curTri}`;
+                        if(curTri === 4) triName = "Post-Birth / Confinement";
+                        
+                        $('#task-list').append(`
+                            <h4 class="text-[10px] font-bold text-rose-400 uppercase mt-6 mb-2 tracking-widest border-b pb-1">
+                                ${triName}
+                            </h4>
+                        `);
+                    }
+
+                    const isDone = doneIds.includes(d.id);
+                    if(isDone) doneTasks++;
+                    
+                    // Category Tags styling
+                    let tagColor = "bg-slate-100 text-slate-500";
+                    if(t.category === 'Medical') tagColor = "bg-rose-100 text-rose-500";
+                    if(t.category === 'Admin') tagColor = "bg-blue-100 text-blue-500";
+                    if(t.category === 'Gear') tagColor = "bg-orange-100 text-orange-500";
+
+                    $('#task-list').append(`
+                        <label class="flex justify-between items-center p-3 bg-white border border-slate-50 rounded-xl mb-2 hover:shadow-sm transition">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" class="task-check w-5 h-5 rounded border-2 border-slate-200 checked:bg-rose-500 checked:border-rose-500 appearance-none transition" 
+                                    data-id="${d.id}" ${isDone?'checked':''}> 
+                                <div>
+                                    <span class="text-xs font-bold text-slate-700 block">${t.task_name}</span>
+                                </div>
+                            </div>
+                            <span class="text-[9px] font-bold px-2 py-1 rounded ${tagColor}">${t.category}</span>
+                        </label>
+                    `);
+                });
+
+                // Update UI Progress
+                const percent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+                $('#readiness-display').text(`${percent}%`);
+                $('#tasks-fraction').text(`${doneTasks}/${totalTasks} Tasks`);
+                $('#progress-bar').css('width', `${percent}%`);
+            }
+
+            // Toggle Logic
+            $(document).on('change', '.task-check', async function() {
+                const uid = auth.currentUser.uid, id = $(this).data('id');
+                if($(this).is(':checked')) await db.collection('user_tasks').add({uid, taskId:id});
+                else { 
+                    const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',id).get(); 
+                    s.forEach(d=>d.ref.delete()); 
+                }
+                loadChecklist(uid); // Refresh progress bar
+            });
 
         // --- 2. APPOINTMENTS ---
         async function saveAppointment() {
@@ -449,46 +493,51 @@
         
         // DB POPULATION (Comprehensive)
         async function populateDB() {
-            const checklistData = [
-                // TRIMESTER 1
-                { task_name: "Register Pink Book (Buku Merah)", budget_level: "minimal", cost: 0, trimester: 1 },
-                { task_name: "First Scan (Heartbeat)", budget_level: "premium", cost: 150, trimester: 1 },
-                { task_name: "Folic Acid Stock", budget_level: "minimal", cost: 30, trimester: 1 },
-                { task_name: "Premium Prenatal Vitamins", budget_level: "premium", cost: 150, trimester: 1 },
-                { task_name: "NIPT / Down Syndrome Test", budget_level: "premium", cost: 1500, trimester: 1 },
-                // TRIMESTER 2
-                { task_name: "Detailed Anomaly Scan (20w)", budget_level: "premium", cost: 350, trimester: 2 },
-                { task_name: "MGTT (Sugar Test)", budget_level: "minimal", cost: 0, trimester: 2 },
-                { task_name: "Book Confinement Lady (Deposit)", budget_level: "minimal", cost: 500, trimester: 2 },
-                { task_name: "Book Confinement Centre (Deposit)", budget_level: "premium", cost: 5000, trimester: 2 },
-                { task_name: "Buy Basic Baby Clothes", budget_level: "minimal", cost: 150, trimester: 2 },
-                { task_name: "Premium Nursery Set", budget_level: "premium", cost: 3000, trimester: 2 },
-                { task_name: "Antenatal Class", budget_level: "premium", cost: 300, trimester: 2 },
-                // TRIMESTER 3
-                { task_name: "Start Kick Counter Chart", budget_level: "minimal", cost: 0, trimester: 3 },
-                { task_name: "Prepare Hospital Bag (Mama)", budget_level: "minimal", cost: 150, trimester: 3 },
-                { task_name: "Prepare Hospital Bag (Baby)", budget_level: "minimal", cost: 100, trimester: 3 },
-                { task_name: "Buy Breast Pump (Double Electric)", budget_level: "premium", cost: 800, trimester: 3 },
-                { task_name: "Buy Manual Pump/Storage Bags", budget_level: "minimal", cost: 50, trimester: 3 },
-                { task_name: "Wash Baby Clothes", budget_level: "minimal", cost: 20, trimester: 3 },
-                { task_name: "Install Car Seat (Isofix)", budget_level: "premium", cost: 1200, trimester: 3 },
-                { task_name: "Install Car Seat (Standard)", budget_level: "minimal", cost: 250, trimester: 3 },
-                // POST-BIRTH
-                { task_name: "Register Birth at JPN (MyKid)", budget_level: "minimal", cost: 0, trimester: 4 },
-                { task_name: "Newborn Hearing Test", budget_level: "premium", cost: 150, trimester: 4 },
-                { task_name: "Confinement Herbal Bath Stock", budget_level: "minimal", cost: 100, trimester: 4 },
-                { task_name: "Newborn Photoshoot", budget_level: "premium", cost: 800, trimester: 4 }
-            ];
+                // Clear old checklist first (Optional, but recommended to avoid duplicates)
+                // You can also just delete the 'checklists' collection in Firebase Console manually.
 
-            const batch = db.batch();
-            checklistData.forEach(item => {
-                const ref = db.collection('checklists').doc();
-                batch.set(ref, item);
-            });
-            await batch.commit();
-            alert("Database Updated! Refreshing...");
-            location.reload();
-        }
+                const checklistData = [
+                    // TRIMESTER 1
+                    { task_name: "Open Pink Book (Buku Merah)", category: "Medical", trimester: 1 },
+                    { task_name: "Dating Scan (Confirm Due Date)", category: "Medical", trimester: 1 },
+                    { task_name: "Dental Checkup (Stamp Book)", category: "Medical", trimester: 1 },
+                    { task_name: "NIPT / Down Syndrome Test", category: "Medical", trimester: 1 },
+                    { task_name: "Review Maternity Leave Policy", category: "Admin", trimester: 1 },
+                    
+                    // TRIMESTER 2
+                    { task_name: "Detailed Anomaly Scan (20w)", category: "Medical", trimester: 2 },
+                    { task_name: "Drink Air Gula (MGTT)", category: "Medical", trimester: 2 },
+                    { task_name: "Tetanus (ATT) Injection 1", category: "Medical", trimester: 2 },
+                    { task_name: "Tetanus (ATT) Injection 2", category: "Medical", trimester: 2 },
+                    { task_name: "Book Confinement Lady/Center", category: "Admin", trimester: 2 },
+                    { task_name: "Buy Basic Nursery Gear", category: "Gear", trimester: 2 },
+                    
+                    // TRIMESTER 3
+                    { task_name: "Start Kick Counter Chart", category: "Medical", trimester: 3 },
+                    { task_name: "Pack Hospital Bag (Mama)", category: "Gear", trimester: 3 },
+                    { task_name: "Pack Hospital Bag (Baby)", category: "Gear", trimester: 3 },
+                    { task_name: "Wash Baby Clothes", category: "Gear", trimester: 3 },
+                    { task_name: "Install Car Seat", category: "Gear", trimester: 3 },
+                    { task_name: "Prepare Documents (IC/GL)", category: "Admin", trimester: 3 },
+                    
+                    // POST-BIRTH
+                    { task: "Register Birth (JPN)", category: "Admin", trimester: 4 },
+                    { task: "Apply for MyKid", category: "Admin", trimester: 4 },
+                    { task: "Submit Leave to HR", category: "Admin", trimester: 4 },
+                    { task: "Newborn Hearing Test", category: "Medical", trimester: 4 },
+                    { task: "Hepatitis B Dose 2", category: "Medical", trimester: 4 }
+                ];
+
+                const batch = db.batch();
+                checklistData.forEach(item => {
+                    const ref = db.collection('checklists').doc();
+                    batch.set(ref, item);
+                });
+                
+                await batch.commit();
+                alert("Checklist Updated to New Format! Refreshing...");
+                location.reload();
+            }
         // --- MISSING LOGIC FIXES ---
 
             // 1. WEIGHT TRACKER LOGIC
