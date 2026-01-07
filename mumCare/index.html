@@ -205,13 +205,6 @@
         </div>
 
         <div id="tab-me" class="page-section px-4 pt-6 space-y-6">
-            <div class="glass-panel p-5 rounded-[2rem] mt-4 border-rose-200 bg-rose-50">
-    <h4 class="font-bold text-xs text-rose-800 uppercase tracking-widest mb-2">System Fix</h4>
-    <p class="text-[10px] text-rose-600 mb-2">Checklist looking weird? Click this to reset it.</p>
-    <button onclick="fixDatabase()" class="w-full bg-white border border-rose-200 text-rose-500 font-bold py-3 rounded-xl text-xs uppercase shadow-sm active:scale-95 transition">
-        <i class="fas fa-sync"></i> Reset Checklist DB
-    </button>
-</div>
             <div class="glass-panel p-6 rounded-[2rem] text-center">
                 <h3 id="profile-name" class="font-bold text-xl">Mama</h3>
                 <p id="profile-email" class="text-xs text-slate-400">user@email.com</p>
@@ -229,6 +222,13 @@
                 </div>
             </div>
             <button onclick="auth.signOut()" class="w-full text-rose-500 font-bold text-xs py-4 bg-rose-50 rounded-xl mb-10">LOG OUT</button>
+        </div>
+        <div class="glass-panel p-5 rounded-[2rem] mt-4 border-rose-200 bg-rose-50">
+            <h4 class="font-bold text-xs text-rose-800 uppercase tracking-widest mb-2">System Fix</h4>
+            <p class="text-[10px] text-rose-600 mb-2">Checklist looking weird? Click this to reset it.</p>
+            <button onclick="fixDatabase()" class="w-full bg-white border border-rose-200 text-rose-500 font-bold py-3 rounded-xl text-xs uppercase shadow-sm active:scale-95 transition">
+                <i class="fas fa-sync"></i> Reset Checklist DB
+            </button>
         </div>
     </main>
 
