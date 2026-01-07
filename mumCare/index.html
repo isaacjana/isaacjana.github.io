@@ -450,15 +450,54 @@
         
         // DB POPULATION (Run once)
         async function populateDB() {
-            const d = [
-                { task_name: "Register Pink Book", budget_level: "minimal", cost: 0, trimester: 1 },
-                { task_name: "Private Scan", budget_level: "premium", cost: 150, trimester: 1 },
-                { task_name: "MGTT Sugar Test", budget_level: "minimal", cost: 0, trimester: 2 },
-                { task_name: "Confinement Deposit", budget_level: "minimal", cost: 500, trimester: 2 },
-                { task_name: "Hospital Bag", budget_level: "minimal", cost: 200, trimester: 3 },
-                { task: "Register MyKid", budget_level: "minimal", cost: 0, trimester: 4 }
+            // Full Comprehensive List
+            const checklistData = [
+                // --- TRIMESTER 1 ---
+                { task_name: "Register Pink Book (Buku Merah)", budget_level: "minimal", cost: 0, trimester: 1 },
+                { task_name: "First Scan (Heartbeat)", budget_level: "premium", cost: 150, trimester: 1 },
+                { task_name: "Folic Acid Stock", budget_level: "minimal", cost: 30, trimester: 1 },
+                { task_name: "Premium Prenatal Vitamins", budget_level: "premium", cost: 150, trimester: 1 },
+                { task_name: "NIPT / Down Syndrome Test", budget_level: "premium", cost: 1500, trimester: 1 },
+                
+                // --- TRIMESTER 2 ---
+                { task_name: "Detailed Anomaly Scan (20w)", budget_level: "premium", cost: 350, trimester: 2 },
+                { task_name: "MGTT (Sugar Test)", budget_level: "minimal", cost: 0, trimester: 2 },
+                { task_name: "Book Confinement Lady (Deposit)", budget_level: "minimal", cost: 500, trimester: 2 },
+                { task_name: "Book Confinement Centre (Deposit)", budget_level: "premium", cost: 5000, trimester: 2 },
+                { task_name: "Buy Basic Baby Clothes", budget_level: "minimal", cost: 150, trimester: 2 },
+                { task_name: "Premium Nursery Set", budget_level: "premium", cost: 3000, trimester: 2 },
+                { task_name: "Antenatal Class", budget_level: "premium", cost: 300, trimester: 2 },
+                { task_name: "Dental Checkup (Gov)", budget_level: "minimal", cost: 1, trimester: 2 },
+
+                // --- TRIMESTER 3 ---
+                { task: "Start Kick Counter Chart", budget_level: "minimal", cost: 0, trimester: 3 },
+                { task: "Prepare Hospital Bag (Mama)", budget_level: "minimal", cost: 150, trimester: 3 },
+                { task: "Prepare Hospital Bag (Baby)", budget_level: "minimal", cost: 100, trimester: 3 },
+                { task: "Buy Breast Pump (Double Electric)", budget_level: "premium", cost: 800, trimester: 3 },
+                { task: "Buy Manual Pump/Storage Bags", budget_level: "minimal", cost: 50, trimester: 3 },
+                { task: "Wash Baby Clothes", budget_level: "minimal", cost: 20, trimester: 3 },
+                { task: "Install Car Seat (Isofix)", budget_level: "premium", cost: 1200, trimester: 3 },
+                { task: "Install Car Seat (Standard)", budget_level: "minimal", cost: 250, trimester: 3 },
+                { task: "Hospital Deposit (Gov)", budget_level: "minimal", cost: 30, trimester: 3 },
+                { task: "Hospital Deposit (Private)", budget_level: "premium", cost: 5000, trimester: 3 },
+
+                // --- POST-BIRTH ---
+                { task: "Register Birth at JPN (MyKid)", budget_level: "minimal", cost: 0, trimester: 4 },
+                { task: "Newborn Hearing Test", budget_level: "premium", cost: 150, trimester: 4 },
+                { task: "Confinement Herbal Bath Stock", budget_level: "minimal", cost: 100, trimester: 4 },
+                { task: "Newborn Photoshoot", budget_level: "premium", cost: 800, trimester: 4 },
+                { task: "Maternity Leave Application", budget_level: "minimal", cost: 0, trimester: 4 }
             ];
-            const b = db.batch(); d.forEach(i => b.set(db.collection('checklists').doc(), i)); await b.commit(); location.reload();
+
+            const batch = db.batch();
+            checklistData.forEach(item => {
+                const ref = db.collection('checklists').doc();
+                batch.set(ref, item);
+            });
+            
+            await batch.commit();
+            alert("Full Database Updated! Refreshing...");
+            location.reload();
         }
     </script>
 </body>
