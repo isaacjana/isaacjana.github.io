@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MamaJourney MY | 2026 Edition</title>
+    <title>MamaJourney MY | 1,000 Days Companion</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -12,225 +12,253 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        soft: { 50: '#fdf2f8', 100: '#fce7f3', 500: '#f43f5e', 900: '#881337' },
+                        cream: '#faf9f6',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Mobile Optimization */
-        body { -webkit-tap-highlight-color: transparent; }
+        body { background-color: #faf9f6; -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .nav-active { color: #e11d48; }
-        .page-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .page-section { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .page-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @media print { .no-print { display: none !important; } }
+        .nav-active { color: #f43f5e; transform: translateY(-2px); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Print Styles */
+        @media print { .no-print { display: none !important; } body { background: white; } .glass-panel { box-shadow: none; border: 1px solid #eee; } }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900 pb-24 md:pb-0">
+<body class="text-slate-800 antialiased pb-24 md:pb-0">
 
     <div id="auth-screen" class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-rose-50 to-indigo-50">
-        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl w-full max-w-sm border border-white/50">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-rose-500 rounded-full mx-auto flex items-center justify-center text-3xl text-white mb-4 shadow-lg shadow-rose-200">🤰</div>
-                <h1 class="text-3xl font-black text-rose-500 tracking-tighter">MamaJourney</h1>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Malaysia's #1 Companion</p>
+        <div class="glass-panel p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm">
+            <div class="text-center mb-10">
+                <div class="w-20 h-20 bg-gradient-to-tr from-rose-400 to-orange-300 rounded-full mx-auto flex items-center justify-center text-4xl text-white mb-4 shadow-lg shadow-rose-200">🤰</div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">MamaJourney</h1>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">The First 1,000 Days</p>
             </div>
 
-            <div class="space-y-4">
-                <input type="email" id="email" placeholder="Email" class="auth-input w-full p-4 bg-slate-50 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none transition">
-                <input type="password" id="password" placeholder="Password" class="auth-input w-full p-4 bg-slate-50 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none transition">
+            <div class="space-y-5">
+                <input type="email" id="email" placeholder="Email Address" class="w-full p-4 bg-white/50 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-rose-200 transition border border-transparent focus:border-rose-200">
+                <input type="password" id="password" placeholder="Password" class="w-full p-4 bg-white/50 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-rose-200 transition border border-transparent focus:border-rose-200">
                 
                 <div id="signup-fields" class="hidden space-y-4 pt-2">
-                    <input type="text" id="full-name" placeholder="Full Name (Mama)" class="auth-input w-full p-4 bg-slate-50 rounded-2xl text-sm font-medium outline-none">
+                    <input type="text" id="full-name" placeholder="Full Name" class="w-full p-4 bg-white/50 rounded-2xl text-sm outline-none">
                     <div class="relative">
-                        <label class="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold text-rose-400 uppercase">Due Date</label>
-                        <input type="date" id="due-date" class="auth-input w-full p-4 bg-slate-50 rounded-2xl text-sm font-medium outline-none">
+                        <label class="absolute -top-2 left-4 bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Due Date</label>
+                        <input type="date" id="due-date" class="w-full p-4 bg-white/50 rounded-2xl text-sm outline-none text-slate-600">
                     </div>
-                    <select id="budget-pref" class="auth-input w-full p-4 bg-slate-50 rounded-2xl text-sm font-medium outline-none">
+                    <select id="budget-pref" class="w-full p-4 bg-white/50 rounded-2xl text-sm outline-none text-slate-600">
                         <option value="minimal">Minimalist (Gov/KK Focus)</option>
                         <option value="premium">Premium (Private Focus)</option>
                     </select>
                 </div>
 
-                <button id="auth-btn" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition">LOGIN</button>
-                <button id="toggle-auth" class="w-full text-xs text-slate-400 font-bold uppercase tracking-wide hover:text-rose-500 transition">Create New Account</button>
+                <button id="auth-btn" class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-200 active:scale-95 transition uppercase tracking-widest text-xs">Login</button>
+                <button id="toggle-auth" class="w-full text-xs text-rose-500 font-bold uppercase tracking-wide hover:underline mt-2">Create New Account</button>
             </div>
         </div>
     </div>
 
-    <main id="app-interface" class="hidden max-w-5xl mx-auto md:p-8">
+    <main id="app-interface" class="hidden max-w-4xl mx-auto md:p-8">
         
-        <header class="hidden md:flex justify-between items-center mb-8 px-4">
+        <header class="hidden md:flex justify-between items-center mb-10 px-4">
             <div>
-                <h2 class="text-2xl font-black text-rose-500">MamaJourney MY</h2>
-                <p id="header-greeting" class="text-sm text-slate-400 font-medium">Welcome back</p>
+                <h2 class="text-2xl font-black text-slate-800">MamaJourney MY</h2>
+                <p id="header-greeting" class="text-sm text-slate-400 font-medium">Welcome back, Mama</p>
             </div>
-            <button onclick="logout()" class="text-xs font-bold bg-white px-4 py-2 rounded-xl shadow-sm hover:text-rose-500 transition">LOG OUT</button>
+            <button onclick="logout()" class="text-xs font-bold bg-white px-6 py-3 rounded-2xl shadow-sm hover:text-rose-500 transition uppercase tracking-widest">Sign Out</button>
         </header>
 
-        <div id="tab-home" class="page-section active px-4 pt-4 md:pt-0 space-y-6">
-            <div id="export-area" class="bg-gradient-to-br from-rose-500 to-orange-400 rounded-[2rem] p-6 text-white shadow-xl shadow-rose-200">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-widest text-white/80">Estimated Cost</p>
-                        <h2 id="spent-display" class="text-4xl font-black">RM 0</h2>
+        <div id="tab-home" class="page-section active px-4 pt-6 md:pt-0 space-y-6">
+            
+            <div id="export-area" class="bg-gradient-to-br from-rose-400 to-orange-300 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-rose-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-white/80 mb-1">Total Estimated Spent</p>
+                            <h2 id="spent-display" class="text-5xl font-black tracking-tight">RM 0</h2>
+                        </div>
+                        <button onclick="exportToPDF()" class="bg-white/20 hover:bg-white/30 backdrop-blur-md p-3 rounded-2xl transition no-print">
+                            <i class="fas fa-file-export"></i>
+                        </button>
                     </div>
-                    <button onclick="exportToPDF()" class="bg-white/20 hover:bg-white/30 p-2 rounded-xl backdrop-blur-md transition no-print"><i class="fas fa-file-pdf"></i></button>
-                </div>
-                <div class="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm mb-4 border border-white/10">
-                    <div id="baby-icon" class="text-3xl bg-white rounded-full w-10 h-10 flex items-center justify-center">👶</div>
-                    <div>
-                        <p id="baby-week" class="text-[10px] font-bold uppercase text-white/70">Week 0</p>
-                        <p id="baby-size" class="text-sm font-bold">Size of a Seed</p>
+
+                    <div class="flex items-center gap-4 bg-white/10 p-4 rounded-3xl backdrop-blur-sm border border-white/10 mb-6">
+                        <div id="baby-icon" class="text-4xl bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg">👶</div>
+                        <div>
+                            <p id="baby-week" class="text-[10px] font-bold uppercase text-white/80 mb-0.5">Calculating...</p>
+                            <p id="baby-size" class="text-lg font-bold">Just Starting</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-white/90">
+                            <span>Journey Progress</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-black/10 rounded-full h-3">
+                            <div id="budget-progress" class="bg-white h-full rounded-full transition-all duration-1000 w-0 shadow-sm"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="w-full bg-black/20 rounded-full h-2">
-                    <div id="budget-progress" class="bg-white h-full rounded-full transition-all duration-1000 w-0"></div>
-                </div>
-                <p id="progress-text" class="text-[10px] mt-2 text-right font-mono opacity-80">0% Complete</p>
             </div>
 
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm">
-                <h3 class="font-bold text-lg mb-4 text-slate-800">Pregnancy Milestones</h3>
+            <div class="glass-panel p-6 rounded-[2.5rem] shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-lg text-slate-800">Pregnancy Checklists</h3>
+                    <span class="text-[10px] bg-rose-100 text-rose-600 px-2 py-1 rounded-lg font-bold uppercase" id="budget-badge">Minimal</span>
+                </div>
                 <div id="task-list" class="space-y-3"></div>
             </div>
         </div>
 
-        <div id="tab-tools" class="page-section px-4 pt-4 md:pt-0 space-y-6">
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm">
-                <h3 class="font-bold text-lg mb-4">Boleh Makan Tak? 🥘</h3>
-                <input type="text" id="food-search" placeholder="Search (e.g., Durian, Sushi)..." class="w-full p-3 bg-slate-50 rounded-xl text-sm mb-4 outline-none focus:ring-2 focus:ring-indigo-100">
-                <div id="food-result" class="hidden p-4 rounded-xl text-sm font-medium"></div>
+        <div id="tab-health" class="page-section px-4 pt-6 md:pt-0 space-y-6">
+            
+            <div class="glass-panel p-6 rounded-[2.5rem]">
+                <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="fas fa-utensils text-rose-400"></i> Boleh Makan Tak?</h3>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-4 text-slate-400 text-sm"></i>
+                    <input type="text" id="food-search" placeholder="Search (e.g. Durian, Sushi)..." class="w-full pl-10 p-3 bg-white/50 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-rose-200">
+                </div>
+                <div id="food-result" class="hidden mt-4 p-4 rounded-2xl text-sm font-medium animate-pulse"></div>
             </div>
 
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm">
-                <h3 class="font-bold text-lg mb-4">Weight Log (kg) ⚖️</h3>
+            <div class="glass-panel p-6 rounded-[2.5rem]">
+                <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="fas fa-weight text-blue-400"></i> Weight Tracker (kg)</h3>
                 <div class="flex gap-2 mb-4">
-                    <input type="number" id="weight-in" placeholder="0.0" class="w-full p-3 bg-slate-50 rounded-xl text-sm outline-none">
-                    <button id="save-weight" class="bg-slate-800 text-white px-4 rounded-xl font-bold text-sm">LOG</button>
+                    <input type="number" id="weight-in" placeholder="0.0" class="w-full p-3 bg-white/50 rounded-2xl text-sm outline-none">
+                    <button id="save-weight" class="bg-slate-800 text-white px-5 rounded-2xl font-bold text-xs uppercase tracking-widest">Log</button>
                 </div>
                 <div id="weight-history" class="space-y-2 max-h-40 overflow-y-auto no-scrollbar"></div>
             </div>
 
-            <div class="bg-rose-600 text-white p-6 rounded-[2rem] shadow-xl shadow-rose-200">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold">Contraction Timer</h3>
-                    <span class="text-[10px] bg-rose-800 px-2 py-1 rounded">5-1-1 Rule</span>
+            <div class="bg-slate-800 text-white p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-rose-500 rounded-full blur-3xl opacity-20"></div>
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold">Labor Timer</h3>
+                        <span class="text-[10px] bg-rose-600 px-2 py-1 rounded font-bold">5-1-1 Rule</span>
+                    </div>
+                    <div id="c-timer" class="text-6xl font-black text-center mb-8 font-mono tracking-tighter">00:00</div>
+                    <button id="c-btn" class="w-full bg-rose-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-rose-900/50 active:scale-95 transition">START TIMER</button>
+                    <div id="c-history" class="mt-6 text-[10px] opacity-60 space-y-1 max-h-24 overflow-y-auto no-scrollbar font-mono"></div>
                 </div>
-                <div id="c-timer" class="text-5xl font-mono font-black text-center mb-6">00:00</div>
-                <button id="c-btn" class="w-full bg-white text-rose-600 font-black py-4 rounded-xl shadow-lg active:scale-95 transition">START TIMER</button>
-                <div id="c-history" class="mt-4 text-[10px] opacity-70 space-y-1 max-h-24 overflow-y-auto no-scrollbar"></div>
             </div>
         </div>
 
-        <div id="tab-guide" class="page-section px-4 pt-4 md:pt-0 space-y-6">
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm">
-                <h3 class="font-bold text-lg mb-4">Confinement Culture 🌸</h3>
+        <div id="tab-guide" class="page-section px-4 pt-6 md:pt-0 space-y-6">
+            
+            <div class="glass-panel p-6 rounded-[2.5rem]">
+                <h3 class="font-bold text-lg mb-4">Confinement Traditions 🌸</h3>
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100" data-cul="malay">Malay</button>
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100" data-cul="chinese">Chinese</button>
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100" data-cul="indian">Indian</button>
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100" data-cul="iban">Iban</button>
+                    <button class="cul-btn bg-white text-slate-400 px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100 transition" data-cul="malay">Malay</button>
+                    <button class="cul-btn bg-white text-slate-400 px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100 transition" data-cul="chinese">Chinese</button>
+                    <button class="cul-btn bg-white text-slate-400 px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100 transition" data-cul="indian">Indian</button>
+                    <button class="cul-btn bg-white text-slate-400 px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap border border-slate-100 transition" data-cul="iban">Iban</button>
                 </div>
                 <ul id="confinement-list" class="mt-4 space-y-3 text-sm text-slate-600"></ul>
             </div>
 
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm">
-                <h3 class="font-bold text-lg mb-4">Hospital Bag 🏥</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-rose-50 p-4 rounded-xl">
-                        <h4 class="font-black text-rose-400 text-[10px] uppercase mb-2">Mama</h4>
-                        <ul class="text-xs space-y-1 text-slate-600">
-                            <li>• Pink Book</li>
-                            <li>• IC & Phones</li>
-                            <li>• Maternity Pads</li>
-                            <li>• Kain Batik</li>
-                        </ul>
-                    </div>
-                    <div class="bg-blue-50 p-4 rounded-xl">
-                        <h4 class="font-black text-blue-400 text-[10px] uppercase mb-2">Baby</h4>
-                        <ul class="text-xs space-y-1 text-slate-600">
-                            <li>• Diapers (NB)</li>
-                            <li>• Swaddle</li>
-                            <li>• Mittens/Booties</li>
-                            <li>• Going Home Set</li>
-                        </ul>
-                    </div>
+            <div class="glass-panel p-6 rounded-[2.5rem] bg-emerald-50/50 border-emerald-100">
+                <h3 class="font-bold text-lg mb-4 text-emerald-800">Postnatal Recovery 🌿</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-2xl text-xs font-bold text-emerald-700 shadow-sm">🧘 Kegels (Pelvic)</div>
+                    <div class="bg-white p-4 rounded-2xl text-xs font-bold text-emerald-700 shadow-sm">🫁 Belly Breathing</div>
+                    <div class="bg-white p-4 rounded-2xl text-xs font-bold text-emerald-700 shadow-sm">🦶 Ankle Pumps</div>
+                    <div class="bg-white p-4 rounded-2xl text-xs font-bold text-emerald-700 shadow-sm">🛌 Gentle Rest</div>
                 </div>
             </div>
+
+            <div class="glass-panel p-6 rounded-[2.5rem]">
+                <h3 class="font-bold text-lg mb-4 text-blue-600">Baby's First Milestones 🍼</h3>
+                <div class="space-y-3" id="milestone-container">
+                    </div>
+            </div>
             
-            <div class="bg-slate-800 text-white p-6 rounded-[2rem] shadow-sm">
+            <div class="glass-panel p-6 rounded-[2.5rem]">
                 <h3 class="font-bold text-lg mb-4">Labor Signs 🚑</h3>
-                <div class="space-y-3">
-                    <div class="text-sm"><span class="font-bold text-rose-400">Turun Tanda:</span> Mucus/blood.</div>
-                    <div class="text-sm"><span class="font-bold text-rose-400">Pecah Ketuban:</span> Water breaks. Go to hospital.</div>
-                    <div class="text-sm"><span class="font-bold text-rose-400">Contractions:</span> Consistent pain.</div>
+                <div class="space-y-2 text-sm text-slate-600">
+                    <div class="bg-white p-3 rounded-xl"><span class="font-bold text-rose-500">Turun Tanda:</span> Bloody show/mucus.</div>
+                    <div class="bg-white p-3 rounded-xl"><span class="font-bold text-rose-500">Pecah Ketuban:</span> Water breaks. Go ASAP.</div>
                 </div>
             </div>
         </div>
 
-        <div id="tab-profile" class="page-section px-4 pt-4 md:pt-0 space-y-6">
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm text-center">
-                <div class="w-20 h-20 bg-rose-100 text-rose-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4">👩</div>
-                <h3 id="profile-name" class="font-bold text-xl">Mama</h3>
-                <p id="profile-email" class="text-sm text-slate-400">email@example.com</p>
+        <div id="tab-profile" class="page-section px-4 pt-6 md:pt-0 space-y-6">
+            <div class="glass-panel p-8 rounded-[2.5rem] text-center relative overflow-hidden">
+                <div class="w-24 h-24 bg-indigo-100 text-indigo-500 rounded-full mx-auto flex items-center justify-center text-4xl mb-4 shadow-inner">👩</div>
+                <h3 id="profile-name" class="font-bold text-2xl text-slate-800">Mama</h3>
+                <p id="profile-email" class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">user@email.com</p>
             </div>
 
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm">
-                <h4 class="font-bold text-sm text-slate-400 uppercase tracking-widest mb-4">Settings</h4>
+            <div class="glass-panel p-6 rounded-[2.5rem]">
+                <h4 class="font-bold text-xs text-slate-400 uppercase tracking-widest mb-4">Account Settings</h4>
                 <div class="space-y-4">
                     <div>
-                        <label class="text-xs font-bold text-slate-700">Display Name</label>
-                        <input type="text" id="edit-name" class="w-full p-3 bg-slate-50 rounded-xl text-sm mt-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Display Name</label>
+                        <input type="text" id="edit-name" class="w-full p-3 bg-white/50 rounded-2xl text-sm mt-1 outline-none">
                     </div>
                     <div>
-                        <label class="text-xs font-bold text-slate-700">Due Date</label>
-                        <input type="date" id="edit-date" class="w-full p-3 bg-slate-50 rounded-xl text-sm mt-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Due Date</label>
+                        <input type="date" id="edit-date" class="w-full p-3 bg-white/50 rounded-2xl text-sm mt-1 outline-none text-slate-600">
                     </div>
                     <div>
-                        <label class="text-xs font-bold text-slate-700">Budget Mode</label>
-                        <select id="edit-budget" class="w-full p-3 bg-slate-50 rounded-xl text-sm mt-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-2">Budget Plan</label>
+                        <select id="edit-budget" class="w-full p-3 bg-white/50 rounded-2xl text-sm mt-1 outline-none text-slate-600">
                             <option value="minimal">Minimalist</option>
                             <option value="premium">Premium</option>
                         </select>
                     </div>
-                    <button onclick="updateProfile()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl mt-2">Save Changes</button>
+                    <button onclick="updateProfile()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-2xl mt-2 text-xs uppercase tracking-widest shadow-lg shadow-slate-200">Save Changes</button>
                 </div>
             </div>
 
-            <div class="bg-rose-50 p-6 rounded-[2rem] border border-rose-100">
-                <h4 class="font-bold text-sm text-rose-800 uppercase tracking-widest mb-2">Danger Zone</h4>
-                <p class="text-xs text-rose-600 mb-4">This will permanently delete your milestones, weight logs, and account.</p>
-                <button onclick="deleteAccount()" class="w-full bg-white border border-rose-200 text-rose-600 font-bold py-3 rounded-xl hover:bg-rose-600 hover:text-white transition">Delete Account</button>
+            <div class="bg-rose-50 p-6 rounded-[2.5rem] border border-rose-100 text-center">
+                <h4 class="font-bold text-xs text-rose-800 uppercase tracking-widest mb-2">Danger Zone</h4>
+                <p class="text-[10px] text-rose-600/70 mb-4 leading-relaxed">Permanently delete your account, weight logs, and all milestone data. This cannot be undone.</p>
+                <button onclick="deleteAccount()" class="px-6 py-2 bg-white border border-rose-200 text-rose-600 font-bold rounded-xl text-xs hover:bg-rose-600 hover:text-white transition">Delete Account</button>
             </div>
             
-            <button onclick="logout()" class="w-full text-slate-400 font-bold text-xs py-4 md:hidden">LOG OUT</button>
+            <button onclick="logout()" class="w-full text-slate-400 font-bold text-xs py-6 md:hidden">LOG OUT</button>
         </div>
 
     </main>
 
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-slate-200 pb-safe pt-2 px-6 flex justify-between items-center z-50 no-print" style="padding-bottom: env(safe-area-inset-bottom);">
-        <button class="nav-btn nav-active flex flex-col items-center p-2" onclick="switchTab('home')">
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-100 pb-safe pt-2 px-6 flex justify-between items-center z-50 no-print" style="padding-bottom: env(safe-area-inset-bottom);">
+        <button class="nav-btn nav-active flex flex-col items-center p-2 transition duration-300" onclick="switchTab('home')">
             <i class="fas fa-home text-xl mb-1"></i>
-            <span class="text-[9px] font-bold uppercase">Home</span>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Home</span>
         </button>
-        <button class="nav-btn text-slate-400 flex flex-col items-center p-2" onclick="switchTab('tools')">
-            <i class="fas fa-calculator text-xl mb-1"></i>
-            <span class="text-[9px] font-bold uppercase">Tools</span>
+        <button class="nav-btn text-slate-400 flex flex-col items-center p-2 transition duration-300" onclick="switchTab('health')">
+            <i class="fas fa-heartbeat text-xl mb-1"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Health</span>
         </button>
-        <div class="relative -top-5">
-            <a href="tel:999" class="w-14 h-14 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-rose-300 animate-pulse border-4 border-white">
+        <div class="relative -top-6">
+            <a href="tel:999" class="w-16 h-16 bg-gradient-to-tr from-rose-500 to-orange-400 text-white rounded-full flex items-center justify-center shadow-lg shadow-rose-200 animate-pulse border-4 border-white">
                 <span class="text-xs font-black">999</span>
             </a>
         </div>
-        <button class="nav-btn text-slate-400 flex flex-col items-center p-2" onclick="switchTab('guide')">
+        <button class="nav-btn text-slate-400 flex flex-col items-center p-2 transition duration-300" onclick="switchTab('guide')">
             <i class="fas fa-book-open text-xl mb-1"></i>
-            <span class="text-[9px] font-bold uppercase">Guide</span>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Guide</span>
         </button>
-        <button class="nav-btn text-slate-400 flex flex-col items-center p-2" onclick="switchTab('profile')">
+        <button class="nav-btn text-slate-400 flex flex-col items-center p-2 transition duration-300" onclick="switchTab('profile')">
             <i class="fas fa-user text-xl mb-1"></i>
-            <span class="text-[9px] font-bold uppercase">Me</span>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Me</span>
         </button>
     </nav>
 
@@ -248,21 +276,21 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- DATA OBJECTS ---
+        // --- STATIC DATA ---
         const foodDB = [
-            {n:"durian",s:"Safe (Limit)",d:"High sugar/calories. OK if no GDM.",c:"text-yellow-600 bg-yellow-50"},
-            {n:"sushi",s:"Avoid Raw",d:"Raw fish risks bacteria. Cooked is OK.",c:"text-red-600 bg-red-50"},
-            {n:"coffee",s:"Limit",d:"Max 200mg caffeine (1 cup) per day.",c:"text-yellow-600 bg-yellow-50"},
-            {n:"pineapple",s:"Safe",d:"Bromelain causing labor is a myth.",c:"text-green-600 bg-green-50"},
-            {n:"tapai",s:"Avoid",d:"Contains alcohol.",c:"text-red-600 bg-red-50"},
-            {n:"egg",s:"Cook Well",d:"No runny yolks (Salmonella risk).",c:"text-yellow-600 bg-yellow-50"}
+            {n:"durian",s:"Limit",d:"High sugar. Watch out if you have GDM.",c:"text-yellow-600 bg-yellow-50"},
+            {n:"sushi",s:"Avoid Raw",d:"Risk of bacteria. Cooked sushi is fine.",c:"text-rose-600 bg-rose-50"},
+            {n:"coffee",s:"Limit",d:"Max 200mg (1 cup) caffeine daily.",c:"text-yellow-600 bg-yellow-50"},
+            {n:"pineapple",s:"Safe",d:"Bromelain myth. Normal servings are safe.",c:"text-emerald-600 bg-emerald-50"},
+            {n:"tapai",s:"Avoid",d:"Fermented alcohol content.",c:"text-rose-600 bg-rose-50"},
+            {n:"half boiled egg",s:"Avoid",d:"Salmonella risk. Cook fully.",c:"text-rose-600 bg-rose-50"}
         ];
 
         const cultureCheck = {
-            malay: ["Tukang Urut (Massage)", "Bengkung", "Air Selusuh", "Barut Baby", "Ikan Haruan"],
-            chinese: ["Confinement Lady", "Red Dates Tea", "Ginger Vinegar", "No washing hair (Tradition)", "Sesame Oil"],
-            indian: ["Vethu Kuli Bath", "Garlic/Pepper Diet", "Thottil", "Omam Water", "Kayam"],
-            iban: ["Mandi Daun", "Betungku Stones", "Berdiang (Fire)", "Manuk Pansuh (Plain)", "Ginger Roots"]
+            malay: ["Tukang Urut (7 Days)", "Bengkung & Pilis", "Air Selusuh", "Barut Baby", "Ikan Haruan (Heals cuts)"],
+            chinese: ["Confinement Lady", "Red Dates Tea", "Ginger Vinegar", "Sesame Oil Chicken", "No cold water"],
+            indian: ["Vethu Kuli Bath", "Garlic/Pepper Diet", "Thottil Cradle", "Omam Water", "Kayam (Herbs)"],
+            iban: ["Mandi Daun (Herbs)", "Betungku (Hot Stone)", "Berdiang (Fire)", "Manuk Pansuh (Plain)", "Ginger Roots"]
         };
 
         const babyGrowth = {
@@ -270,9 +298,14 @@
             28: {s:"Eggplant", i:"🍆"}, 32: {s:"Durian", i:"🍈"}, 40: {s:"Watermelon", i:"🍉"}
         };
 
-        // --- AUTH & STATE ---
+        const babyMilestoneList = [
+            {id:'m1',t:"Social Smile (2m)"}, {id:'m2',t:"Holds Head Up (4m)"},
+            {id:'m3',t:"Rolling Over (6m)"}, {id:'m4',t:"Sitting Up (6m)"},
+            {id:'m5',t:"Crawling (9m)"}, {id:'m6',t:"First Steps (12m)"}
+        ];
+
+        // --- AUTH LOGIC ---
         let isSignUp = false;
-        
         $('#toggle-auth').click(() => {
             isSignUp = !isSignUp;
             $('#signup-fields').slideToggle();
@@ -285,7 +318,7 @@
             const pass = $('#password').val();
             try {
                 if(isSignUp) {
-                    if(!$('#full-name').val() || !$('#due-date').val()) return alert("Please fill all fields");
+                    if(!$('#full-name').val() || !$('#due-date').val()) return alert("Please fill all details.");
                     const cred = await auth.createUserWithEmailAndPassword(email, pass);
                     await db.collection('users').doc(cred.user.uid).set({
                         name: $('#full-name').val(),
@@ -310,40 +343,38 @@
             }
         });
 
-        // --- CORE FUNCTIONALITY ---
+        // --- CORE LOGIC ---
         async function initApp(uid) {
-            // 1. Load Profile
             const doc = await db.collection('users').doc(uid).get();
             const data = doc.data();
-            
-            // Set Headers
-            $('#header-greeting').text(`Welcome, ${data.name}`);
+
+            // 1. Set Profile Data
+            $('#header-greeting').text(`Welcome back, ${data.name}`);
             $('#profile-name').text(data.name);
             $('#profile-email').text(auth.currentUser.email);
+            $('#budget-badge').text(data.budget === 'premium' ? 'Premium' : 'Minimalist');
             
-            // Set Edit Forms
+            // Edit Form Pre-fill
             $('#edit-name').val(data.name);
             $('#edit-date').val(data.dueDate);
             $('#edit-budget').val(data.budget);
 
-            // 2. Load Baby Logic
+            // 2. Baby Logic
             const week = Math.floor((280 - Math.ceil((new Date(data.dueDate) - new Date()) / 86400000)) / 7);
-            const sizeKey = Object.keys(babyGrowth).reverse().find(k => week >= k) || 8;
-            $('#baby-week').text(`Pregnancy Week ${week}`);
+            const safeWeek = Math.max(0, Math.min(42, week)); // Clamp between 0-42
+            const sizeKey = Object.keys(babyGrowth).reverse().find(k => safeWeek >= k) || 8;
+            $('#baby-week').text(`Week ${safeWeek}`);
             $('#baby-size').text(babyGrowth[sizeKey].s);
             $('#baby-icon').text(babyGrowth[sizeKey].i);
 
-            // 3. Load Checklists (One-Time Generation Check)
+            // 3. Checklist Logic
             const listRef = db.collection('checklists').where('budget_level', '==', data.budget);
             let listSnap = await listRef.get();
             
-            // If empty (first run for everyone), populate silently
-            if(listSnap.empty) {
-                await populateDB(); 
-                listSnap = await listRef.get();
-            }
+            // Auto-populate if empty (One-time fix for new DBs)
+            if(listSnap.empty) { await populateDB(); listSnap = await listRef.get(); }
 
-            // 4. Load User Progress
+            // 4. Load Progress
             const progressSnap = await db.collection('user_tasks').where('uid', '==', uid).get();
             const doneIds = progressSnap.docs.map(d => d.data().taskId);
 
@@ -356,75 +387,39 @@
                 if(isDone) { total += t.cost; checked++; }
                 
                 $('#task-list').append(`
-                    <label class="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-white transition-all">
+                    <label class="flex justify-between items-center p-4 bg-white border border-slate-50 rounded-2xl cursor-pointer hover:shadow-md transition">
                         <div class="flex items-center gap-3">
-                            <div class="relative">
-                                <input type="checkbox" class="task-check w-5 h-5 rounded-md border-2 border-slate-300 checked:bg-rose-500 checked:border-rose-500 appearance-none transition" 
-                                    data-id="${d.id}" data-cost="${t.cost}" ${isDone ? 'checked' : ''}>
-                                <i class="fas fa-check text-white text-xs absolute top-1 left-1 pointer-events-none ${isDone ? '' : 'hidden'}"></i>
-                            </div>
-                            <span class="text-sm font-bold text-slate-700">${t.task_name}</span>
+                            <input type="checkbox" class="task-check w-5 h-5 rounded-md border-2 border-slate-200 checked:bg-rose-500 checked:border-rose-500 appearance-none transition" 
+                                data-id="${d.id}" data-cost="${t.cost}" ${isDone ? 'checked' : ''}>
+                            <span class="text-xs font-bold text-slate-700">${t.task_name}</span>
                         </div>
-                        <span class="text-xs font-black text-slate-300">RM ${t.cost}</span>
+                        <span class="text-[10px] font-black text-slate-300">RM ${t.cost}</span>
                     </label>
                 `);
             });
-
             updateBudgetUI(total, checked, listSnap.size);
-            loadWeight(uid);
-        }
-
-        // --- ACCOUNT MANAGEMENT ---
-        async function updateProfile() {
-            try {
-                const uid = auth.currentUser.uid;
-                await db.collection('users').doc(uid).update({
-                    name: $('#edit-name').val(),
-                    dueDate: $('#edit-date').val(),
-                    budget: $('#edit-budget').val()
-                });
-                alert("Profile Updated!");
-                location.reload(); // Refresh to reload budget lists
-            } catch(e) { alert("Error updating profile"); }
-        }
-
-        async function deleteAccount() {
-            if(!confirm("Are you sure? This cannot be undone.")) return;
-            const uid = auth.currentUser.uid;
             
-            // Simple deletion of main doc. Ideally, use a cloud function for recursive delete.
-            await db.collection('users').doc(uid).delete();
-            const user = auth.currentUser;
-            await user.delete();
-            alert("Account Deleted.");
-            location.reload();
+            loadWeight(uid);
+            loadBabyMilestones(uid);
         }
 
-        function logout() { auth.signOut(); }
+        // --- FEATURES ---
 
-        // --- FEATURES LOGIC ---
-        
         // Checklist Checkbox
         $(document).on('change', '.task-check', async function() {
             const uid = auth.currentUser.uid;
             const tid = $(this).data('id');
-            const icon = $(this).siblings('i');
             
             if($(this).is(':checked')) {
-                icon.removeClass('hidden');
                 await db.collection('user_tasks').add({ uid, taskId: tid });
             } else {
-                icon.addClass('hidden');
                 const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',tid).get();
                 s.forEach(d => d.ref.delete());
             }
             
-            // Recalculate local UI without reload
+            // Recalc UI
             let total = 0, count = 0;
-            $('.task-check:checked').each(function() {
-                total += parseInt($(this).data('cost'));
-                count++;
-            });
+            $('.task-check:checked').each(function() { total += parseInt($(this).data('cost')); count++; });
             updateBudgetUI(total, count, $('.task-check').length);
         });
 
@@ -432,8 +427,36 @@
             $('#spent-display').text(`RM ${total.toLocaleString()}`);
             const pct = all > 0 ? (count / all) * 100 : 0;
             $('#budget-progress').css('width', pct + '%');
-            $('#progress-text').text(`${Math.round(pct)}% Complete`);
+            $('#progress-percent').text(`${Math.round(pct)}%`);
         }
+
+        // Baby Milestones (Postnatal)
+        async function loadBabyMilestones(uid) {
+            const snap = await db.collection('baby_milestones').where('uid', '==', uid).get();
+            const doneIds = snap.docs.map(d => d.data().milestoneId);
+            
+            $('#milestone-container').empty();
+            babyMilestoneList.forEach(m => {
+                const isDone = doneIds.includes(m.id);
+                $('#milestone-container').append(`
+                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-50 cursor-pointer">
+                        <input type="checkbox" class="milestone-check w-4 h-4 rounded border-slate-300 checked:bg-blue-500 appearance-none transition" data-id="${m.id}" ${isDone ? 'checked' : ''}>
+                        <span class="text-xs font-bold text-slate-600">${m.t}</span>
+                    </label>
+                `);
+            });
+        }
+
+        $(document).on('change', '.milestone-check', async function() {
+            const uid = auth.currentUser.uid;
+            const mid = $(this).data('id');
+            if($(this).is(':checked')) {
+                await db.collection('baby_milestones').add({ uid, milestoneId: mid });
+            } else {
+                const s = await db.collection('baby_milestones').where('uid','==',uid).where('milestoneId','==',mid).get();
+                s.forEach(d => d.ref.delete());
+            }
+        });
 
         // Food Search
         $('#food-search').on('input', function() {
@@ -441,21 +464,21 @@
             const f = foodDB.find(i => i.n.includes(v));
             const div = $('#food-result');
             if(v && f) {
-                div.removeClass('hidden').attr('class', `p-4 rounded-xl text-sm font-medium ${f.c} block`);
-                div.html(`<strong class="uppercase text-xs block mb-1 opacity-70">${f.s}</strong>${f.d}`);
+                div.removeClass('hidden').attr('class', `p-4 mt-4 rounded-2xl text-sm font-medium ${f.c} block`);
+                div.html(`<strong class="uppercase text-[10px] tracking-widest block mb-1 opacity-70">${f.s}</strong>${f.d}`);
             } else { div.addClass('hidden'); }
         });
 
         // Culture Tabs
         $('.cul-btn').click(function() {
-            $('.cul-btn').removeClass('bg-rose-500 text-white').addClass('bg-slate-50 text-slate-400');
-            $(this).removeClass('bg-slate-50 text-slate-400').addClass('bg-rose-500 text-white');
+            $('.cul-btn').removeClass('bg-rose-500 text-white border-transparent').addClass('bg-white text-slate-400 border-slate-100');
+            $(this).addClass('bg-rose-500 text-white border-transparent').removeClass('bg-white text-slate-400 border-slate-100');
             const c = $(this).data('cul');
             $('#confinement-list').empty();
             cultureCheck[c].forEach(x => $('#confinement-list').append(`<li>✨ ${x}</li>`));
         });
 
-        // Weight
+        // Weight Log
         $('#save-weight').click(async () => {
             const w = $('#weight-in').val();
             if(!w) return;
@@ -470,7 +493,7 @@
             const s = await db.collection('weight_logs').where('uid','==',uid).orderBy('date','desc').limit(3).get();
             $('#weight-history').empty();
             s.forEach(d => $('#weight-history').append(
-                `<div class="flex justify-between border-b border-slate-100 py-2 text-xs"><span>${d.data().weight} kg</span><span class="text-slate-400">${d.data().date?.toDate().toLocaleDateString() || 'Now'}</span></div>`
+                `<div class="flex justify-between border-b border-slate-100 py-2 text-xs"><span>${d.data().weight} kg</span><span class="text-slate-400 text-[10px] uppercase">${d.data().date?.toDate().toLocaleDateString() || 'Today'}</span></div>`
             ));
         }
 
@@ -487,50 +510,67 @@
             } else {
                 cRun = false; clearInterval(cInt);
                 const dur = Math.floor((new Date()-cStart)/1000);
-                $('#c-history').prepend(`<div class="border-b border-white/20 py-1 flex justify-between"><span>Duration: ${dur}s</span><span>${new Date().toLocaleTimeString()}</span></div>`);
+                $('#c-history').prepend(`<div class="border-b border-white/10 py-1 flex justify-between"><span>Dur: ${dur}s</span><span>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>`);
                 $(this).text("START TIMER").removeClass('bg-rose-800');
                 $('#c-timer').text("00:00");
             }
         });
 
-        // Tab Switching
+        // Profile Actions
+        async function updateProfile() {
+            try {
+                await db.collection('users').doc(auth.currentUser.uid).update({
+                    name: $('#edit-name').val(),
+                    dueDate: $('#edit-date').val(),
+                    budget: $('#edit-budget').val()
+                });
+                alert("Profile Updated!"); location.reload();
+            } catch(e) { alert("Error"); }
+        }
+
+        async function deleteAccount() {
+            if(!confirm("Are you sure? This is permanent.")) return;
+            await db.collection('users').doc(auth.currentUser.uid).delete();
+            auth.currentUser.delete();
+            alert("Account Deleted."); location.reload();
+        }
+
+        function logout() { auth.signOut(); }
+
+        // Navigation
         window.switchTab = function(tab) {
             $('.page-section').removeClass('active');
             $(`#tab-${tab}`).addClass('active');
-            $('.nav-btn').removeClass('nav-active text-rose-500').addClass('text-slate-400');
-            $(event.currentTarget).addClass('nav-active text-rose-500').removeClass('text-slate-400');
+            $('.nav-btn').removeClass('nav-active');
+            $(event.currentTarget).addClass('nav-active');
             window.scrollTo(0,0);
         }
 
-        // PDF Export
+        // PDF
         window.exportToPDF = async function() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             $('.no-print').hide();
-            const canvas = await html2canvas(document.querySelector("#tab-home"));
-            const imgData = canvas.toDataURL('image/png');
-            doc.addImage(imgData, 'PNG', 10, 10, 190, 0);
-            doc.save("MamaJourney.pdf");
+            const canvas = await html2canvas(document.querySelector("#tab-home"), {scale: 2});
+            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 0);
+            doc.save("MamaJourney_MY_Plan.pdf");
             $('.no-print').show();
         };
 
-        // DB Population (Background)
+        // DB Helper
         async function populateDB() {
             const items = [
                 { task_name: "Pink Book (KK)", budget_level: "minimal", cost: 0 },
                 { task_name: "Folic Acid", budget_level: "minimal", cost: 20 },
                 { task_name: "Gov Delivery", budget_level: "minimal", cost: 500 },
+                { task_name: "Newborn Diapers", budget_level: "minimal", cost: 35 },
                 { task_name: "Private Scan", budget_level: "premium", cost: 400 },
                 { task_name: "Private Delivery", budget_level: "premium", cost: 12000 },
                 { task_name: "Confinement Centre", budget_level: "premium", cost: 15000 },
-                { task_name: "Tukang Urut", budget_level: "minimal", cost: 800 },
-                { task_name: "Newborn Diapers", budget_level: "minimal", cost: 40 }
+                { task_name: "Premium Stroller", budget_level: "premium", cost: 2500 }
             ];
             const batch = db.batch();
-            items.forEach(i => {
-                const ref = db.collection('checklists').doc();
-                batch.set(ref, i);
-            });
+            items.forEach(i => batch.set(db.collection('checklists').doc(), i));
             await batch.commit();
         }
     </script>
