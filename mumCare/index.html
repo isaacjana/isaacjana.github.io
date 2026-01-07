@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MamaJourney MY | Final Pregnancy System</title>
+    <title>MamaJourney MY | The Ultimate Pregnancy Companion</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -14,148 +14,138 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .active-cul { background-color: #f43f5e !important; color: white !important; border-color: #f43f5e !important; }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
 
     <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-rose-100">
-            <h2 id="auth-title" class="text-3xl font-bold text-rose-500 mb-2 text-center">MamaJourney</h2>
+            <h2 id="auth-title" class="text-3xl font-black text-rose-500 mb-2 text-center">MamaJourney</h2>
+            <p class="text-center text-slate-400 mb-8 text-sm italic">Your private Malaysian pregnancy guide.</p>
             <div class="space-y-4">
                 <input type="email" id="email" placeholder="Email Address" class="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-300">
                 <input type="password" id="password" placeholder="Password" class="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-300">
                 <div id="signup-fields" class="hidden space-y-4">
                     <input type="text" id="full-name" placeholder="Full Name" class="w-full p-4 bg-slate-50 border-none rounded-2xl">
-                    <label class="block text-xs text-slate-500 px-2">Estimated Due Date</label>
+                    <label class="block text-[10px] font-black uppercase text-slate-400 px-2">Estimated Due Date</label>
                     <input type="date" id="due-date" class="w-full p-4 bg-slate-50 border-none rounded-2xl">
                     <select id="budget-pref" class="w-full p-4 bg-slate-50 border-none rounded-2xl">
                         <option value="minimal">Minimalist Budget (KK Focus)</option>
                         <option value="premium">Premium Budget (Private Focus)</option>
                     </select>
                 </div>
-                <button id="main-auth-btn" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-lg transition">Continue</button>
-                <p id="toggle-auth" class="text-center text-sm text-rose-400 cursor-pointer hover:underline">New mama? Create a profile</p>
+                <button id="main-auth-btn" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-rose-600 transition uppercase tracking-widest">Continue</button>
+                <p id="toggle-auth" class="text-center text-sm text-rose-300 cursor-pointer hover:underline pt-2">New here? Create a profile</p>
             </div>
         </div>
     </div>
 
     <main id="dashboard" class="hidden min-h-screen pb-24">
-        <nav class="bg-white/80 backdrop-blur-md border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <nav class="bg-white/90 backdrop-blur-md border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
             <div class="flex flex-col">
-                <span class="text-xl font-black text-rose-500">MamaJourney</span>
-                <span id="nav-user-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Welcome, Mama</span>
+                <span class="text-xl font-black text-rose-500 tracking-tighter">MamaJourney MY</span>
+                <span id="nav-user-name" class="text-[10px] font-bold text-slate-400 uppercase">Mama</span>
             </div>
-            <button id="logout-btn" class="text-xs font-bold text-slate-400 hover:text-rose-500 underline uppercase tracking-widest">Logout</button>
+            <button id="logout-btn" class="text-[10px] font-black text-slate-400 hover:text-rose-500 tracking-widest">LOGOUT</button>
         </nav>
 
         <div class="max-w-6xl mx-auto p-6 grid lg:grid-cols-12 gap-8">
-            <div class="lg:col-span-8 space-y-8" id="export-container">
+            
+            <div class="lg:col-span-8 space-y-8" id="export-area">
                 
-                <div id="print-header" class="bg-gradient-to-br from-rose-500 to-orange-400 rounded-[2.5rem] p-8 text-white shadow-xl">
-                    <div class="flex justify-between items-start mb-6">
+                <div class="bg-gradient-to-br from-rose-500 to-orange-400 rounded-[2.5rem] p-8 text-white shadow-xl">
+                    <div class="flex justify-between items-start mb-10">
                         <div>
-                            <p class="text-rose-100 text-sm mb-1">Total Estimated Spent (MYR)</p>
-                            <h2 id="spent-display" class="text-5xl font-black">RM 0.00</h2>
+                            <p class="text-rose-100 text-xs font-bold uppercase tracking-widest mb-1">Estimated Spending</p>
+                            <h2 id="spent-display" class="text-5xl font-black">RM 0</h2>
                         </div>
-                        <button onclick="exportToPDF()" class="bg-white/20 hover:bg-white/40 px-6 py-2 rounded-full text-xs font-bold no-print backdrop-blur-sm transition">EXPORT PDF</button>
+                        <button onclick="exportToPDF()" class="bg-white/20 hover:bg-white/40 px-6 py-2 rounded-full text-[10px] font-black no-print backdrop-blur-sm transition uppercase">Download Plan</button>
                     </div>
                     <div class="space-y-2">
-                        <div class="flex justify-between text-xs font-bold uppercase tracking-widest text-rose-100">
-                            <span>Checklist Progress</span>
+                        <div class="flex justify-between text-[10px] font-black uppercase tracking-widest text-rose-100">
+                            <span>Journey Progress</span>
                             <span id="progress-percent">0%</span>
                         </div>
-                        <div class="w-full bg-black/10 rounded-full h-4">
+                        <div class="w-full bg-black/10 rounded-full h-3">
                             <div id="budget-progress" class="bg-white h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
-                    <h3 class="text-xl font-bold mb-6">Hospital Bag (Beg Pink) Checklist</h3>
-                    <div class="grid md:grid-cols-2 gap-8">
-                        <div>
-                            <h4 class="text-xs font-black text-rose-500 mb-4 uppercase tracking-widest">For Mama</h4>
-                            <ul class="text-sm space-y-3 text-slate-600">
-                                <li class="flex items-center gap-2">⬜ Pink Book (Buku Rekod KK)</li>
-                                <li class="flex items-center gap-2">⬜ Loose Shirts (Breastfeeding friendly)</li>
-                                <li class="flex items-center gap-2">⬜ Kain Batik / Sarung</li>
-                                <li class="flex items-center gap-2">⬜ Maternity Pads (Loop type)</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-black text-blue-500 mb-4 uppercase tracking-widest">For Baby</h4>
-                            <ul class="text-sm space-y-3 text-slate-600">
-                                <li class="flex items-center gap-2">⬜ Kain Bedung (Swaddles)</li>
-                                <li class="flex items-center gap-2">⬜ Mittens & Booties</li>
-                                <li class="flex items-center gap-2">⬜ Diapers (Newborn pack)</li>
-                                <li class="flex items-center gap-2">⬜ Going-home outfit</li>
-                            </ul>
+                    <h3 class="text-xl font-black mb-1">Shopping List</h3>
+                    <p class="text-xs text-slate-400 mb-6 uppercase tracking-widest font-bold">Curated for your budget</p>
+                    <div id="shopping-list" class="grid md:grid-cols-2 gap-4"></div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-slate-900 text-white p-8 rounded-[2rem] shadow-xl">
+                        <h4 class="font-black text-rose-500 uppercase text-xs mb-4 tracking-widest">Beg Pink Checklist</h4>
+                        <ul class="text-[11px] space-y-3 opacity-80">
+                            <li>⬜ Buku Pink KK (Essential)</li>
+                            <li>⬜ 3 Sets Baby Clothes + Mittens</li>
+                            <li>⬜ 2 Pairs Kain Batik</li>
+                            <li>⬜ Toiletries & Powerbank</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-100">
+                        <h4 class="font-black text-slate-800 uppercase text-xs mb-4 tracking-widest">Labor Signs</h4>
+                        <div class="space-y-3">
+                            <details class="text-xs">
+                                <summary class="font-bold cursor-pointer">Turun Tanda</summary>
+                                <p class="pt-2 opacity-60 italic">Mucus/blood discharge. Stay calm.</p>
+                            </details>
+                            <details class="text-xs">
+                                <summary class="font-bold cursor-pointer">Pecah Ketuban</summary>
+                                <p class="pt-2 opacity-60 italic">Water gush. Go to hospital ASAP.</p>
+                            </details>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
-                    <h3 class="text-xl font-bold mb-6">Budget Milestones</h3>
-                    <div id="task-list" class="grid md:grid-cols-2 gap-4"></div>
-                </div>
-
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
-                    <h3 class="text-xl font-bold mb-4">Signs of Labor (Tanda Bersalin)</h3>
-                    <div class="space-y-4">
-                        <details class="bg-slate-50 p-4 rounded-2xl cursor-pointer">
-                            <summary class="font-bold text-sm">Turun Tanda (Bloody Show)</summary>
-                            <p class="text-xs pt-2 opacity-70">Mucus discharge mixed with a little blood. This means your cervix is starting to open. Start timing contractions!</p>
-                        </details>
-                        <details class="bg-slate-50 p-4 rounded-2xl cursor-pointer">
-                            <summary class="font-bold text-sm">Pecah Ketuban (Water Breaking)</summary>
-                            <p class="text-xs pt-2 opacity-70">Gush or leak of clear fluid. Go to the hospital immediately even if there is no pain yet.</p>
-                        </details>
+                <div class="bg-emerald-50 rounded-[2rem] border border-emerald-100 p-8">
+                    <h3 class="text-xl font-black text-emerald-900 mb-4">Postnatal Recovery</h3>
+                    <div class="grid grid-cols-2 gap-4 text-[10px] text-emerald-800 font-bold uppercase">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm">🧘 Kegels (Pelvic Floor)</div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm">🫁 Belly Breathing</div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm">🦶 Ankle Pumps (DVT Prep)</div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm">🤳 Shoulder Rolls</div>
                     </div>
                 </div>
             </div>
-            
-<div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8 mt-8">
-    <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-emerald-600">
-        <span class="w-2 h-6 bg-emerald-500 rounded-full"></span> Mama's Gentle Recovery
-    </h3>
-    <div class="grid md:grid-cols-2 gap-6">
-        <div class="bg-emerald-50 p-6 rounded-2xl">
-            <h4 class="font-bold text-sm mb-2">1. Pelvic Floor (Kegels)</h4>
-            <p class="text-xs text-slate-600 leading-relaxed">Gently squeeze the muscles you use to stop urine. Hold for 3 seconds, then relax. Repeat 10 times. Helps with bladder control.</p>
-        </div>
-        <div class="bg-emerald-50 p-6 rounded-2xl">
-            <h4 class="font-bold text-sm mb-2">2. Diaphragmatic Breathing</h4>
-            <p class="text-xs text-slate-600 leading-relaxed">Place a hand on your belly. Breathe in deeply through your nose, letting your belly expand. Exhale slowly. This heals the core muscles.</p>
-        </div>
-        <div class="bg-emerald-50 p-6 rounded-2xl">
-            <h4 class="font-bold text-sm mb-2">3. Gentle Neck & Shoulder Rolls</h4>
-            <p class="text-xs text-slate-600 leading-relaxed">Nursing can cause "hunching." Roll your shoulders back and tilt your head side-to-side to relieve tension.</p>
-        </div>
-        <div class="bg-emerald-50 p-6 rounded-2xl">
-            <h4 class="font-bold text-sm mb-2">4. Ankle Pumps</h4>
-            <p class="text-xs text-slate-600 leading-relaxed">While lying down, flex your feet up and down. This improves blood circulation and prevents swelling.</p>
-        </div>
-    </div>
-</div>
-            
+
             <div class="lg:col-span-4 space-y-8 no-print">
-                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h4 class="font-bold mb-4 italic">Weight Log (kg)</h4>
-                    <div class="flex gap-2">
-                        <input type="number" id="weight-in" placeholder="0.0" class="w-full p-3 bg-slate-50 rounded-xl">
-                        <button id="save-weight" class="bg-slate-800 text-white px-4 rounded-xl font-bold">LOG</button>
+                <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <h4 class="font-black text-xs uppercase tracking-widest mb-6">Confinement Prep</h4>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <button class="cul-btn px-3 py-2 rounded-xl border text-[10px] font-black" data-cul="malay">MALAY</button>
+                        <button class="cul-btn px-3 py-2 rounded-xl border text-[10px] font-black" data-cul="chinese">CHINESE</button>
+                        <button class="cul-btn px-3 py-2 rounded-xl border text-[10px] font-black" data-cul="indian">INDIAN</button>
+                        <button class="cul-btn px-3 py-2 rounded-xl border text-[10px] font-black" data-cul="iban">IBAN</button>
                     </div>
-                    <div id="weight-history" class="mt-4 text-xs space-y-2"></div>
+                    <ul id="confinement-list" class="text-[11px] space-y-2 text-slate-500 italic"></ul>
                 </div>
 
-                <div class="bg-slate-900 text-white p-8 rounded-[2rem] shadow-xl text-center">
-                    <h4 class="font-bold mb-1">Contraction Timer</h4>
-                    <div id="c-timer" class="text-5xl font-mono font-black text-rose-500 my-6">00:00</div>
-                    <button id="c-btn" class="w-full bg-rose-500 py-4 rounded-2xl font-black">START</button>
+                <div class="bg-white p-8 rounded-[2rem] border border-slate-100">
+                    <h4 class="font-black text-xs uppercase tracking-widest mb-4">Weight Log (KG)</h4>
+                    <div class="flex gap-2 mb-4">
+                        <input type="number" id="weight-in" placeholder="0.0" class="w-full p-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-rose-200 border-none">
+                        <button id="save-weight" class="bg-slate-800 text-white px-6 rounded-xl font-bold">LOG</button>
+                    </div>
+                    <div id="weight-history" class="space-y-2 text-[10px] font-mono"></div>
+                </div>
+
+                <div class="bg-rose-600 text-white p-8 rounded-[3rem] shadow-2xl shadow-rose-200">
+                    <h4 class="font-black text-xs uppercase tracking-tighter mb-1">Contraction Timer</h4>
+                    <div id="c-timer" class="text-6xl font-black mb-6 tracking-tighter">00:00</div>
+                    <button id="c-btn" class="w-full bg-white text-rose-600 py-4 rounded-2xl font-black shadow-lg">START TIMER</button>
                 </div>
             </div>
         </div>
     </main>
+
+    <a href="tel:999" class="fixed bottom-6 right-6 w-14 h-14 bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center font-black text-xs no-print animate-bounce">999</a>
 
     <script>
         const firebaseConfig = {
@@ -167,16 +157,36 @@
             appId: "1:1011450259230:web:6428b90fb4966e748a0b0f"
         };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const auth = firebase.auth(), db = firebase.firestore();
 
-        // AUTH & PROFILE
+        const shoppingData = {
+            minimal: [
+                { item: "Cotton Swaddles (Local Brand)", cost: 35 },
+                { item: "Basic Crib/Bassinet", cost: 150 },
+                { item: "KK Pink Book Essentials", cost: 10 },
+                { item: "Generic Diapers (Value Pack)", cost: 45 }
+            ],
+            premium: [
+                { item: "Organic Bamboo Swaddles", cost: 120 },
+                { item: "Smart Crib with Sensor", cost: 2500 },
+                { item: "Travel System Stroller", cost: 1800 },
+                { item: "Electric Double Breastpump", cost: 850 }
+            ]
+        };
+
+        const cultureData = {
+            malay: ["Hire Confinement Lady (Tukang Urut)", "Set Bersalin (Herbs/Oils)", "Bengkung & Pilis", "Barut for Baby"],
+            chinese: ["Book Confinement Centre", "Red Dates & Ginger Stock", "Herbal Soups (Sheng Hua Tang)", "Bathing Herbs"],
+            indian: ["Vethu Kuli Medicated Bath", "Ayurvedic Oils", "Garlic & Pepper specialized diet", "Thottil Setup"],
+            iban: ["Mandi Daun Herbs", "Betungku Stones", "Berdiang Session", "Padi Husk for heat"]
+        };
+
+        // --- AUTH & DATA LOADING ---
         let isSignUp = false;
-        $('#toggle-auth').click(() => {
-            isSignUp = !isSignUp;
-            $('#signup-fields').toggleClass('hidden');
-            $('#auth-title').text(isSignUp ? 'New Profile' : 'MamaJourney');
-            $('#main-auth-btn').text(isSignUp ? 'Sign Up' : 'Continue');
+        $('#toggle-auth').click(() => { 
+            isSignUp = !isSignUp; 
+            $('#signup-fields').toggleClass('hidden'); 
+            $('#auth-title').text(isSignUp ? 'New Mama' : 'MamaJourney');
         });
 
         $('#main-auth-btn').click(async () => {
@@ -185,46 +195,41 @@
                 if(isSignUp) {
                     const cred = await auth.createUserWithEmailAndPassword(email, pass);
                     await db.collection('users').doc(cred.user.uid).set({
-                        name: $('#full-name').val(),
-                        budget: $('#budget-pref').val(),
-                        dueDate: $('#due-date').val()
+                        name: $('#full-name').val(), budget: $('#budget-pref').val(), dueDate: $('#due-date').val()
                     });
                 } else { await auth.signInWithEmailAndPassword(email, pass); }
             } catch (e) { alert(e.message); }
         });
 
         auth.onAuthStateChanged(user => {
-            if (user) {
-                $('#auth-screen').addClass('hidden');
-                $('#dashboard').removeClass('hidden');
-                loadUserData(user.uid);
-            } else {
-                $('#auth-screen').removeClass('hidden');
-                $('#dashboard').addClass('hidden');
+            if (user) { 
+                $('#auth-screen').addClass('hidden'); $('#dashboard').removeClass('hidden'); 
+                loadDashboard(user.uid); 
+            } else { 
+                $('#auth-screen').removeClass('hidden'); $('#dashboard').addClass('hidden'); 
             }
         });
 
-        async function loadUserData(uid) {
+        async function loadDashboard(uid) {
             const uDoc = await db.collection('users').doc(uid).get();
             const u = uDoc.data();
-            $('#nav-user-name').text(`Welcome, Mama ${u.name}`);
+            $('#nav-user-name').text(`Mama ${u.name}`);
 
-            // Load Persistent Checklists
-            const tasksSnap = await db.collection('checklists').where('budget_level', '==', u.budget).get();
-            const progressSnap = await db.collection('user_tasks').where('uid', '==', uid).get();
-            const doneIds = progressSnap.docs.map(d => d.data().taskId);
+            // Load Shopping List based on Budget
+            const list = shoppingData[u.budget] || shoppingData.minimal;
+            const savedSnap = await db.collection('user_tasks').where('uid', '==', uid).get();
+            const savedIds = savedSnap.docs.map(d => d.data().taskId);
 
-            $('#task-list').empty();
-            tasksSnap.forEach(doc => {
-                const t = doc.data();
-                const isChecked = doneIds.includes(doc.id) ? 'checked' : '';
-                $('#task-list').append(`
-                    <label class="flex justify-between items-center p-4 bg-slate-50 border rounded-2xl cursor-pointer">
+            $('#shopping-list').empty();
+            list.forEach((item, idx) => {
+                const isChecked = savedIds.includes(`shop_${idx}`) ? 'checked' : '';
+                $('#shopping-list').append(`
+                    <label class="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-white transition">
                         <div class="flex items-center gap-3">
-                            <input type="checkbox" class="task-check" data-id="${doc.id}" data-cost="${t.cost}" ${isChecked}>
-                            <span class="text-sm font-bold">${t.task_name}</span>
+                            <input type="checkbox" class="task-check accent-rose-500" data-id="shop_${idx}" data-cost="${item.cost}" ${isChecked}>
+                            <span class="text-[11px] font-bold text-slate-700">${item.item}</span>
                         </div>
-                        <span class="text-xs font-bold text-slate-300">RM ${t.cost}</span>
+                        <span class="text-[10px] font-black text-slate-300">RM ${item.cost}</span>
                     </label>
                 `);
             });
@@ -232,13 +237,11 @@
             loadWeight(uid);
         }
 
-        // SAVE PROGRESS TO FIRESTORE
+        // --- TASK PERSISTENCE ---
         $(document).on('change', '.task-check', async function() {
-            const tId = $(this).data('id');
-            const uid = auth.currentUser.uid;
-            if($(this).is(':checked')) {
-                await db.collection('user_tasks').add({ uid, taskId: tId });
-            } else {
+            const tId = $(this).data('id'), uid = auth.currentUser.uid;
+            if($(this).is(':checked')) { await db.collection('user_tasks').add({ uid, taskId: tId }); }
+            else {
                 const snap = await db.collection('user_tasks').where('uid', '==', uid).where('taskId', '==', tId).get();
                 snap.forEach(d => d.ref.delete());
             }
@@ -254,26 +257,33 @@
             $('#progress-percent').text(Math.round(progress) + '%');
         }
 
-        // WEIGHT & PDF
+        // --- TOOLS ---
+        $('.cul-btn').click(function() {
+            $('.cul-btn').removeClass('active-cul'); $(this).addClass('active-cul');
+            const cul = $(this).data('cul'); $('#confinement-list').empty();
+            cultureData[cul].forEach(i => $('#confinement-list').append(`<li>✨ ${i}</li>`));
+        });
+
         $('#save-weight').click(async () => {
-            await db.collection('weight_logs').add({ uid: auth.currentUser.uid, weight: $('#weight-in').val(), date: firebase.firestore.FieldValue.serverTimestamp() });
-            loadWeight(auth.currentUser.uid);
+            const w = $('#weight-in').val();
+            if(!w) return;
+            await db.collection('weight_logs').add({ uid: auth.currentUser.uid, weight: w, date: firebase.firestore.FieldValue.serverTimestamp() });
+            $('#weight-in').val(''); loadWeight(auth.currentUser.uid);
         });
 
         async function loadWeight(uid) {
             const snap = await db.collection('weight_logs').where('uid', '==', uid).orderBy('date', 'desc').limit(3).get();
             $('#weight-history').empty();
-            snap.forEach(d => $('#weight-history').append(`<div class="flex justify-between border-b pb-1"><span>${d.data().weight}kg</span><span class="opacity-30">${d.data().date?.toDate().toLocaleDateString() || ''}</span></div>`));
+            snap.forEach(d => $('#weight-history').append(`<div class="flex justify-between border-b pb-1"><span>${d.data().weight} KG</span><span class="opacity-30 italic">${d.data().date?.toDate().toLocaleDateString() || 'Just Now'}</span></div>`));
         }
 
+        // --- PDF EXPORT ---
         window.exportToPDF = async function() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'pt', 'a4');
-            $('.no-print').hide();
-            const canvas = await html2canvas(document.querySelector("#export-container"), { scale: 0.8 });
+            const canvas = await html2canvas(document.querySelector("#export-area"), { scale: 0.8 });
             doc.addImage(canvas.toDataURL('image/png'), 'PNG', 40, 40, 520, (canvas.height * 520) / canvas.width);
-            doc.save("MamaJourney_Export.pdf");
-            $('.no-print').show();
+            doc.save("MamaJourney_MY_Plan.pdf");
         };
 
         $('#logout-btn').click(() => auth.signOut());
