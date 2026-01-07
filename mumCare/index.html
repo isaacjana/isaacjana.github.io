@@ -611,66 +611,62 @@
             else { const s=await db.collection('baby_milestones').where('uid','==',uid).where('milestoneId','==',id).get(); s.forEach(d=>d.ref.delete()); }
         });
 
-    // --- HOSPITAL BAG DATA & LOGIC ---
+    // --- HOSPITAL BAG DATA & LOGIC (FIXED) ---
 
-    // 1. The List (Malaysian Context)
+    // 1. Data Source
     const hospitalBagItems = [
-        // Documents (Wajib)
         {id:'b1', t:"IC / MyKad (Original)", cat:"docs", imp:true},
         {id:'b2', t:"Pink Book (Buku Merah)", cat:"docs", imp:true},
         {id:'b3', t:"Marriage Cert (Copy)", cat:"docs", imp:false},
         {id:'b4', t:"GL / Insurance Card", cat:"docs", imp:false},
-        
-        // Mama (Labor & Ward)
-        {id:'b5', t:"Kain Batik / Sarung (Labor)", cat:"mama", imp:true},
-        {id:'b6', t:"Maternity Pads (Loop/Adhesive)", cat:"mama", imp:true},
+        {id:'b5', t:"Kain Batik / Sarung", cat:"mama", imp:true},
+        {id:'b6', t:"Maternity Pads", cat:"mama", imp:true},
         {id:'b7', t:"Nursing Bras (3 pairs)", cat:"mama", imp:false},
         {id:'b8', t:"Disposable Panties", cat:"mama", imp:false},
         {id:'b9', t:"Toiletries (Soap/Brush)", cat:"mama", imp:false},
-        {id:'b10', t:"Socks & Sweater (Cold Ward)", cat:"mama", imp:true},
+        {id:'b10', t:"Socks & Sweater", cat:"mama", imp:true},
         {id:'b11', t:"Going Home Outfit", cat:"mama", imp:false},
         {id:'b12', t:"Thermos / Water Bottle", cat:"mama", imp:false},
-        {id:'b13', t:"Kurma / Snacks (Energy)", cat:"mama", imp:false},
-
-        // Baby
+        {id:'b13', t:"Kurma / Snacks", cat:"mama", imp:false},
         {id:'b14', t:"Newborn Diapers (1 Pack)", cat:"baby", imp:true},
         {id:'b15', t:"Baby Clothes (3 sets)", cat:"baby", imp:true},
         {id:'b16', t:"Swaddle (Kain Bedung)", cat:"baby", imp:true},
         {id:'b17', t:"Mittens & Booties", cat:"baby", imp:false},
         {id:'b18', t:"Wet Wipes", cat:"baby", imp:true},
         {id:'b19', t:"Receiving Blanket", cat:"baby", imp:false},
-
-        // Dad / Partner
         {id:'b20', t:"Powerbank & Cables", cat:"dad", imp:true},
         {id:'b21', t:"Jacket (Hospital is cold)", cat:"dad", imp:false},
         {id:'b22', t:"Snacks & Mineral Water", cat:"dad", imp:false},
         {id:'b23', t:"Change of Clothes", cat:"dad", imp:false}
     ];
 
-    // 2. Load Bag Function
-    async function loadHospitalBag(uid) {
-        // Fetch saved items
-        const snap = await db.collection('user_bag').where('uid', '==', uid).get();
-        const checkedIds = snap.docs.map(d => d.data().itemId);
-        
-        // Update Progress UI
-        const progress = Math.round((checkedIds.length / hospitalBagItems.length) * 100);
-        $('#bag-progress').text(`${progress}% Ready`);
+    // 2. Global State to track checked items (Solves the filter bug)
+    let bagCheckedIds = [];
+    let currentBagFilter = 'all';
 
-        renderBagItems('all', checkedIds);
+    // 3. Load Function
+    async function loadHospitalBag(uid) {
+        // Fetch from Firebase
+        const snap = await db.collection('user_bag').where('uid', '==', uid).get();
+        
+        // Save to global state
+        bagCheckedIds = snap.docs.map(d => d.data().itemId);
+        
+        updateBagProgress();
+        renderBagItems();
     }
 
-    // 3. Render Helper (Supports Filtering)
-    function renderBagItems(filter, checkedIds) {
+    // 4. Render Function
+    function renderBagItems() {
         $('#bag-list').empty();
         
         hospitalBagItems.forEach(item => {
-            if(filter !== 'all' && item.cat !== filter) return;
+            // Filter Logic
+            if(currentBagFilter !== 'all' && item.cat !== currentBagFilter) return;
 
-            const isChecked = checkedIds.includes(item.id);
+            const isChecked = bagCheckedIds.includes(item.id);
             const impBadge = item.imp ? '<span class="text-[9px] text-red-500 font-bold bg-red-50 px-1 rounded ml-2">MUST</span>' : '';
             
-            // Category Icon
             let icon = "👜";
             if(item.cat === 'docs') icon = "📄";
             if(item.cat === 'mama') icon = "🤰";
@@ -693,37 +689,55 @@
         });
     }
 
-    // 4. Toggle Logic (Save to Firebase)
+    // 5. Progress Calculator (Separated for accuracy)
+    function updateBagProgress() {
+        const total = hospitalBagItems.length;
+        const checked = bagCheckedIds.length;
+        const percent = total > 0 ? Math.round((checked / total) * 100) : 0;
+        
+        $('#bag-progress').text(`${percent}% Ready`);
+        
+        // Optional: Change color if 100%
+        if(percent === 100) {
+            $('#bag-progress').removeClass('bg-indigo-100 text-indigo-600').addClass('bg-green-100 text-green-600');
+        }
+    }
+
+    // 6. Toggle Logic (Fixed)
     $(document).on('change', '.bag-check', async function() {
         const uid = auth.currentUser.uid;
         const itemId = $(this).data('id');
+        const isChecked = $(this).is(':checked');
         
-        if($(this).is(':checked')) {
+        // Update Local State Immediately (Instant UI Feedback)
+        if(isChecked) {
+            if(!bagCheckedIds.includes(itemId)) bagCheckedIds.push(itemId);
+        } else {
+            bagCheckedIds = bagCheckedIds.filter(id => id !== itemId);
+        }
+        updateBagProgress(); // Update % immediately
+
+        // Update Firebase in Background
+        if(isChecked) {
             await db.collection('user_bag').add({ uid, itemId });
         } else {
             const s = await db.collection('user_bag').where('uid','==',uid).where('itemId','==',itemId).get();
             s.forEach(d => d.ref.delete());
         }
-        
-        // Update progress bar text only (No need full reload)
-        const total = hospitalBagItems.length;
-        const current = $('.bag-check:checked').length; // Estimate for instant UI feedback
-        // Ideally call loadHospitalBag(uid) to be precise, but this works for instant feel
     });
 
-    // 5. Filter Tab Logic
+    // 7. Filter Logic (Fixed)
     window.filterBag = function(category) {
-        // Visual update for buttons
+        currentBagFilter = category;
+        
+        // Update Button Styles
         $('.bag-filter-btn').removeClass('bg-indigo-500 text-white').addClass('bg-white text-slate-400 border border-indigo-100');
-        $(event.target).removeClass('bg-white text-slate-400 border-indigo-100').addClass('bg-indigo-500 text-white border-transparent');
+        // Find the button that was clicked and style it
+        // (We use a simple check based on onclick attribute for simplicity)
+        $(`.bag-filter-btn[onclick="filterBag('${category}')"]`).removeClass('bg-white text-slate-400 border-indigo-100').addClass('bg-indigo-500 text-white border-transparent');
         
-        // Re-render list (needs current checked state)
-        // We grab checked state from DOM to avoid API call
-        const currentChecked = [];
-        $('.bag-check:checked').each(function() { currentChecked.push($(this).data('id')); });
-        
-        renderBagItems(category, currentChecked);
-    }        
+        renderBagItems();
+    }      
 
         // --- HELPERS ---
         $('.cul-btn').click(function() {
