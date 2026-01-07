@@ -188,6 +188,15 @@
                 <div class="space-y-3" id="milestone-container">
                     </div>
             </div>
+
+            <div class="glass-panel p-6 rounded-[2.5rem] mt-6 bg-blue-50/50 border-blue-100">
+                <h3 class="font-bold text-lg mb-4 text-blue-800 flex items-center gap-2">
+                    <i class="fas fa-syringe"></i> Imunisasi Kebangsaan 🇲🇾
+                </h3>
+                <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-4">Official KKM Schedule</p>
+                <div class="space-y-3" id="vax-container">
+                    </div>
+            </div>
             
             <div class="glass-panel p-6 rounded-[2.5rem]">
                 <h3 class="font-bold text-lg mb-4">Labor Signs 🚑</h3>
@@ -299,11 +308,40 @@
         };
 
         const babyMilestoneList = [
-            {id:'m1',t:"Social Smile (2m)"}, {id:'m2',t:"Holds Head Up (4m)"},
-            {id:'m3',t:"Rolling Over (6m)"}, {id:'m4',t:"Sitting Up (6m)"},
-            {id:'m5',t:"Crawling (9m)"}, {id:'m6',t:"First Steps (12m)"}
+            // 0-3 Months
+            {id:'m1', t:"Lifts Head (Tummy Time)", age:"1-2m", cat:"Physical"},
+            {id:'m2', t:"Tracks Objects with Eyes", age:"2m", cat:"Sensory"},
+            {id:'m3', t:"First Social Smile 😊", age:"2m", cat:"Social"},
+            
+            // 4-6 Months
+            {id:'m4', t:"Rolls Over (Both ways)", age:"4-5m", cat:"Physical"},
+            {id:'m5', t:"Laughs & Giggles", age:"4m", cat:"Social"},
+            {id:'m6', t:"Starts Solid Food (Bubur)", age:"6m", cat:"Feeding"},
+            
+            // 7-9 Months
+            {id:'m7', t:"Sits Without Support", age:"7m", cat:"Physical"},
+            {id:'m8', t:"Crawling / Scooting", age:"8m", cat:"Physical"},
+            {id:'m9', t:"Pincer Grasp (Finger Food)", age:"9m", cat:"Motor"},
+            
+            // 10-12 Months
+            {id:'m10', t:"Pulls to Stand", age:"10m", cat:"Physical"},
+            {id:'m11', t:"Waves Bye / Salam", age:"11m", cat:"Social"},
+            {id:'m12', t:"First Steps / Cruising", age:"12m", cat:"Physical"}
         ];
-
+        
+        const vaccineList = [
+            {id:'v1', t:"BCG & Hep B (Dose 1)", age:"At Birth", note:"Hospital"},
+            {id:'v2', t:"Hep B (Dose 2)", age:"1 Month", note:"KK/Private"},
+            {id:'v3', t:"6-in-1 (Dose 1)", age:"2 Months", note:"DTaP,Hib,IPV,HepB"},
+            {id:'v4', t:"6-in-1 (Dose 2)", age:"3 Months", note:"DTaP,Hib,IPV,HepB"},
+            {id:'v5', t:"Pneumococcal (PCV 1)", age:"4 Months", note:"Prevent pneumonia"},
+            {id:'v6', t:"6-in-1 (Dose 3)", age:"5 Months", note:"DTaP,Hib,IPV,HepB"},
+            {id:'v7', t:"Pneumococcal (PCV 2)", age:"6 Months", note:"Prevent pneumonia"},
+            {id:'v8', t:"Measles / MMR (Dose 1)", age:"9 Months", note:"Measles,Mumps,Rubella"},
+            {id:'v9', t:"MMR (Dose 2)", age:"12 Months", note:"Booster"},
+            {id:'v10', t:"Pneumococcal (Booster)", age:"15 Months", note:"PCV Booster"},
+            {id:'v11', t:"6-in-1 (Booster)", age:"18 Months", note:"Final Infant Dose"}
+        ];
         // --- AUTH LOGIC ---
         let isSignUp = false;
         $('#toggle-auth').click(() => {
@@ -455,12 +493,26 @@
             const doneIds = snap.docs.map(d => d.data().milestoneId);
             
             $('#milestone-container').empty();
+            
             babyMilestoneList.forEach(m => {
                 const isDone = doneIds.includes(m.id);
+                
+                // Color coding for age badges
+                let badgeColor = "bg-blue-100 text-blue-600";
+                if(m.age.includes("6m") || m.age.includes("5m") || m.age.includes("4m")) badgeColor = "bg-emerald-100 text-emerald-600";
+                if(parseInt(m.age) > 6) badgeColor = "bg-purple-100 text-purple-600";
+        
                 $('#milestone-container').append(`
-                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-50 cursor-pointer">
-                        <input type="checkbox" class="milestone-check w-4 h-4 rounded border-slate-300 checked:bg-blue-500 appearance-none transition" data-id="${m.id}" ${isDone ? 'checked' : ''}>
-                        <span class="text-xs font-bold text-slate-600">${m.t}</span>
+                    <label class="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-50 cursor-pointer hover:shadow-sm transition">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" class="milestone-check w-5 h-5 rounded border-2 border-slate-200 checked:bg-blue-500 checked:border-blue-500 appearance-none transition" 
+                                data-id="${m.id}" ${isDone ? 'checked' : ''}>
+                            <div>
+                                <span class="text-xs font-bold text-slate-700 block">${m.t}</span>
+                                <span class="text-[9px] text-slate-400 uppercase tracking-wide font-bold">${m.cat}</span>
+                            </div>
+                        </div>
+                        <span class="text-[9px] font-black px-2 py-1 rounded-lg ${badgeColor}">${m.age}</span>
                     </label>
                 `);
             });
