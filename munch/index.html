@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MUNCH | Meal Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        body { background-color: #0f0f0f; color: #e5e7eb; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .active-scale { transition: transform 0.1s; }
+        .active-scale:active { transform: scale(0.95); }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="font-sans pb-24">
+    <div id="auth-overlay" class="fixed inset-0 z-[100] bg-[#0f0f0f] flex flex-col items-center justify-center p-6 text-center">
+        <h1 class="text-5xl font-black mb-2 text-emerald-500 tracking-tighter">MUNCH</h1>
+        <p class="mb-12 text-gray-500">Google Secure Sign-In Required</p>
+        <button id="login-btn" class="glass px-10 py-4 rounded-2xl font-bold active-scale text-emerald-400 border-emerald-500/20">
+            Sign in with Google
+        </button>
+    </div>
+
+    <main id="app" class="max-w-md mx-auto p-5 hidden">
+        <div id="view-dashboard" class="view-section active">
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-gray-500 text-xs font-bold uppercase tracking-widest">Today</h2>
+                    <h1 id="user-name" class="text-3xl font-bold">User</h1>
+                </div>
+                <div class="glass px-4 py-2 rounded-2xl text-emerald-400 text-sm font-bold">🔥 <span id="streak-count">0</span> Day Streak</div>
+            </header>
+            <section class="glass rounded-[2rem] p-8 mb-8 relative overflow-hidden bg-gradient-to-br from-emerald-500/10 to-transparent">
+                <h3 class="text-xs uppercase tracking-widest text-emerald-500/60 font-bold mb-2">Daily Progress</h3>
+                <div class="text-6xl font-black mb-1 tabular-nums"><span id="daily-count">0</span><span class="text-2xl text-gray-600">/3</span></div>
+            </section>
+            <div id="meal-list" class="space-y-3"></div>
+        </div>
+
+        <div id="view-calendar" class="view-section">
+            <h1 class="text-3xl font-bold mb-6">History</h1>
+            <input type="date" id="date-filter" class="w-full glass p-4 rounded-2xl text-emerald-400 font-bold outline-none mb-6">
+            <div id="calendar-results" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-xs h-16 glass rounded-2xl flex justify-around items-center px-4 z-50">
+        <button class="nav-item active-scale text-emerald-500" data-target="dashboard">Logs</button>
+        <button class="nav-item active-scale text-gray-500" data-target="calendar">History</button>
+        <button id="logout-btn" class="text-gray-500 text-[10px] font-bold">LOGOUT</button>
+    </nav>
+
+    <button id="open-modal" class="fixed bottom-28 right-8 w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl active-scale z-40">+</button>
+
+    <div id="meal-modal" class="fixed inset-0 z-[110] hidden flex items-end sm:items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
+        <div class="glass relative w-full max-w-sm rounded-[2.5rem] p-8">
+            <h2 class="text-2xl font-bold mb-6">Log Meal</h2>
+            <form id="meal-form" class="space-y-5">
+                <select id="mealType" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none" required>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                    <option value="Snack">Snack</option>
+                </select>
+                <input type="text" id="description" placeholder="Meal description" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none" required>
+                <input type="text" id="nutrients" placeholder="Protein, Carbs, Fat" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none">
+                <div class="flex gap-3 pt-4">
+                    <button type="button" id="close-modal" class="flex-1 p-4 rounded-2xl bg-white/5 font-bold text-gray-400">Cancel</button>
+                    <button type="submit" class="flex-1 p-4 rounded-2xl bg-emerald-500 text-black font-black">SAVE</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
