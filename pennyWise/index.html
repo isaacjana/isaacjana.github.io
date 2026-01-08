@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PennyWise | Smart Budgeting</title>
+    <title>PennyWise Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .nav-active { @apply text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 font-bold; }
-        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        body { -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
@@ -23,8 +23,8 @@
                 <i class="fas fa-wallet text-white text-3xl"></i>
             </div>
             <h1 class="text-4xl font-black mb-2 tracking-tight">PennyWise</h1>
-            <p class="text-slate-400 mb-10">Simple, fast, insightful finance.</p>
-            <button id="btn-login" class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-10 py-4 rounded-2xl font-bold flex items-center mx-auto hover:scale-105 transition">
+            <p class="text-slate-400 mb-10">Smart budgeting made simple.</p>
+            <button id="btn-login" class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-10 py-4 rounded-2xl font-bold flex items-center mx-auto transition active:scale-95">
                 <i class="fab fa-google mr-3 text-lg"></i> Continue with Google
             </button>
         </div>
@@ -32,29 +32,21 @@
 
     <div id="app" class="hidden pb-24 lg:pb-0 lg:pl-64">
         <aside class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-white dark:bg-slate-900 border-r dark:border-slate-800 flex-col p-6">
-            <div class="text-2xl font-black text-indigo-600 mb-10 tracking-tight">PENNYWISE</div>
+            <div class="text-2xl font-black text-indigo-600 mb-10">PENNYWISE</div>
             <nav class="space-y-2 flex-1">
-                <button data-screen="dashboard" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl transition">
-                    <i class="fas fa-grid-2"></i> <span>Dashboard</span>
-                </button>
-                <button data-screen="transactions" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition">
-                    <i class="fas fa-list"></i> <span>History</span>
-                </button>
-                <button data-screen="reports" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition">
-                    <i class="fas fa-chart-pie"></i> <span>Insights</span>
-                </button>
-                <button data-screen="settings" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition">
-                    <i class="fas fa-cog"></i> <span>Settings</span>
-                </button>
+                <button data-screen="dashboard" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl transition"><i class="fas fa-home"></i> <span>Dashboard</span></button>
+                <button data-screen="transactions" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition"><i class="fas fa-list"></i> <span>History</span></button>
+                <button data-screen="reports" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition"><i class="fas fa-chart-pie"></i> <span>Insights</span></button>
+                <button data-screen="settings" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition"><i class="fas fa-cog"></i> <span>Settings</span></button>
             </nav>
         </aside>
 
         <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t dark:border-slate-800 flex justify-around p-5 z-50">
-            <button data-screen="dashboard" class="nav-link text-indigo-600"><i class="fas fa-th-large text-xl"></i></button>
-            <button data-screen="transactions" class="nav-link text-slate-400"><i class="fas fa-list text-xl"></i></button>
-            <button id="open-add-modal" class="bg-indigo-600 text-white w-14 h-14 rounded-2xl -mt-12 shadow-xl border-4 border-slate-50 dark:border-slate-950"><i class="fas fa-plus"></i></button>
+            <button data-screen="dashboard" class="nav-link text-indigo-600"><i class="fas fa-home text-xl"></i></button>
+            <button data-screen="transactions" class="nav-link text-slate-400"><i class="fas fa-list-ul text-xl"></i></button>
+            <button id="open-add-modal" class="bg-indigo-600 text-white w-14 h-14 rounded-2xl -mt-12 shadow-xl border-4 border-slate-50 dark:border-slate-950 active:scale-90 transition"><i class="fas fa-plus"></i></button>
             <button data-screen="reports" class="nav-link text-slate-400"><i class="fas fa-chart-pie text-xl"></i></button>
-            <button data-screen="settings" class="nav-link text-slate-400"><i class="fas fa-user text-xl"></i></button>
+            <button data-screen="settings" class="nav-link text-slate-400"><i class="fas fa-cog text-xl"></i></button>
         </nav>
 
         <main id="screen-container" class="max-w-xl mx-auto p-6 pt-10"></main>
@@ -63,28 +55,23 @@
     <div id="modal-transaction" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-end lg:items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-black">New Entry</h2>
+                <h2 class="text-xl font-black">New Expense</h2>
                 <button class="close-modal bg-slate-100 dark:bg-slate-800 w-8 h-8 rounded-full"><i class="fas fa-times text-xs"></i></button>
             </div>
             <form id="form-transaction" class="space-y-4">
-                <input type="number" id="tr-amount" placeholder="0.00" step="0.01" class="w-full text-5xl font-black text-center py-4 bg-transparent focus:outline-none" required>
-                <input type="text" id="tr-desc" placeholder="What for?" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none" required>
-                <select id="tr-category" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none">
+                <input type="number" id="tr-amount" placeholder="0.00" step="0.01" class="w-full text-5xl font-black text-center py-4 bg-transparent focus:outline-none dark:text-white" required>
+                <input type="text" id="tr-desc" placeholder="What did you buy?" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none outline-none" required>
+                <select id="tr-category" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none outline-none">
                     <option value="Food">🍔 Food</option>
                     <option value="Transport">🚗 Transport</option>
                     <option value="Housing">🏠 Housing</option>
                     <option value="Entertainment">🍿 Fun</option>
                 </select>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold shadow-lg active:scale-95 transition">Save</button>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition">Save Entry</button>
             </form>
         </div>
     </div>
 
     <script type="module" src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
-        }
-    </script>
 </body>
 </html>
