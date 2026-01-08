@@ -1,4 +1,15 @@
-const CACHE_NAME = 'munch-iq-v1';
+const CACHE_NAME = 'munch-v2';
 const ASSETS = ['./', './index.html', './app.js', './manifest.json'];
-self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))));
-self.addEventListener('fetch', (e) => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));
+
+self.addEventListener('install', (event) => {
+    event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+    self.skipWaiting();
+});
+
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request).then((response) => {
+            return response || fetch(event.request).catch(() => caches.match('./index.html'));
+        })
+    );
+});
