@@ -152,11 +152,44 @@
         <div id="admin-tab-settings" class="hidden">
             <form id="settings-form" class="max-w-4xl mx-auto space-y-6 bg-white p-8 rounded-2xl shadow">
                 <div class="grid grid-cols-2 gap-6">
-                    <div><label class="font-bold text-xs">Theme</label><select id="set-theme" class="w-full p-2 border rounded"><option value="classic">Classic</option><option value="modern">Modern</option><option value="floral">Floral</option></select></div>
-                    <div><label class="font-bold text-xs">Names</label><input type="text" id="set-names" class="w-full p-2 border rounded"></div>
-                    <div><label class="font-bold text-xs">Deadline</label><input type="date" id="set-deadline" class="w-full p-2 border rounded"></div>
-                    <div><label class="font-bold text-xs">YouTube URL</label><input type="text" id="set-music" class="w-full p-2 border rounded"></div>
+                    <div>
+                        <label class="font-bold text-xs">Theme</label>
+                        <select id="set-theme" class="w-full p-2 border rounded">
+                            <option value="classic">Classic</option>
+                            <option value="modern">Modern</option>
+                            <option value="floral">Floral</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-xs">Names</label>
+                        <input type="text" id="set-names" class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="font-bold text-xs">Deadline</label>
+                        <input type="date" id="set-deadline" class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="font-bold text-xs">YouTube URL</label>
+                        <input type="text" id="set-music" class="w-full p-2 border rounded">
+                    </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="bg-gray-50 p-3 rounded border">
+                        <label class="font-bold text-xs uppercase">Reception</label>
+                        <input type="text" id="set-rec-loc" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Location">
+                        <input type="datetime-local" id="set-rec-time" class="w-full p-2 border rounded mt-1 text-sm">
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded border">
+                        <div class="flex justify-between">
+                            <label class="font-bold text-xs uppercase">Matrimony</label>
+                            <label><input type="checkbox" id="set-mat-enable"> Enable</label>
+                        </div>
+                        <input type="text" id="set-mat-loc" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Location">
+                        <input type="datetime-local" id="set-mat-time" class="w-full p-2 border rounded mt-1 text-sm">
+                    </div>
+                </div>
+
                 <div>
                     <label class="font-bold text-xs">Background Photos (URLs)</label>
                     <div id="photo-list-inputs" class="space-y-2 mb-2"></div>
@@ -183,6 +216,10 @@
         </div>
     </div>
 
+    <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl hidden z-[80] flex items-center gap-3">
+        <i class="fas fa-check-circle text-green-400"></i> <span>Settings Saved</span>
+    </div>
+
     <script>
         // 1. FIREBASE CONFIG
         const firebaseConfig = {
@@ -203,6 +240,7 @@
             names: 'Jane & John',
             deadline: '2026-12-31',
             reception: { loc: 'Grand Hall', time: '2026-09-24T18:00' },
+            matrimony: { enabled: false, loc: '', time: '' },
             photos: ["https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000"],
             contacts: [],
             youtube: ""
@@ -213,14 +251,9 @@
 
         // 3. STARTUP
         $(document).ready(async () => {
-            // Force load after 2 seconds if DB hangs (Fail-safe)
             setTimeout(() => {
-                if($('#loading-screen').is(':visible')) {
-                    console.log("Forcing load...");
-                    completeLoading();
-                }
-            }, 2500);
-
+                if($('#loading-screen').is(':visible')) completeLoading();
+            }, 2000); // Fail-safe
             await loadSiteConfig();
         });
 
@@ -234,21 +267,12 @@
 
         function completeLoading() {
             $('#loading-screen').fadeOut();
-            
-            // Render Landing
             renderLandingPage();
-
-            // Routing
             if(isAdmin) {
                 $('#view-landing').hide();
                 $('#view-admin').show();
                 loadAdminData();
-            } else if (currentInviteId) {
-                // Optional: Auto-load RSVP for returning guests? 
-                // For now, let them see the landing page.
             }
-
-            // Music
             if(window.YT && siteConfig.youtube) initYouTube(siteConfig.youtube);
         }
 
@@ -274,14 +298,14 @@
 
             // Card Content
             const card = $('#invite-card');
-            const d = new Date(c.reception.time);
+            const d = new Date(c.reception.time || Date.now());
             const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
             let html = '';
             if(c.theme === 'classic') {
                 $('#bg-overlay').addClass('bg-black/40');
                 card.addClass('bg-[#fdfbf7] border-[8px] border-double border-gray-200');
-                html = `<p class="uppercase tracking-[0.3em] text-xs text-gray-500 mb-6">The Wedding Of</p><h1 class="font-classic text-5xl md:text-7xl text-gray-800 mb-8">${c.names}</h1><div class="w-24 h-px bg-gold-400 mb-8"></div><p class="font-classic text-xl font-bold mb-2">${dateStr}</p><p class="text-xs uppercase tracking-widest text-gray-500 mb-10">${c.reception.loc}</p><button onclick="$('#view-login').fadeIn()" class="bg-white border font-classic py-3 px-10 hover:bg-gold-500 hover:text-white transition">RSVP</button>`;
+                html = `<p class="uppercase tracking-[0.3em] text-xs text-gray-500 mb-6">The Wedding Of</p><h1 class="font-classic text-5xl md:text-7xl text-gray-800 mb-8">${c.names}</h1><div class="w-24 h-px bg-gold-400 mb-8"></div><p class="font-classic text-xl font-bold mb-2">${dateStr}</p><p class="text-xs uppercase tracking-widest text-gray-500 mb-10">${c.reception.loc || ''}</p><button onclick="$('#view-login').fadeIn()" class="bg-white border font-classic py-3 px-10 hover:bg-gold-500 hover:text-white transition">RSVP</button>`;
             } else if (c.theme === 'modern') {
                 $('#bg-overlay').addClass('bg-white/10 backdrop-blur-md');
                 card.addClass('bg-white text-black border-none shadow-none');
@@ -294,19 +318,17 @@
             card.html(html);
         }
 
-        // --- AUTH & RSVP ---
+        // --- AUTH ---
         $('#btn-enter-code').click(async () => {
             const code = $('#input-invite-code').val().trim().toUpperCase();
-            if(code === 'ADMIN') { // HARDCODED BACKDOOR FOR DEMO
+            if(code === 'ADMIN') { 
                  localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload(); return;
             }
-            
             try {
                 const snap = await db.collection('invitations').where('inviteCode', '==', code).limit(1).get();
                 if(snap.empty) { $('#login-error').text('Invalid Code').removeClass('hidden'); return; }
                 const doc = snap.docs[0];
                 const data = doc.data();
-
                 if(data.isAdmin) {
                     localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload();
                 } else {
@@ -321,7 +343,6 @@
             $('#view-login').fadeOut(); $('#view-landing').fadeOut(); $('#view-rsvp').fadeIn();
             $('#guest-group-name').text(data.guestNames); $('#rsvp-note').val(data.note || '');
             
-            // Deadline Check
             const d = new Date(siteConfig.deadline);
             if(new Date() > d) { $('#rsvp-locked-msg').removeClass('hidden'); $('#btn-submit-rsvp').hide(); }
             $('#deadline-badge').text(`Due: ${d.toLocaleDateString()}`);
@@ -335,7 +356,6 @@
                 if($(this).val() === 'y') card.find('.meal-sel').slideDown(); else card.find('.meal-sel').slideUp();
             });
 
-            // Contacts
             const cl = $('#contact-list-display'); cl.empty();
             if(siteConfig.contacts) siteConfig.contacts.forEach(ct => cl.append(`<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"><div class="w-8 h-8 rounded-full bg-gold-400 flex items-center justify-center text-white font-bold">${ct.name.charAt(0)}</div><div><div class="font-bold text-sm">${ct.name}</div><div class="text-xs text-gold-500 font-bold uppercase">${ct.role}</div><div class="text-xs text-gray-500">${ct.phone}</div></div></div>`));
         }
@@ -355,7 +375,16 @@
         // --- ADMIN ---
         function loadAdminData() {
             if(siteConfig) {
-                $('#set-theme').val(siteConfig.theme); $('#set-names').val(siteConfig.names); $('#set-deadline').val(siteConfig.deadline); $('#set-music').val(siteConfig.youtube);
+                $('#set-theme').val(siteConfig.theme || 'classic'); 
+                $('#set-names').val(siteConfig.names || ''); 
+                $('#set-deadline').val(siteConfig.deadline || ''); 
+                $('#set-music').val(siteConfig.youtube || '');
+                $('#set-rec-loc').val(siteConfig.reception?.loc || '');
+                $('#set-rec-time').val(siteConfig.reception?.time || '');
+                $('#set-mat-enable').prop('checked', siteConfig.matrimony?.enabled || false);
+                $('#set-mat-loc').val(siteConfig.matrimony?.loc || '');
+                $('#set-mat-time').val(siteConfig.matrimony?.time || '');
+
                 $('#photo-list-inputs').empty(); (siteConfig.photos||[]).forEach(url => addPhotoInput(url));
                 $('#contact-list-inputs').empty(); (siteConfig.contacts||[]).forEach(c => addContactInput(c.name, c.role, c.phone));
             }
@@ -374,14 +403,34 @@
         }
         window.addPhotoInput = (v) => $('#photo-list-inputs').append(`<div class="flex gap-2"><input type="text" value="${v}" class="w-full p-2 border rounded photo-input"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
         window.addContactInput = (n='',r='',p='') => $('#contact-list-inputs').append(`<div class="flex gap-2 contact-row"><input value="${n}" class="w-1/3 p-2 border rounded c-name" placeholder="Name"><input value="${r}" class="w-1/3 p-2 border rounded c-role" placeholder="Role"><input value="${p}" class="w-1/3 p-2 border rounded c-phone" placeholder="Phone"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
+        
+        // --- SAFE SAVE ---
         $('#settings-form').submit(async (e) => {
             e.preventDefault();
             const photos=[], contacts=[];
             $('.photo-input').each(function(){ if($(this).val()) photos.push($(this).val()) });
             $('.contact-row').each(function(){ contacts.push({name:$(this).find('.c-name').val(), role:$(this).find('.c-role').val(), phone:$(this).find('.c-phone').val()}) });
-            const cfg = { theme:$('#set-theme').val(), names:$('#set-names').val(), deadline:$('#set-deadline').val(), reception:{loc:$('#set-rec-loc').val(), time:$('#set-rec-time').val()}, photos, contacts, youtube:$('#set-music').val() };
-            await db.collection('site_config').doc('main').set(cfg); alert('Config Saved');
+            
+            // SAFEGUARDS: || "" prevents undefined error
+            const cfg = { 
+                theme: $('#set-theme').val() || 'classic', 
+                names: $('#set-names').val() || '', 
+                deadline: $('#set-deadline').val() || '', 
+                reception: { 
+                    loc: $('#set-rec-loc').val() || '', 
+                    time: $('#set-rec-time').val() || '' 
+                }, 
+                matrimony: { 
+                    enabled: $('#set-mat-enable').is(':checked'), 
+                    loc: $('#set-mat-loc').val() || '', 
+                    time: $('#set-mat-time').val() || '' 
+                }, 
+                photos, contacts, youtube: $('#set-music').val() || '' 
+            };
+            await db.collection('site_config').doc('main').set(cfg); 
+            $('#toast').fadeIn().delay(2000).fadeOut();
         });
+
         function switchAdminTab(t) { $('[id^=admin-tab]').hide(); $(`#admin-tab-${t}`).show(); }
         async function createInvite() {
             const code = $('#new-code').val().toUpperCase(); const names = $('#new-names').val();
@@ -391,6 +440,7 @@
         }
         async function delInv(id) { if(confirm('Delete?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
+        
         function initYouTube(url) {
             let vidId = ""; try { vidId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=))([\w\-]{10,12})\b/)[1]; } catch(e){}
             if(vidId) {
