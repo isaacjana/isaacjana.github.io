@@ -1,6 +1,6 @@
-const CACHE_NAME = 'pennywise-v2';
+const CACHE_NAME = 'pennywise-v3';
 
-// Use relative paths (no leading slash) so it works on GitHub Pages
+// Remove the icon files from this list if you haven't uploaded them yet!
 const ASSETS = [
     './',
     './index.html',
@@ -12,21 +12,22 @@ const ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
 
-self.addEventListener('install', (e) => {
-    // Force the waiting service worker to become the active service worker
+self.addEventListener('install', (event) => {
     self.skipWaiting();
-    e.waitUntil(
+    event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            // we use a map to catch individual 404s so one missing file doesn't break everything
+            // Using a loop to add assets individually so one 404 doesn't kill the SW
             return Promise.allSettled(
-                ASSETS.map(url => cache.add(url))
+                ASSETS.map(url => {
+                    return cache.add(url).catch(err => console.warn(`Failed to cache: ${url}`, err));
+                })
             );
         })
     );
 });
 
-self.addEventListener('activate', (e) => {
-    e.waitUntil(
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
@@ -37,10 +38,10 @@ self.addEventListener('activate', (e) => {
     );
 });
 
-self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        caches.match(e.request).then((res) => {
-            return res || fetch(e.request);
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+            return cachedResponse || fetch(event.request);
         })
     );
 });
