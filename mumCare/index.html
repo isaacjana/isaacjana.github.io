@@ -400,11 +400,36 @@
             $('#edit-budget').val(u.budget || 'minimal');
 
             // Calcs
-            const week = Math.max(0, Math.floor((280 - Math.ceil((new Date(u.dueDate) - new Date())/86400000))/7));
-            $('#header-week').text(`Week ${week}`);
-            const daysLeft = Math.max(0, 280 - Math.ceil((new Date(u.dueDate) - new Date())/86400000));
-            $('#days-left-display').text(`${daysLeft} Days`);
+            // --- INSIDE initApp(user) function ---
 
+            // 1. Get Dates
+            const today = new Date();
+            const due = new Date(u.dueDate);
+
+            // 2. Calculate Days Until Due (The Fix)
+            // We simply subtract Today from Due Date to get the remaining time
+            const diffTime = due - today;
+            const daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // 3. Update "Days Left" Display
+            // If negative, it means baby is overdue or arrived
+            if (daysUntilDue < 0) {
+                $('#days-left-display').text("Overdue");
+                $('#days-left-display').addClass('text-rose-600'); // Make it red for alert
+            } else {
+                $('#days-left-display').text(`${daysUntilDue} Days`);
+                $('#days-left-display').removeClass('text-rose-600');
+            }
+
+            // 4. Calculate Current Week
+            // Standard pregnancy is 40 weeks (280 days).
+            // Days Gone = 280 - Days Left
+            const daysElapsed = 280 - daysUntilDue;
+            // We cap it at 40+ for overdue, and 0 for errors
+            const currentWeek = Math.max(0, Math.floor(daysElapsed / 7));
+
+            $('#header-week').text(`Week ${currentWeek}`);
+            
             // Load Modules
             const uid = user.uid;
             loadChecklist(uid);
