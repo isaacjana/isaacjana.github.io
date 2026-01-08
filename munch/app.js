@@ -23,28 +23,32 @@ let currentUser = null;
 let userRecipes = [];
 let historyLogs = [];
 
-// --- THE ANALYTICAL DECISION ENGINE ---
-
+// Decision Engine
 async function runAnalysis() {
-    if (userRecipes.length === 0) return;
-
-    const recentMealNames = historyLogs.slice(0, 10).map(l => l.description.toLowerCase());
+    if (userRecipes.length === 0) {
+        $('#suggested-meal-name').text("Add Recipes");
+        return;
+    }
+    const recentNames = historyLogs.slice(0, 10).map(l => l.description.toLowerCase());
+    let candidates = userRecipes.filter(r => !recentNames.includes(r.name.toLowerCase()));
     
-    // Find recipes NOT eaten in the last 10 entries
-    let suggestions = userRecipes.filter(r => !recentMealNames.includes(r.name.toLowerCase()));
+    const pick = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : userRecipes[0];
     
-    // Fallback: If everything has been eaten recently, suggest the oldest eaten one
-    if (suggestions.length === 0) suggestions = [...userRecipes];
-
-    const pick = suggestions[Math.floor(Math.random() * suggestions.length)];
-
     $('#suggested-meal-name').text(pick.name);
-    $('#suggested-reason').text(recentMealNames.includes(pick.name.toLowerCase()) ? "A favorite you eat often." : "Based on your vault, you haven't had this recently.");
+    $('#suggested-reason').text(candidates.length > 0 ? "You haven't had this in a while." : "A frequent favorite.");
     $('#quick-log-suggested').removeClass('hidden').off().on('click', () => quickLog(pick.name));
+    
+    renderQuickSelect();
 }
 
-// UI HANDLERS
-$('#dark-mode-toggle').click(() => $('html').toggleClass('dark'));
+// Dark Mode Toggle Fix
+$('#dark-mode-toggle').click(() => {
+    $('html').toggleClass('dark');
+    localStorage.setItem('theme', $('html').hasClass('dark') ? 'dark' : 'light');
+});
+if (localStorage.getItem('theme') === 'light') $('html').removeClass('dark');
+
+// Navigation
 $('.nav-item').click(function() {
     $('.view-section').removeClass('active');
     $(`#view-${$(this).data('target')}`).addClass('active');
@@ -52,6 +56,7 @@ $('.nav-item').click(function() {
     $(this).addClass('text-emerald-500');
 });
 
+// Auth
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
@@ -62,19 +67,16 @@ onAuthStateChanged(auth, (user) => {
 });
 $('#login-btn').click(() => signInWithPopup(auth, provider));
 
-// FIREBASE LISTENERS
 function initListeners() {
-    // Sync Recipes
     onSnapshot(query(collection(db, "recipes"), where("uid", "==", currentUser.uid)), (snap) => {
         userRecipes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderRecipes();
         runAnalysis();
     });
 
-    // Sync History
     onSnapshot(query(collection(db, "meals"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc")), (snap) => {
         historyLogs = snap.docs.map(d => d.data());
-        renderHistory();
+        renderDashboard();
         runAnalysis();
     });
 }
@@ -89,28 +91,30 @@ async function quickLog(name) {
     if (window.navigator.vibrate) window.navigator.vibrate(15);
 }
 
+function renderQuickSelect() {
+    const recentNames = historyLogs.slice(0, 5).map(l => l.description.toLowerCase());
+    const html = userRecipes.map(r => {
+        const isFatigued = recentNames.includes(r.name.toLowerCase());
+        return `<button onclick="window.logFromChip('${r.name}')" class="glass px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap active:scale-95 transition-all ${isFatigued ? 'fatigue-high' : 'text-emerald-500'} border border-emerald-500/20">${r.name}</button>`;
+    }).join('');
+    $('#quick-select-bar').html(html);
+}
+window.logFromChip = (name) => quickLog(name);
+
 function renderRecipes() {
-    $('#recipe-list').html(userRecipes.map(r => `
-        <div class="glass p-6 rounded-[2rem] border-white/5">
-            <h4 class="font-bold text-lg">${r.name}</h4>
-            <p class="text-xs text-gray-500 mt-2">${r.instructions?.substring(0,60) || 'Quick log recipe'}...</p>
-        </div>
-    `).join(''));
+    $('#recipe-list').html(userRecipes.map(r => `<div class="glass p-5 rounded-2xl">
+        <h4 class="font-bold">${r.name}</h4>
+        <p class="text-xs text-gray-500 mt-1">${r.instructions || ''}</p>
+    </div>`).join(''));
 }
 
-function renderHistory() {
+function renderDashboard() {
     const today = new Date().toISOString().split('T')[0];
     const todayLogs = historyLogs.filter(l => l.dateStr === today);
-    $('#meal-list').html(todayLogs.map(l => `<div class="glass p-5 rounded-2xl font-bold border-l-4 border-emerald-500">${l.description}</div>`).join(''));
-    
-    $('#date-filter').on('change', function() {
-        const val = $(this).val();
-        const results = historyLogs.filter(l => l.dateStr === val);
-        $('#calendar-results').html(results.map(l => `<div class="glass p-5 rounded-2xl">${l.description}</div>`).join(''));
-    });
+    $('#meal-list').html(todayLogs.map(l => `<div class="glass p-4 rounded-xl border-l-4 border-emerald-500 font-bold">${l.description}</div>`).join(''));
 }
 
-// MODALS
+// Modals
 $('#open-recipe-modal').click(() => $('#recipe-modal').fadeIn().css('display', 'flex'));
 $('.close-modal').click(() => $('#recipe-modal').fadeOut());
 
