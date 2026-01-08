@@ -1,8 +1,9 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        // Change '/sw.js' to './sw.js'
+        navigator.serviceWorker.register('./sw.js')
             .then(reg => console.log('Service Worker Registered'))
-            .catch(err => console.log('Service Worker Failed', err));
+            .catch(err => console.error('Service Worker Failed:', err));
     });
 }
 
