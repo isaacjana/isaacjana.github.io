@@ -3,27 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MUNCH | Intelligence</title>
+    <title>MUNCH | Refined</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
     <style>
-        body { @apply transition-colors duration-300; }
-        .dark body { background-color: #0f0f0f; color: #e5e7eb; }
-        body:not(.dark) { background-color: #f3f4f6; color: #1f2937; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        /* Force dark mode background on html tag */
+        html.dark { background-color: #0f0f0f; }
+        body { transition: background-color 0.3s ease; -webkit-tap-highlight-color: transparent; }
+        .glass { backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .dark .glass { background: rgba(255, 255, 255, 0.05); }
-        body:not(.dark) .glass { background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0, 0, 0, 0.1); }
+        html:not(.dark) .glass { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.05); }
         .view-section { display: none; }
-        .view-section.active { display: block; animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .fatigue-high { opacity: 0.4; filter: grayscale(1); }
+        .view-section.active { display: block; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fatigue-high { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
     </style>
 </head>
-<body class="font-sans pb-32">
+<body class="font-sans pb-32 dark:text-gray-200 text-gray-900">
     <div id="auth-overlay" class="fixed inset-0 z-[100] bg-[#0f0f0f] flex flex-col items-center justify-center p-6 text-center">
-        <h1 class="text-6xl font-black mb-2 text-emerald-500 tracking-tighter italic">MUNCH</h1>
+        <h1 class="text-6xl font-black mb-2 text-emerald-500 italic">MUNCH</h1>
         <button id="login-btn" class="glass px-10 py-4 rounded-2xl font-bold active:scale-95 text-emerald-400">Sign in with Google</button>
     </div>
 
@@ -37,46 +39,56 @@
             <div id="ai-suggestion" class="glass rounded-[2rem] p-6 mb-8 border-emerald-500/30">
                 <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Recommended Fuel</span>
                 <h3 id="suggested-meal-name" class="text-2xl font-bold mt-1">Analyzing...</h3>
-                <p id="suggested-reason" class="text-sm text-gray-500 mb-4 italic">Fetching data...</p>
-                <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden">LOG SUGGESTION</button>
+                <p id="suggested-reason" class="text-sm text-gray-500 mb-4 italic">Calculating from history...</p>
+                <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden active:scale-95">LOG SUGGESTION</button>
             </div>
 
-            <div class="flex gap-2 mb-6 overflow-x-auto pb-2" id="quick-select-bar">
-                </div>
+            <div class="mb-4">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Quick Select</h2>
+                <div class="flex gap-2 overflow-x-auto pb-2" id="quick-select-bar"></div>
+            </div>
 
-            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Today's Logs</h2>
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Today</h2>
             <div id="meal-list" class="space-y-3"></div>
         </div>
 
         <div id="view-recipes" class="view-section">
             <h1 class="text-3xl font-bold mb-6">Vault</h1>
-            <button id="open-recipe-modal" class="w-full glass p-4 rounded-2xl text-emerald-500 font-bold mb-6 border-dashed border-emerald-500/50">+ NEW RECIPE</button>
+            <button id="open-recipe-modal" class="w-full glass p-4 rounded-2xl text-emerald-400 font-bold mb-6">+ NEW RECIPE</button>
             <div id="recipe-list" class="space-y-4"></div>
         </div>
 
         <div id="view-calendar" class="view-section">
             <h1 class="text-3xl font-bold mb-6">History</h1>
-            <input type="date" id="date-filter" class="w-full glass p-4 rounded-2xl outline-none mb-6 font-bold text-emerald-500">
+            <input type="date" id="date-filter" class="w-full glass p-4 rounded-2xl outline-none mb-6 font-bold text-emerald-500 dark:bg-transparent">
             <div id="calendar-results" class="space-y-3"></div>
         </div>
     </main>
 
-    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 glass rounded-2xl flex justify-around items-center px-4 z-50 shadow-2xl">
-        <button class="nav-item text-emerald-500 font-black text-[10px] uppercase" data-target="dashboard">Home</button>
-        <button class="nav-item text-gray-500 font-black text-[10px] uppercase" data-target="recipes">Vault</button>
-        <button class="nav-item text-gray-500 font-black text-[10px] uppercase" data-target="calendar">History</button>
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 glass rounded-2xl flex justify-around items-center px-4 z-50">
+        <button class="nav-item text-emerald-500 font-black text-[10px]" data-target="dashboard">HOME</button>
+        <button class="nav-item text-gray-500 font-black text-[10px]" data-target="recipes">VAULT</button>
+        <button class="nav-item text-gray-500 font-black text-[10px]" data-target="calendar">HISTORY</button>
     </nav>
 
-    <div id="recipe-modal" class="fixed inset-0 z-[110] hidden flex items-center justify-center p-4">
+    <button id="open-log-modal" class="fixed bottom-24 right-6 w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center text-white text-3xl shadow-lg active:scale-90 z-40">+</button>
+
+    <div id="modal-container" class="fixed inset-0 z-[110] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
-        <form id="recipe-form" class="glass relative w-full max-w-sm rounded-[2.5rem] p-8 space-y-4">
+        
+        <form id="log-form" class="modal-content glass relative w-full max-w-sm rounded-[2rem] p-8 space-y-4 hidden">
+            <h2 class="text-2xl font-bold">Manual Log</h2>
+            <input type="text" id="logDescription" placeholder="What did you eat?" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none" required>
+            <button type="submit" class="w-full p-4 rounded-xl bg-emerald-500 text-black font-black">SAVE LOG</button>
+            <button type="button" class="close-modal w-full text-gray-500 text-sm">Cancel</button>
+        </form>
+
+        <form id="recipe-form" class="modal-content glass relative w-full max-w-sm rounded-[2rem] p-8 space-y-4 hidden">
             <h2 class="text-2xl font-bold">New Recipe</h2>
             <input type="text" id="recipeName" placeholder="Meal Name" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none" required>
             <textarea id="recipeInstructions" placeholder="Ingredients" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none h-32"></textarea>
-            <div class="flex gap-3">
-                <button type="button" class="close-modal flex-1 p-4 rounded-xl bg-white/5 font-bold">Cancel</button>
-                <button type="submit" class="flex-1 p-4 rounded-xl bg-emerald-500 text-black font-black">SAVE</button>
-            </div>
+            <button type="submit" class="w-full p-4 rounded-xl bg-emerald-500 text-black font-black">SAVE RECIPE</button>
+            <button type="button" class="close-modal w-full text-gray-500 text-sm">Cancel</button>
         </form>
     </div>
 
