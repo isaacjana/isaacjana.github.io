@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MUNCH | Refined</title>
+    <title>MUNCH | Pro</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -23,10 +23,12 @@
         .view-section.active { display: block; animation: fadeUp 0.3s ease-out; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Collapsible Arrow Animation */
         .arrow-icon { transition: transform 0.2s; }
         .collapsed .arrow-icon { transform: rotate(-90deg); }
         .collapsed + div { display: none; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="font-sans pb-36 text-gray-900 dark:text-gray-100 min-h-screen">
@@ -54,8 +56,13 @@
                 <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden active:scale-95 transition-transform">LOG THIS MEAL</button>
             </div>
 
+            <div class="mb-8">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Consistency (7 Days)</h2>
+                <div class="glass p-4 rounded-2xl flex justify-between items-end h-32 relative" id="weekly-chart">
+                    </div>
+            </div>
+
             <div class="space-y-4 pb-4">
-                
                 <div id="section-breakfast" class="hidden">
                     <button class="toggle-header w-full text-left text-xs font-bold text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2 p-2 rounded-lg hover:bg-emerald-500/5 transition-colors">
                         <span class="arrow-icon">▼</span> 🌅 Breakfast <span class="text-gray-500 text-[10px] ml-auto">04:00 - 11:00</span>
@@ -92,7 +99,10 @@
 
         <div id="view-recipes" class="view-section">
             <h1 class="text-3xl font-bold mb-6">Recipe Vault</h1>
-            <button id="open-recipe-modal" class="w-full glass p-5 rounded-2xl text-emerald-500 font-bold mb-6 border-dashed border-emerald-500/30 active:scale-95">+ Create New Recipe</button>
+            <div class="flex gap-2 mb-6">
+                <button id="open-recipe-modal" class="flex-1 glass p-4 rounded-2xl text-emerald-500 font-bold border-dashed border-emerald-500/30 active:scale-95">+ New Recipe</button>
+                <button id="open-shopping-modal" class="flex-1 glass p-4 rounded-2xl text-indigo-400 font-bold border-dashed border-indigo-500/30 active:scale-95">🛒 Shop List</button>
+            </div>
             <div id="recipe-list" class="space-y-4"></div>
         </div>
 
@@ -104,12 +114,10 @@
                     <span class="text-xs font-bold text-gray-500 uppercase w-16">Date</span>
                     <input type="date" id="date-filter" class="flex-1 bg-transparent p-2 outline-none font-bold text-emerald-500 text-right uppercase tracking-widest">
                 </div>
-                
                 <div class="h-px bg-white/10 w-full"></div>
-                
                 <div class="flex items-center gap-3">
                     <span class="text-xs font-bold text-gray-500 uppercase w-16">Type</span>
-                    <select id="category-filter" class="flex-1 bg-transparent p-2 outline-none font-bold text-emerald-500 text-right uppercase tracking-widest appearance-none">
+                    <select id="category-filter" class="flex-1 bg-transparent p-2 outline-none font-bold text-emerald-500 text-right uppercase tracking-widest appearance-none dark:bg-[#0f0f0f]">
                         <option value="all">All Meals</option>
                         <option value="breakfast">Breakfast</option>
                         <option value="lunch">Lunch</option>
@@ -154,6 +162,15 @@
                 <button type="submit" class="flex-1 p-4 rounded-xl bg-emerald-500 text-black font-black">SAVE</button>
             </div>
         </form>
+
+        <div id="shopping-modal" class="modal-content glass relative w-full max-w-md rounded-[2rem] p-6 h-[70vh] flex flex-col bg-[#0f0f0f] hidden">
+            <h2 class="text-2xl font-bold mb-2">Generate List</h2>
+            <p class="text-xs text-gray-500 mb-4">Tap recipes to add ingredients.</p>
+            <div id="shop-recipe-select" class="flex-1 overflow-y-auto space-y-2 mb-4 pr-2"></div>
+            <textarea id="shop-output" class="w-full bg-white/5 rounded-xl p-3 text-xs h-32 mb-4 hidden focus:outline-none" readonly></textarea>
+            <button type="button" id="copy-shop-list" class="w-full p-4 rounded-xl bg-indigo-500 text-white font-bold hidden mb-2">COPY</button>
+            <button type="button" class="close-modal w-full p-3 text-gray-500 text-xs">Close</button>
+        </div>
     </div>
 
     <script type="module" src="app.js"></script>
