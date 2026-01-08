@@ -233,7 +233,7 @@
         <i class="fas fa-check-circle text-green-400"></i> <span id="toast-msg">Saved</span>
     </div>
 
-    <script>
+<script>
         // --- 1. CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ",
@@ -282,9 +282,9 @@
             if(isAdmin) {
                 switchView('admin');
                 loadAdminData();
-            } else if (currentInviteId) {
-                // Return guests stay on landing but button text changes
-                // (Optional: switchView('rsvp') to auto-login)
+            } else {
+                // *** THE FIX: Explicitly show Landing Page for everyone else ***
+                switchView('landing'); 
             }
             
             // Init Music
@@ -295,6 +295,7 @@
         function renderLandingPage() {
             const c = siteConfig;
             const body = $('body');
+            // Reset classes then add new ones
             body.removeClass().addClass(`text-gray-800 min-h-screen bg-gray-50 overflow-x-hidden font-body theme-${c.theme}`);
 
             // Slideshow
@@ -316,8 +317,6 @@
             const card = $('#invite-card');
             const d = new Date(c.reception.time || Date.now());
             const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-            
-            // Format Names safely
             const names = (c.names || "Couple").replace('&', '<span class="text-gold-500 mx-2">&</span>');
 
             let html = '';
@@ -360,13 +359,17 @@
 
         // --- 4. AUTH & NAVIGATION ---
         function openLogin() { $('#view-login').fadeIn(); }
-        function switchView(viewId) { $('.page-section').removeClass('active'); $(`#view-${viewId}`).addClass('active'); window.scrollTo(0,0); }
+        
+        function switchView(viewId) { 
+            $('.page-section').removeClass('active'); 
+            $(`#view-${viewId}`).addClass('active'); 
+            window.scrollTo(0,0); 
+        }
 
         $('#btn-enter-code').click(async () => {
             const code = $('#input-invite-code').val().trim().toUpperCase();
             const btn = $('#btn-enter-code');
             
-            // Admin Backdoor
             if(code === 'ADMIN') { localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload(); return; }
 
             btn.text('Verifying...').prop('disabled', true);
@@ -386,7 +389,6 @@
                 } else {
                     localStorage.setItem('rsvp_id', doc.id); currentInviteId = doc.id;
                     loadGuestRSVP(doc.id, data);
-                    // Attempt auto-play music on interaction
                     if(player && player.getPlayerState() !== 1) toggleMusic();
                 }
             } catch(e) { console.error(e); btn.text('Error').prop('disabled', false); }
@@ -400,7 +402,6 @@
             $('#guest-group-name').text(data.guestNames);
             $('#rsvp-note').val(data.note || '');
             
-            // Deadline Check
             const d = new Date(siteConfig.deadline);
             if(new Date() > d) {
                 $('#rsvp-locked-msg').removeClass('hidden');
@@ -409,7 +410,6 @@
             }
             $('#deadline-badge').text(`Response Deadline: ${d.toLocaleDateString()}`);
 
-            // Guests Render
             const c = $('#guest-list-container'); c.empty();
             data.guests.forEach((g, i) => {
                 c.append(`
@@ -433,13 +433,11 @@
                 `);
             });
 
-            // Toggle logic
             $('input[type=radio]').change(function() {
                 const card = $(this).closest('.guest-card');
                 if($(this).val() === 'y') card.find('.meal-sel').slideDown(); else card.find('.meal-sel').slideUp();
             });
 
-            // Contacts Render
             const cl = $('#contact-list-display'); cl.empty();
             if(siteConfig.contacts) siteConfig.contacts.forEach(ct => {
                 cl.append(`
@@ -468,7 +466,6 @@
                 guests.push({ name, isAttending: val==='y'?true:(val==='n'?false:null), meal: $(this).find('.meal-sel').find('select').val() });
             });
             
-            // Calculate status
             let status = 'pending';
             if(guests.every(g => g.isAttending === true)) status = 'accepted';
             else if(guests.every(g => g.isAttending === false)) status = 'declined';
@@ -484,7 +481,6 @@
 
         // --- 6. ADMIN LOGIC ---
         function loadAdminData() {
-            // Pre-fill Inputs safely
             if(siteConfig) {
                 $('#set-theme').val(siteConfig.theme || 'classic');
                 $('#set-names').val(siteConfig.names || '');
@@ -500,7 +496,6 @@
                 $('#contact-list-inputs').empty(); (siteConfig.contacts||[]).forEach(c => addContactInput(c.name, c.role, c.phone));
             }
 
-            // Live Guest List
             db.collection('invitations').orderBy('status').onSnapshot(snap => {
                 const list = $('#admin-table-body'); list.empty();
                 let s = { total:0, acc:0, groom:0, bride:0 };
@@ -535,11 +530,9 @@
             });
         }
 
-        // Helper: Dynamic Inputs
         window.addPhotoInput = (v) => $('#photo-list-inputs').append(`<div class="flex gap-2"><input type="text" value="${v}" class="w-full p-2 border rounded-lg text-sm photo-input" placeholder="Image URL"><button type="button" onclick="$(this).parent().remove()" class="text-red-400 hover:text-red-600 px-2">×</button></div>`);
         window.addContactInput = (n='',r='',p='') => $('#contact-list-inputs').append(`<div class="flex gap-2 contact-row mb-2"><input value="${n}" class="w-1/3 p-2 border rounded-lg text-sm c-name" placeholder="Name"><input value="${r}" class="w-1/3 p-2 border rounded-lg text-sm c-role" placeholder="Role"><input value="${p}" class="w-1/3 p-2 border rounded-lg text-sm c-phone" placeholder="Phone"><button type="button" onclick="$(this).parent().remove()" class="text-red-400 hover:text-red-600 px-2">×</button></div>`);
 
-        // --- SAFE CONFIG SAVE (The Fix for Undefined Error) ---
         $('#settings-form').submit(async (e) => {
             e.preventDefault();
             const btn = $(this).find('button[type="submit"]');
@@ -550,69 +543,44 @@
                 contacts.push({ name: $(this).find('.c-name').val()||"", role: $(this).find('.c-role').val()||"", phone: $(this).find('.c-phone').val()||"" });
             });
 
-            // Safeguard Object: Replaces any potential undefined with ""
             const cfg = {
-                theme: $('#set-theme').val() || 'classic',
-                names: $('#set-names').val() || '',
-                deadline: $('#set-deadline').val() || '',
-                reception: { 
-                    loc: $('#set-rec-loc').val() || '', 
-                    time: $('#set-rec-time').val() || '' 
-                },
-                matrimony: { 
-                    enabled: $('#set-mat-enable').is(':checked'), 
-                    loc: $('#set-mat-loc').val() || '', 
-                    time: $('#set-mat-time').val() || '' 
-                },
-                photos: photos,
-                contacts: contacts,
-                youtube: $('#set-music').val() || ''
+                theme: $('#set-theme').val() || 'classic', names: $('#set-names').val() || '', deadline: $('#set-deadline').val() || '',
+                reception: { loc: $('#set-rec-loc').val() || '', time: $('#set-rec-time').val() || '' },
+                matrimony: { enabled: $('#set-mat-enable').is(':checked'), loc: $('#set-mat-loc').val() || '', time: $('#set-mat-time').val() || '' },
+                photos: photos, contacts: contacts, youtube: $('#set-music').val() || ''
             };
 
             await db.collection('site_config').doc('main').set(cfg);
             showToast('Settings Saved');
             btn.text('Save Configuration').prop('disabled', false);
-            // Reload visuals immediately
             siteConfig = cfg; renderLandingPage();
         });
 
-        // Admin Actions
         async function createInvite() {
             const code = $('#new-code').val().trim().toUpperCase();
             const names = $('#new-names').val().trim();
             if(!code || !names) return alert('Code and Names required');
-            
             const guests = names.split(',').map(n => ({name:n.trim(), isAttending:null, meal:'Standard'}));
-            await db.collection('invitations').add({ 
-                inviteCode: code, guestNames: names, side: $('input[name="new-side"]:checked').val(), guests, status: 'pending' 
-            });
-            $('#modal-add-guest').fadeOut(); $('#new-code').val(''); $('#new-names').val('');
-            showToast('Invite Created');
+            await db.collection('invitations').add({ inviteCode: code, guestNames: names, side: $('input[name="new-side"]:checked').val(), guests, status: 'pending' });
+            $('#modal-add-guest').fadeOut(); $('#new-code').val(''); $('#new-names').val(''); showToast('Invite Created');
         }
         
         async function delInv(id) { if(confirm('Delete this invite?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
         function switchAdminTab(t) { $('[id^=admin-tab]').hide(); $(`#admin-tab-${t}`).fadeIn(); }
 
-        // --- UTILS ---
         function showToast(msg) {
-            const t = $('#toast');
-            $('#toast-msg').text(msg);
+            const t = $('#toast'); $('#toast-msg').text(msg);
             t.removeClass('hidden translate-y-10 opacity-0').addClass('translate-y-0 opacity-100');
             setTimeout(() => t.removeClass('translate-y-0 opacity-100').addClass('translate-y-10 opacity-0'), 3000);
         }
 
-        // Music Logic
         function initYouTube(url) {
             let vidId = ""; try { vidId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=))([\w\-]{10,12})\b/)[1]; } catch(e){}
             if(vidId) {
                 $('#music-fab').removeClass('hidden').addClass('flex');
                 window.onYouTubeIframeAPIReady = function() { 
-                    player = new YT.Player('youtube-player', { 
-                        height: '0', width: '0', videoId: vidId, 
-                        playerVars: { 'autoplay': 1, 'loop': 1, 'controls': 0, 'playlist': vidId }, 
-                        events: { 'onReady': onPlayerReady, 'onError': () => $('#music-fab').hide() } 
-                    }); 
+                    player = new YT.Player('youtube-player', { height: '0', width: '0', videoId: vidId, playerVars: { 'autoplay': 1, 'loop': 1, 'controls': 0, 'playlist': vidId }, events: { 'onReady': onPlayerReady, 'onError': () => $('#music-fab').hide() } }); 
                 };
             }
         }
