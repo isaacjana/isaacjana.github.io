@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PennyWise Intelligence</title>
+    <title>PennyWise Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -22,9 +22,10 @@
         .nav-active { @apply text-indigo-500 bg-indigo-500/10 font-bold; }
         ::-webkit-scrollbar { display: none; }
         body { -webkit-tap-highlight-color: transparent; }
+        .transition-all { transition: all 0.3s ease; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-[#050505] dark:text-slate-100 font-sans antialiased transition-colors duration-300">
+<body class="bg-slate-50 text-slate-900 dark:bg-[#050505] dark:text-slate-100 font-sans antialiased">
 
     <div id="auth-overlay" class="fixed inset-0 bg-white dark:bg-[#050505] z-[100] flex items-center justify-center">
         <div class="text-center p-6">
@@ -71,7 +72,7 @@
             </div>
             <form id="form-transaction" class="space-y-4">
                 <input type="number" id="tr-amount" placeholder="0.00" step="0.01" class="w-full text-5xl font-black text-center bg-transparent focus:outline-none dark:text-white" required>
-                <input type="text" id="tr-desc" placeholder="What was it for?" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-2xl border-none outline-none" required>
+                <input type="text" id="tr-desc" placeholder="Description" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-2xl border-none outline-none" required>
                 <select id="tr-category" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-2xl outline-none dark:text-white">
                     <option value="Food">🍔 Food & Drink</option>
                     <option value="Essential">🏠 Essential/Rent</option>
@@ -79,7 +80,7 @@
                     <option value="Fun">🍿 Entertainment</option>
                     <option value="Health">💊 Health</option>
                 </select>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold shadow-lg">Save Transaction</button>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold">Save</button>
             </form>
         </div>
     </div>
