@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MUNCH | Intelligence</title>
+    <title>MUNCH | Categorized</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -14,22 +14,18 @@
         html { background-color: #f3f4f6; transition: background-color 0.3s; }
         html.dark { background-color: #0f0f0f; }
         body { -webkit-tap-highlight-color: transparent; }
-        
         .glass { backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); transition: background-color 0.3s, border-color 0.3s; }
         .dark .glass { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
         html:not(.dark) .glass { background: rgba(255, 255, 255, 0.7); border-color: rgba(0, 0, 0, 0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeUp 0.3s ease-out; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .fatigue-high { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
-        /* Hide scrollbar for quick select */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="font-sans pb-32 text-gray-900 dark:text-gray-100 min-h-screen">
+<body class="font-sans pb-36 text-gray-900 dark:text-gray-100 min-h-screen">
 
     <div id="auth-overlay" class="fixed inset-0 z-[100] bg-[#0f0f0f] flex flex-col items-center justify-center p-6 text-center">
         <h1 class="text-6xl font-black mb-2 text-emerald-500 italic tracking-tighter">MUNCH</h1>
@@ -51,16 +47,48 @@
                 </div>
                 <h3 id="suggested-meal-name" class="text-2xl font-bold">Analyzing...</h3>
                 <p id="suggested-reason" class="text-sm text-gray-500 dark:text-gray-400 mb-4 italic">Processing habits...</p>
-                <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden active:scale-95">LOG THIS MEAL</button>
+                <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden active:scale-95 transition-transform">LOG THIS MEAL</button>
             </div>
 
-            <div class="mb-6">
+            <div class="mb-8">
                 <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</h2>
                 <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="quick-select-bar"></div>
             </div>
 
-            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Today's Fuel</h2>
-            <div id="meal-list" class="space-y-3 pb-4"></div>
+            <div class="space-y-6 pb-4">
+                
+                <div id="section-breakfast" class="hidden">
+                    <h2 class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span>🌅</span> Breakfast <span class="text-gray-600 text-[10px] ml-auto">04:00 - 11:00</span>
+                    </h2>
+                    <div id="list-breakfast" class="space-y-2"></div>
+                </div>
+
+                <div id="section-lunch" class="hidden">
+                    <h2 class="text-xs font-bold text-orange-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span>☀️</span> Lunch <span class="text-gray-600 text-[10px] ml-auto">11:00 - 16:00</span>
+                    </h2>
+                    <div id="list-lunch" class="space-y-2"></div>
+                </div>
+
+                <div id="section-dinner" class="hidden">
+                    <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span>🌙</span> Dinner <span class="text-gray-600 text-[10px] ml-auto">16:00 - 21:00</span>
+                    </h2>
+                    <div id="list-dinner" class="space-y-2"></div>
+                </div>
+
+                <div id="section-snack" class="hidden">
+                    <h2 class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span>🍿</span> Snacks / Late Night
+                    </h2>
+                    <div id="list-snack" class="space-y-2"></div>
+                </div>
+                
+                <div id="empty-state" class="text-center py-10 hidden">
+                    <p class="text-gray-500 italic text-sm">No meals logged today.</p>
+                </div>
+            </div>
         </div>
 
         <div id="view-recipes" class="view-section">
