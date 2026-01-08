@@ -4,50 +4,35 @@
     <meta charset="UTF-8">
     <title>Munch Icon Resizer</title>
     <style>
-        body { font-family: sans-serif; background: #0f0f0f; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: rgba(255,255,255,0.05); padding: 2rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
-        input { margin-top: 1rem; color: #10b981; }
-        #links { margin-top: 2rem; }
-        a { display: block; color: #10b981; margin: 10px 0; text-decoration: none; font-weight: bold; }
+        body { font-family: sans-serif; background: #0f0f0f; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        .card { background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 20px; text-align: center; }
+        input { margin-top: 1rem; }
     </style>
 </head>
 <body>
     <div class="card">
         <h3>Munch Icon Resizer</h3>
-        <p>Upload your master PNG to generate PWA icons</p>
         <input type="file" id="upload" accept="image/*">
-        <div id="links"></div>
     </div>
-
     <script>
         const sizes = [192, 512];
-        const upload = document.getElementById('upload');
-        const linksContainer = document.getElementById('links');
-
-        upload.addEventListener('change', (e) => {
+        document.getElementById('upload').addEventListener('change', (e) => {
             const reader = new FileReader();
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    linksContainer.innerHTML = ''; // Clear previous links
                     sizes.forEach(size => {
                         const canvas = document.createElement('canvas');
                         canvas.width = size;
                         canvas.height = size;
                         const ctx = canvas.getContext('2d');
-                        
-                        // Draw and resize
                         ctx.drawImage(img, 0, 0, size, size);
-                        
-                        // Create download link
                         const link = document.createElement('a');
                         link.download = `icon-${size}.png`;
                         link.href = canvas.toDataURL('image/png');
-                        link.innerText = `Download icon-${size}.png`;
-                        linksContainer.appendChild(link);
-                        
-                        // Optional: Trigger auto-download
+                        document.body.appendChild(link);
                         link.click();
+                        document.body.removeChild(link);
                     });
                 };
                 img.src = event.target.result;
