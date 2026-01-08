@@ -20,17 +20,7 @@ let currentUser = null;
 
 enableIndexedDbPersistence(db).catch(() => {});
 
-const applyTheme = () => {
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-};
-applyTheme();
-
-$('#btn-login').click(() => signInWithPopup(auth, provider));
-
+// Auth Handler
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
@@ -43,9 +33,12 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
+$('#btn-login').click(() => signInWithPopup(auth, provider));
+
+// Router
 $(document).on('click', '.nav-link', function() {
-    $('.nav-link').removeClass('nav-active text-indigo-600').addClass('text-slate-400');
-    $(this).addClass('nav-active text-indigo-600');
+    $('.nav-link').removeClass('nav-active text-indigo-500').addClass('text-slate-400');
+    $(this).addClass('nav-active text-indigo-500');
     loadScreen($(this).data('screen'));
 });
 
@@ -60,30 +53,32 @@ function loadScreen(screen) {
     });
 }
 
+// Screens
 function renderDashboard() {
     const goal = localStorage.getItem('budget_goal') || 5000;
     $('#screen-container').html(`
         <div class="mb-8">
-            <h1 class="text-3xl font-black">Dashboard</h1>
-            <p class="text-slate-400">Monthly Goal: $${goal}</p>
+            <h1 class="text-3xl font-black text-white">Dashboard</h1>
+            <p class="text-slate-500 font-bold text-sm">Target: $${goal}</p>
         </div>
-        <div class="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-2xl mb-8">
-            <p class="opacity-70 text-sm">Spent so far</p>
-            <h2 id="dash-spent" class="text-5xl font-black mt-1">$0.00</h2>
+        <div class="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-2xl mb-10 relative overflow-hidden">
+            <p class="opacity-60 text-xs font-bold uppercase tracking-widest">Spent this month</p>
+            <h2 id="dash-spent" class="text-5xl font-black mt-2 tracking-tighter">$0.00</h2>
             <div class="mt-8 bg-white/20 h-2 rounded-full overflow-hidden">
                 <div id="pace-bar" class="bg-white h-full transition-all duration-1000" style="width: 0%"></div>
             </div>
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
         </div>
-        <h3 class="font-bold text-lg mb-4">Recent History</h3>
-        <div id="recent-list" class="space-y-3"></div>
+        <h3 class="font-bold text-lg mb-4 text-slate-300">Recent Activity</h3>
+        <div id="recent-list" class="space-y-3 pb-20"></div>
     `);
     syncData();
 }
 
 function renderTransactions() {
     $('#screen-container').html(`
-        <h1 class="text-3xl font-black mb-8">History</h1>
-        <div id="trans-list" class="space-y-3"></div>
+        <h1 class="text-3xl font-black text-white mb-8">History</h1>
+        <div id="trans-list" class="space-y-3 pb-20"></div>
     `);
     syncData();
 }
@@ -91,52 +86,55 @@ function renderTransactions() {
 function syncData() {
     if (!currentUser) return;
     const q = query(collection(db, "transactions"), where("uid", "==", currentUser.uid), orderBy("date", "desc"));
+    
     onSnapshot(q, (snap) => {
-        let spent = 0;
+        let total = 0;
         let html = '';
         snap.forEach(doc => {
             const t = doc.data();
-            spent += t.amount;
+            total += t.amount;
             html += `
-                <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl flex justify-between items-center shadow-sm border dark:border-slate-800">
+                <div class="bg-white/5 p-4 rounded-2xl flex justify-between items-center border border-white/5">
                     <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl">💰</div>
-                        <div><p class="font-bold">${t.description}</p><p class="text-xs text-slate-400">${t.category}</p></div>
+                        <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">💰</div>
+                        <div>
+                            <p class="font-bold text-white">${t.description}</p>
+                            <p class="text-xs text-slate-500">${t.category}</p>
+                        </div>
                     </div>
-                    <p class="font-black text-slate-900 dark:text-white">-$${t.amount.toFixed(2)}</p>
+                    <p class="font-black text-white">-$${t.amount.toFixed(2)}</p>
                 </div>`;
         });
         const goal = parseFloat(localStorage.getItem('budget_goal') || 5000);
-        $('#dash-spent').text(`$${spent.toFixed(2)}`);
-        $('#pace-bar').css('width', Math.min((spent / goal) * 100, 100) + '%');
-        $('#recent-list, #trans-list').html(html || '<p class="text-center text-slate-400 py-10">No data yet</p>');
-    }, (error) => {
-        console.error("Snapshot error:", error);
+        $('#dash-spent').text(`$${total.toFixed(2)}`);
+        $('#pace-bar').css('width', Math.min((total / goal) * 100, 100) + '%');
+        $('#recent-list, #trans-list').html(html || '<p class="text-center text-slate-600 py-20">No data logged yet.</p>');
+    }, (err) => {
+        console.error("Index required or rules error: ", err);
     });
 }
 
 async function renderReports() {
     $('#screen-container').html(`
-        <h1 class="text-2xl font-black mb-6">Insights</h1>
-        <div class="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm mb-6 border dark:border-slate-800 flex justify-center">
+        <h1 class="text-3xl font-black text-white mb-8">Insights</h1>
+        <div class="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 mb-6 flex justify-center">
             <canvas id="insightChart" class="max-h-64"></canvas>
         </div>
     `);
     const q = query(collection(db, "transactions"), where("uid", "==", currentUser.uid));
     const snap = await getDocs(q);
-    const aggr = {};
-    snap.forEach(d => { aggr[d.data().category] = (aggr[d.data().category] || 0) + d.data().amount; });
-
-    if (Object.keys(aggr).length === 0) {
-        $('#screen-container').append('<p class="text-center text-slate-400">No data for chart</p>');
-        return;
-    }
+    const data = {};
+    snap.forEach(d => { const t = d.data(); data[t.category] = (data[t.category] || 0) + t.amount; });
 
     new Chart(document.getElementById('insightChart'), {
         type: 'doughnut',
         data: {
-            labels: Object.keys(aggr),
-            datasets: [{ data: Object.values(aggr), backgroundColor: ['#4f46e5', '#f59e0b', '#ef4444', '#10b981'], borderWidth: 0 }]
+            labels: Object.keys(data),
+            datasets: [{ 
+                data: Object.values(data), 
+                backgroundColor: ['#6366f1', '#f59e0b', '#ef4444', '#10b981', '#ec4899'], 
+                borderWidth: 0 
+            }]
         },
         options: { plugins: { legend: { display: false } }, cutout: '80%' }
     });
@@ -144,49 +142,32 @@ async function renderReports() {
 
 function renderSettings() {
     const goal = localStorage.getItem('budget_goal') || 5000;
-    const isDark = document.documentElement.classList.contains('dark');
     $('#screen-container').html(`
-        <h1 class="text-2xl font-black mb-8">Settings</h1>
-        <div class="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] space-y-6 shadow-sm border dark:border-slate-800">
+        <h1 class="text-3xl font-black text-white mb-8">Settings</h1>
+        <div class="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 space-y-8">
             <div>
-                <label class="text-[10px] font-black text-slate-400 uppercase">Monthly Budget</label>
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Monthly Budget Limit</label>
                 <div class="flex space-x-2 mt-2">
-                    <input id="set-goal" type="number" value="${goal}" class="flex-1 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border-none font-bold">
+                    <input id="set-goal" type="number" value="${goal}" class="flex-1 bg-white/5 p-4 rounded-xl border-none font-bold text-white outline-none">
                     <button id="save-budget" class="bg-indigo-600 text-white px-6 rounded-xl font-bold">Save</button>
                 </div>
             </div>
-            <div class="flex justify-between items-center py-2">
-                <span class="font-bold">Dark Mode</span>
-                <button id="toggle-theme" class="w-12 h-6 rounded-full ${isDark ? 'bg-indigo-600' : 'bg-slate-200'} relative">
-                    <div class="absolute top-1 ${isDark ? 'left-7' : 'left-1'} w-4 h-4 bg-white rounded-full transition-all"></div>
-                </button>
+            <div class="pt-4 border-t border-white/5 space-y-4">
+                <button id="export-csv" class="w-full p-4 bg-white/5 rounded-xl font-bold text-left flex justify-between">Export Data <i class="fas fa-download opacity-30"></i></button>
+                <button id="logout" class="w-full p-4 bg-red-500/10 text-red-500 rounded-xl font-bold">Sign Out</button>
             </div>
-            <button id="export-csv" class="w-full text-left p-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold">Export Activity (CSV)</button>
-            <button id="logout" class="w-full text-left p-4 text-red-500 font-bold">Sign Out</button>
         </div>
     `);
 }
 
-$(document).on('click', '#toggle-theme', () => {
-    document.documentElement.classList.toggle('dark');
-    localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    renderSettings();
-});
-
-$(document).on('click', '#save-budget', () => {
-    localStorage.setItem('budget_goal', $('#set-goal').val());
-    alert('Budget goal updated');
-});
-
-$(document).on('click', '#logout', () => signOut(auth));
-
+// Logic
 $(document).on('click', '#open-add-modal', () => $('#modal-transaction').fadeIn().css('display', 'flex'));
-
 $('.close-modal').click(() => $('#modal-transaction').fadeOut());
 
 $('#form-transaction').submit(async function(e) {
     e.preventDefault();
-    if (!currentUser) return;
+    const btn = $(this).find('button');
+    btn.prop('disabled', true).text('Saving...');
     try {
         await addDoc(collection(db, "transactions"), {
             uid: currentUser.uid,
@@ -197,23 +178,15 @@ $('#form-transaction').submit(async function(e) {
         });
         $('#modal-transaction').fadeOut();
         this.reset();
-    } catch (e) {
-        console.error("Add error:", e);
+    } finally {
+        btn.prop('disabled', false).text('Save Transaction');
     }
 });
 
-$(document).on('click', '#export-csv', async () => {
-    if (!currentUser) return;
-    const q = query(collection(db, "transactions"), where("uid", "==", currentUser.uid));
-    const snap = await getDocs(q);
-    let csv = "Date,Description,Category,Amount\n";
-    snap.forEach(d => { 
-        const t = d.data(); 
-        const date = t.date ? t.date.toDate().toLocaleDateString() : '';
-        csv += `${date},"${t.description}",${t.category},${t.amount}\n`; 
-    });
-    const a = document.createElement('a');
-    a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = 'PennyWise_Export.csv'; 
-    a.click();
+$(document).on('click', '#save-budget', () => {
+    localStorage.setItem('budget_goal', $('#set-goal').val());
+    alert('Settings saved.');
+    loadScreen('dashboard');
 });
+
+$(document).on('click', '#logout', () => signOut(auth));
