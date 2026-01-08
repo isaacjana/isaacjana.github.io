@@ -30,6 +30,7 @@ const applyTheme = () => {
 applyTheme();
 
 $('#btn-login').click(() => signInWithPopup(auth, provider));
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
@@ -52,9 +53,9 @@ function loadScreen(screen) {
     const container = $('#screen-container');
     container.fadeOut(100, () => {
         if (screen === 'dashboard') renderDashboard();
-        if (screen === 'transactions') renderTransactions();
-        if (screen === 'reports') renderReports();
-        if (screen === 'settings') renderSettings();
+        else if (screen === 'transactions') renderTransactions();
+        else if (screen === 'reports') renderReports();
+        else if (screen === 'settings') renderSettings();
         container.fadeIn(100);
     });
 }
@@ -79,7 +80,16 @@ function renderDashboard() {
     syncData();
 }
 
+function renderTransactions() {
+    $('#screen-container').html(`
+        <h1 class="text-3xl font-black mb-8">History</h1>
+        <div id="trans-list" class="space-y-3"></div>
+    `);
+    syncData();
+}
+
 function syncData() {
+    if (!currentUser) return;
     const q = query(collection(db, "transactions"), where("uid", "==", currentUser.uid), orderBy("date", "desc"));
     onSnapshot(q, (snap) => {
         let spent = 0;
@@ -99,7 +109,9 @@ function syncData() {
         const goal = parseFloat(localStorage.getItem('budget_goal') || 5000);
         $('#dash-spent').text(`$${spent.toFixed(2)}`);
         $('#pace-bar').css('width', Math.min((spent / goal) * 100, 100) + '%');
-        $('#recent-list').html(html || '<p class="text-center text-slate-400 py-10">No data yet</p>');
+        $('#recent-list, #trans-list').html(html || '<p class="text-center text-slate-400 py-10">No data yet</p>');
+    }, (error) => {
+        console.error("Snapshot error:", error);
     });
 }
 
@@ -114,6 +126,11 @@ async function renderReports() {
     const snap = await getDocs(q);
     const aggr = {};
     snap.forEach(d => { aggr[d.data().category] = (aggr[d.data().category] || 0) + d.data().amount; });
+
+    if (Object.keys(aggr).length === 0) {
+        $('#screen-container').append('<p class="text-center text-slate-400">No data for chart</p>');
+        return;
+    }
 
     new Chart(document.getElementById('insightChart'), {
         type: 'doughnut',
@@ -153,7 +170,7 @@ function renderSettings() {
 $(document).on('click', '#toggle-theme', () => {
     document.documentElement.classList.toggle('dark');
     localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    loadScreen('settings');
+    renderSettings();
 });
 
 $(document).on('click', '#save-budget', () => {
@@ -162,28 +179,41 @@ $(document).on('click', '#save-budget', () => {
 });
 
 $(document).on('click', '#logout', () => signOut(auth));
+
 $(document).on('click', '#open-add-modal', () => $('#modal-transaction').fadeIn().css('display', 'flex'));
+
 $('.close-modal').click(() => $('#modal-transaction').fadeOut());
 
 $('#form-transaction').submit(async function(e) {
     e.preventDefault();
-    await addDoc(collection(db, "transactions"), {
-        uid: currentUser.uid,
-        amount: parseFloat($('#tr-amount').val()),
-        description: $('#tr-desc').val(),
-        category: $('#tr-category').val(),
-        date: new Date()
-    });
-    $('#modal-transaction').fadeOut();
-    this.reset();
+    if (!currentUser) return;
+    try {
+        await addDoc(collection(db, "transactions"), {
+            uid: currentUser.uid,
+            amount: parseFloat($('#tr-amount').val()),
+            description: $('#tr-desc').val(),
+            category: $('#tr-category').val(),
+            date: new Date()
+        });
+        $('#modal-transaction').fadeOut();
+        this.reset();
+    } catch (e) {
+        console.error("Add error:", e);
+    }
 });
 
 $(document).on('click', '#export-csv', async () => {
+    if (!currentUser) return;
     const q = query(collection(db, "transactions"), where("uid", "==", currentUser.uid));
     const snap = await getDocs(q);
     let csv = "Date,Description,Category,Amount\n";
-    snap.forEach(d => { const t = d.data(); csv += `${t.date.toDate().toLocaleDateString()},"${t.description}",${t.category},${t.amount}\n`; });
+    snap.forEach(d => { 
+        const t = d.data(); 
+        const date = t.date ? t.date.toDate().toLocaleDateString() : '';
+        csv += `${date},"${t.description}",${t.category},${t.amount}\n`; 
+    });
     const a = document.createElement('a');
     a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = 'PennyWise_Export.csv'; a.click();
+    a.download = 'PennyWise_Export.csv'; 
+    a.click();
 });
