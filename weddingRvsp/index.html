@@ -311,12 +311,28 @@
         });
 
         // --- 4. LANDING PAGE & THEMES ---
+        // REPLACE THE OLD loadSiteConfig FUNCTION WITH THIS:
         async function loadSiteConfig() {
             try {
                 const doc = await db.collection('site_config').doc('main').get();
-                if (doc.exists) siteConfig = { ...siteConfig, ...doc.data() };
+                if (doc.exists) {
+                    // Merge database settings with defaults
+                    siteConfig = { ...siteConfig, ...doc.data() };
+                }
+            } catch (e) { 
+                console.error("Database Error (Using Defaults):", e);
+                // Even if DB fails, we will use the default variables set at the top
+            } finally {
+                // THIS RUNS NO MATTER WHAT -> SHOWS THE PAGE
                 renderLandingPage();
-            } catch (e) { console.error(e); }
+                
+                // If we are logged in as admin, go to admin view
+                if(isAdmin) {
+                    $('#view-landing').hide();
+                    $('#view-admin').show();
+                    loadAdminData();
+                }
+            }
         }
 
         function renderLandingPage() {
