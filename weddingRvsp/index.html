@@ -9,7 +9,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
@@ -45,17 +44,13 @@
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-left text-gray-400 mb-1 ml-1">ENTER YOUR INVITE CODE</label>
-                    <input type="text" id="input-invite-code" placeholder="e.g. FAMILY2026" class="w-full p-4 border-2 border-wedding-100 rounded-lg text-center font-bold text-xl uppercase tracking-widest focus:outline-none focus:border-wedding-500 transition text-wedding-900 placeholder-gray-300">
+                    <label class="block text-xs font-bold text-left text-gray-400 mb-1 ml-1">ENTER INVITE CODE</label>
+                    <input type="text" id="input-invite-code" placeholder="GUEST OR ADMIN CODE" class="w-full p-4 border-2 border-wedding-100 rounded-lg text-center font-bold text-xl uppercase tracking-widest focus:outline-none focus:border-wedding-500 transition text-wedding-900 placeholder-gray-300">
                 </div>
                 <button id="btn-enter-code" class="w-full bg-wedding-800 text-white py-4 rounded-lg font-bold hover:bg-wedding-900 transition shadow-lg">
-                    UNLOCK RSVP
+                    ENTER
                 </button>
                 <div id="login-error" class="hidden text-red-500 text-sm font-bold mt-2"></div>
-            </div>
-
-            <div class="mt-8 pt-4 border-t border-gray-100">
-                <button onclick="toggleAdminLogin()" class="text-xs text-gray-300 hover:text-gray-500">Admin Access</button>
             </div>
         </div>
     </div>
@@ -63,10 +58,10 @@
     <div id="app-container" class="hidden flex-grow flex flex-col">
         <nav class="bg-white shadow-sm sticky top-0 z-50">
             <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-                <div class="text-xl font-bold text-wedding-800 cursor-pointer" onclick="checkAuthAndLoad()">J & J</div>
+                <div class="text-xl font-bold text-wedding-800 cursor-pointer" onclick="location.reload()">J & J</div>
                 <div class="flex gap-4 text-sm font-bold items-center">
-                    <button id="nav-rsvp" onclick="showSection('rsvp')" class="text-wedding-800">My RSVP</button>
-                    <button id="nav-admin" onclick="showSection('admin')" class="hidden bg-wedding-800 text-white px-3 py-1 rounded-full">Dashboard</button>
+                    <button id="nav-rsvp" onclick="showSection('rsvp')" class="hidden text-wedding-800 hover:text-wedding-500">My RSVP</button>
+                    <button id="nav-admin" onclick="showSection('admin')" class="hidden bg-wedding-800 text-white px-4 py-1 rounded-full hover:bg-wedding-900">Admin Dashboard</button>
                     <button onclick="logout()" class="text-gray-400 hover:text-red-500 ml-2"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
             </div>
@@ -174,7 +169,6 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">Custom Invite Code <span class="text-red-500">*</span></label>
                     <input type="text" id="new-code" placeholder="e.g. SMITH2026" class="w-full p-3 border-2 border-gray-200 rounded-lg font-bold uppercase focus:border-wedding-500 outline-none">
-                    <p class="text-[10px] text-gray-400 mt-1">This is the code guests will use to login.</p>
                 </div>
 
                 <div>
@@ -194,7 +188,6 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">Guest Names <span class="text-red-500">*</span></label>
                     <input type="text" id="new-names" placeholder="e.g. John Doe, Jane Doe" class="w-full p-3 border rounded-lg outline-none focus:ring-1 focus:ring-wedding-500">
-                    <p class="text-[10px] text-gray-400 mt-1">Separate multiple names with commas.</p>
                 </div>
             </div>
 
@@ -211,9 +204,9 @@
 
     <script>
         // --- 1. CONFIGURATION ---
-        const RSVP_DEADLINE = new Date("2026-08-01T23:59:59"); // SET YOUR DEADLINE HERE
+        const RSVP_DEADLINE = new Date("2026-08-01T23:59:59"); // SET YOUR DEADLINE
         
-        // PASTE YOUR FIREBASE CONFIG HERE
+        // PASTE YOUR CONFIG HERE
         const firebaseConfig = {
             apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ",
             authDomain: "wedding-rvsp-e446c.firebaseapp.com",
@@ -226,21 +219,17 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const auth = firebase.auth();
-        const provider = new firebase.auth.GoogleAuthProvider();
 
         // --- 2. GLOBAL STATE ---
-        let currentInviteId = localStorage.getItem('rsvp_invite_id'); // Persist guest session
-        let isAdmin = false;
+        let currentInviteId = localStorage.getItem('rsvp_invite_id');
+        let isAdminSession = localStorage.getItem('rsvp_is_admin') === 'true';
         let allInvitesCache = [];
         const isDeadlinePassed = new Date() > RSVP_DEADLINE;
 
         // --- 3. INIT & ROUTING ---
         $(document).ready(() => {
-            // Display Deadline Date formatted
+            // Setup Deadline UI
             $('#display-deadline').text(RSVP_DEADLINE.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
-
-            // Check if deadline passed
             if(isDeadlinePassed) {
                 $('#countdown-badge').text("DEADLINE PASSED").addClass('bg-red-500 text-white');
             } else {
@@ -248,33 +237,28 @@
                 $('#countdown-badge').text(`${daysLeft} days left to RSVP`);
             }
 
-            // Auth Listener (For Admin Only)
-            auth.onAuthStateChanged(async (user) => {
-                if (user) {
-                    const userDoc = await db.collection('users').doc(user.uid).get();
-                    if(userDoc.exists && userDoc.data().isAdmin) {
-                        isAdmin = true;
-                        $('#nav-admin').removeClass('hidden');
-                        showSection('admin');
-                        loadAdminDashboard();
-                    } else {
-                        // Logged in via Google but not admin? Sign out.
-                        auth.signOut();
-                        alert("Access Denied: Admin only.");
-                    }
+            // Route based on LocalStorage
+            if (currentInviteId) {
+                // If it was an admin session, load admin view
+                if (isAdminSession) {
+                    loadAdminDashboard();
+                    $('#view-auth').hide();
+                    $('#app-container').fadeIn();
+                    $('#nav-admin').removeClass('hidden');
+                    showSection('admin');
+                } else {
+                    // Normal guest
+                    loadGuestRSVP(currentInviteId);
+                    $('#view-auth').hide();
+                    $('#app-container').fadeIn();
+                    $('#nav-rsvp').removeClass('hidden');
                 }
-            });
-
-            // Check if Guest is "logged in" via localStorage
-            if(currentInviteId) {
-                loadGuestRSVP(currentInviteId);
             } else {
-                // If not admin and no guest code, show login
-                if(!isAdmin) $('#view-auth').fadeIn();
+                $('#view-auth').fadeIn();
             }
         });
 
-        // --- 4. GUEST LOGIC (CODE BASED) ---
+        // --- 4. UNIVERSAL LOGIN (CODE BASED) ---
         $('#btn-enter-code').click(async () => {
             const code = $('#input-invite-code').val().trim().toUpperCase();
             if(!code) return showError("Please enter a code");
@@ -283,32 +267,53 @@
             btn.prop('disabled', true).text("Checking...");
 
             try {
+                // Query Firestore for this code
                 const snap = await db.collection('invitations').where('inviteCode', '==', code).limit(1).get();
+                
                 if(snap.empty) {
                     showError("Invalid Code. Please check your invitation.");
-                    btn.prop('disabled', false).text("UNLOCK RSVP");
+                    btn.prop('disabled', false).text("ENTER");
                 } else {
-                    // Success: Store ID and load
-                    const docId = snap.docs[0].id;
-                    localStorage.setItem('rsvp_invite_id', docId);
-                    currentInviteId = docId;
-                    loadGuestRSVP(docId);
-                    $('#view-auth').fadeOut();
-                    $('#app-container').fadeIn();
+                    const doc = snap.docs[0];
+                    const data = doc.data();
+
+                    // Store ID
+                    localStorage.setItem('rsvp_invite_id', doc.id);
+                    currentInviteId = doc.id;
+
+                    // CHECK IF ADMIN
+                    if (data.isAdmin === true) {
+                        localStorage.setItem('rsvp_is_admin', 'true');
+                        isAdminSession = true;
+                        
+                        $('#view-auth').fadeOut();
+                        $('#app-container').fadeIn();
+                        $('#nav-admin').removeClass('hidden');
+                        showSection('admin');
+                        loadAdminDashboard();
+                    } else {
+                        // NORMAL GUEST
+                        localStorage.removeItem('rsvp_is_admin');
+                        isAdminSession = false;
+                        
+                        loadGuestRSVP(doc.id);
+                        $('#view-auth').fadeOut();
+                        $('#app-container').fadeIn();
+                        $('#nav-rsvp').removeClass('hidden');
+                    }
                 }
             } catch(e) {
+                console.error(e);
                 showError("Connection error.");
-                btn.prop('disabled', false).text("UNLOCK RSVP");
+                btn.prop('disabled', false).text("ENTER");
             }
         });
 
+        // --- 5. GUEST FUNCTIONS ---
         async function loadGuestRSVP(id) {
-            $('#app-container').fadeIn();
-            $('#view-auth').hide();
-            
             try {
                 const doc = await db.collection('invitations').doc(id).get();
-                if(!doc.exists) { logout(); return; } // Invalid ID handling
+                if(!doc.exists) { logout(); return; }
                 
                 const data = doc.data();
                 $('#guest-group-name').text(data.guestNames || "Family");
@@ -324,56 +329,51 @@
                     $('#btn-submit-rsvp').hide();
                 }
 
-                data.guests.forEach((guest, i) => {
-                    const isAttending = guest.isAttending;
-                    const html = `
-                        <div class="guest-card p-6 bg-wedding-50 rounded-xl border border-wedding-100" data-index="${i}">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-bold text-lg text-gray-800">${guest.name}</h3>
-                                <div class="flex bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                                    <label class="cursor-pointer px-4 py-2 flex items-center gap-2 ${isAttending === true ? 'bg-green-100 text-green-800 font-bold' : 'hover:bg-gray-50'}">
-                                        <input type="radio" name="status-${i}" value="yes" class="hidden" ${isAttending === true ? 'checked' : ''}> Yes
-                                    </label>
-                                    <div class="w-px bg-gray-200"></div>
-                                    <label class="cursor-pointer px-4 py-2 flex items-center gap-2 ${isAttending === false ? 'bg-red-100 text-red-800 font-bold' : 'hover:bg-gray-50'}">
-                                        <input type="radio" name="status-${i}" value="no" class="hidden" ${isAttending === false ? 'checked' : ''}> No
-                                    </label>
+                if(data.guests) {
+                    data.guests.forEach((guest, i) => {
+                        const isAttending = guest.isAttending;
+                        const html = `
+                            <div class="guest-card p-6 bg-wedding-50 rounded-xl border border-wedding-100" data-index="${i}">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold text-lg text-gray-800">${guest.name}</h3>
+                                    <div class="flex bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                        <label class="cursor-pointer px-4 py-2 flex items-center gap-2 ${isAttending === true ? 'bg-green-100 text-green-800 font-bold' : 'hover:bg-gray-50'}">
+                                            <input type="radio" name="status-${i}" value="yes" class="hidden" ${isAttending === true ? 'checked' : ''}> Yes
+                                        </label>
+                                        <div class="w-px bg-gray-200"></div>
+                                        <label class="cursor-pointer px-4 py-2 flex items-center gap-2 ${isAttending === false ? 'bg-red-100 text-red-800 font-bold' : 'hover:bg-gray-50'}">
+                                            <input type="radio" name="status-${i}" value="no" class="hidden" ${isAttending === false ? 'checked' : ''}> No
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="meal-options ${isAttending === true ? '' : 'hidden'} mt-3 border-t pt-3 border-gray-200">
+                                    <label class="text-xs font-bold text-gray-400 uppercase">Meal Preference</label>
+                                    <select class="w-full mt-1 p-2 border rounded bg-white text-sm meal-select">
+                                        <option value="Standard" ${guest.meal === 'Standard' ? 'selected' : ''}>Standard</option>
+                                        <option value="Vegetarian" ${guest.meal === 'Vegetarian' ? 'selected' : ''}>Vegetarian</option>
+                                        <option value="Kids" ${guest.meal === 'Kids' ? 'selected' : ''}>Kids Meal</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="meal-options ${isAttending === true ? '' : 'hidden'} mt-3 border-t pt-3 border-gray-200">
-                                <label class="text-xs font-bold text-gray-400 uppercase">Meal Preference</label>
-                                <select class="w-full mt-1 p-2 border rounded bg-white text-sm meal-select">
-                                    <option value="Standard" ${guest.meal === 'Standard' ? 'selected' : ''}>Standard</option>
-                                    <option value="Vegetarian" ${guest.meal === 'Vegetarian' ? 'selected' : ''}>Vegetarian</option>
-                                    <option value="Kids" ${guest.meal === 'Kids' ? 'selected' : ''}>Kids Meal</option>
-                                </select>
-                            </div>
-                        </div>
-                    `;
-                    container.append(html);
-                });
+                        `;
+                        container.append(html);
+                    });
 
-                // Toggles
-                $('input[type=radio]').change(function() {
-                    const card = $(this).closest('.guest-card');
-                    const val = $(this).val();
-                    
-                    // Reset Styles
-                    card.find('label').removeClass('bg-green-100 text-green-800 bg-red-100 text-red-800 font-bold');
-                    
-                    if(val === 'yes') {
-                        $(this).parent().addClass('bg-green-100 text-green-800 font-bold');
-                        card.find('.meal-options').slideDown();
-                    } else {
-                        $(this).parent().addClass('bg-red-100 text-red-800 font-bold');
-                        card.find('.meal-options').slideUp();
-                    }
-                });
-
-            } catch(e) {
-                console.error(e);
-                logout();
-            }
+                    // UI Toggles
+                    $('input[type=radio]').change(function() {
+                        const card = $(this).closest('.guest-card');
+                        const val = $(this).val();
+                        card.find('label').removeClass('bg-green-100 text-green-800 bg-red-100 text-red-800 font-bold');
+                        if(val === 'yes') {
+                            $(this).parent().addClass('bg-green-100 text-green-800 font-bold');
+                            card.find('.meal-options').slideDown();
+                        } else {
+                            $(this).parent().addClass('bg-red-100 text-red-800 font-bold');
+                            card.find('.meal-options').slideUp();
+                        }
+                    });
+                }
+            } catch(e) { logout(); }
         }
 
         $('#rsvp-form').submit(async (e) => {
@@ -389,7 +389,6 @@
                 const status = $(this).find(`input[name="status-${idx}"]:checked`).val();
                 const name = $(this).find('h3').text();
                 const meal = $(this).find('.meal-select').val();
-
                 guests.push({
                     name: name,
                     isAttending: status === 'yes' ? true : (status === 'no' ? false : null),
@@ -397,7 +396,7 @@
                 });
             });
 
-            // Calculate aggregate status
+            // Calculate status
             let overall = 'pending';
             if(guests.every(g => g.isAttending === true)) overall = 'accepted';
             else if(guests.every(g => g.isAttending === false)) overall = 'declined';
@@ -406,18 +405,23 @@
             await db.collection('invitations').doc(currentInviteId).update({
                 guests: guests,
                 note: $('#rsvp-note').val(),
-                status: overall,
-                respondedAt: firebase.firestore.FieldValue.serverTimestamp()
+                status: overall
             });
 
             btn.prop('disabled', false).text('Submit RSVP');
             showToast("RSVP Saved Successfully!");
         });
 
-        // --- 5. ADMIN LOGIC ---
-        function toggleAdminLogin() {
-            // Simple Google Auth Trigger for Admin
-            auth.signInWithPopup(provider).catch(e => showError(e.message));
+        // --- 6. ADMIN FUNCTIONS ---
+        function loadAdminDashboard() {
+            // Real-time listener
+            db.collection('invitations').orderBy('createdAt', 'desc').onSnapshot(snap => {
+                allInvitesCache = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                // Filter out the "Admin" invite itself from the stats
+                const guestsOnly = allInvitesCache.filter(inv => !inv.isAdmin);
+                renderAdminTable(guestsOnly);
+                updateStats(guestsOnly);
+            });
         }
 
         async function createInvite() {
@@ -425,20 +429,20 @@
             const names = $('#new-names').val();
             const side = $('input[name="new-side"]:checked').val();
 
-            if(!code || !names) return alert("Code and Names are required.");
+            if(!code || !names) return alert("Code and Names required");
 
             const guestsObj = names.split(',').map(n => ({
                 name: n.trim(), isAttending: null, meal: 'Standard'
             })).filter(g => g.name);
 
             try {
-                // Check if code exists
+                // Check dupes
                 const snap = await db.collection('invitations').where('inviteCode', '==', code).get();
                 if(!snap.empty) return alert("Code already exists!");
 
                 await db.collection('invitations').add({
                     inviteCode: code,
-                    guestNames: names, // Display label
+                    guestNames: names,
                     side: side,
                     guests: guestsObj,
                     status: 'pending',
@@ -448,18 +452,7 @@
                 showToast("Invite Created!");
                 $('#modal-add-guest').fadeOut();
                 $('#new-code').val(''); $('#new-names').val('');
-            } catch(e) {
-                console.error(e);
-                alert("Error creating invite");
-            }
-        }
-
-        function loadAdminDashboard() {
-            db.collection('invitations').orderBy('createdAt', 'desc').onSnapshot(snap => {
-                allInvitesCache = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                renderAdminTable(allInvitesCache);
-                updateStats(allInvitesCache);
-            });
+            } catch(e) { alert("Error: " + e.message); }
         }
 
         function renderAdminTable(data) {
@@ -467,7 +460,6 @@
             tbody.empty();
             data.forEach(inv => {
                 let badge = inv.side === 'groom' ? '<span class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs font-bold">Groom</span>' : '<span class="bg-pink-100 text-pink-600 px-2 py-1 rounded text-xs font-bold">Bride</span>';
-                
                 let statusColor = 'text-gray-400';
                 if(inv.status === 'accepted') statusColor = 'text-green-600 font-bold';
                 if(inv.status === 'declined') statusColor = 'text-red-500 font-bold';
@@ -508,7 +500,7 @@
         }
 
         async function deleteInvite(id) {
-            if(confirm("Delete this invitation?")) {
+            if(confirm("Delete this invite?")) {
                 await db.collection('invitations').doc(id).delete();
                 showToast("Deleted");
             }
@@ -517,13 +509,15 @@
         // Filtering
         $('#admin-filter-side').change(function() {
             const val = $(this).val();
-            if(val === 'all') renderAdminTable(allInvitesCache);
-            else renderAdminTable(allInvitesCache.filter(i => i.side === val));
+            const baseData = allInvitesCache.filter(inv => !inv.isAdmin); // hide admin
+            if(val === 'all') renderAdminTable(baseData);
+            else renderAdminTable(baseData.filter(i => i.side === val));
         });
 
         $('#admin-search').on('keyup', function() {
             const term = $(this).val().toLowerCase();
-            renderAdminTable(allInvitesCache.filter(i => 
+            const baseData = allInvitesCache.filter(inv => !inv.isAdmin);
+            renderAdminTable(baseData.filter(i => 
                 i.inviteCode.toLowerCase().includes(term) || 
                 i.guestNames.toLowerCase().includes(term)
             ));
@@ -538,7 +532,7 @@
 
         function logout() {
             localStorage.removeItem('rsvp_invite_id');
-            auth.signOut();
+            localStorage.removeItem('rsvp_is_admin');
             location.reload();
         }
 
