@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, onSnapshot, orderBy, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, onSnapshot, orderBy, serverTimestamp, enableIndexedDbPersistence, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCk6mub0hDCzJ5iDmV-61v3WLSHMC51JP4",
@@ -30,7 +30,6 @@ $('.nav-item').click(function() {
     $(this).addClass('text-emerald-500').removeClass('text-gray-500');
 });
 
-// Exclusive Google Sign-In
 $('#login-btn').click(() => signInWithPopup(auth, provider));
 $('#logout-btn').click(() => signOut(auth));
 
@@ -40,7 +39,8 @@ onAuthStateChanged(auth, (user) => {
         $('#auth-overlay').fadeOut();
         $('#app').removeClass('hidden');
         $('#user-name').text(user.displayName.split(' ')[0]);
-        initRealtimeUpdates();
+        // Delay to ensure auth state is propagated to Firestore rules
+        setTimeout(() => { initRealtimeUpdates(); }, 600);
     } else {
         $('#auth-overlay').fadeIn();
         $('#app').addClass('hidden');
@@ -57,17 +57,21 @@ $('#meal-form').submit(async (e) => {
         createdAt: serverTimestamp(),
         dateStr: todayStr()
     };
-    await addDoc(collection(db, "meals"), payload);
-    if (window.navigator.vibrate) window.navigator.vibrate(10);
-    $('#meal-modal').fadeOut();
-    $('#meal-form')[0].reset();
+    try {
+        await addDoc(collection(db, "meals"), payload);
+        if (window.navigator.vibrate) window.navigator.vibrate(10);
+        $('#meal-modal').fadeOut();
+        $('#meal-form')[0].reset();
+    } catch (err) { console.error("Write error:", err); }
 });
 
 $('#open-modal').click(() => $('#meal-modal').fadeIn().css('display', 'flex'));
 $('#close-modal').click(() => $('#meal-modal').fadeOut());
 
 function initRealtimeUpdates() {
+    // Requires Composite Index: uid (Asc), createdAt (Desc)
     const q = query(collection(db, "meals"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
+    
     onSnapshot(q, (snapshot) => {
         let dailyCount = 0;
         const history = {};
@@ -82,6 +86,11 @@ function initRealtimeUpdates() {
         $('#daily-count').text(dailyCount);
         calculateStreak(history);
         handleCalendarView(snapshot.docs);
+    }, (error) => {
+        if(error.code === 'permission-denied') {
+            console.warn("Retrying listener... Index may be building.");
+            setTimeout(initRealtimeUpdates, 3000);
+        }
     });
 }
 
@@ -101,12 +110,22 @@ function calculateStreak(history) {
 }
 
 function handleCalendarView(docs) {
-    $('#date-filter').on('change', function() {
+    $('#date-filter').off('change').on('change', function() {
         const selected = $(this).val();
         let html = '';
         docs.forEach(d => { if (d.data().dateStr === selected) html += renderMealCard(d.id, d.data()); });
         $('#calendar-results').html(html || '<p class="text-center py-10 text-gray-600">No logs found.</p>');
     });
 }
+
+// Debug Utility: Clean orphaned records (No UID)
+window.cleanOrphanedLogs = async () => {
+    const q = query(collection(db, "meals"), where("uid", "==", null));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    console.log("Cleanup complete.");
+};
 
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js')); }
