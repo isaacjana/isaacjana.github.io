@@ -9,13 +9,12 @@
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400;700&family=Montserrat:wght@300;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         tailwind.config = {
@@ -23,7 +22,7 @@
                 extend: {
                     colors: {
                         gold: { 400: '#D4AF37', 500: '#C5A028' },
-                        sage: { 100: '#E6EFE9', 800: '#4A5D52' },
+                        rose: { 50: '#fff1f2', 900: '#881337' },
                     },
                     fontFamily: {
                         classic: ['Cinzel', 'serif'],
@@ -38,98 +37,144 @@
 
     <style>
         .page-section { display: none; }
-        .page-section.active { display: block; animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .page-section.active { display: block; }
         
-        /* Theme Specific Styles */
-        .theme-classic-bg { background-color: #fdfbf7; border: 8px double #e5e7eb; }
-        .theme-floral-bg { background: radial-gradient(circle, #fff0f5 0%, #fff 100%); }
-        .theme-modern-bg { background-color: #ffffff; }
+        /* --- SLIDESHOW TRANSITIONS --- */
+        .slide-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: 0; }
+        .slide-bg.active { opacity: 1; }
+
+        /* --- THEME ANIMATIONS --- */
+        
+        /* CLASSIC: Ken Burns Effect (Slow Zoom) */
+        .theme-classic .slide-bg.active { animation: kenBurns 10s infinite alternate; }
+        @keyframes kenBurns { from { transform: scale(1); } to { transform: scale(1.1); } }
+        .theme-classic .content-box { animation: fadeInClassic 2s ease-out; }
+        @keyframes fadeInClassic { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* MODERN: Slide Up Reveal */
+        .theme-modern .content-box { animation: slideUpModern 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUpModern { from { opacity: 0; transform: translateY(100px); } to { opacity: 1; transform: translateY(0); } }
+        .theme-modern .slide-bg { filter: grayscale(100%); transition: opacity 0.5s, filter 0.5s; }
+
+        /* FLORAL: Sway & Fade */
+        .theme-floral .content-box { animation: bloomFloral 1.5s ease-in-out; }
+        @keyframes bloomFloral { 0% { opacity: 0; transform: scale(0.95) rotate(-1deg); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
+        
+        /* Music Control Pulse */
+        .music-playing { animation: pulse-ring 2s infinite; }
+        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
     </style>
 </head>
-<body class="text-gray-700 min-h-screen">
+<body class="text-gray-700 min-h-screen bg-gray-50 overflow-x-hidden">
 
-    <div id="view-landing" class="page-section min-h-screen w-full flex flex-col items-center justify-center p-4">
-        <div id="invite-card" class="w-full max-w-4xl shadow-2xl overflow-hidden min-h-[80vh] relative transition-all duration-500">
+    <div id="youtube-player" class="hidden"></div>
+
+    <button id="music-fab" onclick="toggleMusic()" class="fixed bottom-6 right-6 z-[100] bg-white text-gray-800 p-3 rounded-full shadow-xl hidden hover:scale-110 transition border border-gray-200">
+        <i id="music-icon" class="fas fa-play"></i>
+    </button>
+
+    <div id="view-landing" class="page-section min-h-screen w-full relative">
+        <div id="slideshow-wrapper" class="absolute inset-0 z-0 overflow-hidden">
             </div>
-
-        <div class="fixed bottom-4 right-4 z-50">
-            <button onclick="$('#view-landing').hide(); $('#view-login').fadeIn();" class="text-xs text-gray-300 hover:text-gray-500 bg-white/50 px-2 py-1 rounded backdrop-blur">Login / Admin</button>
-        </div>
-    </div>
-
-    <div id="view-login" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white max-w-sm w-full p-8 rounded-xl shadow-2xl relative">
-            <button onclick="closeLogin()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            <h2 class="text-2xl font-bold text-center mb-6 font-classic">Enter Code</h2>
-            <input type="text" id="input-invite-code" placeholder="GUEST OR ADMIN CODE" class="w-full p-4 border-2 border-gray-200 rounded-lg text-center font-bold text-xl uppercase tracking-widest focus:outline-none focus:border-gold-500 mb-4">
-            <button id="btn-enter-code" class="w-full bg-black text-white py-4 rounded-lg font-bold hover:bg-gray-800 transition">ACCESS</button>
-            <div id="login-error" class="hidden text-red-500 text-center mt-2 text-sm font-bold"></div>
-        </div>
-    </div>
-
-    <main id="view-rsvp" class="page-section max-w-3xl mx-auto w-full p-6 pt-10">
-        <button onclick="location.reload()" class="mb-4 text-sm text-gray-400 hover:text-gray-800"><i class="fas fa-arrow-left"></i> Back to Invitation</button>
         
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div class="bg-gray-900 p-8 text-center text-white">
-                <h2 class="text-3xl font-classic mb-2">RSVP</h2>
-                <p class="opacity-80 text-sm">Welcome, <span id="guest-group-name" class="font-bold"></span></p>
-                <div id="deadline-badge" class="mt-2 inline-block bg-white/20 px-3 py-1 rounded-full text-xs"></div>
+        <div id="bg-overlay" class="absolute inset-0 z-10 bg-black/30 transition-colors duration-500"></div>
+
+        <div class="relative z-20 min-h-screen flex items-center justify-center p-4">
+            <div id="invite-card" class="content-box w-full max-w-4xl min-h-[70vh] shadow-2xl overflow-hidden relative transition-all duration-500 flex flex-col items-center justify-center text-center p-8 md:p-12 backdrop-blur-sm">
+                </div>
+        </div>
+
+        <div class="absolute bottom-4 left-0 right-0 z-30 text-center">
+            <button onclick="$('#view-landing').hide(); $('#view-login').fadeIn();" class="text-[10px] text-white/60 hover:text-white uppercase tracking-widest bg-black/20 px-3 py-1 rounded-full backdrop-blur">
+                Have a code? Login
+            </button>
+        </div>
+    </div>
+
+    <div id="view-login" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white max-w-sm w-full p-8 rounded-2xl shadow-2xl relative animate-bounce-in">
+            <button onclick="$('#view-login').fadeOut(); $('#view-landing').fadeIn();" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-bold text-center mb-6 font-classic text-gray-800">Private Access</h2>
+            <input type="text" id="input-invite-code" placeholder="ENTER CODE" class="w-full p-4 border-2 border-gray-100 rounded-xl text-center font-bold text-xl uppercase tracking-[0.2em] focus:outline-none focus:border-gold-500 mb-4 transition">
+            <button id="btn-enter-code" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg tracking-widest text-sm">UNLOCK</button>
+            <div id="login-error" class="hidden text-red-500 text-center mt-3 text-xs font-bold uppercase tracking-wide"></div>
+        </div>
+    </div>
+
+    <main id="view-rsvp" class="page-section max-w-3xl mx-auto w-full p-4 md:p-8 pt-10 pb-24">
+        <button onclick="location.reload()" class="mb-6 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-gray-800 transition"><i class="fas fa-arrow-left mr-2"></i> Back Home</button>
+        
+        <div class="bg-white rounded-[2rem] shadow-xl overflow-hidden mb-8 border border-gray-100">
+            <div class="bg-gray-900 p-10 text-center text-white relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <h2 class="text-4xl font-classic mb-2 relative z-10">RSVP</h2>
+                <p class="opacity-80 text-sm relative z-10">Welcome, <span id="guest-group-name" class="font-bold text-gold-400"></span></p>
+                <div id="deadline-badge" class="mt-4 inline-block bg-white/10 border border-white/20 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest relative z-10"></div>
             </div>
             
-            <div class="p-8">
-                <div id="rsvp-locked-msg" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 text-red-700 text-sm">Deadline has passed.</div>
+            <div class="p-8 md:p-10">
+                <div id="rsvp-locked-msg" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-8 text-red-700 text-sm font-bold">
+                    <i class="fas fa-lock mr-2"></i> RSVP Deadline has passed.
+                </div>
                 
                 <form id="rsvp-form" class="space-y-6">
                     <div id="guest-list-container" class="space-y-4"></div>
                     <div>
-                        <label class="block text-sm font-bold mb-2">Note for the Couple</label>
-                        <textarea id="rsvp-note" rows="2" class="w-full p-3 border rounded-lg bg-gray-50"></textarea>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Message to the Couple</label>
+                        <textarea id="rsvp-note" rows="3" class="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-1 focus:ring-gold-400 outline-none text-sm transition" placeholder="Song requests, dietary details, or well wishes..."></textarea>
                     </div>
-                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 hover:bg-gold-400 text-white font-bold py-4 rounded-xl shadow-lg">Confirm RSVP</button>
+                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 hover:bg-gold-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-gold-200/50 transition transform active:scale-[0.99] uppercase tracking-widest text-sm">Confirm RSVP</button>
                 </form>
             </div>
+        </div>
+
+        <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-8">
+            <h3 class="font-classic text-xl text-center mb-6 border-b pb-4">Key Contacts</h3>
+            <div id="contact-list-display" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </div>
         </div>
     </main>
 
     <main id="view-admin" class="page-section max-w-6xl mx-auto w-full p-6">
-        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
-            <h2 class="text-xl font-bold">Admin Dashboard</h2>
-            <div class="flex gap-2">
-                <button onclick="switchAdminTab('guests')" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-bold active-tab" id="tab-btn-guests">Guests</button>
-                <button onclick="switchAdminTab('settings')" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-bold" id="tab-btn-settings">Site Settings</button>
-                <button onclick="logout()" class="px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg"><i class="fas fa-sign-out-alt"></i></button>
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div>
+                <h2 class="text-2xl font-bold font-classic text-gray-800">Wedding Dashboard</h2>
+                <p class="text-xs text-gray-400 uppercase tracking-widest">Manage your big day</p>
+            </div>
+            <div class="flex gap-2 mt-4 md:mt-0">
+                <button onclick="switchAdminTab('guests')" class="px-5 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-xs font-bold uppercase tracking-wide transition border" id="tab-btn-guests">Guests</button>
+                <button onclick="switchAdminTab('settings')" class="px-5 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-xs font-bold uppercase tracking-wide transition border" id="tab-btn-settings">Site Config</button>
+                <button onclick="logout()" class="px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </div>
 
         <div id="admin-tab-guests">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-gray-400">
-                    <div class="text-xs uppercase text-gray-400">Total</div>
-                    <div class="text-2xl font-bold" id="stat-total">0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">Total Seats</div>
+                    <div class="text-3xl font-black text-gray-800" id="stat-total">0</div>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-500">
-                    <div class="text-xs uppercase text-green-600">Attending</div>
-                    <div class="text-2xl font-bold" id="stat-attending">0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-green-100 bg-green-50/30">
+                    <div class="text-[10px] font-bold uppercase text-green-600 tracking-widest mb-1">Attending</div>
+                    <div class="text-3xl font-black text-green-800" id="stat-attending">0</div>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-blue-500">
-                    <div class="text-xs uppercase text-blue-600">Groom Side</div>
-                    <div class="text-2xl font-bold" id="stat-groom">0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 bg-blue-50/30">
+                    <div class="text-[10px] font-bold uppercase text-blue-600 tracking-widest mb-1">Groom Side</div>
+                    <div class="text-3xl font-black text-blue-800" id="stat-groom">0</div>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-pink-500">
-                    <div class="text-xs uppercase text-pink-600">Bride Side</div>
-                    <div class="text-2xl font-bold" id="stat-bride">0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-pink-100 bg-pink-50/30">
+                    <div class="text-[10px] font-bold uppercase text-pink-600 tracking-widest mb-1">Bride Side</div>
+                    <div class="text-3xl font-black text-pink-800" id="stat-bride">0</div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow overflow-hidden">
-                <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b flex flex-col md:flex-row justify-between items-center bg-gray-50/50 gap-4">
                     <div class="flex gap-2 w-full max-w-md">
-                        <input type="text" id="admin-search" placeholder="Search..." class="flex-1 p-2 border rounded text-sm">
-                        <select id="admin-filter" class="p-2 border rounded text-sm"><option value="all">All</option><option value="groom">Groom</option><option value="bride">Bride</option></select>
+                        <input type="text" id="admin-search" placeholder="Search guests..." class="flex-1 p-3 border rounded-xl text-sm outline-none focus:border-gold-400">
+                        <select id="admin-filter" class="p-3 border rounded-xl text-sm outline-none"><option value="all">All</option><option value="groom">Groom</option><option value="bride">Bride</option></select>
                     </div>
-                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-black text-white px-4 py-2 rounded text-sm font-bold">+ New Invite</button>
+                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-gray-900 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition shadow-lg w-full md:w-auto">+ New Invite</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left"><tbody id="admin-table-body"></tbody></table>
@@ -138,78 +183,92 @@
         </div>
 
         <div id="admin-tab-settings" class="hidden">
-            <div class="bg-white p-8 rounded-xl shadow max-w-2xl mx-auto">
-                <h3 class="text-lg font-bold mb-6 border-b pb-2">Website Configuration</h3>
-                <form id="settings-form" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
+            <form id="settings-form" class="max-w-4xl mx-auto space-y-8">
+                
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-paint-brush text-gold-500"></i> Appearance & Basics</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="text-xs font-bold text-gray-500">Theme</label>
-                            <select id="set-theme" class="w-full p-2 border rounded">
-                                <option value="classic">Classic Elegant</option>
-                                <option value="modern">Modern Minimal</option>
-                                <option value="floral">Romantic Floral</option>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Theme</label>
+                            <select id="set-theme" class="w-full p-3 mt-1 border rounded-xl bg-gray-50">
+                                <option value="classic">🏛️ Classic Elegant</option>
+                                <option value="modern">🔳 Modern Minimal</option>
+                                <option value="floral">🌸 Romantic Floral</option>
                             </select>
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-gray-500">RSVP Deadline</label>
-                            <input type="date" id="set-deadline" class="w-full p-2 border rounded">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Couple Names</label>
+                            <input type="text" id="set-names" class="w-full p-3 mt-1 border rounded-xl">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">RSVP Deadline</label>
+                            <input type="date" id="set-deadline" class="w-full p-3 mt-1 border rounded-xl">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">YouTube Music URL</label>
+                            <input type="text" id="set-music" placeholder="https://youtube.com/watch?v=..." class="w-full p-3 mt-1 border rounded-xl">
                         </div>
                     </div>
-                    
-                    <div>
-                        <label class="text-xs font-bold text-gray-500">Couple Names</label>
-                        <input type="text" id="set-names" placeholder="Jane & John" class="w-full p-2 border rounded">
-                    </div>
+                </div>
 
-                    <div>
-                        <label class="text-xs font-bold text-gray-500">Cover Photo URL</label>
-                        <input type="text" id="set-photo" placeholder="https://..." class="w-full p-2 border rounded">
-                        <p class="text-[10px] text-gray-400">Paste a link from Unsplash or Imgur.</p>
-                    </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-images text-gold-500"></i> Background Photos</h3>
+                    <div id="photo-list-inputs" class="space-y-3 mb-4"></div>
+                    <button type="button" onclick="addPhotoInput('')" class="text-xs font-bold text-gold-500 hover:text-gold-600">+ Add Another Photo URL</button>
+                </div>
 
-                    <div class="border-t pt-4">
-                        <h4 class="font-bold text-sm mb-2">Events</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-gray-50 p-3 rounded">
-                                <label class="text-xs font-bold uppercase block mb-1">Reception (Main)</label>
-                                <input type="text" id="set-rec-loc" placeholder="Location" class="w-full p-2 border rounded mb-2 text-sm">
-                                <input type="datetime-local" id="set-rec-time" class="w-full p-2 border rounded text-sm">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-address-book text-gold-500"></i> Contact List</h3>
+                    <div id="contact-list-inputs" class="space-y-3 mb-4"></div>
+                    <button type="button" onclick="addContactInput()" class="text-xs font-bold text-gold-500 hover:text-gold-600">+ Add Contact Person</button>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-calendar-alt text-gold-500"></i> Event Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 p-4 rounded-xl border">
+                            <label class="text-xs font-bold uppercase block mb-2">Reception (Main)</label>
+                            <input type="text" id="set-rec-loc" placeholder="Location Name" class="w-full p-2 border rounded-lg mb-2 text-sm">
+                            <input type="datetime-local" id="set-rec-time" class="w-full p-2 border rounded-lg text-sm">
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl border">
+                            <div class="flex justify-between mb-2">
+                                <label class="text-xs font-bold uppercase">Matrimony</label>
+                                <label class="text-xs flex items-center gap-1"><input type="checkbox" id="set-mat-enable"> Enable</label>
                             </div>
-                            <div class="bg-gray-50 p-3 rounded">
-                                <div class="flex justify-between mb-1">
-                                    <label class="text-xs font-bold uppercase">Matrimony</label>
-                                    <label class="text-xs flex items-center gap-1"><input type="checkbox" id="set-mat-enable"> Enable</label>
-                                </div>
-                                <input type="text" id="set-mat-loc" placeholder="Location" class="w-full p-2 border rounded mb-2 text-sm">
-                                <input type="datetime-local" id="set-mat-time" class="w-full p-2 border rounded text-sm">
-                            </div>
+                            <input type="text" id="set-mat-loc" placeholder="Location Name" class="w-full p-2 border rounded-lg mb-2 text-sm">
+                            <input type="datetime-local" id="set-mat-time" class="w-full p-2 border rounded-lg text-sm">
                         </div>
                     </div>
+                </div>
 
-                    <button type="submit" class="w-full bg-black text-white py-3 rounded font-bold hover:bg-gray-800">Save Settings</button>
-                </form>
-            </div>
+                <button type="submit" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-black shadow-lg transition uppercase tracking-widest">Save All Changes</button>
+            </form>
         </div>
     </main>
 
-    <div id="modal-add-guest" class="fixed inset-0 bg-black/50 hidden z-[70] flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
-            <h3 class="font-bold mb-4">New Invitation</h3>
-            <input type="text" id="new-code" placeholder="CODE (e.g. SMITH24)" class="w-full p-3 border rounded mb-2 uppercase font-bold">
-            <div class="flex gap-4 mb-2">
-                <label><input type="radio" name="new-side" value="groom" checked> Groom</label>
-                <label><input type="radio" name="new-side" value="bride"> Bride</label>
+    <div id="modal-add-guest" class="fixed inset-0 bg-black/60 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <h3 class="font-bold mb-4 text-xl">Create Invitation</h3>
+            <input type="text" id="new-code" placeholder="CUSTOM CODE (e.g. SMITH24)" class="w-full p-3 border-2 border-gray-200 rounded-xl mb-3 uppercase font-bold focus:border-gold-500 outline-none">
+            <div class="flex gap-4 mb-3">
+                <label class="flex-1 cursor-pointer"><input type="radio" name="new-side" value="groom" checked class="peer hidden"><div class="p-3 border rounded-xl text-center peer-checked:bg-blue-50 peer-checked:border-blue-500 font-bold text-sm">Groom</div></label>
+                <label class="flex-1 cursor-pointer"><input type="radio" name="new-side" value="bride" class="peer hidden"><div class="p-3 border rounded-xl text-center peer-checked:bg-pink-50 peer-checked:border-pink-500 font-bold text-sm">Bride</div></label>
             </div>
-            <input type="text" id="new-names" placeholder="Names (comma separated)" class="w-full p-3 border rounded mb-4">
-            <button onclick="createInvite()" class="w-full bg-black text-white py-3 rounded font-bold">Create</button>
-            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-2 text-gray-500 text-sm">Cancel</button>
+            <input type="text" id="new-names" placeholder="Names (comma separated)" class="w-full p-3 border rounded-xl mb-6">
+            <div class="flex gap-3">
+                <button onclick="$('#modal-add-guest').fadeOut()" class="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl">Cancel</button>
+                <button onclick="createInvite()" class="flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg">Create</button>
+            </div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-xl hidden z-[80]">Saved!</div>
+    <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl hidden z-[80] flex items-center gap-3">
+        <i class="fas fa-check-circle text-green-400"></i> <span>Settings Saved</span>
+    </div>
 
     <script>
-        // --- CONFIG ---
+        // --- 1. FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ",
             authDomain: "wedding-rvsp-e446c.firebaseapp.com",
@@ -222,199 +281,223 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- STATE ---
-        let siteConfig = null;
+        // --- 2. GLOBAL STATE ---
+        let siteConfig = { 
+            theme: 'classic', 
+            photos: ["https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000"],
+            contacts: [],
+            youtube: ""
+        }; 
         let currentInviteId = localStorage.getItem('rsvp_id');
         let isAdmin = localStorage.getItem('rsvp_admin') === 'true';
+        let player; // YouTube Player
+        let slideshowInterval;
 
-        // --- INIT ---
+        // --- 3. INIT ---
         $(document).ready(async () => {
             await loadSiteConfig();
             
-            // If already logged in
             if(isAdmin) {
                 $('#view-landing').hide();
                 $('#view-admin').show();
                 loadAdminData();
             } else if(currentInviteId) {
-                // If guest is logged in, do we show landing or RSVP? 
-                // Let's show Landing, but the button says "Edit RSVP"
+                // If guest, we keep them on landing but change button text or keep logic simpler
+                // For now, let's allow them to enjoy the landing page animations
             }
+
+            // Init YouTube (if API ready, otherwise waiting for callback)
+            if(window.YT && siteConfig.youtube) initYouTube(siteConfig.youtube);
         });
 
-        // --- 1. SITE CONFIG & RENDERING ---
+        // --- 4. LANDING PAGE & THEMES ---
         async function loadSiteConfig() {
             try {
                 const doc = await db.collection('site_config').doc('main').get();
-                if (doc.exists) {
-                    siteConfig = doc.data();
-                } else {
-                    // Default Config if none exists
-                    siteConfig = {
-                        names: "Jane & John",
-                        theme: "classic",
-                        deadline: "2026-12-31",
-                        photo: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000",
-                        reception: { loc: "Grand Hall", time: "2026-09-24T18:00" },
-                        matrimony: { enabled: true, loc: "City Church", time: "2026-09-24T14:00" }
-                    };
-                }
+                if (doc.exists) siteConfig = { ...siteConfig, ...doc.data() };
                 renderLandingPage();
-            } catch (e) { console.error("Config Load Error", e); }
+            } catch (e) { console.error(e); }
         }
 
         function renderLandingPage() {
             const c = siteConfig;
-            const card = $('#invite-card');
-            card.empty().removeClass().addClass('w-full max-w-4xl shadow-2xl overflow-hidden min-h-[80vh] relative flex flex-col md:flex-row');
+            $('body').removeClass().addClass(`text-gray-700 min-h-screen theme-${c.theme}`); // Add theme class to body
+            
+            // 1. SETUP SLIDESHOW
+            const slideWrapper = $('#slideshow-wrapper');
+            slideWrapper.empty();
+            if(c.photos && c.photos.length > 0) {
+                c.photos.forEach((url, i) => {
+                    slideWrapper.append(`<div class="slide-bg ${i===0?'active':''}" style="background-image: url('${url}');"></div>`);
+                });
+                if(c.photos.length > 1) startSlideshow();
+            }
 
-            // Format Dates
+            // 2. SETUP CONTENT CARD (THEME SPECIFIC)
+            const card = $('#invite-card');
             const recDate = new Date(c.reception.time);
             const dateStr = recDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
             const timeStr = recDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' });
 
-            // THEME LOGIC
             let html = '';
             
             if (c.theme === 'classic') {
-                // CLASSIC THEME
-                card.addClass('bg-[#fdfbf7] border-[12px] border-double border-[#e5e7eb]');
+                $('#bg-overlay').addClass('bg-black/40');
+                card.addClass('bg-[#fdfbf7] border-[8px] border-double border-gray-200');
                 html = `
-                    <div class="w-full md:w-1/2 h-64 md:h-auto bg-cover bg-center grayscale-[20%]" style="background-image: url('${c.photo}');"></div>
-                    <div class="w-full md:w-1/2 p-10 flex flex-col justify-center text-center">
-                        <p class="uppercase tracking-[0.3em] text-xs text-gray-500 mb-4">The Wedding Of</p>
-                        <h1 class="font-classic text-5xl md:text-6xl text-gray-800 mb-6 leading-tight">${c.names.replace('&', '<br>&<br>')}</h1>
-                        <div class="w-16 h-px bg-gold-400 mx-auto mb-6"></div>
-                        <p class="font-classic text-lg font-bold mb-1">${dateStr}</p>
-                        <p class="text-sm uppercase tracking-widest mb-8">${c.reception.loc} • ${timeStr}</p>
-                        
-                        ${c.matrimony.enabled ? `
-                        <div class="mb-8 p-4 border border-gold-400/30 rounded-lg">
-                            <p class="font-classic font-bold text-sm">Matrimony</p>
-                            <p class="text-xs text-gray-500">${c.matrimony.loc} • ${new Date(c.matrimony.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</p>
-                        </div>` : ''}
-
-                        <button onclick="$('#view-login').fadeIn()" class="bg-gold-500 text-white font-classic py-3 px-8 rounded shadow-lg hover:bg-gold-400 transition tracking-widest">RSVP NOW</button>
-                    </div>
+                    <p class="uppercase tracking-[0.3em] text-xs text-gray-500 mb-6 animate-[fadeIn_2s]">The Wedding Of</p>
+                    <h1 class="font-classic text-5xl md:text-7xl text-gray-800 mb-8 leading-tight animate-[scaleIn_1.5s]">${c.names.replace('&', '<span class="text-gold-500 text-4xl align-middle mx-2">&</span>')}</h1>
+                    <div class="w-24 h-px bg-gold-400 mb-8"></div>
+                    <p class="font-classic text-xl font-bold mb-2">${dateStr}</p>
+                    <p class="text-xs uppercase tracking-[0.2em] text-gray-500 mb-10">${c.reception.loc} • ${timeStr}</p>
+                    <button onclick="$('#view-login').fadeIn()" class="bg-white text-gray-900 border border-gray-300 font-classic py-3 px-10 hover:bg-gold-500 hover:text-white hover:border-gold-500 transition duration-500 tracking-widest shadow-sm">RSVP</button>
                 `;
             } 
             else if (c.theme === 'modern') {
-                // MODERN THEME
-                card.addClass('bg-white text-black');
+                $('#bg-overlay').addClass('bg-white/10 backdrop-blur-md'); // Frosted glass bg
+                card.addClass('bg-white text-black border-none shadow-none'); // Cleaner card
                 html = `
-                    <div class="w-full h-full absolute inset-0 bg-cover bg-center grayscale opacity-10" style="background-image: url('${c.photo}');"></div>
-                    <div class="relative z-10 w-full h-full flex flex-col items-center justify-center p-8 border-[20px] border-white">
-                        <h1 class="font-modern font-black text-6xl md:text-8xl tracking-tighter mb-2 text-center uppercase leading-none">${c.names.split('&')[0]}<span class="text-gray-300">&</span><br>${c.names.split('&')[1]}</h1>
-                        <div class="bg-black text-white px-6 py-2 text-xl font-bold font-modern mt-6 rotate-[-2deg]">${dateStr}</div>
-                        <div class="mt-8 flex gap-8 text-center font-bold font-modern uppercase tracking-widest text-sm">
-                            <div>
-                                <div class="text-4xl block mb-1">RECEPTION</div>
-                                ${c.reception.loc}<br>${timeStr}
-                            </div>
+                    <div class="text-left w-full">
+                        <h1 class="font-modern font-black text-6xl md:text-8xl tracking-tighter mb-4 uppercase leading-[0.9]">${c.names.split('&')[0]}<br><span class="text-gray-300 ml-12">&</span><br>${c.names.split('&')[1]}</h1>
+                        <div class="flex items-center gap-4 mt-8">
+                            <div class="bg-black text-white px-4 py-1 text-lg font-bold font-modern rotate-[-2deg]">${dateStr}</div>
+                            <div class="text-sm font-bold font-modern uppercase tracking-wide">${c.reception.loc}</div>
                         </div>
-                        <button onclick="$('#view-login').fadeIn()" class="mt-12 border-2 border-black px-10 py-4 font-black hover:bg-black hover:text-white transition uppercase tracking-widest">Respond</button>
+                        <div class="mt-12 text-right">
+                            <button onclick="$('#view-login').fadeIn()" class="bg-black text-white px-12 py-5 font-black hover:bg-transparent hover:text-black border-4 border-black transition uppercase tracking-widest text-lg">Respond</button>
+                        </div>
                     </div>
                 `;
             } 
-            else {
-                // FLORAL THEME
-                card.addClass('bg-rose-50');
+            else { // Floral
+                $('#bg-overlay').addClass('bg-pink-900/20');
+                card.addClass('bg-white/90 rounded-[3rem]');
                 html = `
-                    <div class="w-full md:w-1/2 h-64 md:h-auto bg-cover bg-center rounded-b-[3rem] md:rounded-r-[0] md:rounded-l-[3rem] m-4" style="background-image: url('${c.photo}');"></div>
-                    <div class="w-full md:w-1/2 p-8 flex flex-col justify-center text-center">
-                        <h1 class="font-floral text-6xl md:text-7xl text-rose-900 mb-4">${c.names}</h1>
-                        <p class="font-body italic text-gray-500 mb-6">Request the honor of your presence</p>
-                        
-                        <div class="bg-white/60 p-6 rounded-xl backdrop-blur-sm shadow-sm mb-6 mx-4">
-                            <p class="font-bold text-rose-800 text-lg">${dateStr}</p>
-                            <p class="text-sm text-gray-600">${c.reception.loc} @ ${timeStr}</p>
-                        </div>
-                        
-                        <button onclick="$('#view-login').fadeIn()" class="bg-rose-800 text-white font-serif italic py-3 px-10 rounded-full shadow-lg hover:bg-rose-700 transition">Save your seat</button>
+                    <div class="absolute top-0 left-0 w-32 h-32 bg-[url('https://cdn-icons-png.flaticon.com/512/2926/2926727.png')] opacity-20 bg-contain bg-no-repeat transform -translate-x-4 -translate-y-4"></div>
+                    <h1 class="font-floral text-7xl md:text-8xl text-rose-900 mb-2 drop-shadow-sm p-4">${c.names}</h1>
+                    <p class="font-body italic text-gray-500 mb-8">Together with their families</p>
+                    <div class="border-y border-rose-200 py-6 w-full max-w-md">
+                        <p class="font-bold text-rose-800 text-xl font-classic">${dateStr}</p>
+                        <p class="text-sm text-gray-600 mt-1">${c.reception.loc} @ ${timeStr}</p>
                     </div>
+                    <button onclick="$('#view-login').fadeIn()" class="mt-10 bg-rose-900 text-white font-serif italic py-3 px-12 rounded-full shadow-lg hover:bg-rose-800 transition hover:scale-105">Save your seat</button>
                 `;
             }
-
             card.html(html);
-            $('#view-landing').addClass('active');
         }
 
-        // --- 2. LOGIN LOGIC ---
-        function closeLogin() { $('#view-login').fadeOut(); }
-        
+        function startSlideshow() {
+            if(slideshowInterval) clearInterval(slideshowInterval);
+            const slides = $('.slide-bg');
+            let cur = 0;
+            slideshowInterval = setInterval(() => {
+                slides.eq(cur).removeClass('active');
+                cur = (cur + 1) % slides.length;
+                slides.eq(cur).addClass('active');
+            }, 5000); // 5 seconds per slide
+        }
+
+        // --- 5. YOUTUBE AUDIO LOGIC ---
+        function initYouTube(url) {
+            let vidId = "";
+            try { 
+                // Regex to get ID from various YT url formats
+                vidId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=))([\w\-]{10,12})\b/)[1];
+            } catch(e) { console.log("Invalid YT URL"); return; }
+
+            if(vidId) {
+                $('#music-fab').removeClass('hidden');
+                window.onYouTubeIframeAPIReady = function() {
+                    player = new YT.Player('youtube-player', {
+                        height: '0', width: '0', videoId: vidId,
+                        playerVars: { 'autoplay': 1, 'loop': 1, 'controls': 0, 'showinfo': 0, 'playlist': vidId },
+                        events: { 'onReady': onPlayerReady }
+                    });
+                };
+            }
+        }
+
+        function onPlayerReady(event) {
+            event.target.setVolume(30); // 30% volume
+            // Browser policy blocks autoplay usually. We try. If fail, FAB is there.
+            event.target.playVideo(); 
+            updateMusicIcon(true);
+        }
+
+        function toggleMusic() {
+            if(!player) return;
+            const state = player.getPlayerState();
+            if(state === 1) { // Playing
+                player.pauseVideo();
+                updateMusicIcon(false);
+            } else {
+                player.playVideo();
+                updateMusicIcon(true);
+            }
+        }
+
+        function updateMusicIcon(isPlaying) {
+            const icon = $('#music-icon');
+            const fab = $('#music-fab');
+            if(isPlaying) {
+                icon.removeClass('fa-play').addClass('fa-pause');
+                fab.addClass('music-playing');
+            } else {
+                icon.removeClass('fa-pause').addClass('fa-play');
+                fab.removeClass('music-playing');
+            }
+        }
+
+
+        // --- 6. RSVP & GUEST LOGIC ---
         $('#btn-enter-code').click(async () => {
             const code = $('#input-invite-code').val().trim().toUpperCase();
-            const btn = $('#btn-enter-code');
             
-            // ADMIN CHECK
-            if(code === 'ADMIN') { // HARDCODED FALLBACK or DB check
-                // In production, fetch specific admin doc
-                const adminSnap = await db.collection('invitations').where('isAdmin', '==', true).where('inviteCode', '==', code).get();
-                 // Simulating DB Check for demo:
-                 // In your DB, ensure you have an invite with code 'ADMIN' and isAdmin: true
+            // ADMIN CHECK (Hardcoded fallback or DB)
+            if(code === 'ADMIN') { 
+                const snap = await db.collection('invitations').where('inviteCode','==','ADMIN').get();
+                if(!snap.empty) { localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload(); return; }
             }
 
-            btn.text('Checking...');
-            
             try {
                 const snap = await db.collection('invitations').where('inviteCode', '==', code).limit(1).get();
                 if(snap.empty) {
-                    $('#login-error').text('Invalid Code').removeClass('hidden');
-                    btn.text('ACCESS');
-                    return;
+                    $('#login-error').text('Invalid Code').removeClass('hidden'); return;
                 }
-
                 const doc = snap.docs[0];
                 const data = doc.data();
 
                 if(data.isAdmin) {
-                    localStorage.setItem('rsvp_admin', 'true');
-                    isAdmin = true;
-                    location.reload(); // Reload to hit admin logic
+                    localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload();
                 } else {
-                    localStorage.setItem('rsvp_id', doc.id);
-                    currentInviteId = doc.id;
+                    localStorage.setItem('rsvp_id', doc.id); currentInviteId = doc.id;
                     loadGuestRSVP(doc.id, data);
+                    
+                    // Try playing music on user interaction
+                    if(player && player.getPlayerState() !== 1) toggleMusic();
                 }
-
             } catch(e) { console.error(e); }
         });
 
-        // --- 3. GUEST RSVP LOGIC ---
         function loadGuestRSVP(id, data) {
-            $('#view-login').hide();
-            $('#view-landing').hide();
-            $('#view-rsvp').addClass('active');
-
+            $('#view-login').fadeOut(); $('#view-landing').fadeOut(); $('#view-rsvp').fadeIn();
+            
             $('#guest-group-name').text(data.guestNames);
             $('#rsvp-note').val(data.note || '');
-
-            // Deadline Check
-            const d = new Date(siteConfig.deadline);
-            const now = new Date();
-            if(now > d) {
-                $('#rsvp-locked-msg').removeClass('hidden');
-                $('#btn-submit-rsvp').hide();
-                $('#deadline-badge').text('Closed').addClass('bg-red-500');
-            } else {
-                $('#deadline-badge').text(`Deadline: ${d.toLocaleDateString()}`);
-            }
-
-            // Render Form
-            const c = $('#guest-list-container');
-            c.empty();
             
+            // Render Guests
+            const c = $('#guest-list-container'); c.empty();
             data.guests.forEach((g, i) => {
                 c.append(`
-                    <div class="guest-card p-4 border rounded-lg bg-gray-50" data-idx="${i}">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold">${g.name}</span>
+                    <div class="guest-card bg-gray-50 p-6 rounded-xl border border-gray-100" data-idx="${i}">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-bold text-lg">${g.name}</span>
                             <div class="flex gap-2">
-                                <label class="cursor-pointer px-3 py-1 bg-white border rounded ${g.isAttending===true?'bg-green-100 border-green-500':''}"><input type="radio" name="s${i}" value="y" class="hidden" ${g.isAttending===true?'checked':''}>Yes</label>
-                                <label class="cursor-pointer px-3 py-1 bg-white border rounded ${g.isAttending===false?'bg-red-100 border-red-500':''}"><input type="radio" name="s${i}" value="n" class="hidden" ${g.isAttending===false?'checked':''}>No</label>
+                                <label class="cursor-pointer px-4 py-2 bg-white border rounded-lg shadow-sm ${g.isAttending===true?'bg-green-100 border-green-500 text-green-700':''}"><input type="radio" name="s${i}" value="y" class="hidden" ${g.isAttending===true?'checked':''}>Accept</label>
+                                <label class="cursor-pointer px-4 py-2 bg-white border rounded-lg shadow-sm ${g.isAttending===false?'bg-red-100 border-red-500 text-red-700':''}"><input type="radio" name="s${i}" value="n" class="hidden" ${g.isAttending===false?'checked':''}>Decline</label>
                             </div>
                         </div>
-                        <select class="w-full text-sm p-2 border rounded ${g.isAttending===true?'':'hidden'} meal-sel">
+                        <select class="w-full text-sm p-3 border rounded-lg ${g.isAttending===true?'':'hidden'} meal-sel outline-none focus:border-gold-400">
                             <option value="Standard" ${g.meal=='Standard'?'selected':''}>Standard Meal</option>
                             <option value="Veg" ${g.meal=='Veg'?'selected':''}>Vegetarian</option>
                         </select>
@@ -428,6 +511,23 @@
                 if($(this).val() === 'y') card.find('.meal-sel').slideDown();
                 else card.find('.meal-sel').slideUp();
             });
+
+            // Render Contact List
+            const cl = $('#contact-list-display'); cl.empty();
+            if(siteConfig.contacts) {
+                siteConfig.contacts.forEach(ct => {
+                    cl.append(`
+                        <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                            <div class="w-10 h-10 rounded-full bg-gold-400 flex items-center justify-center text-white font-bold">${ct.name.charAt(0)}</div>
+                            <div>
+                                <div class="font-bold text-sm">${ct.name}</div>
+                                <div class="text-xs text-gold-500 font-bold uppercase">${ct.role}</div>
+                                <div class="text-xs text-gray-500">${ct.phone}</div>
+                            </div>
+                        </div>
+                    `);
+                });
+            }
         }
 
         $('#rsvp-form').submit(async (e) => {
@@ -436,107 +536,99 @@
             $('.guest-card').each(function() {
                 const i = $(this).data('idx');
                 const val = $(this).find(`input[name="s${i}"]:checked`).val();
-                const name = $(this).find('span').text(); // simplistic
-                guests.push({
-                    name: name,
-                    isAttending: val === 'y',
-                    meal: $(this).find('.meal-sel').val()
-                });
+                const name = $(this).find('span').text();
+                guests.push({ name, isAttending: val==='y'?true:(val==='n'?false:null), meal: $(this).find('.meal-sel').val() });
             });
-
-            await db.collection('invitations').doc(currentInviteId).update({
-                guests, note: $('#rsvp-note').val(), status: 'responded'
-            });
-            alert('RSVP Saved!');
-            location.reload();
+            await db.collection('invitations').doc(currentInviteId).update({ guests, note: $('#rsvp-note').val(), status: 'responded' });
+            alert('RSVP Saved!'); location.reload();
         });
 
-        // --- 4. ADMIN LOGIC ---
+        // --- 7. ADMIN DASHBOARD LOGIC ---
         function loadAdminData() {
-            // Load Settings Form
+            // Fill Config Inputs
             if(siteConfig) {
                 $('#set-theme').val(siteConfig.theme);
                 $('#set-names').val(siteConfig.names);
                 $('#set-deadline').val(siteConfig.deadline);
-                $('#set-photo').val(siteConfig.photo);
                 $('#set-rec-loc').val(siteConfig.reception.loc);
                 $('#set-rec-time').val(siteConfig.reception.time);
-                $('#set-mat-enable').prop('checked', siteConfig.matrimony.enabled);
-                $('#set-mat-loc').val(siteConfig.matrimony.loc);
-                $('#set-mat-time').val(siteConfig.matrimony.time);
+                $('#set-music').val(siteConfig.youtube || "");
+                
+                // Photos
+                $('#photo-list-inputs').empty();
+                (siteConfig.photos || []).forEach(url => addPhotoInput(url));
+                
+                // Contacts
+                $('#contact-list-inputs').empty();
+                (siteConfig.contacts || []).forEach(c => addContactInput(c.name, c.role, c.phone));
             }
 
-            // Load Guest List
+            // Real-time Guest List
             db.collection('invitations').onSnapshot(snap => {
-                const list = $('#admin-table-body');
-                list.empty();
+                const list = $('#admin-table-body'); list.empty();
                 let stats = { total:0, acc:0, groom:0, bride:0 };
-
                 snap.forEach(doc => {
                     const d = doc.data();
                     if(d.isAdmin) return;
-                    
-                    // Stats
                     stats.total += d.guests.length;
                     d.guests.forEach(g => { if(g.isAttending) stats.acc++; });
-                    if(d.side === 'groom' && d.status === 'responded') stats.groom += d.guests.filter(g=>g.isAttending).length;
-                    if(d.side === 'bride' && d.status === 'responded') stats.bride += d.guests.filter(g=>g.isAttending).length;
-
-                    list.append(`
-                        <tr class="border-b">
-                            <td class="p-3 font-mono font-bold">${d.inviteCode}</td>
-                            <td class="p-3"><span class="px-2 py-1 rounded text-xs ${d.side==='groom'?'bg-blue-100 text-blue-800':'bg-pink-100 text-pink-800'}">${d.side}</span></td>
-                            <td class="p-3">${d.guestNames}</td>
-                            <td class="p-3">${d.status}</td>
-                            <td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-red-500">×</button></td>
-                        </tr>
-                    `);
+                    if(d.status==='responded') {
+                        const count = d.guests.filter(g=>g.isAttending).length;
+                        if(d.side==='groom') stats.groom+=count; else stats.bride+=count;
+                    }
+                    list.append(`<tr class="border-b"><td class="p-3 font-mono font-bold">${d.inviteCode}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs ${d.side==='groom'?'bg-blue-100 text-blue-800':'bg-pink-100 text-pink-800'}">${d.side}</span></td><td class="p-3">${d.guestNames}</td><td class="p-3">${d.status}</td><td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-red-500">×</button></td></tr>`);
                 });
-
-                $('#stat-total').text(stats.total);
-                $('#stat-attending').text(stats.acc);
-                $('#stat-groom').text(stats.groom);
-                $('#stat-bride').text(stats.bride);
+                $('#stat-total').text(stats.total); $('#stat-attending').text(stats.acc); $('#stat-groom').text(stats.groom); $('#stat-bride').text(stats.bride);
             });
         }
 
-        // Settings Save
+        // --- DYNAMIC INPUTS ---
+        window.addPhotoInput = (val) => {
+            $('#photo-list-inputs').append(`<div class="flex gap-2"><input type="text" value="${val}" class="w-full p-2 border rounded-lg text-sm photo-input" placeholder="Image URL"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
+        }
+        window.addContactInput = (name='', role='', phone='') => {
+            $('#contact-list-inputs').append(`
+                <div class="flex gap-2 contact-row border p-2 rounded-lg bg-gray-50 items-center">
+                    <input type="text" value="${name}" class="w-1/3 p-2 border rounded text-sm c-name" placeholder="Name">
+                    <input type="text" value="${role}" class="w-1/3 p-2 border rounded text-sm c-role" placeholder="Role (e.g. Best Man)">
+                    <input type="text" value="${phone}" class="w-1/3 p-2 border rounded text-sm c-phone" placeholder="Phone">
+                    <button type="button" onclick="$(this).parent().remove()" class="text-red-500 px-2">×</button>
+                </div>
+            `);
+        }
+
         $('#settings-form').submit(async (e) => {
             e.preventDefault();
+            const photos = []; $('.photo-input').each(function(){ if($(this).val()) photos.push($(this).val()) });
+            const contacts = []; $('.contact-row').each(function(){ 
+                contacts.push({ name: $(this).find('.c-name').val(), role: $(this).find('.c-role').val(), phone: $(this).find('.c-phone').val() });
+            });
+            
             const cfg = {
                 theme: $('#set-theme').val(),
                 names: $('#set-names').val(),
                 deadline: $('#set-deadline').val(),
-                photo: $('#set-photo').val(),
                 reception: { loc: $('#set-rec-loc').val(), time: $('#set-rec-time').val() },
-                matrimony: { enabled: $('#set-mat-enable').is(':checked'), loc: $('#set-mat-loc').val(), time: $('#set-mat-time').val() }
+                matrimony: { enabled: $('#set-mat-enable').is(':checked'), loc: $('#set-mat-loc').val(), time: $('#set-mat-time').val() },
+                photos: photos,
+                contacts: contacts,
+                youtube: $('#set-music').val()
             };
             await db.collection('site_config').doc('main').set(cfg);
             $('#toast').fadeIn().delay(2000).fadeOut();
         });
 
-        function switchAdminTab(t) {
-            $('[id^=admin-tab]').hide();
-            $(`#admin-tab-${t}`).show();
-            // Highlight logic skipped for brevity
-        }
-
+        function switchAdminTab(t) { $('[id^=admin-tab]').hide(); $(`#admin-tab-${t}`).show(); }
         async function createInvite() {
-            // ... (Same as previous logic but using modal inputs)
             const code = $('#new-code').val().toUpperCase();
             const names = $('#new-names').val();
             const side = $('input[name="new-side"]:checked').val();
             const guests = names.split(',').map(n => ({name:n.trim(), isAttending:null, meal:'Standard'}));
-            
-            await db.collection('invitations').add({
-                inviteCode: code, guestNames: names, side, guests, status: 'pending'
-            });
+            await db.collection('invitations').add({ inviteCode: code, guestNames: names, side, guests, status: 'pending' });
             $('#modal-add-guest').fadeOut();
         }
-        
         async function delInv(id) { if(confirm('Delete?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
-
     </script>
 </body>
 </html>
