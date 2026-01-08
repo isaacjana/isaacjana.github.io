@@ -22,8 +22,9 @@ enableIndexedDbPersistence(db).catch(err => console.log("Offline mode error:", e
 let currentUser = null;
 let userRecipes = [];
 let historyLogs = [];
+let selectedShopRecipes = [];
 
-// --- HELPER: GET CATEGORY FROM DATE ---
+// --- HELPER ---
 function getCategory(dateObj) {
     const h = dateObj.getHours();
     if (h >= 4 && h < 11) return 'breakfast';
@@ -47,12 +48,7 @@ $('.nav-item').click(function() {
     $('.nav-item').removeClass('text-emerald-500').addClass('text-gray-500');
     $(this).addClass('text-emerald-500').removeClass('text-gray-500');
 });
-
-// --- UI INTERACTIONS ---
-// Collapsible Categories
-$(document).on('click', '.toggle-header', function() {
-    $(this).toggleClass('collapsed');
-});
+$(document).on('click', '.toggle-header', function() { $(this).toggleClass('collapsed'); });
 
 // --- AUTH ---
 onAuthStateChanged(auth, (user) => {
@@ -82,14 +78,11 @@ function initListeners() {
     onSnapshot(hQ, (snap) => {
         historyLogs = snap.docs.map(d => {
             const data = d.data();
-            return { 
-                id: d.id, 
-                ...data,
-                timestamp: data.createdAt ? data.createdAt.toDate() : new Date() 
-            };
+            return { id: d.id, ...data, timestamp: data.createdAt ? data.createdAt.toDate() : new Date() };
         });
 
         renderDashboard();
+        renderWeeklyChart();
         
         if (!$('#date-filter').val()) {
             $('#date-filter').val(new Date().toISOString().split('T')[0]);
@@ -117,7 +110,6 @@ function renderDashboard() {
     const todayStr = new Date().toISOString().split('T')[0];
     const todayLogs = historyLogs.filter(l => l.dateStr === todayStr);
     
-    // Reset Views
     $('#list-breakfast, #list-lunch, #list-dinner, #list-snack').html('');
     $('#section-breakfast, #section-lunch, #section-dinner, #section-snack, #empty-state').addClass('hidden');
 
@@ -127,31 +119,39 @@ function renderDashboard() {
     }
 
     const buckets = { breakfast: [], lunch: [], dinner: [], snack: [] };
-
-    todayLogs.forEach(log => {
-        const cat = getCategory(log.timestamp);
-        buckets[cat].push(log);
-    });
+    todayLogs.forEach(log => buckets[getCategory(log.timestamp)].push(log));
 
     Object.keys(buckets).forEach(key => {
         if (buckets[key].length > 0) {
             $(`#section-${key}`).removeClass('hidden');
-            const html = buckets[key].map(l => `
-                <div class="glass p-4 rounded-xl flex justify-between items-center mb-2">
+            $(`#list-${key}`).html(buckets[key].map(l => `
+                <div class="glass p-4 rounded-xl flex justify-between items-center mb-2 border-l-4 border-white/10">
                     <span class="font-bold text-sm">${l.description}</span>
                     <button class="delete-log-btn text-gray-500 text-xs px-2" data-id="${l.id}">✕</button>
                 </div>
-            `).join('');
-            $(`#list-${key}`).html(html);
+            `).join(''));
         }
     });
+}
+
+function renderWeeklyChart() {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = new Date();
+    let html = '';
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(today.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const count = historyLogs.filter(l => l.dateStr === dateStr).length;
+        const heightPct = Math.min((count / 6) * 100, 100);
+        const color = count >= 3 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : (count > 0 ? 'bg-emerald-500/50' : 'bg-gray-700/30');
+        html += `<div class="flex flex-col items-center gap-2 w-full"><div class="w-2 rounded-full ${color} transition-all duration-500" style="height: ${heightPct || 10}%"></div><span class="text-[9px] uppercase font-bold text-gray-500">${days[d.getDay()]}</span></div>`;
+    }
+    $('#weekly-chart').html(html);
 }
 
 function renderHistory() {
     const dateVal = $('#date-filter').val();
     const catVal = $('#category-filter').val();
-    
-    // Filter by Date AND Category
     const filtered = historyLogs.filter(l => {
         const matchesDate = l.dateStr === dateVal;
         const matchesCat = catVal === 'all' || getCategory(l.timestamp) === catVal;
@@ -160,18 +160,12 @@ function renderHistory() {
 
     const html = filtered.map(l => `
         <div class="glass p-4 rounded-xl mb-2 flex justify-between items-center">
-            <div>
-                <span class="block font-bold">${l.description}</span>
-                <span class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">${getCategory(l.timestamp)}</span>
-            </div>
-            <span class="text-xs text-gray-500">${l.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            <div><span class="block font-bold">${l.description}</span><span class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">${getCategory(l.timestamp)}</span></div>
+            <span class="text-xs text-gray-500">${l.timestamp.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
         </div>
     `).join('');
-    
-    $('#calendar-results').html(html || '<p class="text-center text-gray-500 py-4">No entries match filters.</p>');
+    $('#calendar-results').html(html || '<p class="text-center text-gray-500 py-4">No entries.</p>');
 }
-
-// Bind Filter Events
 $('#date-filter, #category-filter').on('change', renderHistory);
 
 // --- ANALYSIS ---
@@ -187,42 +181,79 @@ function runAnalysis() {
     
     const pick = candidates[Math.floor(Math.random() * candidates.length)];
     $('#suggested-meal-name').text(pick.name);
-    $('#suggested-reason').text(candidates.length < userRecipes.length ? "You haven't had this lately." : "A staple favorite.");
-    
+    $('#suggested-reason').text(candidates.length < userRecipes.length ? "Based on recent habits." : "A staple favorite.");
     $('#quick-log-suggested').removeClass('hidden').off().on('click', () => doLog(pick.name));
 }
 
+// --- SHOPPING LIST LOGIC ---
+function renderShopSelector() {
+    $('#shop-recipe-select').html(userRecipes.map(r => `
+        <div class="shop-item glass p-3 rounded-xl flex justify-between items-center cursor-pointer border border-transparent hover:border-indigo-500/50 mb-2" data-id="${r.id}">
+            <span class="font-bold text-sm">${r.name}</span>
+            <div class="w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center"><div class="check-dot w-2 h-2 rounded-full bg-indigo-500 hidden"></div></div>
+        </div>
+    `).join('') || '<p class="text-center text-gray-500">No recipes.</p>');
+}
+
+$(document).on('click', '.shop-item', function() {
+    const id = $(this).data('id');
+    const dot = $(this).find('.check-dot');
+    if (selectedShopRecipes.includes(id)) {
+        selectedShopRecipes = selectedShopRecipes.filter(i => i !== id);
+        dot.addClass('hidden');
+        $(this).removeClass('border-indigo-500');
+    } else {
+        selectedShopRecipes.push(id);
+        dot.removeClass('hidden');
+        $(this).addClass('border-indigo-500');
+    }
+    generateShopText();
+});
+
+function generateShopText() {
+    if (selectedShopRecipes.length === 0) {
+        $('#shop-output, #copy-shop-list').addClass('hidden');
+        return;
+    }
+    let text = "🛒 MUNCH LIST\n\n";
+    selectedShopRecipes.forEach(id => {
+        const r = userRecipes.find(ur => ur.id === id);
+        text += `[ ] ${r.name.toUpperCase()}\n    ${r.instructions || 'No details'}\n\n`;
+    });
+    $('#shop-output').val(text).removeClass('hidden');
+    $('#copy-shop-list').removeClass('hidden');
+}
+
+$('#copy-shop-list').click(function() {
+    const copyText = document.getElementById("shop-output");
+    copyText.select();
+    navigator.clipboard.writeText(copyText.value);
+    $(this).text("COPIED!");
+    setTimeout(() => $(this).text("COPY"), 2000);
+});
+
 // --- ACTIONS ---
 async function doLog(name) {
-    await addDoc(collection(db, "meals"), {
-        uid: currentUser.uid,
-        description: name,
-        createdAt: serverTimestamp(),
-        dateStr: new Date().toISOString().split('T')[0]
-    });
+    await addDoc(collection(db, "meals"), { uid: currentUser.uid, description: name, createdAt: serverTimestamp(), dateStr: new Date().toISOString().split('T')[0] });
     if (window.navigator.vibrate) window.navigator.vibrate(10);
     $('#modal-container').fadeOut();
 }
 
-$(document).on('click', '.delete-log-btn', async function() {
-    if(confirm("Delete log?")) await deleteDoc(doc(db, "meals", $(this).data('id')));
-});
-$(document).on('click', '.delete-recipe-btn', async function() {
-    if(confirm("Delete recipe?")) await deleteDoc(doc(db, "recipes", $(this).data('id')));
-});
+$(document).on('click', '.delete-log-btn', async function() { if(confirm("Delete log?")) await deleteDoc(doc(db, "meals", $(this).data('id'))); });
+$(document).on('click', '.delete-recipe-btn', async function() { if(confirm("Delete recipe?")) await deleteDoc(doc(db, "recipes", $(this).data('id'))); });
 
 // --- MODALS ---
-$('#open-log-modal').click(() => { $('#modal-container').fadeIn().css('display','flex'); $('.modal-content').hide(); $('#log-form').show(); });
-$('#open-recipe-modal').click(() => { $('#modal-container').fadeIn().css('display','flex'); $('.modal-content').hide(); $('#recipe-form').show(); });
-$('.close-modal').click(() => $('#modal-container').fadeOut());
+const openModal = (id) => { $('#modal-container').fadeIn().css('display','flex'); $('.modal-content').addClass('hidden'); $(`#${id}`).removeClass('hidden'); };
+$('#open-log-modal').click(() => openModal('log-form'));
+$('#open-recipe-modal').click(() => openModal('recipe-form'));
+$('#open-shopping-modal').click(() => { openModal('shopping-modal'); renderShopSelector(); });
+$('.close-modal').click(() => { $('#modal-container').fadeOut(); selectedShopRecipes = []; });
 
 $('#log-form').submit((e) => { e.preventDefault(); doLog($('#logDescription').val()); $('#log-form')[0].reset(); });
 $('#recipe-form').submit(async (e) => {
     e.preventDefault();
     await addDoc(collection(db, "recipes"), { uid: currentUser.uid, name: $('#recipeName').val(), instructions: $('#recipeInstructions').val() || "" });
-    $('#modal-container').fadeOut(); 
-    $('#recipe-form')[0].reset();
+    $('#modal-container').fadeOut(); $('#recipe-form')[0].reset();
 });
 
-// Register SW
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
