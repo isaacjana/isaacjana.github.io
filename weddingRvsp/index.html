@@ -36,36 +36,32 @@
     </script>
 
     <style>
+        /* Default state: Hidden */
         .page-section { display: none; }
-        .page-section.active { display: block; }
         
-        /* --- SLIDESHOW TRANSITIONS --- */
+        /* Loading Screen Styles */
+        #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #D4AF37; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Slideshow & Animations */
         .slide-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: 0; }
         .slide-bg.active { opacity: 1; }
 
-        /* --- THEME ANIMATIONS --- */
-        
-        /* CLASSIC: Ken Burns Effect (Slow Zoom) */
+        /* Animations */
         .theme-classic .slide-bg.active { animation: kenBurns 10s infinite alternate; }
         @keyframes kenBurns { from { transform: scale(1); } to { transform: scale(1.1); } }
-        .theme-classic .content-box { animation: fadeInClassic 2s ease-out; }
-        @keyframes fadeInClassic { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* MODERN: Slide Up Reveal */
-        .theme-modern .content-box { animation: slideUpModern 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes slideUpModern { from { opacity: 0; transform: translateY(100px); } to { opacity: 1; transform: translateY(0); } }
-        .theme-modern .slide-bg { filter: grayscale(100%); transition: opacity 0.5s, filter 0.5s; }
-
-        /* FLORAL: Sway & Fade */
-        .theme-floral .content-box { animation: bloomFloral 1.5s ease-in-out; }
-        @keyframes bloomFloral { 0% { opacity: 0; transform: scale(0.95) rotate(-1deg); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
         
-        /* Music Control Pulse */
         .music-playing { animation: pulse-ring 2s infinite; }
         @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
     </style>
 </head>
 <body class="text-gray-700 min-h-screen bg-gray-50 overflow-x-hidden">
+
+    <div id="loading-screen">
+        <div class="spinner mb-4"></div>
+        <div class="text-sm font-bold tracking-widest text-gray-400">LOADING WEDDING...</div>
+    </div>
 
     <div id="youtube-player" class="hidden"></div>
 
@@ -74,201 +70,121 @@
     </button>
 
     <div id="view-landing" class="page-section min-h-screen w-full relative">
-        <div id="slideshow-wrapper" class="absolute inset-0 z-0 overflow-hidden">
-            </div>
-        
+        <div id="slideshow-wrapper" class="absolute inset-0 z-0 overflow-hidden"></div>
         <div id="bg-overlay" class="absolute inset-0 z-10 bg-black/30 transition-colors duration-500"></div>
 
         <div class="relative z-20 min-h-screen flex items-center justify-center p-4">
-            <div id="invite-card" class="content-box w-full max-w-4xl min-h-[70vh] shadow-2xl overflow-hidden relative transition-all duration-500 flex flex-col items-center justify-center text-center p-8 md:p-12 backdrop-blur-sm">
+            <div id="invite-card" class="w-full max-w-4xl min-h-[70vh] shadow-2xl overflow-hidden relative transition-all duration-500 flex flex-col items-center justify-center text-center p-8 md:p-12 backdrop-blur-sm">
                 </div>
         </div>
 
         <div class="absolute bottom-4 left-0 right-0 z-30 text-center">
             <button onclick="$('#view-landing').hide(); $('#view-login').fadeIn();" class="text-[10px] text-white/60 hover:text-white uppercase tracking-widest bg-black/20 px-3 py-1 rounded-full backdrop-blur">
-                Have a code? Login
+                Admin / Guest Login
             </button>
         </div>
     </div>
 
     <div id="view-login" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-white max-w-sm w-full p-8 rounded-2xl shadow-2xl relative animate-bounce-in">
+        <div class="bg-white max-w-sm w-full p-8 rounded-2xl shadow-2xl relative">
             <button onclick="$('#view-login').fadeOut(); $('#view-landing').fadeIn();" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             <h2 class="text-2xl font-bold text-center mb-6 font-classic text-gray-800">Private Access</h2>
-            <input type="text" id="input-invite-code" placeholder="ENTER CODE" class="w-full p-4 border-2 border-gray-100 rounded-xl text-center font-bold text-xl uppercase tracking-[0.2em] focus:outline-none focus:border-gold-500 mb-4 transition">
+            <input type="text" id="input-invite-code" placeholder="ENTER CODE" class="w-full p-4 border-2 border-gray-100 rounded-xl text-center font-bold text-xl uppercase tracking-[0.2em] focus:outline-none focus:border-gold-500 mb-4">
             <button id="btn-enter-code" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg tracking-widest text-sm">UNLOCK</button>
             <div id="login-error" class="hidden text-red-500 text-center mt-3 text-xs font-bold uppercase tracking-wide"></div>
         </div>
     </div>
 
     <main id="view-rsvp" class="page-section max-w-3xl mx-auto w-full p-4 md:p-8 pt-10 pb-24">
-        <button onclick="location.reload()" class="mb-6 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-gray-800 transition"><i class="fas fa-arrow-left mr-2"></i> Back Home</button>
+        <button onclick="location.reload()" class="mb-6 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-gray-800"><i class="fas fa-arrow-left mr-2"></i> Back Home</button>
         
         <div class="bg-white rounded-[2rem] shadow-xl overflow-hidden mb-8 border border-gray-100">
-            <div class="bg-gray-900 p-10 text-center text-white relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+            <div class="bg-gray-900 p-10 text-center text-white relative">
                 <h2 class="text-4xl font-classic mb-2 relative z-10">RSVP</h2>
                 <p class="opacity-80 text-sm relative z-10">Welcome, <span id="guest-group-name" class="font-bold text-gold-400"></span></p>
                 <div id="deadline-badge" class="mt-4 inline-block bg-white/10 border border-white/20 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest relative z-10"></div>
             </div>
             
             <div class="p-8 md:p-10">
-                <div id="rsvp-locked-msg" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-8 text-red-700 text-sm font-bold">
-                    <i class="fas fa-lock mr-2"></i> RSVP Deadline has passed.
-                </div>
-                
+                <div id="rsvp-locked-msg" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-8 text-red-700 text-sm font-bold">Deadline passed.</div>
                 <form id="rsvp-form" class="space-y-6">
                     <div id="guest-list-container" class="space-y-4"></div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Message to the Couple</label>
-                        <textarea id="rsvp-note" rows="3" class="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-1 focus:ring-gold-400 outline-none text-sm transition" placeholder="Song requests, dietary details, or well wishes..."></textarea>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Message</label>
+                        <textarea id="rsvp-note" rows="3" class="w-full p-4 border rounded-xl bg-gray-50"></textarea>
                     </div>
-                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 hover:bg-gold-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-gold-200/50 transition transform active:scale-[0.99] uppercase tracking-widest text-sm">Confirm RSVP</button>
+                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 hover:bg-gold-400 text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-widest text-sm">Confirm RSVP</button>
                 </form>
             </div>
         </div>
 
         <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-8">
-            <h3 class="font-classic text-xl text-center mb-6 border-b pb-4">Key Contacts</h3>
-            <div id="contact-list-display" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                </div>
+            <h3 class="font-classic text-xl text-center mb-6 border-b pb-4">Contacts</h3>
+            <div id="contact-list-display" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
     </main>
 
     <main id="view-admin" class="page-section max-w-6xl mx-auto w-full p-6">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div>
-                <h2 class="text-2xl font-bold font-classic text-gray-800">Wedding Dashboard</h2>
-                <p class="text-xs text-gray-400 uppercase tracking-widest">Manage your big day</p>
-            </div>
-            <div class="flex gap-2 mt-4 md:mt-0">
-                <button onclick="switchAdminTab('guests')" class="px-5 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-xs font-bold uppercase tracking-wide transition border" id="tab-btn-guests">Guests</button>
-                <button onclick="switchAdminTab('settings')" class="px-5 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-xs font-bold uppercase tracking-wide transition border" id="tab-btn-settings">Site Config</button>
-                <button onclick="logout()" class="px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition"><i class="fas fa-sign-out-alt"></i></button>
+        <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-bold font-classic">Dashboard</h2>
+            <div class="flex gap-2">
+                <button onclick="switchAdminTab('guests')" class="px-5 py-2 rounded-lg bg-gray-50 font-bold border">Guests</button>
+                <button onclick="switchAdminTab('settings')" class="px-5 py-2 rounded-lg bg-gray-50 font-bold border">Config</button>
+                <button onclick="logout()" class="px-4 py-2 text-red-500 border rounded-lg"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </div>
 
         <div id="admin-tab-guests">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">Total Seats</div>
-                    <div class="text-3xl font-black text-gray-800" id="stat-total">0</div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-green-100 bg-green-50/30">
-                    <div class="text-[10px] font-bold uppercase text-green-600 tracking-widest mb-1">Attending</div>
-                    <div class="text-3xl font-black text-green-800" id="stat-attending">0</div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 bg-blue-50/30">
-                    <div class="text-[10px] font-bold uppercase text-blue-600 tracking-widest mb-1">Groom Side</div>
-                    <div class="text-3xl font-black text-blue-800" id="stat-groom">0</div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-pink-100 bg-pink-50/30">
-                    <div class="text-[10px] font-bold uppercase text-pink-600 tracking-widest mb-1">Bride Side</div>
-                    <div class="text-3xl font-black text-pink-800" id="stat-bride">0</div>
-                </div>
+            <div class="grid grid-cols-4 gap-4 mb-6 text-center">
+                <div class="bg-white p-4 rounded-2xl shadow border">Total: <span id="stat-total" class="font-black">0</span></div>
+                <div class="bg-white p-4 rounded-2xl shadow border text-green-600">Attending: <span id="stat-attending" class="font-black">0</span></div>
+                <div class="bg-white p-4 rounded-2xl shadow border text-blue-600">Groom: <span id="stat-groom" class="font-black">0</span></div>
+                <div class="bg-white p-4 rounded-2xl shadow border text-pink-600">Bride: <span id="stat-bride" class="font-black">0</span></div>
             </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-4 border-b flex flex-col md:flex-row justify-between items-center bg-gray-50/50 gap-4">
-                    <div class="flex gap-2 w-full max-w-md">
-                        <input type="text" id="admin-search" placeholder="Search guests..." class="flex-1 p-3 border rounded-xl text-sm outline-none focus:border-gold-400">
-                        <select id="admin-filter" class="p-3 border rounded-xl text-sm outline-none"><option value="all">All</option><option value="groom">Groom</option><option value="bride">Bride</option></select>
-                    </div>
-                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-gray-900 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition shadow-lg w-full md:w-auto">+ New Invite</button>
+            <div class="bg-white rounded-2xl shadow border overflow-hidden p-4">
+                <div class="flex gap-2 mb-4">
+                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-black text-white px-6 py-2 rounded-lg font-bold">+ New Invite</button>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left"><tbody id="admin-table-body"></tbody></table>
-                </div>
+                <table class="w-full text-sm text-left"><tbody id="admin-table-body"></tbody></table>
             </div>
         </div>
 
         <div id="admin-tab-settings" class="hidden">
-            <form id="settings-form" class="max-w-4xl mx-auto space-y-8">
-                
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-paint-brush text-gold-500"></i> Appearance & Basics</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Theme</label>
-                            <select id="set-theme" class="w-full p-3 mt-1 border rounded-xl bg-gray-50">
-                                <option value="classic">🏛️ Classic Elegant</option>
-                                <option value="modern">🔳 Modern Minimal</option>
-                                <option value="floral">🌸 Romantic Floral</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Couple Names</label>
-                            <input type="text" id="set-names" class="w-full p-3 mt-1 border rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">RSVP Deadline</label>
-                            <input type="date" id="set-deadline" class="w-full p-3 mt-1 border rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">YouTube Music URL</label>
-                            <input type="text" id="set-music" placeholder="https://youtube.com/watch?v=..." class="w-full p-3 mt-1 border rounded-xl">
-                        </div>
-                    </div>
+            <form id="settings-form" class="max-w-4xl mx-auto space-y-6 bg-white p-8 rounded-2xl shadow">
+                <div class="grid grid-cols-2 gap-6">
+                    <div><label class="font-bold text-xs">Theme</label><select id="set-theme" class="w-full p-2 border rounded"><option value="classic">Classic</option><option value="modern">Modern</option><option value="floral">Floral</option></select></div>
+                    <div><label class="font-bold text-xs">Names</label><input type="text" id="set-names" class="w-full p-2 border rounded"></div>
+                    <div><label class="font-bold text-xs">Deadline</label><input type="date" id="set-deadline" class="w-full p-2 border rounded"></div>
+                    <div><label class="font-bold text-xs">YouTube URL</label><input type="text" id="set-music" class="w-full p-2 border rounded"></div>
                 </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-images text-gold-500"></i> Background Photos</h3>
-                    <div id="photo-list-inputs" class="space-y-3 mb-4"></div>
-                    <button type="button" onclick="addPhotoInput('')" class="text-xs font-bold text-gold-500 hover:text-gold-600">+ Add Another Photo URL</button>
+                <div>
+                    <label class="font-bold text-xs">Background Photos (URLs)</label>
+                    <div id="photo-list-inputs" class="space-y-2 mb-2"></div>
+                    <button type="button" onclick="addPhotoInput('')" class="text-xs text-gold-500">+ Add Photo</button>
                 </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-address-book text-gold-500"></i> Contact List</h3>
-                    <div id="contact-list-inputs" class="space-y-3 mb-4"></div>
-                    <button type="button" onclick="addContactInput()" class="text-xs font-bold text-gold-500 hover:text-gold-600">+ Add Contact Person</button>
+                <div>
+                    <label class="font-bold text-xs">Contacts</label>
+                    <div id="contact-list-inputs" class="space-y-2 mb-2"></div>
+                    <button type="button" onclick="addContactInput()" class="text-xs text-gold-500">+ Add Contact</button>
                 </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fas fa-calendar-alt text-gold-500"></i> Event Details</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-gray-50 p-4 rounded-xl border">
-                            <label class="text-xs font-bold uppercase block mb-2">Reception (Main)</label>
-                            <input type="text" id="set-rec-loc" placeholder="Location Name" class="w-full p-2 border rounded-lg mb-2 text-sm">
-                            <input type="datetime-local" id="set-rec-time" class="w-full p-2 border rounded-lg text-sm">
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-xl border">
-                            <div class="flex justify-between mb-2">
-                                <label class="text-xs font-bold uppercase">Matrimony</label>
-                                <label class="text-xs flex items-center gap-1"><input type="checkbox" id="set-mat-enable"> Enable</label>
-                            </div>
-                            <input type="text" id="set-mat-loc" placeholder="Location Name" class="w-full p-2 border rounded-lg mb-2 text-sm">
-                            <input type="datetime-local" id="set-mat-time" class="w-full p-2 border rounded-lg text-sm">
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-black shadow-lg transition uppercase tracking-widest">Save All Changes</button>
+                <button type="submit" class="w-full bg-black text-white py-3 rounded font-bold">Save Config</button>
             </form>
         </div>
     </main>
 
-    <div id="modal-add-guest" class="fixed inset-0 bg-black/60 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
-            <h3 class="font-bold mb-4 text-xl">Create Invitation</h3>
-            <input type="text" id="new-code" placeholder="CUSTOM CODE (e.g. SMITH24)" class="w-full p-3 border-2 border-gray-200 rounded-xl mb-3 uppercase font-bold focus:border-gold-500 outline-none">
-            <div class="flex gap-4 mb-3">
-                <label class="flex-1 cursor-pointer"><input type="radio" name="new-side" value="groom" checked class="peer hidden"><div class="p-3 border rounded-xl text-center peer-checked:bg-blue-50 peer-checked:border-blue-500 font-bold text-sm">Groom</div></label>
-                <label class="flex-1 cursor-pointer"><input type="radio" name="new-side" value="bride" class="peer hidden"><div class="p-3 border rounded-xl text-center peer-checked:bg-pink-50 peer-checked:border-pink-500 font-bold text-sm">Bride</div></label>
-            </div>
-            <input type="text" id="new-names" placeholder="Names (comma separated)" class="w-full p-3 border rounded-xl mb-6">
-            <div class="flex gap-3">
-                <button onclick="$('#modal-add-guest').fadeOut()" class="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl">Cancel</button>
-                <button onclick="createInvite()" class="flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg">Create</button>
-            </div>
+    <div id="modal-add-guest" class="fixed inset-0 bg-black/60 hidden z-[70] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md">
+            <h3 class="font-bold mb-4">New Invite</h3>
+            <input type="text" id="new-code" placeholder="CODE" class="w-full p-2 border rounded mb-2 uppercase">
+            <div class="flex gap-4 mb-2"><label><input type="radio" name="new-side" value="groom" checked> Groom</label><label><input type="radio" name="new-side" value="bride"> Bride</label></div>
+            <input type="text" id="new-names" placeholder="Names..." class="w-full p-2 border rounded mb-4">
+            <button onclick="createInvite()" class="w-full bg-black text-white py-2 rounded font-bold">Create</button>
+            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-2 text-gray-500">Cancel</button>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl hidden z-[80] flex items-center gap-3">
-        <i class="fas fa-check-circle text-green-400"></i> <span>Settings Saved</span>
-    </div>
-
     <script>
-        // --- 1. FIREBASE CONFIG ---
+        // 1. FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ",
             authDomain: "wedding-rvsp-e446c.firebaseapp.com",
@@ -281,205 +197,113 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- 2. GLOBAL STATE ---
+        // 2. STATE
         let siteConfig = { 
             theme: 'classic', 
+            names: 'Jane & John',
+            deadline: '2026-12-31',
+            reception: { loc: 'Grand Hall', time: '2026-09-24T18:00' },
             photos: ["https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000"],
             contacts: [],
             youtube: ""
-        }; 
+        };
         let currentInviteId = localStorage.getItem('rsvp_id');
         let isAdmin = localStorage.getItem('rsvp_admin') === 'true';
-        let player; // YouTube Player
-        let slideshowInterval;
+        let player, slideshowInterval;
 
-        // --- 3. INIT ---
+        // 3. STARTUP
         $(document).ready(async () => {
+            // Force load after 2 seconds if DB hangs (Fail-safe)
+            setTimeout(() => {
+                if($('#loading-screen').is(':visible')) {
+                    console.log("Forcing load...");
+                    completeLoading();
+                }
+            }, 2500);
+
             await loadSiteConfig();
+        });
+
+        async function loadSiteConfig() {
+            try {
+                const doc = await db.collection('site_config').doc('main').get();
+                if (doc.exists) siteConfig = { ...siteConfig, ...doc.data() };
+            } catch (e) { console.error("DB Error", e); }
+            finally { completeLoading(); }
+        }
+
+        function completeLoading() {
+            $('#loading-screen').fadeOut();
             
+            // Render Landing
+            renderLandingPage();
+
+            // Routing
             if(isAdmin) {
                 $('#view-landing').hide();
                 $('#view-admin').show();
                 loadAdminData();
-            } else if(currentInviteId) {
-                // If guest, we keep them on landing but change button text or keep logic simpler
-                // For now, let's allow them to enjoy the landing page animations
+            } else if (currentInviteId) {
+                // Optional: Auto-load RSVP for returning guests? 
+                // For now, let them see the landing page.
             }
 
-            // Init YouTube (if API ready, otherwise waiting for callback)
+            // Music
             if(window.YT && siteConfig.youtube) initYouTube(siteConfig.youtube);
-        });
-
-        // --- 4. LANDING PAGE & THEMES ---
-        // REPLACE THE OLD loadSiteConfig FUNCTION WITH THIS:
-        async function loadSiteConfig() {
-            try {
-                const doc = await db.collection('site_config').doc('main').get();
-                if (doc.exists) {
-                    // Merge database settings with defaults
-                    siteConfig = { ...siteConfig, ...doc.data() };
-                }
-            } catch (e) { 
-                console.error("Database Error (Using Defaults):", e);
-                // Even if DB fails, we will use the default variables set at the top
-            } finally {
-                // THIS RUNS NO MATTER WHAT -> SHOWS THE PAGE
-                renderLandingPage();
-                
-                // If we are logged in as admin, go to admin view
-                if(isAdmin) {
-                    $('#view-landing').hide();
-                    $('#view-admin').show();
-                    loadAdminData();
-                }
-            }
         }
 
         function renderLandingPage() {
             const c = siteConfig;
-            $('body').removeClass().addClass(`text-gray-700 min-h-screen theme-${c.theme}`); // Add theme class to body
-            
-            // 1. SETUP SLIDESHOW
-            const slideWrapper = $('#slideshow-wrapper');
-            slideWrapper.empty();
-            if(c.photos && c.photos.length > 0) {
-                c.photos.forEach((url, i) => {
-                    slideWrapper.append(`<div class="slide-bg ${i===0?'active':''}" style="background-image: url('${url}');"></div>`);
-                });
-                if(c.photos.length > 1) startSlideshow();
+            $('body').removeClass().addClass(`text-gray-700 min-h-screen theme-${c.theme}`);
+
+            // Slideshow
+            const wrap = $('#slideshow-wrapper'); wrap.empty();
+            if(c.photos && c.photos.length) {
+                c.photos.forEach((url, i) => wrap.append(`<div class="slide-bg ${i===0?'active':''}" style="background-image: url('${url}');"></div>`));
+                if(c.photos.length > 1) {
+                    if(slideshowInterval) clearInterval(slideshowInterval);
+                    let cur = 0;
+                    const slides = $('.slide-bg');
+                    slideshowInterval = setInterval(() => {
+                        slides.eq(cur).removeClass('active');
+                        cur = (cur + 1) % slides.length;
+                        slides.eq(cur).addClass('active');
+                    }, 5000);
+                }
             }
 
-            // 2. SETUP CONTENT CARD (THEME SPECIFIC)
+            // Card Content
             const card = $('#invite-card');
-            const recDate = new Date(c.reception.time);
-            const dateStr = recDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-            const timeStr = recDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' });
+            const d = new Date(c.reception.time);
+            const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
             let html = '';
-            
-            if (c.theme === 'classic') {
+            if(c.theme === 'classic') {
                 $('#bg-overlay').addClass('bg-black/40');
                 card.addClass('bg-[#fdfbf7] border-[8px] border-double border-gray-200');
-                html = `
-                    <p class="uppercase tracking-[0.3em] text-xs text-gray-500 mb-6 animate-[fadeIn_2s]">The Wedding Of</p>
-                    <h1 class="font-classic text-5xl md:text-7xl text-gray-800 mb-8 leading-tight animate-[scaleIn_1.5s]">${c.names.replace('&', '<span class="text-gold-500 text-4xl align-middle mx-2">&</span>')}</h1>
-                    <div class="w-24 h-px bg-gold-400 mb-8"></div>
-                    <p class="font-classic text-xl font-bold mb-2">${dateStr}</p>
-                    <p class="text-xs uppercase tracking-[0.2em] text-gray-500 mb-10">${c.reception.loc} • ${timeStr}</p>
-                    <button onclick="$('#view-login').fadeIn()" class="bg-white text-gray-900 border border-gray-300 font-classic py-3 px-10 hover:bg-gold-500 hover:text-white hover:border-gold-500 transition duration-500 tracking-widest shadow-sm">RSVP</button>
-                `;
-            } 
-            else if (c.theme === 'modern') {
-                $('#bg-overlay').addClass('bg-white/10 backdrop-blur-md'); // Frosted glass bg
-                card.addClass('bg-white text-black border-none shadow-none'); // Cleaner card
-                html = `
-                    <div class="text-left w-full">
-                        <h1 class="font-modern font-black text-6xl md:text-8xl tracking-tighter mb-4 uppercase leading-[0.9]">${c.names.split('&')[0]}<br><span class="text-gray-300 ml-12">&</span><br>${c.names.split('&')[1]}</h1>
-                        <div class="flex items-center gap-4 mt-8">
-                            <div class="bg-black text-white px-4 py-1 text-lg font-bold font-modern rotate-[-2deg]">${dateStr}</div>
-                            <div class="text-sm font-bold font-modern uppercase tracking-wide">${c.reception.loc}</div>
-                        </div>
-                        <div class="mt-12 text-right">
-                            <button onclick="$('#view-login').fadeIn()" class="bg-black text-white px-12 py-5 font-black hover:bg-transparent hover:text-black border-4 border-black transition uppercase tracking-widest text-lg">Respond</button>
-                        </div>
-                    </div>
-                `;
-            } 
-            else { // Floral
+                html = `<p class="uppercase tracking-[0.3em] text-xs text-gray-500 mb-6">The Wedding Of</p><h1 class="font-classic text-5xl md:text-7xl text-gray-800 mb-8">${c.names}</h1><div class="w-24 h-px bg-gold-400 mb-8"></div><p class="font-classic text-xl font-bold mb-2">${dateStr}</p><p class="text-xs uppercase tracking-widest text-gray-500 mb-10">${c.reception.loc}</p><button onclick="$('#view-login').fadeIn()" class="bg-white border font-classic py-3 px-10 hover:bg-gold-500 hover:text-white transition">RSVP</button>`;
+            } else if (c.theme === 'modern') {
+                $('#bg-overlay').addClass('bg-white/10 backdrop-blur-md');
+                card.addClass('bg-white text-black border-none shadow-none');
+                html = `<h1 class="font-modern font-black text-6xl md:text-8xl tracking-tighter mb-4 uppercase leading-[0.9]">${c.names}</h1><div class="bg-black text-white px-4 py-1 text-lg font-bold font-modern rotate-[-2deg] mt-4">${dateStr}</div><button onclick="$('#view-login').fadeIn()" class="mt-12 border-4 border-black px-12 py-4 font-black hover:bg-black hover:text-white transition uppercase">Respond</button>`;
+            } else {
                 $('#bg-overlay').addClass('bg-pink-900/20');
                 card.addClass('bg-white/90 rounded-[3rem]');
-                html = `
-                    <div class="absolute top-0 left-0 w-32 h-32 bg-[url('https://cdn-icons-png.flaticon.com/512/2926/2926727.png')] opacity-20 bg-contain bg-no-repeat transform -translate-x-4 -translate-y-4"></div>
-                    <h1 class="font-floral text-7xl md:text-8xl text-rose-900 mb-2 drop-shadow-sm p-4">${c.names}</h1>
-                    <p class="font-body italic text-gray-500 mb-8">Together with their families</p>
-                    <div class="border-y border-rose-200 py-6 w-full max-w-md">
-                        <p class="font-bold text-rose-800 text-xl font-classic">${dateStr}</p>
-                        <p class="text-sm text-gray-600 mt-1">${c.reception.loc} @ ${timeStr}</p>
-                    </div>
-                    <button onclick="$('#view-login').fadeIn()" class="mt-10 bg-rose-900 text-white font-serif italic py-3 px-12 rounded-full shadow-lg hover:bg-rose-800 transition hover:scale-105">Save your seat</button>
-                `;
+                html = `<h1 class="font-floral text-7xl md:text-8xl text-rose-900 mb-2 p-4">${c.names}</h1><p class="font-body italic text-gray-500 mb-8">Request the honor of your presence</p><div class="border-y border-rose-200 py-6 w-full max-w-md"><p class="font-bold text-rose-800 text-xl font-classic">${dateStr}</p></div><button onclick="$('#view-login').fadeIn()" class="mt-10 bg-rose-900 text-white font-serif italic py-3 px-12 rounded-full hover:bg-rose-800 transition">Save your seat</button>`;
             }
             card.html(html);
         }
 
-        function startSlideshow() {
-            if(slideshowInterval) clearInterval(slideshowInterval);
-            const slides = $('.slide-bg');
-            let cur = 0;
-            slideshowInterval = setInterval(() => {
-                slides.eq(cur).removeClass('active');
-                cur = (cur + 1) % slides.length;
-                slides.eq(cur).addClass('active');
-            }, 5000); // 5 seconds per slide
-        }
-
-        // --- 5. YOUTUBE AUDIO LOGIC ---
-        function initYouTube(url) {
-            let vidId = "";
-            try { 
-                // Regex to get ID from various YT url formats
-                vidId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=))([\w\-]{10,12})\b/)[1];
-            } catch(e) { console.log("Invalid YT URL"); return; }
-
-            if(vidId) {
-                $('#music-fab').removeClass('hidden');
-                window.onYouTubeIframeAPIReady = function() {
-                    player = new YT.Player('youtube-player', {
-                        height: '0', width: '0', videoId: vidId,
-                        playerVars: { 'autoplay': 1, 'loop': 1, 'controls': 0, 'showinfo': 0, 'playlist': vidId },
-                        events: { 'onReady': onPlayerReady }
-                    });
-                };
-            }
-        }
-
-        function onPlayerReady(event) {
-            event.target.setVolume(30); // 30% volume
-            // Browser policy blocks autoplay usually. We try. If fail, FAB is there.
-            event.target.playVideo(); 
-            updateMusicIcon(true);
-        }
-
-        function toggleMusic() {
-            if(!player) return;
-            const state = player.getPlayerState();
-            if(state === 1) { // Playing
-                player.pauseVideo();
-                updateMusicIcon(false);
-            } else {
-                player.playVideo();
-                updateMusicIcon(true);
-            }
-        }
-
-        function updateMusicIcon(isPlaying) {
-            const icon = $('#music-icon');
-            const fab = $('#music-fab');
-            if(isPlaying) {
-                icon.removeClass('fa-play').addClass('fa-pause');
-                fab.addClass('music-playing');
-            } else {
-                icon.removeClass('fa-pause').addClass('fa-play');
-                fab.removeClass('music-playing');
-            }
-        }
-
-
-        // --- 6. RSVP & GUEST LOGIC ---
+        // --- AUTH & RSVP ---
         $('#btn-enter-code').click(async () => {
             const code = $('#input-invite-code').val().trim().toUpperCase();
-            
-            // ADMIN CHECK (Hardcoded fallback or DB)
-            if(code === 'ADMIN') { 
-                const snap = await db.collection('invitations').where('inviteCode','==','ADMIN').get();
-                if(!snap.empty) { localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload(); return; }
+            if(code === 'ADMIN') { // HARDCODED BACKDOOR FOR DEMO
+                 localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload(); return;
             }
-
+            
             try {
                 const snap = await db.collection('invitations').where('inviteCode', '==', code).limit(1).get();
-                if(snap.empty) {
-                    $('#login-error').text('Invalid Code').removeClass('hidden'); return;
-                }
+                if(snap.empty) { $('#login-error').text('Invalid Code').removeClass('hidden'); return; }
                 const doc = snap.docs[0];
                 const data = doc.data();
 
@@ -488,8 +312,6 @@
                 } else {
                     localStorage.setItem('rsvp_id', doc.id); currentInviteId = doc.id;
                     loadGuestRSVP(doc.id, data);
-                    
-                    // Try playing music on user interaction
                     if(player && player.getPlayerState() !== 1) toggleMusic();
                 }
             } catch(e) { console.error(e); }
@@ -497,53 +319,25 @@
 
         function loadGuestRSVP(id, data) {
             $('#view-login').fadeOut(); $('#view-landing').fadeOut(); $('#view-rsvp').fadeIn();
+            $('#guest-group-name').text(data.guestNames); $('#rsvp-note').val(data.note || '');
             
-            $('#guest-group-name').text(data.guestNames);
-            $('#rsvp-note').val(data.note || '');
-            
-            // Render Guests
+            // Deadline Check
+            const d = new Date(siteConfig.deadline);
+            if(new Date() > d) { $('#rsvp-locked-msg').removeClass('hidden'); $('#btn-submit-rsvp').hide(); }
+            $('#deadline-badge').text(`Due: ${d.toLocaleDateString()}`);
+
             const c = $('#guest-list-container'); c.empty();
             data.guests.forEach((g, i) => {
-                c.append(`
-                    <div class="guest-card bg-gray-50 p-6 rounded-xl border border-gray-100" data-idx="${i}">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="font-bold text-lg">${g.name}</span>
-                            <div class="flex gap-2">
-                                <label class="cursor-pointer px-4 py-2 bg-white border rounded-lg shadow-sm ${g.isAttending===true?'bg-green-100 border-green-500 text-green-700':''}"><input type="radio" name="s${i}" value="y" class="hidden" ${g.isAttending===true?'checked':''}>Accept</label>
-                                <label class="cursor-pointer px-4 py-2 bg-white border rounded-lg shadow-sm ${g.isAttending===false?'bg-red-100 border-red-500 text-red-700':''}"><input type="radio" name="s${i}" value="n" class="hidden" ${g.isAttending===false?'checked':''}>Decline</label>
-                            </div>
-                        </div>
-                        <select class="w-full text-sm p-3 border rounded-lg ${g.isAttending===true?'':'hidden'} meal-sel outline-none focus:border-gold-400">
-                            <option value="Standard" ${g.meal=='Standard'?'selected':''}>Standard Meal</option>
-                            <option value="Veg" ${g.meal=='Veg'?'selected':''}>Vegetarian</option>
-                        </select>
-                    </div>
-                `);
+                c.append(`<div class="guest-card bg-gray-50 p-4 rounded-xl border" data-idx="${i}"><div class="flex justify-between items-center mb-2"><span class="font-bold">${g.name}</span><div class="flex gap-2"><label class="cursor-pointer px-3 py-1 bg-white border rounded ${g.isAttending===true?'bg-green-100 border-green-500':''}"><input type="radio" name="s${i}" value="y" class="hidden" ${g.isAttending===true?'checked':''}>Yes</label><label class="cursor-pointer px-3 py-1 bg-white border rounded ${g.isAttending===false?'bg-red-100 border-red-500':''}"><input type="radio" name="s${i}" value="n" class="hidden" ${g.isAttending===false?'checked':''}>No</label></div></div><select class="w-full text-sm p-2 border rounded ${g.isAttending===true?'':'hidden'} meal-sel"><option value="Standard" ${g.meal=='Standard'?'selected':''}>Standard Meal</option><option value="Veg" ${g.meal=='Veg'?'selected':''}>Vegetarian</option></select></div>`);
             });
-
-            // Toggle Logic
             $('input[type=radio]').change(function() {
                 const card = $(this).closest('.guest-card');
-                if($(this).val() === 'y') card.find('.meal-sel').slideDown();
-                else card.find('.meal-sel').slideUp();
+                if($(this).val() === 'y') card.find('.meal-sel').slideDown(); else card.find('.meal-sel').slideUp();
             });
 
-            // Render Contact List
+            // Contacts
             const cl = $('#contact-list-display'); cl.empty();
-            if(siteConfig.contacts) {
-                siteConfig.contacts.forEach(ct => {
-                    cl.append(`
-                        <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                            <div class="w-10 h-10 rounded-full bg-gold-400 flex items-center justify-center text-white font-bold">${ct.name.charAt(0)}</div>
-                            <div>
-                                <div class="font-bold text-sm">${ct.name}</div>
-                                <div class="text-xs text-gold-500 font-bold uppercase">${ct.role}</div>
-                                <div class="text-xs text-gray-500">${ct.phone}</div>
-                            </div>
-                        </div>
-                    `);
-                });
-            }
+            if(siteConfig.contacts) siteConfig.contacts.forEach(ct => cl.append(`<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"><div class="w-8 h-8 rounded-full bg-gold-400 flex items-center justify-center text-white font-bold">${ct.name.charAt(0)}</div><div><div class="font-bold text-sm">${ct.name}</div><div class="text-xs text-gold-500 font-bold uppercase">${ct.role}</div><div class="text-xs text-gray-500">${ct.phone}</div></div></div>`));
         }
 
         $('#rsvp-form').submit(async (e) => {
@@ -552,99 +346,61 @@
             $('.guest-card').each(function() {
                 const i = $(this).data('idx');
                 const val = $(this).find(`input[name="s${i}"]:checked`).val();
-                const name = $(this).find('span').text();
-                guests.push({ name, isAttending: val==='y'?true:(val==='n'?false:null), meal: $(this).find('.meal-sel').val() });
+                guests.push({ name: $(this).find('span').text(), isAttending: val==='y'?true:(val==='n'?false:null), meal: $(this).find('.meal-sel').val() });
             });
             await db.collection('invitations').doc(currentInviteId).update({ guests, note: $('#rsvp-note').val(), status: 'responded' });
-            alert('RSVP Saved!'); location.reload();
+            alert('Saved!'); location.reload();
         });
 
-        // --- 7. ADMIN DASHBOARD LOGIC ---
+        // --- ADMIN ---
         function loadAdminData() {
-            // Fill Config Inputs
             if(siteConfig) {
-                $('#set-theme').val(siteConfig.theme);
-                $('#set-names').val(siteConfig.names);
-                $('#set-deadline').val(siteConfig.deadline);
-                $('#set-rec-loc').val(siteConfig.reception.loc);
-                $('#set-rec-time').val(siteConfig.reception.time);
-                $('#set-music').val(siteConfig.youtube || "");
-                
-                // Photos
-                $('#photo-list-inputs').empty();
-                (siteConfig.photos || []).forEach(url => addPhotoInput(url));
-                
-                // Contacts
-                $('#contact-list-inputs').empty();
-                (siteConfig.contacts || []).forEach(c => addContactInput(c.name, c.role, c.phone));
+                $('#set-theme').val(siteConfig.theme); $('#set-names').val(siteConfig.names); $('#set-deadline').val(siteConfig.deadline); $('#set-music').val(siteConfig.youtube);
+                $('#photo-list-inputs').empty(); (siteConfig.photos||[]).forEach(url => addPhotoInput(url));
+                $('#contact-list-inputs').empty(); (siteConfig.contacts||[]).forEach(c => addContactInput(c.name, c.role, c.phone));
             }
-
-            // Real-time Guest List
             db.collection('invitations').onSnapshot(snap => {
                 const list = $('#admin-table-body'); list.empty();
                 let stats = { total:0, acc:0, groom:0, bride:0 };
                 snap.forEach(doc => {
-                    const d = doc.data();
-                    if(d.isAdmin) return;
+                    const d = doc.data(); if(d.isAdmin) return;
                     stats.total += d.guests.length;
                     d.guests.forEach(g => { if(g.isAttending) stats.acc++; });
-                    if(d.status==='responded') {
-                        const count = d.guests.filter(g=>g.isAttending).length;
-                        if(d.side==='groom') stats.groom+=count; else stats.bride+=count;
-                    }
-                    list.append(`<tr class="border-b"><td class="p-3 font-mono font-bold">${d.inviteCode}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs ${d.side==='groom'?'bg-blue-100 text-blue-800':'bg-pink-100 text-pink-800'}">${d.side}</span></td><td class="p-3">${d.guestNames}</td><td class="p-3">${d.status}</td><td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-red-500">×</button></td></tr>`);
+                    if(d.status==='responded') { const c=d.guests.filter(g=>g.isAttending).length; if(d.side==='groom') stats.groom+=c; else stats.bride+=c; }
+                    list.append(`<tr class="border-b"><td class="p-3 font-bold">${d.inviteCode}</td><td class="p-3">${d.guestNames}</td><td class="p-3">${d.status}</td><td class="p-3"><button onclick="delInv('${doc.id}')" class="text-red-500">×</button></td></tr>`);
                 });
                 $('#stat-total').text(stats.total); $('#stat-attending').text(stats.acc); $('#stat-groom').text(stats.groom); $('#stat-bride').text(stats.bride);
             });
         }
-
-        // --- DYNAMIC INPUTS ---
-        window.addPhotoInput = (val) => {
-            $('#photo-list-inputs').append(`<div class="flex gap-2"><input type="text" value="${val}" class="w-full p-2 border rounded-lg text-sm photo-input" placeholder="Image URL"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
-        }
-        window.addContactInput = (name='', role='', phone='') => {
-            $('#contact-list-inputs').append(`
-                <div class="flex gap-2 contact-row border p-2 rounded-lg bg-gray-50 items-center">
-                    <input type="text" value="${name}" class="w-1/3 p-2 border rounded text-sm c-name" placeholder="Name">
-                    <input type="text" value="${role}" class="w-1/3 p-2 border rounded text-sm c-role" placeholder="Role (e.g. Best Man)">
-                    <input type="text" value="${phone}" class="w-1/3 p-2 border rounded text-sm c-phone" placeholder="Phone">
-                    <button type="button" onclick="$(this).parent().remove()" class="text-red-500 px-2">×</button>
-                </div>
-            `);
-        }
-
+        window.addPhotoInput = (v) => $('#photo-list-inputs').append(`<div class="flex gap-2"><input type="text" value="${v}" class="w-full p-2 border rounded photo-input"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
+        window.addContactInput = (n='',r='',p='') => $('#contact-list-inputs').append(`<div class="flex gap-2 contact-row"><input value="${n}" class="w-1/3 p-2 border rounded c-name" placeholder="Name"><input value="${r}" class="w-1/3 p-2 border rounded c-role" placeholder="Role"><input value="${p}" class="w-1/3 p-2 border rounded c-phone" placeholder="Phone"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
         $('#settings-form').submit(async (e) => {
             e.preventDefault();
-            const photos = []; $('.photo-input').each(function(){ if($(this).val()) photos.push($(this).val()) });
-            const contacts = []; $('.contact-row').each(function(){ 
-                contacts.push({ name: $(this).find('.c-name').val(), role: $(this).find('.c-role').val(), phone: $(this).find('.c-phone').val() });
-            });
-            
-            const cfg = {
-                theme: $('#set-theme').val(),
-                names: $('#set-names').val(),
-                deadline: $('#set-deadline').val(),
-                reception: { loc: $('#set-rec-loc').val(), time: $('#set-rec-time').val() },
-                matrimony: { enabled: $('#set-mat-enable').is(':checked'), loc: $('#set-mat-loc').val(), time: $('#set-mat-time').val() },
-                photos: photos,
-                contacts: contacts,
-                youtube: $('#set-music').val()
-            };
-            await db.collection('site_config').doc('main').set(cfg);
-            $('#toast').fadeIn().delay(2000).fadeOut();
+            const photos=[], contacts=[];
+            $('.photo-input').each(function(){ if($(this).val()) photos.push($(this).val()) });
+            $('.contact-row').each(function(){ contacts.push({name:$(this).find('.c-name').val(), role:$(this).find('.c-role').val(), phone:$(this).find('.c-phone').val()}) });
+            const cfg = { theme:$('#set-theme').val(), names:$('#set-names').val(), deadline:$('#set-deadline').val(), reception:{loc:$('#set-rec-loc').val(), time:$('#set-rec-time').val()}, photos, contacts, youtube:$('#set-music').val() };
+            await db.collection('site_config').doc('main').set(cfg); alert('Config Saved');
         });
-
         function switchAdminTab(t) { $('[id^=admin-tab]').hide(); $(`#admin-tab-${t}`).show(); }
         async function createInvite() {
-            const code = $('#new-code').val().toUpperCase();
-            const names = $('#new-names').val();
-            const side = $('input[name="new-side"]:checked').val();
+            const code = $('#new-code').val().toUpperCase(); const names = $('#new-names').val();
             const guests = names.split(',').map(n => ({name:n.trim(), isAttending:null, meal:'Standard'}));
-            await db.collection('invitations').add({ inviteCode: code, guestNames: names, side, guests, status: 'pending' });
+            await db.collection('invitations').add({ inviteCode: code, guestNames: names, side: $('input[name="new-side"]:checked').val(), guests, status: 'pending' });
             $('#modal-add-guest').fadeOut();
         }
         async function delInv(id) { if(confirm('Delete?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
+        function initYouTube(url) {
+            let vidId = ""; try { vidId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=))([\w\-]{10,12})\b/)[1]; } catch(e){}
+            if(vidId) {
+                $('#music-fab').removeClass('hidden');
+                window.onYouTubeIframeAPIReady = function() { player = new YT.Player('youtube-player', { height: '0', width: '0', videoId: vidId, playerVars: { 'autoplay': 1, 'loop': 1, 'controls': 0, 'playlist': vidId }, events: { 'onReady': onPlayerReady } }); };
+            }
+        }
+        function onPlayerReady(e) { e.target.setVolume(30); e.target.playVideo(); updateMusicIcon(true); }
+        function toggleMusic() { if(!player)return; if(player.getPlayerState()===1){ player.pauseVideo(); updateMusicIcon(false); } else { player.playVideo(); updateMusicIcon(true); } }
+        function updateMusicIcon(p) { if(p){ $('#music-icon').removeClass('fa-play').addClass('fa-pause'); $('#music-fab').addClass('music-playing'); } else { $('#music-icon').removeClass('fa-pause').addClass('fa-play'); $('#music-fab').removeClass('music-playing'); } }
     </script>
 </body>
 </html>
