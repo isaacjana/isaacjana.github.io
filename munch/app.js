@@ -65,10 +65,19 @@ function initListeners() {
     // 2. History
     const hQ = query(collection(db, "meals"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
     onSnapshot(hQ, (snap) => {
-        historyLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Map data but carefully handle pending timestamps
+        historyLogs = snap.docs.map(d => {
+            const data = d.data();
+            return { 
+                id: d.id, 
+                ...data,
+                // If created locally (offline), createdAt is null temporarily. Use 'now'.
+                timestamp: data.createdAt ? data.createdAt.toDate() : new Date() 
+            };
+        });
+
         renderDashboard();
         
-        // Auto-select today if empty
         if (!$('#date-filter').val()) {
             $('#date-filter').val(new Date().toISOString().split('T')[0]);
         }
@@ -91,24 +100,54 @@ function renderRecipes() {
     $('#recipe-list').html(html || '<p class="text-center text-gray-500">No recipes found.</p>');
 }
 
+// NEW: TIME-BASED SORTING
 function renderDashboard() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayLogs = historyLogs.filter(l => l.dateStr === today);
-    const html = todayLogs.map(l => `
-        <div class="glass p-4 rounded-xl flex justify-between items-center border-l-4 border-emerald-500">
-            <span class="font-bold">${l.description}</span>
-            <button class="delete-log-btn text-gray-500 text-xs px-2" data-id="${l.id}">✕</button>
-        </div>
-    `).join('');
-    $('#meal-list').html(html || '<p class="text-center text-sm text-gray-500">No logs today.</p>');
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayLogs = historyLogs.filter(l => l.dateStr === todayStr);
+    
+    // Clear previous
+    $('#list-breakfast, #list-lunch, #list-dinner, #list-snack').html('');
+    $('#section-breakfast, #section-lunch, #section-dinner, #section-snack, #empty-state').addClass('hidden');
+
+    if (todayLogs.length === 0) {
+        $('#empty-state').removeClass('hidden');
+        return;
+    }
+
+    const buckets = { breakfast: [], lunch: [], dinner: [], snack: [] };
+
+    todayLogs.forEach(log => {
+        const h = log.timestamp.getHours();
+        
+        // Categorization Logic
+        if (h >= 4 && h < 11) buckets.breakfast.push(log);
+        else if (h >= 11 && h < 16) buckets.lunch.push(log);
+        else if (h >= 16 && h < 21) buckets.dinner.push(log);
+        else buckets.snack.push(log);
+    });
+
+    // Render each bucket
+    Object.keys(buckets).forEach(key => {
+        if (buckets[key].length > 0) {
+            $(`#section-${key}`).removeClass('hidden');
+            const html = buckets[key].map(l => `
+                <div class="glass p-4 rounded-xl flex justify-between items-center border-l-4 border-emerald-500/50">
+                    <span class="font-bold text-sm">${l.description}</span>
+                    <button class="delete-log-btn text-gray-500 text-xs px-2" data-id="${l.id}">✕</button>
+                </div>
+            `).join('');
+            $(`#list-${key}`).html(html);
+        }
+    });
 }
 
 function renderHistory() {
     const selected = $('#date-filter').val();
     const filtered = historyLogs.filter(l => l.dateStr === selected);
     const html = filtered.map(l => `
-        <div class="glass p-4 rounded-xl mb-2">
+        <div class="glass p-4 rounded-xl mb-2 flex justify-between items-center">
             <span class="font-bold">${l.description}</span>
+            <span class="text-xs text-gray-500">${l.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
         </div>
     `).join('');
     $('#calendar-results').html(html || '<p class="text-center text-gray-500 py-4">Nothing logged on this date.</p>');
@@ -144,7 +183,7 @@ function runAnalysis() {
     $('#quick-log-suggested').removeClass('hidden').off().on('click', () => doLog(pick.name));
 }
 
-// --- ACTIONS (Event Delegation for Module Scope) ---
+// --- ACTIONS ---
 async function doLog(name) {
     await addDoc(collection(db, "meals"), {
         uid: currentUser.uid,
