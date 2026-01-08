@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MUNCH | Categorized</title>
+    <title>MUNCH | Refined</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -14,15 +14,19 @@
         html { background-color: #f3f4f6; transition: background-color 0.3s; }
         html.dark { background-color: #0f0f0f; }
         body { -webkit-tap-highlight-color: transparent; }
+        
         .glass { backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); transition: background-color 0.3s, border-color 0.3s; }
         .dark .glass { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
         html:not(.dark) .glass { background: rgba(255, 255, 255, 0.7); border-color: rgba(0, 0, 0, 0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeUp 0.3s ease-out; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .fatigue-high { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Collapsible Arrow Animation */
+        .arrow-icon { transition: transform 0.2s; }
+        .collapsed .arrow-icon { transform: rotate(-90deg); }
+        .collapsed + div { display: none; }
     </style>
 </head>
 <body class="font-sans pb-36 text-gray-900 dark:text-gray-100 min-h-screen">
@@ -50,39 +54,34 @@
                 <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden active:scale-95 transition-transform">LOG THIS MEAL</button>
             </div>
 
-            <div class="mb-8">
-                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</h2>
-                <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="quick-select-bar"></div>
-            </div>
-
-            <div class="space-y-6 pb-4">
+            <div class="space-y-4 pb-4">
                 
                 <div id="section-breakfast" class="hidden">
-                    <h2 class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <span>🌅</span> Breakfast <span class="text-gray-600 text-[10px] ml-auto">04:00 - 11:00</span>
-                    </h2>
-                    <div id="list-breakfast" class="space-y-2"></div>
+                    <button class="toggle-header w-full text-left text-xs font-bold text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2 p-2 rounded-lg hover:bg-emerald-500/5 transition-colors">
+                        <span class="arrow-icon">▼</span> 🌅 Breakfast <span class="text-gray-500 text-[10px] ml-auto">04:00 - 11:00</span>
+                    </button>
+                    <div id="list-breakfast" class="space-y-2 pl-4 border-l border-emerald-500/20"></div>
                 </div>
 
                 <div id="section-lunch" class="hidden">
-                    <h2 class="text-xs font-bold text-orange-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <span>☀️</span> Lunch <span class="text-gray-600 text-[10px] ml-auto">11:00 - 16:00</span>
-                    </h2>
-                    <div id="list-lunch" class="space-y-2"></div>
+                    <button class="toggle-header w-full text-left text-xs font-bold text-orange-400 uppercase tracking-widest mb-2 flex items-center gap-2 p-2 rounded-lg hover:bg-orange-500/5 transition-colors">
+                        <span class="arrow-icon">▼</span> ☀️ Lunch <span class="text-gray-500 text-[10px] ml-auto">11:00 - 16:00</span>
+                    </button>
+                    <div id="list-lunch" class="space-y-2 pl-4 border-l border-orange-500/20"></div>
                 </div>
 
                 <div id="section-dinner" class="hidden">
-                    <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <span>🌙</span> Dinner <span class="text-gray-600 text-[10px] ml-auto">16:00 - 21:00</span>
-                    </h2>
-                    <div id="list-dinner" class="space-y-2"></div>
+                    <button class="toggle-header w-full text-left text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2 p-2 rounded-lg hover:bg-indigo-500/5 transition-colors">
+                        <span class="arrow-icon">▼</span> 🌙 Dinner <span class="text-gray-500 text-[10px] ml-auto">16:00 - 21:00</span>
+                    </button>
+                    <div id="list-dinner" class="space-y-2 pl-4 border-l border-indigo-500/20"></div>
                 </div>
 
                 <div id="section-snack" class="hidden">
-                    <h2 class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <span>🍿</span> Snacks / Late Night
-                    </h2>
-                    <div id="list-snack" class="space-y-2"></div>
+                    <button class="toggle-header w-full text-left text-xs font-bold text-pink-400 uppercase tracking-widest mb-2 flex items-center gap-2 p-2 rounded-lg hover:bg-pink-500/5 transition-colors">
+                        <span class="arrow-icon">▼</span> 🍿 Snacks
+                    </button>
+                    <div id="list-snack" class="space-y-2 pl-4 border-l border-pink-500/20"></div>
                 </div>
                 
                 <div id="empty-state" class="text-center py-10 hidden">
@@ -99,11 +98,29 @@
 
         <div id="view-calendar" class="view-section">
             <h1 class="text-3xl font-bold mb-6">History</h1>
-            <div class="glass p-2 rounded-2xl mb-6 flex items-center">
-                <input type="date" id="date-filter" class="w-full bg-transparent p-2 outline-none font-bold text-emerald-500 text-center uppercase tracking-widest">
+            
+            <div class="glass p-4 rounded-2xl mb-6 space-y-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-gray-500 uppercase w-16">Date</span>
+                    <input type="date" id="date-filter" class="flex-1 bg-transparent p-2 outline-none font-bold text-emerald-500 text-right uppercase tracking-widest">
+                </div>
+                
+                <div class="h-px bg-white/10 w-full"></div>
+                
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-gray-500 uppercase w-16">Type</span>
+                    <select id="category-filter" class="flex-1 bg-transparent p-2 outline-none font-bold text-emerald-500 text-right uppercase tracking-widest appearance-none">
+                        <option value="all">All Meals</option>
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                        <option value="snack">Snack</option>
+                    </select>
+                </div>
             </div>
+
             <div id="calendar-results" class="space-y-3">
-                <p class="text-center text-gray-500 py-10">Select a date above.</p>
+                <p class="text-center text-gray-500 py-10">Select filters above.</p>
             </div>
         </div>
     </main>
