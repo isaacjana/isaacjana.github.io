@@ -13,21 +13,20 @@
     <style>
         html { background-color: #f3f4f6; transition: background-color 0.3s; }
         html.dark { background-color: #0f0f0f; }
-        
         body { -webkit-tap-highlight-color: transparent; }
         
-        /* Glassmorphism Logic */
         .glass { backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); transition: background-color 0.3s, border-color 0.3s; }
         .dark .glass { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
         html:not(.dark) .glass { background: rgba(255, 255, 255, 0.7); border-color: rgba(0, 0, 0, 0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
 
-        /* View Switching Animation */
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeUp 0.3s ease-out; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Fatigue State */
         .fatigue-high { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+        /* Hide scrollbar for quick select */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="font-sans pb-32 text-gray-900 dark:text-gray-100 min-h-screen">
@@ -51,15 +50,13 @@
                     <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Suggestion</span>
                 </div>
                 <h3 id="suggested-meal-name" class="text-2xl font-bold">Analyzing...</h3>
-                <p id="suggested-reason" class="text-sm text-gray-500 dark:text-gray-400 mb-4 italic">Processing your habits...</p>
-                <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden active:scale-95 transition-transform">LOG THIS MEAL</button>
+                <p id="suggested-reason" class="text-sm text-gray-500 dark:text-gray-400 mb-4 italic">Processing habits...</p>
+                <button id="quick-log-suggested" class="w-full bg-emerald-500 text-black py-3 rounded-xl font-black text-sm hidden active:scale-95">LOG THIS MEAL</button>
             </div>
 
             <div class="mb-6">
-                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add from Vault</h2>
-                <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="quick-select-bar">
-                    <span class="text-sm text-gray-500 italic px-2">Add recipes to see shortcuts...</span>
-                </div>
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</h2>
+                <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="quick-select-bar"></div>
             </div>
 
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Today's Fuel</h2>
@@ -89,26 +86,24 @@
         <button class="nav-item text-gray-500 font-black text-[10px] tracking-widest" data-target="calendar">HISTORY</button>
     </nav>
 
-    <button id="open-log-modal" class="fixed bottom-24 right-6 w-14 h-14 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/20 flex items-center justify-center text-black text-3xl font-light active:scale-90 z-40 transition-transform">
-        +
-    </button>
+    <button id="open-log-modal" class="fixed bottom-24 right-6 w-14 h-14 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/20 flex items-center justify-center text-black text-3xl font-light active:scale-90 z-40 transition-transform">+</button>
 
     <div id="modal-container" class="fixed inset-0 z-[110] hidden flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
         
-        <form id="log-form" class="modal-content glass relative w-full max-w-sm rounded-[2.5rem] p-8 space-y-4 hidden bg-[#0f0f0f]">
+        <form id="log-form" class="modal-content relative w-full max-w-sm glass rounded-[2.5rem] p-8 space-y-4 hidden bg-[#0f0f0f]">
             <h2 class="text-2xl font-bold">Quick Log</h2>
-            <input type="text" id="logDescription" placeholder="What are you eating?" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500 transition-colors" required>
+            <input type="text" id="logDescription" placeholder="What are you eating?" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500" required>
             <div class="flex gap-3 pt-2">
                 <button type="button" class="close-modal flex-1 p-4 rounded-xl bg-white/5 font-bold text-gray-400">Cancel</button>
                 <button type="submit" class="flex-1 p-4 rounded-xl bg-emerald-500 text-black font-black">LOG</button>
             </div>
         </form>
 
-        <form id="recipe-form" class="modal-content glass relative w-full max-w-sm rounded-[2.5rem] p-8 space-y-4 hidden bg-[#0f0f0f]">
+        <form id="recipe-form" class="modal-content relative w-full max-w-sm glass rounded-[2.5rem] p-8 space-y-4 hidden bg-[#0f0f0f]">
             <h2 class="text-2xl font-bold">New Recipe</h2>
-            <input type="text" id="recipeName" placeholder="Recipe Name (e.g. Oats)" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500" required>
-            <textarea id="recipeInstructions" placeholder="Ingredients or Notes..." class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none h-32 resize-none focus:border-emerald-500"></textarea>
+            <input type="text" id="recipeName" placeholder="Recipe Name" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500" required>
+            <textarea id="recipeInstructions" placeholder="Ingredients..." class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none h-32 resize-none focus:border-emerald-500"></textarea>
             <div class="flex gap-3 pt-2">
                 <button type="button" class="close-modal flex-1 p-4 rounded-xl bg-white/5 font-bold text-gray-400">Cancel</button>
                 <button type="submit" class="flex-1 p-4 rounded-xl bg-emerald-500 text-black font-black">SAVE</button>
