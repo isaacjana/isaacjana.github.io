@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, where, onSnapshot, orderBy, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCk6mub0hDCzJ5iDmV-61v3WLSHMC51JP4",
@@ -21,43 +21,29 @@ enableIndexedDbPersistence(db).catch(() => {});
 
 let currentUser = null;
 let userRecipes = [];
-let recentLogs = [];
+let historyLogs = [];
 
-// --- THE ANALYTICAL ENGINE ---
-async function generateMealSuggestion() {
-    if (userRecipes.length === 0) {
-        $('#suggested-meal-name').text("Add some recipes first!");
-        $('#suggested-reason').text("Create recipes in the Vault to get suggestions.");
-        return;
-    }
+// --- THE ANALYTICAL DECISION ENGINE ---
 
-    // Logic: Find recipes that haven't been logged in the last 3 days
-    const recentNames = recentLogs.map(l => l.description.toLowerCase());
-    const candidates = userRecipes.filter(r => !recentNames.includes(r.name.toLowerCase()));
+async function runAnalysis() {
+    if (userRecipes.length === 0) return;
 
-    const pick = candidates.length > 0 
-        ? candidates[Math.floor(Math.random() * candidates.length)] 
-        : userRecipes[Math.floor(Math.random() * userRecipes.length)];
+    const recentMealNames = historyLogs.slice(0, 10).map(l => l.description.toLowerCase());
+    
+    // Find recipes NOT eaten in the last 10 entries
+    let suggestions = userRecipes.filter(r => !recentMealNames.includes(r.name.toLowerCase()));
+    
+    // Fallback: If everything has been eaten recently, suggest the oldest eaten one
+    if (suggestions.length === 0) suggestions = [...userRecipes];
+
+    const pick = suggestions[Math.floor(Math.random() * suggestions.length)];
 
     $('#suggested-meal-name').text(pick.name);
-    $('#suggested-reason').text(candidates.length > 0 ? "You haven't had this in a while." : "A high-frequency favorite of yours.");
-    $('#quick-log-suggested').removeClass('hidden').off().on('click', () => logMeal(pick.name));
+    $('#suggested-reason').text(recentMealNames.includes(pick.name.toLowerCase()) ? "A favorite you eat often." : "Based on your vault, you haven't had this recently.");
+    $('#quick-log-suggested').removeClass('hidden').off().on('click', () => quickLog(pick.name));
 }
 
-// --- CORE FUNCTIONS ---
-async function logMeal(name) {
-    const payload = {
-        uid: currentUser.uid,
-        mealType: "Logged",
-        description: name,
-        createdAt: serverTimestamp(),
-        dateStr: new Date().toISOString().split('T')[0]
-    };
-    await addDoc(collection(db, "meals"), payload);
-    if (window.navigator.vibrate) window.navigator.vibrate(10);
-}
-
-// UI Toggles
+// UI HANDLERS
 $('#dark-mode-toggle').click(() => $('html').toggleClass('dark'));
 $('.nav-item').click(function() {
     $('.view-section').removeClass('active');
@@ -66,58 +52,65 @@ $('.nav-item').click(function() {
     $(this).addClass('text-emerald-500');
 });
 
-// Auth
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
         $('#auth-overlay').fadeOut();
         $('#app').removeClass('hidden');
-        initRealtimeListeners();
-    } else {
-        $('#auth-overlay').show();
-    }
+        initListeners();
+    } else { $('#auth-overlay').show(); }
 });
 $('#login-btn').click(() => signInWithPopup(auth, provider));
 
-// Realtime Listeners
-function initRealtimeListeners() {
-    // Recipes
+// FIREBASE LISTENERS
+function initListeners() {
+    // Sync Recipes
     onSnapshot(query(collection(db, "recipes"), where("uid", "==", currentUser.uid)), (snap) => {
         userRecipes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderRecipes();
-        generateMealSuggestion();
+        runAnalysis();
     });
 
-    // History (last 50 meals)
-    const q = query(collection(db, "meals"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snap) => {
-        recentLogs = snap.docs.map(d => d.data());
-        renderDashboard();
-        generateMealSuggestion();
+    // Sync History
+    onSnapshot(query(collection(db, "meals"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc")), (snap) => {
+        historyLogs = snap.docs.map(d => d.data());
+        renderHistory();
+        runAnalysis();
     });
+}
+
+async function quickLog(name) {
+    await addDoc(collection(db, "meals"), {
+        uid: currentUser.uid,
+        description: name,
+        createdAt: serverTimestamp(),
+        dateStr: new Date().toISOString().split('T')[0]
+    });
+    if (window.navigator.vibrate) window.navigator.vibrate(15);
 }
 
 function renderRecipes() {
-    let html = userRecipes.map(r => `
-        <div class="glass p-5 rounded-2xl">
+    $('#recipe-list').html(userRecipes.map(r => `
+        <div class="glass p-6 rounded-[2rem] border-white/5">
             <h4 class="font-bold text-lg">${r.name}</h4>
-            <p class="text-xs text-gray-500">${r.instructions || 'No ingredients listed'}</p>
-        </div>
-    `).join('');
-    $('#recipe-list').html(html);
-}
-
-function renderDashboard() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayLogs = recentLogs.filter(l => l.dateStr === today);
-    $('#meal-list').html(todayLogs.map(l => `
-        <div class="glass p-4 rounded-xl flex justify-between">
-            <span class="font-bold">${l.description}</span>
+            <p class="text-xs text-gray-500 mt-2">${r.instructions?.substring(0,60) || 'Quick log recipe'}...</p>
         </div>
     `).join(''));
 }
 
-// Modal Handlers
+function renderHistory() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayLogs = historyLogs.filter(l => l.dateStr === today);
+    $('#meal-list').html(todayLogs.map(l => `<div class="glass p-5 rounded-2xl font-bold border-l-4 border-emerald-500">${l.description}</div>`).join(''));
+    
+    $('#date-filter').on('change', function() {
+        const val = $(this).val();
+        const results = historyLogs.filter(l => l.dateStr === val);
+        $('#calendar-results').html(results.map(l => `<div class="glass p-5 rounded-2xl">${l.description}</div>`).join(''));
+    });
+}
+
+// MODALS
 $('#open-recipe-modal').click(() => $('#recipe-modal').fadeIn().css('display', 'flex'));
 $('.close-modal').click(() => $('#recipe-modal').fadeOut());
 
