@@ -13,61 +13,69 @@
     <style>
         .nav-active { @apply text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 font-bold; }
         body { -webkit-tap-highlight-color: transparent; }
+        .glass-card { @apply bg-white/10 backdrop-blur-md border border-white/20; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+<body class="bg-[#050505] text-slate-100 font-sans antialiased transition-colors duration-300">
 
-    <div id="auth-overlay" class="fixed inset-0 bg-white dark:bg-slate-950 z-[100] flex items-center justify-center">
+    <div id="auth-overlay" class="fixed inset-0 bg-[#050505] z-[100] flex items-center justify-center">
         <div class="text-center p-6">
-            <div class="w-20 h-20 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <div class="w-20 h-20 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-500/20">
                 <i class="fas fa-wallet text-white text-3xl"></i>
             </div>
-            <h1 class="text-4xl font-black mb-2 tracking-tight">PennyWise</h1>
-            <p class="text-slate-400 mb-10">Smart budgeting made simple.</p>
-            <button id="btn-login" class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-10 py-4 rounded-2xl font-bold flex items-center mx-auto transition active:scale-95">
+            <h1 class="text-4xl font-black mb-2 tracking-tight text-white">PennyWise</h1>
+            <p class="text-slate-400 mb-10 text-sm">Simple, fast, insightful finance.</p>
+            <button id="btn-login" class="bg-white text-black px-10 py-4 rounded-2xl font-bold flex items-center mx-auto transition active:scale-95 shadow-xl">
                 <i class="fab fa-google mr-3 text-lg"></i> Continue with Google
             </button>
         </div>
     </div>
 
     <div id="app" class="hidden pb-24 lg:pb-0 lg:pl-64">
-        <aside class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-white dark:bg-slate-900 border-r dark:border-slate-800 flex-col p-6">
-            <div class="text-2xl font-black text-indigo-600 mb-10">PENNYWISE</div>
+        <aside class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-[#0a0a0a] border-r border-white/5 flex-col p-6">
+            <div class="text-2xl font-black text-indigo-500 mb-10 px-4">PENNYWISE</div>
             <nav class="space-y-2 flex-1">
                 <button data-screen="dashboard" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl transition"><i class="fas fa-home"></i> <span>Dashboard</span></button>
-                <button data-screen="transactions" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition"><i class="fas fa-list"></i> <span>History</span></button>
+                <button data-screen="transactions" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition"><i class="fas fa-history"></i> <span>History</span></button>
                 <button data-screen="reports" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition"><i class="fas fa-chart-pie"></i> <span>Insights</span></button>
                 <button data-screen="settings" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400 transition"><i class="fas fa-cog"></i> <span>Settings</span></button>
             </nav>
         </aside>
 
-        <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t dark:border-slate-800 flex justify-around p-5 z-50">
-            <button data-screen="dashboard" class="nav-link text-indigo-600"><i class="fas fa-home text-xl"></i></button>
+        <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/5 flex justify-around p-5 z-50">
+            <button data-screen="dashboard" class="nav-link text-indigo-500"><i class="fas fa-home text-xl"></i></button>
             <button data-screen="transactions" class="nav-link text-slate-400"><i class="fas fa-list-ul text-xl"></i></button>
-            <button id="open-add-modal" class="bg-indigo-600 text-white w-14 h-14 rounded-2xl -mt-12 shadow-xl border-4 border-slate-50 dark:border-slate-950 active:scale-90 transition"><i class="fas fa-plus"></i></button>
             <button data-screen="reports" class="nav-link text-slate-400"><i class="fas fa-chart-pie text-xl"></i></button>
             <button data-screen="settings" class="nav-link text-slate-400"><i class="fas fa-cog text-xl"></i></button>
         </nav>
 
+        <button id="open-add-modal" class="fixed bottom-24 lg:bottom-8 right-6 bg-indigo-600 text-white w-14 h-14 rounded-2xl shadow-2xl shadow-indigo-600/40 flex items-center justify-center transition hover:scale-110 active:scale-90 z-40">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+
         <main id="screen-container" class="max-w-xl mx-auto p-6 pt-10"></main>
     </div>
 
-    <div id="modal-transaction" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-end lg:items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+    <div id="modal-transaction" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-end lg:items-center justify-center p-4">
+        <div class="bg-[#121212] w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-white/5">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-black">New Expense</h2>
-                <button class="close-modal bg-slate-100 dark:bg-slate-800 w-8 h-8 rounded-full"><i class="fas fa-times text-xs"></i></button>
+                <h2 class="text-xl font-black text-white">New Entry</h2>
+                <button class="close-modal bg-white/5 w-8 h-8 rounded-full text-slate-400"><i class="fas fa-times text-xs"></i></button>
             </div>
             <form id="form-transaction" class="space-y-4">
-                <input type="number" id="tr-amount" placeholder="0.00" step="0.01" class="w-full text-5xl font-black text-center py-4 bg-transparent focus:outline-none dark:text-white" required>
-                <input type="text" id="tr-desc" placeholder="What did you buy?" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none outline-none" required>
-                <select id="tr-category" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none outline-none">
-                    <option value="Food">🍔 Food</option>
+                <div class="text-center py-4">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Amount</span>
+                    <input type="number" id="tr-amount" placeholder="0.00" step="0.01" class="w-full text-5xl font-black text-center bg-transparent focus:outline-none text-white mt-2" required>
+                </div>
+                <input type="text" id="tr-desc" placeholder="What for?" class="w-full p-4 bg-white/5 rounded-2xl border-none outline-none text-white" required>
+                <select id="tr-category" class="w-full p-4 bg-white/5 rounded-2xl border-none outline-none text-white">
+                    <option value="Food">🍔 Food & Drink</option>
                     <option value="Transport">🚗 Transport</option>
                     <option value="Housing">🏠 Housing</option>
-                    <option value="Entertainment">🍿 Fun</option>
+                    <option value="Entertainment">🍿 Entertainment</option>
+                    <option value="Shopping">🛍️ Shopping</option>
                 </select>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition">Save Entry</button>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition mt-4">Save Transaction</button>
             </form>
         </div>
     </div>
