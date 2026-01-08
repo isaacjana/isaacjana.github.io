@@ -23,6 +23,15 @@ let currentUser = null;
 let userRecipes = [];
 let historyLogs = [];
 
+// --- HELPER: GET CATEGORY FROM DATE ---
+function getCategory(dateObj) {
+    const h = dateObj.getHours();
+    if (h >= 4 && h < 11) return 'breakfast';
+    if (h >= 11 && h < 16) return 'lunch';
+    if (h >= 16 && h < 21) return 'dinner';
+    return 'snack';
+}
+
 // --- THEME ---
 if (localStorage.getItem('theme') === 'light') $('html').removeClass('dark');
 $('#dark-mode-toggle').click(() => {
@@ -37,6 +46,12 @@ $('.nav-item').click(function() {
     $(`#view-${target}`).addClass('active');
     $('.nav-item').removeClass('text-emerald-500').addClass('text-gray-500');
     $(this).addClass('text-emerald-500').removeClass('text-gray-500');
+});
+
+// --- UI INTERACTIONS ---
+// Collapsible Categories
+$(document).on('click', '.toggle-header', function() {
+    $(this).toggleClass('collapsed');
 });
 
 // --- AUTH ---
@@ -65,13 +80,11 @@ function initListeners() {
     // 2. History
     const hQ = query(collection(db, "meals"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
     onSnapshot(hQ, (snap) => {
-        // Map data but carefully handle pending timestamps
         historyLogs = snap.docs.map(d => {
             const data = d.data();
             return { 
                 id: d.id, 
                 ...data,
-                // If created locally (offline), createdAt is null temporarily. Use 'now'.
                 timestamp: data.createdAt ? data.createdAt.toDate() : new Date() 
             };
         });
@@ -100,12 +113,11 @@ function renderRecipes() {
     $('#recipe-list').html(html || '<p class="text-center text-gray-500">No recipes found.</p>');
 }
 
-// NEW: TIME-BASED SORTING
 function renderDashboard() {
     const todayStr = new Date().toISOString().split('T')[0];
     const todayLogs = historyLogs.filter(l => l.dateStr === todayStr);
     
-    // Clear previous
+    // Reset Views
     $('#list-breakfast, #list-lunch, #list-dinner, #list-snack').html('');
     $('#section-breakfast, #section-lunch, #section-dinner, #section-snack, #empty-state').addClass('hidden');
 
@@ -117,21 +129,15 @@ function renderDashboard() {
     const buckets = { breakfast: [], lunch: [], dinner: [], snack: [] };
 
     todayLogs.forEach(log => {
-        const h = log.timestamp.getHours();
-        
-        // Categorization Logic
-        if (h >= 4 && h < 11) buckets.breakfast.push(log);
-        else if (h >= 11 && h < 16) buckets.lunch.push(log);
-        else if (h >= 16 && h < 21) buckets.dinner.push(log);
-        else buckets.snack.push(log);
+        const cat = getCategory(log.timestamp);
+        buckets[cat].push(log);
     });
 
-    // Render each bucket
     Object.keys(buckets).forEach(key => {
         if (buckets[key].length > 0) {
             $(`#section-${key}`).removeClass('hidden');
             const html = buckets[key].map(l => `
-                <div class="glass p-4 rounded-xl flex justify-between items-center border-l-4 border-emerald-500/50">
+                <div class="glass p-4 rounded-xl flex justify-between items-center mb-2">
                     <span class="font-bold text-sm">${l.description}</span>
                     <button class="delete-log-btn text-gray-500 text-xs px-2" data-id="${l.id}">✕</button>
                 </div>
@@ -142,31 +148,34 @@ function renderDashboard() {
 }
 
 function renderHistory() {
-    const selected = $('#date-filter').val();
-    const filtered = historyLogs.filter(l => l.dateStr === selected);
+    const dateVal = $('#date-filter').val();
+    const catVal = $('#category-filter').val();
+    
+    // Filter by Date AND Category
+    const filtered = historyLogs.filter(l => {
+        const matchesDate = l.dateStr === dateVal;
+        const matchesCat = catVal === 'all' || getCategory(l.timestamp) === catVal;
+        return matchesDate && matchesCat;
+    });
+
     const html = filtered.map(l => `
         <div class="glass p-4 rounded-xl mb-2 flex justify-between items-center">
-            <span class="font-bold">${l.description}</span>
+            <div>
+                <span class="block font-bold">${l.description}</span>
+                <span class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">${getCategory(l.timestamp)}</span>
+            </div>
             <span class="text-xs text-gray-500">${l.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
         </div>
     `).join('');
-    $('#calendar-results').html(html || '<p class="text-center text-gray-500 py-4">Nothing logged on this date.</p>');
+    
+    $('#calendar-results').html(html || '<p class="text-center text-gray-500 py-4">No entries match filters.</p>');
 }
-$('#date-filter').on('change', renderHistory);
 
-function renderQuickSelect() {
-    const recent = historyLogs.slice(0, 10).map(l => l.description.toLowerCase());
-    const html = userRecipes.map(r => {
-        const fatigued = recent.includes(r.name.toLowerCase());
-        const style = fatigued ? 'fatigue-high' : 'text-emerald-500 border-emerald-500/30';
-        return `<button class="quick-add-btn glass px-4 py-2 rounded-full text-xs font-bold border ${style} mr-2 active:scale-95" data-name="${r.name}">${r.name}</button>`;
-    }).join('');
-    $('#quick-select-bar').html(html);
-}
+// Bind Filter Events
+$('#date-filter, #category-filter').on('change', renderHistory);
 
 // --- ANALYSIS ---
 function runAnalysis() {
-    renderQuickSelect();
     if (userRecipes.length === 0) {
         $('#suggested-meal-name').text("Add Recipes");
         $('#suggested-reason').text("Add recipes to get AI suggestions.");
@@ -195,7 +204,6 @@ async function doLog(name) {
     $('#modal-container').fadeOut();
 }
 
-$(document).on('click', '.quick-add-btn', function() { doLog($(this).data('name')); });
 $(document).on('click', '.delete-log-btn', async function() {
     if(confirm("Delete log?")) await deleteDoc(doc(db, "meals", $(this).data('id')));
 });
