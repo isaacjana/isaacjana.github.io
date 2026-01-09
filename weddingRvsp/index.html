@@ -6,9 +6,8 @@
     <title>Wedding Invitation & RSVP</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400;700&family=Montserrat:wght@200;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400;700&family=Montserrat:wght@200;400;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -17,8 +16,18 @@
     <script>
         tailwind.config = {
             theme: { extend: {
-                colors: { gold: { 300: '#F5D061', 400: '#D4AF37', 500: '#C5A028' }, rose: { 50: '#fff0f3', 100: '#ffe4e6', 900: '#881337' } },
-                fontFamily: { classic: ['Cinzel', 'serif'], modern: ['Montserrat', 'sans-serif'], floral: ['Great Vibes', 'cursive'], body: ['Lato', 'sans-serif'] }
+                colors: { 
+                    gold: { 300: '#F5D061', 400: '#D4AF37', 500: '#C5A028' }, 
+                    rose: { 50: '#fff0f3', 100: '#ffe4e6', 900: '#881337' },
+                    navy: { 900: '#0a192f' }
+                },
+                fontFamily: { 
+                    classic: ['Cinzel', 'serif'], 
+                    modern: ['Montserrat', 'sans-serif'], 
+                    floral: ['Great Vibes', 'cursive'], 
+                    serif: ['Playfair Display', 'serif'],
+                    body: ['Lato', 'sans-serif'] 
+                }
             }}
         }
     </script>
@@ -27,21 +36,24 @@
         .page-section { display: none; opacity: 0; transition: opacity 0.6s ease-in-out; }
         .page-section.active { display: block; opacity: 1; }
         #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        
+        /* Background & Gallery */
         #bg-slideshow { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
         .bg-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease-in-out; }
         .bg-slide.active { opacity: 0.5; }
         .card-gallery-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.5s ease-in-out; }
         .card-gallery-img.active { opacity: 1; }
+
+        /* Curtains */
         #entrance-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 1.2s ease-in-out; }
         .curtain-panel { position: absolute; top: 0; bottom: 0; width: 50%; background: #111; transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1); z-index: 51; }
         .curtain-left { left: 0; border-right: 1px solid #D4AF37; } .curtain-right { right: 0; border-left: 1px solid #D4AF37; }
         .open .curtain-left { transform: translateX(-100%); } .open .curtain-right { transform: translateX(100%); }
-        .theme-modern #entrance-overlay { background: #000; } .theme-modern.open #entrance-overlay { transform: translateY(-100%); }
-        .theme-floral #entrance-overlay { background: #fff; } .theme-floral.open #entrance-overlay { opacity: 0; visibility: hidden; }
+        
+        /* Layout Transitions */
+        .glass-light { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); }
         .wish-scroll { animation: scrollWishes 25s linear infinite; }
         @keyframes scrollWishes { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-        .glass-light { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); }
-        .text-shadow-glow { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
     </style>
 </head>
 <body class="min-h-screen text-gray-800">
@@ -65,28 +77,27 @@
         <div id="invite-card" class="w-full max-w-md transition-all duration-1000 transform translate-y-8 opacity-0"></div>
         
         <div class="mt-8 w-full max-w-md text-center">
-            
             <div id="wedding-countdown" class="grid grid-cols-4 gap-2 mb-6 px-4">
                 <div class="bg-black/60 backdrop-blur rounded-xl p-3 border border-white/10 shadow-2xl">
-                    <div id="days" class="text-white font-bold text-xl leading-none text-shadow-glow">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Days</div>
+                    <div id="days" class="text-white font-bold text-xl leading-none">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1">Days</div>
                 </div>
                 <div class="bg-black/60 backdrop-blur rounded-xl p-3 border border-white/10 shadow-2xl">
-                    <div id="hours" class="text-white font-bold text-xl leading-none text-shadow-glow">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Hours</div>
+                    <div id="hours" class="text-white font-bold text-xl leading-none">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1">Hours</div>
                 </div>
                 <div class="bg-black/60 backdrop-blur rounded-xl p-3 border border-white/10 shadow-2xl">
-                    <div id="minutes" class="text-white font-bold text-xl leading-none text-shadow-glow">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Mins</div>
+                    <div id="minutes" class="text-white font-bold text-xl leading-none">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1">Mins</div>
                 </div>
                 <div class="bg-black/60 backdrop-blur rounded-xl p-3 border border-white/10 shadow-2xl">
-                    <div id="seconds" class="text-white font-bold text-xl leading-none text-shadow-glow">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Secs</div>
+                    <div id="seconds" class="text-white font-bold text-xl leading-none">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1">Secs</div>
                 </div>
             </div>
 
-            <div id="live-attendance" class="inline-block bg-white/10 backdrop-blur-sm px-6 py-2 rounded-full border border-white/20 text-white text-[10px] font-bold tracking-[0.2em] mb-6 opacity-0 transition-opacity duration-1000">
-                <span id="pax-count">0</span> GUESTS JOINING THE CELEBRATION
+            <div id="live-attendance" class="inline-block bg-white/10 backdrop-blur-sm px-6 py-2 rounded-full border border-white/20 text-white text-[10px] font-bold tracking-[0.2em] mb-6 opacity-0">
+                <span id="pax-count">0</span> GUESTS JOINING US
             </div>
             
             <div class="h-24 overflow-hidden relative">
@@ -94,109 +105,115 @@
             </div>
         </div>
 
-        <button onclick="$('#view-login').fadeIn()" class="fixed bottom-6 right-6 text-[9px] text-white/50 hover:text-white uppercase tracking-widest bg-black/40 px-5 py-2 rounded-full border border-white/10 backdrop-blur shadow-2xl transition-all">
-            RSVP LOGIN
+        <button onclick="$('#view-login').fadeIn()" class="fixed bottom-6 right-6 text-[9px] text-white/50 hover:text-white uppercase tracking-widest bg-black/40 px-5 py-2 rounded-full border border-white/10 backdrop-blur shadow-2xl">
+            LOGIN
         </button>
     </div>
 
     <div id="view-login" class="hidden fixed inset-0 z-[80] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm p-8 rounded-[2rem] shadow-2xl relative text-center">
-            <button onclick="$('#view-login').fadeOut()" class="absolute top-6 right-6 text-gray-300 hover:text-gray-900 transition"><i class="fas fa-times text-xl"></i></button>
-            <h2 class="text-xl font-bold font-classic mb-8 tracking-widest text-gray-800 uppercase">Invitation Code</h2>
-            <input type="text" id="input-invite-code" placeholder="ENTER YOUR CODE" class="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-center font-bold text-lg uppercase mb-6 outline-none focus:border-gold-400 focus:bg-white transition">
-            <button id="btn-enter-code" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] hover:bg-black shadow-xl">Unlock Invitation</button>
-            <div id="login-error" class="hidden text-red-500 text-[10px] font-bold mt-4 uppercase tracking-wider"></div>
+            <button onclick="$('#view-login').fadeOut()" class="absolute top-6 right-6 text-gray-300"><i class="fas fa-times text-xl"></i></button>
+            <h2 class="text-xl font-bold font-classic mb-8 uppercase">Invitation Code</h2>
+            <input type="text" id="input-invite-code" placeholder="ENTER CODE" class="w-full p-4 bg-gray-50 border rounded-2xl text-center font-bold text-lg mb-6 outline-none focus:border-gold-400">
+            <button id="btn-enter-code" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-[0.2em]">Unlock</button>
+            <div id="login-error" class="hidden text-red-500 text-[10px] font-bold mt-4 uppercase"></div>
         </div>
     </div>
 
     <main id="view-rsvp" class="page-section max-w-2xl mx-auto w-full p-4 pt-10 pb-24 relative z-10">
         <div class="glass-light rounded-[3rem] shadow-2xl overflow-hidden mb-8 border border-white">
             <div class="bg-gray-900 text-white p-10 text-center">
-                <h2 class="text-2xl font-classic tracking-widest">RSVP</h2>
-                <div class="h-px w-12 bg-gold-400 mx-auto mt-4 mb-2"></div>
-                <p class="text-xs text-gold-300 font-bold tracking-widest uppercase" id="guest-group-name"></p>
+                <h2 class="text-2xl font-classic tracking-widest uppercase">RSVP</h2>
+                <p class="text-xs text-gold-300 font-bold tracking-widest mt-2 uppercase" id="guest-group-name"></p>
             </div>
             <div class="p-8 md:p-12">
                 <form id="rsvp-form" class="space-y-8">
                     <div id="guest-list-container" class="space-y-4"></div>
                     <div>
-                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest ml-2">Wedding Wishes</label>
-                        <textarea id="rsvp-note" rows="4" class="w-full p-5 border border-gray-100 rounded-[1.5rem] bg-gray-50 text-sm focus:bg-white focus:border-gold-300 outline-none transition shadow-inner" placeholder="Send your love to the happy couple..."></textarea>
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2">Wedding Wishes</label>
+                        <textarea id="rsvp-note" rows="4" class="w-full p-5 border border-gray-100 rounded-[1.5rem] bg-gray-50 text-sm focus:bg-white transition" placeholder="Send your love..."></textarea>
                     </div>
-                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 text-white font-bold py-5 rounded-2xl shadow-xl uppercase tracking-[0.2em] text-xs hover:bg-gold-600 transition">Update RSVP</button>
+                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 text-white font-bold py-5 rounded-2xl shadow-xl uppercase tracking-[0.2em] text-xs">Update RSVP</button>
                 </form>
             </div>
         </div>
-
         <div class="glass-light rounded-[2.5rem] p-10 shadow-2xl border border-white">
-            <h3 class="font-classic text-center mb-8 text-gray-800 border-b border-gray-100 pb-4 tracking-widest uppercase text-sm">Event Details</h3>
+            <h3 class="font-classic text-center mb-8 border-b pb-4 uppercase text-sm">Event Details</h3>
             <div id="event-details-display" class="space-y-8"></div>
         </div>
     </main>
 
     <main id="view-admin" class="page-section max-w-5xl mx-auto w-full p-4 bg-gray-50 min-h-screen text-gray-800">
-        <div class="flex justify-between items-center p-6 bg-white rounded-2xl mb-6 shadow-sm border border-gray-200">
+        <div class="flex justify-between items-center p-6 bg-white rounded-2xl mb-6 border">
             <div>
-                <h2 class="font-classic font-bold text-xl text-gray-900">Admin Dashboard</h2>
-                <div class="flex gap-4 mt-1">
-                    <p class="text-[9px] text-gray-400 uppercase font-black tracking-wider">Visits: <span id="visit-count" class="text-blue-600">0</span></p>
-                </div>
+                <h2 class="font-classic font-bold text-xl">Admin Dashboard</h2>
+                <p class="text-[9px] text-gray-400 uppercase font-black">Visits: <span id="visit-count" class="text-blue-600">0</span></p>
             </div>
-            <button onclick="logout()" class="text-red-500 font-bold text-[10px] border border-red-100 px-4 py-2 rounded-xl hover:bg-red-50 transition">LOGOUT</button>
+            <button onclick="logout()" class="text-red-500 font-bold text-[10px] border px-4 py-2 rounded-xl">LOGOUT</button>
         </div>
         
         <div class="p-2">
-            <div class="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-                <button onclick="switchAdminTab('guests')" class="px-5 py-3 bg-white border border-gray-100 shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest">Guests</button>
-                <button onclick="switchAdminTab('wishes')" class="px-5 py-3 bg-white border border-gray-100 shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest">Wishes</button>
-                <button onclick="switchAdminTab('settings')" class="px-5 py-3 bg-white border border-gray-100 shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest">Settings</button>
-                <button onclick="downloadGuestList()" class="px-5 py-3 bg-green-600 text-white shadow-lg rounded-xl text-[10px] font-black uppercase tracking-widest ml-auto"><i class="fas fa-file-csv mr-2"></i>Export</button>
+            <div class="flex gap-2 mb-8 overflow-x-auto pb-2">
+                <button onclick="switchAdminTab('guests')" class="px-5 py-3 bg-white border shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest">Guests</button>
+                <button onclick="switchAdminTab('wishes')" class="px-5 py-3 bg-white border shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest">Wishes</button>
+                <button onclick="switchAdminTab('settings')" class="px-5 py-3 bg-white border shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest">Settings</button>
+                <button onclick="downloadGuestList()" class="px-5 py-3 bg-green-600 text-white shadow-lg rounded-xl text-[10px] font-black uppercase tracking-widest ml-auto">Export</button>
             </div>
             
-            <div id="admin-tab-guests" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-gray-50 border-b"><button onclick="$('#modal-add-guest').fadeIn()" class="bg-black text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition shadow-lg">+ Add New Invite</button></div>
+            <div id="admin-tab-guests" class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                <div class="p-4 bg-gray-50 border-b"><button onclick="$('#modal-add-guest').fadeIn()" class="bg-black text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest">+ Add New Invite</button></div>
                 <table class="w-full text-left text-[11px] border-collapse"><tbody id="admin-table-body"></tbody></table>
             </div>
 
-            <div id="admin-tab-wishes" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div id="admin-tab-wishes" class="hidden bg-white rounded-2xl border overflow-hidden">
                 <table class="w-full text-left text-[11px] border-collapse"><tbody id="admin-wishes-body"></tbody></table>
             </div>
 
             <div id="admin-tab-settings" class="hidden">
                 <form id="settings-form" class="space-y-6 max-w-2xl mx-auto">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm grid grid-cols-2 gap-6">
-                        <div><label class="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Theme</label><select id="set-theme" class="w-full p-3 border rounded-xl text-sm bg-gray-50"><option value="classic">🏛️ Classic</option><option value="modern">🔳 Modern</option><option value="floral">🌸 Floral</option></select></div>
-                        <div><label class="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Music</label><select id="set-music" class="w-full p-3 border rounded-xl text-sm bg-gray-50"><option value="">No Music</option><option value="music1.mp3">Track 1</option><option value="music2.mp3">Track 2</option><option value="music3.mp3">Track 3</option></select></div>
+                    <div class="bg-white p-6 rounded-2xl border grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Theme Selection</label>
+                            <select id="set-theme" class="w-full p-3 border rounded-xl text-sm bg-gray-50">
+                                <option value="classic">🏛️ Classic Royale</option>
+                                <option value="modern">🔳 Editorial Modern</option>
+                                <option value="floral">🌸 Enchanted Floral</option>
+                                <option value="zen">🌊 Minimalist Zen</option>
+                                <option value="midnight">🌙 Midnight Luxe</option>
+                                <option value="film">🎞️ Film Strip</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Music</label><select id="set-music" class="w-full p-3 border rounded-xl text-sm bg-gray-50"><option value="">None</option><option value="music1.mp3">Track 1</option><option value="music2.mp3">Track 2</option><option value="music3.mp3">Track 3</option></select></div>
                     </div>
                     
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Wedding Countdown Date</label>
+                    <div class="bg-white p-6 rounded-2xl border">
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Wedding Date</label>
                         <input id="set-deadline" type="datetime-local" onclick="this.showPicker()" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mb-4">
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Couple Names</label>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Couple Names</label>
                         <input id="set-names" placeholder="John & Jane" class="w-full p-3 border rounded-xl text-sm bg-gray-50">
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-3 tracking-widest">Reception</label>
+                        <div class="bg-white p-6 rounded-2xl border">
+                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-3">Reception</label>
                             <input id="set-rec-loc" placeholder="Location Name" class="w-full p-3 border rounded-xl mb-3 text-sm bg-gray-50">
                             <input id="set-rec-time" type="datetime-local" onclick="this.showPicker()" class="w-full p-3 border rounded-xl text-sm bg-gray-50">
                         </div>
-                        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-3 tracking-widest">Holy Matrimony</label>
+                        <div class="bg-white p-6 rounded-2xl border">
+                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-3">Holy Matrimony</label>
                             <input id="set-mat-loc" placeholder="Church/Temple" class="w-full p-3 border rounded-xl mb-3 text-sm bg-gray-50">
                             <input id="set-mat-time" type="datetime-local" onclick="this.showPicker()" class="w-full p-3 border rounded-xl text-sm bg-gray-50">
                         </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                        <label class="block font-black text-[10px] text-gray-400 uppercase mb-4 tracking-widest">Photos</label>
-                        <div class="mb-6"><p class="text-[9px] font-bold text-gray-300 mb-2 uppercase">Background (Full Screen)</p><div id="bg-photo-list" class="space-y-2"></div><button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-blue-500 text-[10px] font-bold mt-2 uppercase tracking-tighter hover:underline">+ Add BG URL</button></div>
+                    <div class="bg-white p-6 rounded-2xl border">
+                        <label class="block font-black text-[10px] text-gray-400 uppercase mb-4">Photos</label>
+                        <div class="mb-6"><p class="text-[9px] font-bold text-gray-300 mb-2 uppercase">Background Photos</p><div id="bg-photo-list" class="space-y-2"></div><button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-blue-500 text-[10px] font-bold mt-2 uppercase">+ Add BG URL</button></div>
                         <div class="h-px bg-gray-100 my-4"></div>
-                        <div><p class="text-[9px] font-bold text-gray-300 mb-2 uppercase">Card Gallery (Inside Invitation)</p><div id="card-photo-list" class="space-y-2"></div><button type="button" onclick="addPhotoInput('card-photo-list')" class="text-blue-500 text-[10px] font-bold mt-2 uppercase tracking-tighter hover:underline">+ Add Gallery URL</button></div>
+                        <div><p class="text-[9px] font-bold text-gray-300 mb-2 uppercase">Card Gallery</p><div id="card-photo-list" class="space-y-2"></div><button type="button" onclick="addPhotoInput('card-photo-list')" class="text-blue-500 text-[10px] font-bold mt-2 uppercase">+ Add Gallery URL</button></div>
                     </div>
                     
-                    <button type="submit" class="w-full bg-black text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-xs shadow-2xl hover:bg-gray-800 transition">Save Site Configuration</button>
+                    <button type="submit" class="w-full bg-black text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-xs">Save Settings</button>
                 </form>
             </div>
         </div>
@@ -205,14 +222,14 @@
     <div id="modal-add-guest" class="fixed inset-0 bg-black/80 hidden z-[90] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl">
             <h3 class="font-bold mb-6 font-classic text-center text-gray-800 uppercase tracking-widest">New Invitation</h3>
-            <input id="new-code" placeholder="INVITE CODE" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl mb-3 uppercase font-bold text-center tracking-widest focus:bg-white outline-none">
-            <input id="new-names" placeholder="GUEST NAMES" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl mb-6 text-center focus:bg-white outline-none">
+            <input id="new-code" placeholder="INVITE CODE" class="w-full p-4 bg-gray-50 border rounded-2xl mb-3 uppercase font-bold text-center focus:bg-white outline-none">
+            <input id="new-names" placeholder="GUEST NAMES" class="w-full p-4 bg-gray-50 border rounded-2xl mb-6 text-center focus:bg-white outline-none">
             <div class="flex gap-4 mb-8 justify-center">
                 <label class="text-xs font-bold flex items-center gap-2 cursor-pointer"><input type="radio" name="new-side" value="groom" checked class="w-4 h-4 accent-black"> GROOM</label>
                 <label class="text-xs font-bold flex items-center gap-2 cursor-pointer"><input type="radio" name="new-side" value="bride" class="w-4 h-4 accent-black"> BRIDE</label>
             </div>
-            <button onclick="createInvite()" class="w-full bg-black text-white py-4 rounded-2xl font-bold uppercase tracking-widest shadow-xl">Create</button>
-            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-4 text-gray-400 text-[10px] font-bold uppercase tracking-widest">Cancel</button>
+            <button onclick="createInvite()" class="w-full bg-black text-white py-4 rounded-2xl font-bold uppercase shadow-xl">Create</button>
+            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-4 text-gray-400 text-[10px] font-bold uppercase">Cancel</button>
         </div>
     </div>
 
@@ -257,7 +274,6 @@
             if(!siteConfig.deadline) return;
             const target = new Date(siteConfig.deadline).getTime();
             if(isNaN(target)) return;
-            
             if(countdownInterval) clearInterval(countdownInterval);
             countdownInterval = setInterval(() => {
                 const now = new Date().getTime();
@@ -289,20 +305,21 @@
             const scroller = $('#wishes-scroller'); scroller.empty();
             if(wishes.length > 0) {
                 if(wishes.length > 2) scroller.addClass('wish-scroll');
-                [...wishes, ...wishes].forEach(w => scroller.append(`<div class="text-white/80 text-center px-4"><p class="italic text-[11px] leading-relaxed">"${w.note}"</p><p class="text-[8px] uppercase tracking-widest text-gold-400 mt-2 font-black">— ${w.name}</p></div>`));
+                [...wishes, ...wishes].forEach(w => scroller.append(`<div class="text-white/80 text-center px-4"><p class="italic text-[11px] font-serif">"${w.note}"</p><p class="text-[8px] uppercase tracking-widest text-gold-400 mt-2 font-black">— ${w.name}</p></div>`));
             } else scroller.append(`<div class="text-white/20 text-[10px] italic uppercase tracking-widest">Wishes will appear here...</div>`);
         }
 
         function renderLanding() {
             const c = siteConfig;
             const curtains = $('#entrance-curtains-container');
-            if(c.theme === 'classic') curtains.html('<div id="entrance-overlay" class="theme-classic"><div class="curtain-panel curtain-left"></div><div class="curtain-panel curtain-right"></div></div>');
+            if(c.theme === 'midnight') curtains.html('<div id="entrance-overlay" class="bg-navy-900"><div class="curtain-panel bg-navy-900 border-gold-400 curtain-left"></div><div class="curtain-panel bg-navy-900 border-gold-400 curtain-right"></div></div>');
+            else if(c.theme === 'classic') curtains.html('<div id="entrance-overlay" class="theme-classic"><div class="curtain-panel curtain-left"></div><div class="curtain-panel curtain-right"></div></div>');
             else curtains.html(`<div id="entrance-overlay" class="theme-${c.theme}"></div>`);
 
             const bgCont = $('#bg-slideshow'); bgCont.empty();
             const bgs = c.bgPhotos?.length ? c.bgPhotos : ["https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000"];
             bgs.forEach((url, i) => bgCont.append(`<div class="bg-slide ${i===0?'active':''}" style="background-image: url('${url}')"></div>`));
-            if(bgs.length > 1) { let cur = 0; bgInterval = setInterval(() => { $('.bg-slide').removeClass('active'); cur = (cur + 1) % bgs.length; $('.bg-slide').eq(cur).addClass('active'); }, 5000); }
+            if(bgs.length > 1) { let cur = 0; if(bgInterval) clearInterval(bgInterval); bgInterval = setInterval(() => { $('.bg-slide').removeClass('active'); cur = (cur + 1) % bgs.length; $('.bg-slide').eq(cur).addClass('active'); }, 5000); }
 
             const card = $('#invite-card');
             let galleryHtml = '';
@@ -313,9 +330,25 @@
             }
 
             let layout = '';
-            if(c.theme === 'classic') layout = `<div class="bg-[#fdfbf7] p-8 text-center border-[10px] border-double border-gold-400 shadow-2xl rounded-sm"><div class="w-full h-64 border-2 border-gold-300 mb-6 shadow-inner bg-gray-50">${galleryHtml}</div><p class="uppercase tracking-[0.3em] text-[9px] mb-4 text-gray-400 font-black">The Wedding of</p><h1 class="font-classic text-4xl mb-6 text-gray-800 leading-tight">${c.names || 'John & Jane'}</h1><div class="h-px w-16 bg-gold-400 mx-auto"></div></div>`;
-            else if (c.theme === 'modern') layout = `<div class="bg-white shadow-2xl text-center rounded-sm overflow-hidden"><div class="w-full h-80 grayscale bg-gray-100">${galleryHtml}</div><div class="p-8"><h1 class="font-modern font-black text-5xl uppercase tracking-tighter leading-none">${c.names}</h1></div></div>`;
-            else layout = `<div class="glass-light p-10 rounded-[4rem] text-center shadow-2xl relative border-4 border-white overflow-hidden flex flex-col items-center justify-center min-h-[480px]"><div class="w-48 h-48 rounded-full border-4 border-white shadow-xl overflow-hidden mb-10 relative z-10 bg-rose-50">${galleryHtml}</div><h1 class="font-floral text-7xl text-rose-900 mb-6 relative z-10 leading-none">${c.names || 'J & J'}</h1><p class="font-classic tracking-[0.3em] text-[9px] text-rose-800 relative z-10 font-black uppercase">INVITE YOU TO CELEBRATE</p></div>`;
+            switch(c.theme) {
+                case 'modern':
+                    layout = `<div class="bg-white shadow-2xl overflow-hidden"><div class="w-full h-80 grayscale bg-gray-100">${galleryHtml}</div><div class="p-8 text-center"><h1 class="font-modern font-black text-5xl uppercase tracking-tighter leading-none text-black">${c.names}</h1></div></div>`;
+                    break;
+                case 'floral':
+                    layout = `<div class="glass-light p-10 rounded-[4rem] text-center shadow-2xl relative border-4 border-white overflow-hidden min-h-[480px] flex flex-col items-center justify-center"><div class="w-44 h-44 rounded-full border-4 border-white shadow-xl overflow-hidden mb-8 bg-rose-50">${galleryHtml}</div><h1 class="font-floral text-7xl text-rose-900 mb-4 leading-none">${c.names || 'J & J'}</h1><p class="font-classic tracking-[0.3em] text-[9px] text-rose-800 font-black">INVITE YOU</p></div>`;
+                    break;
+                case 'zen':
+                    layout = `<div class="bg-white/90 p-12 text-center shadow-sm border-l-8 border-gray-900"><div class="w-full h-48 mb-10 overflow-hidden">${galleryHtml}</div><p class="font-modern tracking-[0.5em] text-[8px] text-gray-400 mb-4">MOMENTS OF LOVE</p><h1 class="font-modern font-thin text-4xl mb-6 text-gray-900">${c.names}</h1></div>`;
+                    break;
+                case 'midnight':
+                    layout = `<div class="bg-navy-900 border-2 border-gold-400 p-8 text-center shadow-2xl"><div class="w-full h-64 border border-gold-400/30 mb-8">${galleryHtml}</div><h1 class="font-classic text-gold-300 text-4xl mb-4 text-shadow-glow">${c.names}</h1><p class="text-gold-400/60 text-[8px] tracking-[0.4em] uppercase">The Wedding Royale</p></div>`;
+                    break;
+                case 'film':
+                    layout = `<div class="bg-gray-100 p-4 shadow-2xl"><div class="bg-black w-full h-72 mb-4 p-2 relative"><div class="absolute left-0 top-0 bottom-0 flex flex-col justify-between py-2 text-white/10 text-[6px]">● ● ● ● ● ●</div>${galleryHtml}<div class="absolute right-0 top-0 bottom-0 flex flex-col justify-between py-2 text-white/10 text-[6px]">● ● ● ● ● ●</div></div><div class="text-center p-4"><h1 class="font-serif italic text-3xl text-black">${c.names}</h1><p class="font-modern text-[8px] tracking-widest text-gray-400 mt-2">FEATURE FILM OF OUR LIFE</p></div></div>`;
+                    break;
+                default: // Classic
+                    layout = `<div class="bg-[#fdfbf7] p-8 text-center border-[10px] border-double border-gold-400 shadow-2xl"><div class="w-full h-64 border-2 border-gold-300 mb-6 shadow-inner bg-gray-50">${galleryHtml}</div><p class="uppercase tracking-[0.3em] text-[9px] mb-4 text-gray-400 font-black">The Wedding of</p><h1 class="font-classic text-4xl mb-6 text-gray-800 leading-tight">${c.names || 'John & Jane'}</h1><div class="h-px w-16 bg-gold-400 mx-auto"></div></div>`;
+            }
             
             card.html(layout);
             $('.page-section').removeClass('active'); $('#view-landing').addClass('active');
@@ -392,13 +425,13 @@
                 const wb = $('#admin-wishes-body'); wb.empty();
                 snap.forEach(doc => {
                     const d = doc.data(); if(d.isAdmin) return;
-                    tb.append(`<tr class="border-b"><td class="p-3 font-bold">${d.inviteCode}</td><td class="p-3">${d.guestNames}</td><td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-red-300 hover:text-red-600 transition">DEL</button></td></tr>`);
-                    if(d.note) wb.append(`<tr class="border-b"><td class="p-3 italic">"${d.note}"</td><td class="p-3 text-[9px] uppercase font-black text-gray-300">${d.guestNames}</td><td class="p-3 text-right"><button onclick="deleteWish('${doc.id}')" class="text-gray-300 hover:text-red-500 uppercase text-[9px] font-black">Delete</button></td></tr>`);
+                    tb.append(`<tr class="border-b"><td class="p-3 font-bold">${d.inviteCode}</td><td class="p-3">${d.guestNames}</td><td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-red-500 font-bold uppercase text-[9px]">Delete</button></td></tr>`);
+                    if(d.note) wb.append(`<tr class="border-b"><td class="p-3 italic">"${d.note}"</td><td class="p-3 text-[9px] uppercase font-black text-gray-300">${d.guestNames}</td><td class="p-3 text-right"><button onclick="deleteWish('${doc.id}')" class="text-gray-300 hover:text-red-500 uppercase text-[9px] font-black">X</button></td></tr>`);
                 });
             });
         }
 
-        window.addPhotoInput = (id, v='') => { $(`#${id}`).append(`<div class="flex gap-2"><input value="${v}" class="w-full p-3 border rounded-xl text-xs photo-input bg-gray-50 focus:bg-white transition" placeholder="Paste URL here"><button type="button" onclick="$(this).parent().remove()" class="text-red-500 px-2 font-bold">X</button></div>`); };
+        window.addPhotoInput = (id, v='') => { $(`#${id}`).append(`<div class="flex gap-2"><input value="${v}" class="w-full p-3 border rounded-xl text-xs photo-input bg-gray-50 focus:bg-white transition" placeholder="Paste image URL here"><button type="button" onclick="$(this).parent().remove()" class="text-red-500 px-2 font-bold">X</button></div>`); };
         
         $('#settings-form').submit(async (e) => {
             e.preventDefault();
@@ -419,7 +452,7 @@
             await db.collection('invitations').add({ inviteCode: code, guestNames: names, side: $('input[name="new-side"]:checked').val(), guests, status: 'pending' });
             $('#modal-add-guest').fadeOut();
         }
-        async function deleteWish(id) { if(confirm('Delete this guest wish?')) await db.collection('invitations').doc(id).update({ note: "" }); }
+        async function deleteWish(id) { if(confirm('Delete wish?')) await db.collection('invitations').doc(id).update({ note: "" }); }
         async function delInv(id) { if(confirm('Permanently delete invitation?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
         function switchAdminTab(t) { $('#admin-tab-guests, #admin-tab-settings, #admin-tab-wishes').hide(); $(`#admin-tab-${t}`).show(); }
