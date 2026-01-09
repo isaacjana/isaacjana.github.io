@@ -34,38 +34,25 @@
     <style>
         :root { --curtain-color: #111; --curtain-border: #D4AF37; }
         body { -webkit-tap-highlight-color: transparent; overflow-x: hidden; background: #000; scroll-behavior: smooth; }
-        
-        /* Layout Transitions */
         .page-section { display: none; opacity: 0; transform: translateY(10px); transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         .page-section.active { display: block; opacity: 1; transform: translateY(0); }
-        
         #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        
-        /* Dynamic Background */
         #bg-slideshow { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
         .bg-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease-in-out; transform: scale(1.02); will-change: opacity; }
         .bg-slide.active { opacity: 0.45; }
-
-        /* Card Gallery */
         .card-gallery-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s ease-in-out; will-change: opacity; }
         .card-gallery-img.active { opacity: 1; }
-
-        /* Curtain Mechanics */
         #entrance-overlay { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .curtain-panel { position: absolute; top: 0; bottom: 0; width: 50%; background: var(--curtain-color); transition: transform 1.4s cubic-bezier(0.77, 0, 0.175, 1); z-index: 501; }
         .curtain-left { left: 0; border-right: 1px solid var(--curtain-border); } 
         .curtain-right { right: 0; border-left: 1px solid var(--curtain-border); }
         .open .curtain-left { transform: translateX(-100%); } 
         .open .curtain-right { transform: translateX(100%); }
-
-        /* Responsive UI Elements */
         .glass-light { background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
         .wish-scroll { animation: scrollWishes 30s linear infinite; }
         @keyframes scrollWishes { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-        
-        /* Modern Input Styling */
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .map-preview { height: 180px; width: 100%; background-color: #eee; border-radius: 1.5rem; overflow: hidden; position: relative; cursor: pointer; }
+        .map-preview img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
 <body class="min-h-screen text-gray-800 antialiased font-body">
@@ -164,7 +151,7 @@
         </div>
         
         <div class="glass-light rounded-[2.5rem] p-12 shadow-2xl border border-white/50">
-            <h3 class="font-classic text-center mb-10 border-b border-gray-100 pb-6 uppercase text-sm tracking-widest text-gray-400 font-black">Event Schedule</h3>
+            <h3 class="font-classic text-center mb-10 border-b border-gray-100 pb-6 uppercase text-sm tracking-widest text-gray-400 font-black">Event Schedule & Location</h3>
             <div id="event-details-display" class="space-y-10"></div>
         </div>
     </main>
@@ -185,7 +172,7 @@
                 <button onclick="switchAdminTab('guests')" class="px-8 py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Guests</button>
                 <button onclick="switchAdminTab('wishes')" class="px-8 py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Wishes</button>
                 <button onclick="switchAdminTab('settings')" class="px-8 py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Settings</button>
-                <button onclick="downloadGuestList()" class="px-8 py-4 bg-emerald-600 text-white shadow-xl rounded-2xl text-[11px] font-black uppercase tracking-widest ml-auto active:scale-95 transition-transform"><i class="fas fa-file-excel mr-2"></i>Export</button>
+                <button onclick="downloadGuestList()" class="px-8 py-4 bg-emerald-600 text-white shadow-xl rounded-2xl text-[11px] font-black uppercase tracking-widest ml-auto active:scale-95 transition-transform">Export</button>
             </nav>
             
             <div id="admin-tab-guests" class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -221,13 +208,12 @@
                                 <label class="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">Background Music</label>
                                 <select id="set-music" class="w-full p-4 border rounded-2xl text-sm bg-gray-50/50 outline-none focus:border-gold-400 transition-all">
                                     <option value="">No Music</option>
-                                    <option value="music1.mp3">Track 1 (.mp3)</option>
-                                    <option value="music2.mp3">Track 2 (.mp3)</option>
-                                    <option value="music3.mp3">Track 3 (.mp3)</option>
+                                    <option value="music1.mp3">Track 1</option>
+                                    <option value="music2.mp3">Track 2</option>
+                                    <option value="music3.mp3">Track 3</option>
                                 </select>
                             </div>
                         </div>
-                        
                         <div>
                             <label class="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">Wedding Event Date & Time</label>
                             <input id="set-deadline" type="datetime-local" onfocus="this.showPicker()" class="w-full p-4 border rounded-2xl text-sm bg-gray-50/50 outline-none focus:border-gold-400">
@@ -240,12 +226,12 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-4 tracking-widest">Ceremony / Reception</label>
+                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-4 tracking-widest">Ceremony & Reception Location</label>
                             <input id="set-rec-loc" placeholder="Venue Name & Address" class="w-full p-4 border rounded-2xl mb-4 text-sm bg-gray-50/50 outline-none">
                             <input id="set-rec-time" type="datetime-local" onfocus="this.showPicker()" class="w-full p-4 border rounded-2xl text-sm bg-gray-50/50 outline-none">
                         </div>
                         <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-4 tracking-widest">Religious Service (Optional)</label>
+                            <label class="block font-black text-[10px] text-gray-400 uppercase mb-4 tracking-widest">Religious Service Location</label>
                             <input id="set-mat-loc" placeholder="Venue Name & Address" class="w-full p-4 border rounded-2xl mb-4 text-sm bg-gray-50/50 outline-none">
                             <input id="set-mat-time" type="datetime-local" onfocus="this.showPicker()" class="w-full p-4 border rounded-2xl text-sm bg-gray-50/50 outline-none">
                         </div>
@@ -254,47 +240,45 @@
                     <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-10">
                         <div>
                             <div class="flex justify-between items-center mb-6">
-                                <label class="block font-black text-[10px] text-gray-400 uppercase tracking-widest">Background Photos (Full Screen)</label>
+                                <label class="block font-black text-[10px] text-gray-400 uppercase tracking-widest">Background Photos</label>
                                 <button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-gold-600 text-[10px] font-black uppercase">+ Add URL</button>
                             </div>
                             <div id="bg-photo-list" class="space-y-3"></div>
                         </div>
-                        <div class="h-px bg-gray-50"></div>
                         <div>
                             <div class="flex justify-between items-center mb-6">
-                                <label class="block font-black text-[10px] text-gray-400 uppercase tracking-widest">Gallery Photos (Inside Card)</label>
+                                <label class="block font-black text-[10px] text-gray-400 uppercase tracking-widest">Gallery Photos</label>
                                 <button type="button" onclick="addPhotoInput('card-photo-list')" class="text-gold-600 text-[10px] font-black uppercase">+ Add URL</button>
                             </div>
                             <div id="card-photo-list" class="space-y-3"></div>
                         </div>
                     </div>
                     
-                    <button type="submit" class="w-full bg-navy-900 text-white py-6 rounded-[2rem] font-bold uppercase tracking-[0.4em] text-xs shadow-2xl hover:bg-black transition-all">Deploy Configuration</button>
+                    <button type="submit" class="w-full bg-navy-900 text-white py-6 rounded-[2rem] font-bold uppercase tracking-[0.4em] text-xs shadow-2xl hover:bg-black transition-all">Save Configuration</button>
                 </form>
             </div>
         </div>
     </main>
 
     <div id="modal-add-guest" class="hidden fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
-        <div class="bg-white p-10 rounded-[3rem] w-full max-w-sm shadow-2xl scale-95 transition-transform">
-            <h3 class="font-bold mb-8 font-classic text-center text-gray-800 uppercase tracking-widest text-lg">New Guest</h3>
+        <div class="bg-white p-10 rounded-[3rem] w-full max-w-sm shadow-2xl">
+            <h3 class="font-bold mb-8 font-classic text-center uppercase tracking-widest">New Guest</h3>
             <div class="space-y-4">
-                <input id="new-code" placeholder="INVITE CODE (e.g., BRIDE01)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl uppercase font-black text-center tracking-widest outline-none focus:bg-white transition-all">
-                <input id="new-names" placeholder="GUEST NAME(S)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-center font-bold outline-none focus:bg-white transition-all">
+                <input id="new-code" placeholder="INVITE CODE" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-black text-center tracking-widest focus:bg-white outline-none">
+                <input id="new-names" placeholder="GUEST NAME(S)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-center font-bold focus:bg-white outline-none">
             </div>
             <div class="flex gap-6 my-8 justify-center">
-                <label class="text-[10px] font-black flex items-center gap-2 cursor-pointer group"><input type="radio" name="new-side" value="groom" checked class="w-4 h-4 accent-navy-900"> GROOM'S</label>
-                <label class="text-[10px] font-black flex items-center gap-2 cursor-pointer group"><input type="radio" name="new-side" value="bride" class="w-4 h-4 accent-navy-900"> BRIDE'S</label>
+                <label class="text-[10px] font-black flex items-center gap-2 cursor-pointer"><input type="radio" name="new-side" value="groom" checked class="w-4 h-4 accent-navy-900"> GROOM</label>
+                <label class="text-[10px] font-black flex items-center gap-2 cursor-pointer"><input type="radio" name="new-side" value="bride" class="w-4 h-4 accent-navy-900"> BRIDE</label>
             </div>
             <div class="flex gap-3">
                 <button onclick="$('#modal-add-guest').fadeOut()" class="flex-1 py-4 text-gray-400 text-[10px] font-black uppercase">Cancel</button>
-                <button onclick="createInvite()" class="flex-[2] bg-navy-900 text-white py-4 rounded-2xl font-bold uppercase tracking-widest shadow-xl">Create</button>
+                <button onclick="createInvite()" class="flex-[2] bg-navy-900 text-white py-4 rounded-2xl font-bold uppercase shadow-xl">Create</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Core Logic
         const firebaseConfig = { apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ", authDomain: "wedding-rvsp-e446c.firebaseapp.com", projectId: "wedding-rvsp-e446c", storageBucket: "wedding-rvsp-e446c.firebasestorage.app", messagingSenderId: "836260285764", appId: "1:836260285764:web:b1e8ca3ea64f7616e7db11" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
@@ -319,7 +303,6 @@
                 const doc = await db.collection('site_config').doc('main').get();
                 if(doc.exists) siteConfig = { ...siteConfig, ...doc.data() };
                 if(siteConfig.musicTrack) audio.src = siteConfig.musicTrack;
-                // Update Curtain Colors based on theme
                 const root = document.documentElement;
                 if(siteConfig.theme === 'midnight') { root.style.setProperty('--curtain-color', '#0f172a'); }
                 if(siteConfig.theme === 'floral') { root.style.setProperty('--curtain-color', '#fff'); root.style.setProperty('--curtain-border', '#ffe4e6'); }
@@ -339,7 +322,6 @@
             if(!siteConfig.deadline) return;
             const target = new Date(siteConfig.deadline).getTime();
             if(isNaN(target)) return;
-            
             if(countdownInterval) clearInterval(countdownInterval);
             const update = () => {
                 const now = new Date().getTime();
@@ -352,14 +334,12 @@
                 $('#days').text(String(d).padStart(2, '0')); $('#hours').text(String(h).padStart(2, '0'));
                 $('#minutes').text(String(m).padStart(2, '0')); $('#seconds').text(String(s).padStart(2, '0'));
             };
-            update();
-            countdownInterval = setInterval(update, 1000);
+            update(); countdownInterval = setInterval(update, 1000);
         }
 
         async function loadStatsAndWishes() {
             const stats = await db.collection('site_config').doc('stats').get();
             if(stats.exists) $('#visit-count').text(stats.data().visits);
-            
             const snap = await db.collection('invitations').get();
             let total = 0, wishes = [];
             snap.forEach(doc => {
@@ -369,22 +349,18 @@
                     if(d.note) wishes.push({ name: d.guestNames, note: d.note });
                 }
             });
-            $('#pax-count').text(total);
-            $('#live-attendance').css('opacity', 1);
-            
+            $('#pax-count').text(total); $('#live-attendance').css('opacity', 1);
             const scroller = $('#wishes-scroller'); scroller.empty();
             if(wishes.length > 0) {
                 if(wishes.length > 2) scroller.addClass('wish-scroll');
-                [...wishes, ...wishes].forEach(w => scroller.append(`<div class="text-white/80 text-center px-6"><p class="italic text-[12px] leading-relaxed font-serif">"${w.note}"</p><p class="text-[8px] uppercase tracking-[0.3em] text-gold-400 mt-3 font-black">— ${w.name}</p></div>`));
+                [...wishes, ...wishes].forEach(w => scroller.append(`<div class="text-white/80 text-center px-6"><p class="italic text-[12px] font-serif">"${w.note}"</p><p class="text-[8px] uppercase tracking-[0.3em] text-gold-400 mt-3 font-black">— ${w.name}</p></div>`));
             } else scroller.append(`<div class="text-white/20 text-[10px] italic uppercase tracking-widest">Awaiting guest wishes...</div>`);
         }
 
         function renderLanding() {
             const c = siteConfig;
             const curtains = $('#entrance-curtains-container');
-            // Logic for Curtains injection
             curtains.html('<div id="entrance-overlay"><div class="curtain-panel curtain-left"></div><div class="curtain-panel curtain-right"></div></div>');
-
             const bgCont = $('#bg-slideshow'); bgCont.empty();
             const bgs = c.bgPhotos?.length ? c.bgPhotos : ["https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000"];
             bgs.forEach((url, i) => bgCont.append(`<div class="bg-slide ${i===0?'active':''}" style="background-image: url('${url}')"></div>`));
@@ -392,7 +368,6 @@
                 let cur = 0; if(bgInterval) clearInterval(bgInterval); 
                 bgInterval = setInterval(() => { $('.bg-slide').removeClass('active'); cur = (cur + 1) % bgs.length; $('.bg-slide').eq(cur).addClass('active'); }, 6000); 
             }
-
             const card = $('#invite-card');
             let galleryHtml = '';
             if(c.cardPhotos?.length > 0) {
@@ -400,57 +375,32 @@
                 galleryHtml = `<div class="relative w-full h-full overflow-hidden">${imgs}</div>`;
                 let cCur = 0; if(cardInterval) clearInterval(cardInterval); cardInterval = setInterval(() => { $('.card-gallery-img').removeClass('active'); cCur = (cCur + 1) % c.cardPhotos.length; $('.card-gallery-img').eq(cCur).addClass('active'); }, 4500);
             }
-
             let layout = '';
             switch(c.theme) {
-                case 'modern':
-                    layout = `<div class="bg-white shadow-2xl overflow-hidden"><div class="w-full h-80 grayscale bg-gray-100">${galleryHtml}</div><div class="p-10 text-center"><h1 class="font-modern font-black text-5xl uppercase tracking-tighter leading-none text-black">${c.names}</h1></div></div>`;
-                    break;
-                case 'floral':
-                    layout = `<div class="glass-light p-10 rounded-[4rem] text-center shadow-2xl relative border-4 border-white overflow-hidden min-h-[520px] flex flex-col items-center justify-center"><div class="w-48 h-48 rounded-full border-4 border-white shadow-xl overflow-hidden mb-10 bg-rose-50">${galleryHtml}</div><h1 class="font-floral text-8xl text-rose-900 mb-6 leading-none">${c.names || 'J & J'}</h1><p class="font-classic tracking-[0.4em] text-[10px] text-rose-800 font-black">WE ARE GETTING MARRIED</p></div>`;
-                    break;
-                case 'zen':
-                    layout = `<div class="bg-white/95 p-12 text-center shadow-sm border-l-8 border-gray-900"><div class="w-full h-56 mb-12 overflow-hidden bg-gray-50">${galleryHtml}</div><p class="font-modern tracking-[0.6em] text-[9px] text-gray-400 mb-4">A NEW CHAPTER</p><h1 class="font-modern font-thin text-5xl mb-8 text-gray-900">${c.names}</h1></div>`;
-                    break;
-                case 'midnight':
-                    layout = `<div class="bg-navy-900 border-2 border-gold-400 p-10 text-center shadow-2xl"><div class="w-full h-64 border border-gold-400/20 mb-10">${galleryHtml}</div><h1 class="font-classic text-gold-300 text-5xl mb-6">${c.names}</h1><p class="text-gold-400/40 text-[9px] tracking-[0.5em] uppercase font-black">Our Royal Celebration</p></div>`;
-                    break;
-                case 'film':
-                    layout = `<div class="bg-[#f2f2f2] p-6 shadow-2xl"><div class="bg-black w-full h-72 mb-6 p-2 relative shadow-inner"><div class="absolute left-0 top-0 bottom-0 flex flex-col justify-between py-4 text-white/20 text-[7px] px-1 font-mono">102 <br> 103 <br> 104 <br> 105</div>${galleryHtml}</div><div class="text-center p-6"><h1 class="font-serif italic text-4xl text-black leading-tight">${c.names}</h1><p class="font-modern text-[9px] tracking-[0.3em] text-gray-400 mt-4 uppercase">Directing our future together</p></div></div>`;
-                    break;
-                default: // Classic
-                    layout = `<div class="bg-[#fdfbf7] p-10 text-center border-[12px] border-double border-gold-400 shadow-2xl"><div class="w-full h-64 border-2 border-gold-300 mb-8 shadow-inner bg-gray-50">${galleryHtml}</div><p class="uppercase tracking-[0.4em] text-[10px] mb-6 text-gray-400 font-black">Request the Honor of your Presence</p><h1 class="font-classic text-5xl mb-8 text-gray-800 leading-tight underline decoration-gold-100 decoration-1 underline-offset-8">${c.names || 'John & Sarah'}</h1><div class="h-px w-20 bg-gold-400 mx-auto opacity-50"></div></div>`;
+                case 'modern': layout = `<div class="bg-white shadow-2xl overflow-hidden"><div class="w-full h-80 grayscale bg-gray-100">${galleryHtml}</div><div class="p-10 text-center"><h1 class="font-modern font-black text-5xl uppercase tracking-tighter text-black">${c.names}</h1></div></div>`; break;
+                case 'floral': layout = `<div class="glass-light p-10 rounded-[4rem] text-center shadow-2xl relative border-4 border-white overflow-hidden min-h-[520px] flex flex-col items-center justify-center"><div class="w-48 h-48 rounded-full border-4 border-white shadow-xl overflow-hidden mb-10 bg-rose-50">${galleryHtml}</div><h1 class="font-floral text-8xl text-rose-900 mb-6 leading-none">${c.names}</h1><p class="font-classic tracking-[0.4em] text-[10px] text-rose-800 font-black">WE ARE GETTING MARRIED</p></div>`; break;
+                case 'zen': layout = `<div class="bg-white/95 p-12 text-center shadow-sm border-l-8 border-gray-900"><div class="w-full h-56 mb-12 overflow-hidden bg-gray-50">${galleryHtml}</div><h1 class="font-modern font-thin text-5xl text-gray-900">${c.names}</h1></div>`; break;
+                case 'midnight': layout = `<div class="bg-navy-900 border-2 border-gold-400 p-10 text-center shadow-2xl"><div class="w-full h-64 border border-gold-400/20 mb-10">${galleryHtml}</div><h1 class="font-classic text-gold-300 text-5xl">${c.names}</h1></div>`; break;
+                case 'film': layout = `<div class="bg-[#f2f2f2] p-6 shadow-2xl"><div class="bg-black w-full h-72 mb-6 p-2 relative shadow-inner">${galleryHtml}</div><div class="text-center p-6"><h1 class="font-serif italic text-4xl text-black leading-tight">${c.names}</h1></div></div>`; break;
+                default: layout = `<div class="bg-[#fdfbf7] p-10 text-center border-[12px] border-double border-gold-400 shadow-2xl"><div class="w-full h-64 border-2 border-gold-300 mb-8 shadow-inner bg-gray-50">${galleryHtml}</div><h1 class="font-classic text-5xl text-gray-800">${c.names}</h1></div>`;
             }
-            
-            card.html(layout);
-            $('.page-section').removeClass('active'); $('#view-landing').addClass('active');
+            card.html(layout); $('.page-section').removeClass('active'); $('#view-landing').addClass('active');
         }
 
         function enterSite() {
-            $('body').addClass('open'); 
-            $('#entrance-content').css('opacity', '0');
+            $('body').addClass('open'); $('#entrance-content').css('opacity', '0');
             if(audio.src) { audio.volume = 0.5; audio.play().catch(()=>{}); }
-            setTimeout(() => { 
-                $('#entrance-overlay').fadeOut(1000); 
-                $('#invite-card').removeClass('translate-y-8 opacity-0'); 
-            }, 1000);
+            setTimeout(() => { $('#entrance-overlay').fadeOut(1000); $('#invite-card').removeClass('translate-y-8 opacity-0'); }, 1000);
         }
 
-        // Auth Logic
         $('#btn-enter-code').click(async () => {
             const code = $('#input-invite-code').val().trim().toUpperCase();
             if(!code) return;
             const btn = $('#btn-enter-code'); btn.text('Verifying...').prop('disabled', true);
-            
             if(code === 'ADMIN') { localStorage.setItem('rsvp_admin', 'true'); location.reload(); return; }
-            
             try {
                 const snap = await db.collection('invitations').where('inviteCode', '==', code).limit(1).get();
-                if(snap.empty) { 
-                    $('#login-error').text('Invalid Code - Please try again').removeClass('hidden'); 
-                    btn.text('Unlock').prop('disabled', false);
-                    return; 
-                }
+                if(snap.empty) { $('#login-error').text('Invalid Code').removeClass('hidden'); btn.text('Unlock').prop('disabled', false); return; }
                 const doc = snap.docs[0]; localStorage.setItem('rsvp_id', doc.id); currentInviteId = doc.id; loadRSVP(doc.data());
             } catch(e) { btn.text('Unlock').prop('disabled', false); }
         });
@@ -460,7 +410,7 @@
             $('#guest-group-name').text(data.guestNames);
             const cont = $('#guest-list-container'); cont.empty();
             data.guests.forEach((g, i) => {
-                cont.append(`<div class="bg-white p-6 rounded-[2rem] border border-gray-50 flex justify-between items-center shadow-sm group hover:border-gold-100 transition-colors" data-idx="${i}">
+                cont.append(`<div class="bg-white p-6 rounded-[2rem] border border-gray-50 flex justify-between items-center shadow-sm" data-idx="${i}">
                     <span class="font-bold text-gray-800 text-sm tracking-tight">${g.name}</span>
                     <div class="flex gap-2">
                         <label class="px-5 py-2.5 border-2 border-gray-50 rounded-2xl text-[10px] font-black cursor-pointer transition-all ${g.isAttending===true?'bg-emerald-50 border-emerald-500 text-emerald-700':'hover:bg-gray-50'}"><input type="radio" name="g${i}" value="y" class="hidden" ${g.isAttending===true?'checked':''}>ACCEPT</label>
@@ -469,28 +419,39 @@
                 </div>`);
             });
             $('#rsvp-note').val(data.note || '');
-
             const details = $('#event-details-display'); details.empty();
             const c = siteConfig;
             const cardClass = "p-6 bg-gray-50/50 rounded-3xl border border-white hover:bg-white transition-all";
-            if(c.reception?.loc) details.append(`<div class="${cardClass}"><h4 class="text-[10px] font-black text-gold-500 uppercase tracking-[0.2em] mb-3">Ceremony & Reception</h4><p class="font-bold text-[15px] text-gray-900 leading-snug mb-2">${c.reception.loc}</p><p class="text-[11px] text-gray-400 font-bold mb-5">${new Date(c.reception.time).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' })}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.reception.loc)}" target="_blank" class="text-[10px] bg-white border border-gray-200 px-6 py-3 rounded-xl font-black inline-flex items-center gap-2 uppercase tracking-widest shadow-sm hover:shadow-md active:scale-95 transition-all">Directions <i class="fas fa-location-arrow text-gold-400"></i></a></div>`);
-            if(c.matrimony?.loc) details.append(`<div class="${cardClass}"><h4 class="text-[10px] font-black text-gold-500 uppercase tracking-[0.2em] mb-3">Religious Service</h4><p class="font-bold text-[15px] text-gray-900 leading-snug mb-2">${c.matrimony.loc}</p><p class="text-[11px] text-gray-400 font-bold mb-5">${new Date(c.matrimony.time).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' })}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.matrimony.loc)}" target="_blank" class="text-[10px] bg-white border border-gray-200 px-6 py-3 rounded-xl font-black inline-flex items-center gap-2 uppercase tracking-widest shadow-sm hover:shadow-md active:scale-95 transition-all">Directions <i class="fas fa-location-arrow text-gold-400"></i></a></div>`);
+            
+            const renderLoc = (title, venue, time) => {
+                if(!venue) return "";
+                const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(venue)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+                return `
+                <div class="${cardClass}">
+                    <h4 class="text-[10px] font-black text-gold-500 uppercase tracking-[0.2em] mb-3">${title}</h4>
+                    <p class="font-bold text-[15px] text-gray-900 mb-1">${venue}</p>
+                    <p class="text-[11px] text-gray-400 font-bold mb-4">${new Date(time).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' })}</p>
+                    <div class="map-preview mb-4" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}', '_blank')">
+                        <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="${mapUrl}"></iframe>
+                        <div class="absolute inset-0 bg-black/0"></div>
+                    </div>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}" target="_blank" class="text-[10px] bg-white border border-gray-200 px-6 py-3 rounded-xl font-black inline-flex items-center gap-2 uppercase tracking-widest shadow-sm">Open in Maps <i class="fas fa-location-arrow text-gold-400"></i></a>
+                </div>`;
+            };
+            details.append(renderLoc("Ceremony & Reception", c.reception.loc, c.reception.time));
+            details.append(renderLoc("Religious Service", c.matrimony.loc, c.matrimony.time));
         }
 
         $('#rsvp-form').submit(async (e) => {
-            e.preventDefault();
-            const btn = $('#btn-submit-rsvp'); btn.text('Saving...').prop('disabled', true);
-            const guests = [];
-            $('#guest-list-container > div').each(function() {
+            e.preventDefault(); const btn = $('#btn-submit-rsvp'); btn.text('Saving...').prop('disabled', true);
+            const guests = []; $('#guest-list-container > div').each(function() {
                 const i = $(this).data('idx'); const val = $(this).find(`input[name="g${i}"]:checked`).val();
                 guests.push({ name: $(this).find('span').text(), isAttending: val==='y' ? true : (val==='n' ? false : null) });
             });
             await db.collection('invitations').doc(currentInviteId).update({ guests, note: $('#rsvp-note').val(), status: 'responded' });
-            btn.text('Updated Successfully');
-            setTimeout(() => { alert('Thank you for your response!'); location.reload(); }, 500);
+            btn.text('Updated!'); setTimeout(() => { alert('RSVP Saved!'); location.reload(); }, 500);
         });
 
-        // Admin Helpers
         function loadAdmin() {
             const c = siteConfig;
             $('#set-theme').val(c.theme); $('#set-music').val(c.musicTrack); $('#set-names').val(c.names); $('#set-deadline').val(c.deadline);
@@ -499,37 +460,30 @@
             $('#bg-photo-list, #card-photo-list').empty();
             c.bgPhotos?.forEach(u => addPhotoInput('bg-photo-list', u));
             c.cardPhotos?.forEach(u => addPhotoInput('card-photo-list', u));
-            
             db.collection('invitations').onSnapshot(snap => {
-                const tb = $('#admin-table-body'); tb.empty();
-                const wb = $('#admin-wishes-body'); wb.empty();
+                const tb = $('#admin-table-body'); tb.empty(); const wb = $('#admin-wishes-body'); wb.empty();
                 snap.forEach(doc => {
                     const d = doc.data(); if(d.isAdmin) return;
-                    const statusBadge = d.status === 'responded' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400';
-                    tb.append(`<tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"><td class="p-4 font-black tracking-widest text-navy-900">${d.inviteCode}</td><td class="p-4"><p class="font-bold">${d.guestNames}</p><p class="text-[9px] uppercase font-black text-gray-300 mt-1">${d.side}</p></td><td class="p-4"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${statusBadge}">${d.status || 'pending'}</span></td><td class="p-4 text-right"><button onclick="delInv('${doc.id}')" class="text-rose-400 hover:text-rose-600 font-black uppercase text-[10px]">Remove</button></td></tr>`);
-                    if(d.note) wb.append(`<tr class="border-b border-gray-50"><td class="p-4 italic text-navy-900 text-xs">"${d.note}"</td><td class="p-4 text-[10px] uppercase font-black text-gray-300">By: ${d.guestNames}</td><td class="p-4 text-right"><button onclick="deleteWish('${doc.id}')" class="text-gray-400 hover:text-rose-500 font-black uppercase text-[10px]"><i class="fas fa-trash"></i></button></td></tr>`);
+                    tb.append(`<tr class="border-b border-gray-50"><td class="p-4 font-black tracking-widest text-navy-900">${d.inviteCode}</td><td class="p-4 font-bold">${d.guestNames}</td><td class="p-4 text-right"><button onclick="delInv('${doc.id}')" class="text-rose-400 font-black uppercase text-[10px]">Remove</button></td></tr>`);
+                    if(d.note) wb.append(`<tr class="border-b border-gray-50"><td class="p-4 italic text-navy-900 text-xs">"${d.note}"</td><td class="p-4 text-[10px] uppercase font-black text-gray-300">By: ${d.guestNames}</td><td class="p-4 text-right"><button onclick="deleteWish('${doc.id}')" class="text-rose-500 uppercase text-[10px] font-black"><i class="fas fa-trash"></i></button></td></tr>`);
                 });
             });
         }
 
-        window.addPhotoInput = (id, v='') => { $(`#${id}`).append(`<div class="flex gap-3 items-center group"><div class="flex-grow relative"><i class="fas fa-link absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 text-[10px]"></i><input value="${v}" class="w-full p-4 pl-10 border-2 border-gray-50 rounded-2xl text-[11px] photo-input bg-gray-50/50 focus:bg-white focus:border-gold-100 transition-all" placeholder="Paste image URL here"></div><button type="button" onclick="$(this).parent().remove()" class="bg-rose-50 text-rose-400 w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><i class="fas fa-times"></i></button></div>`); };
+        window.addPhotoInput = (id, v='') => { $(`#${id}`).append(`<div class="flex gap-3 items-center group"><input value="${v}" class="flex-grow p-4 border-2 border-gray-50 rounded-2xl text-[11px] photo-input bg-gray-50/50 focus:bg-white focus:border-gold-100 transition-all" placeholder="Paste image URL here"><button type="button" onclick="$(this).parent().remove()" class="bg-rose-50 text-rose-400 w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-colors"><i class="fas fa-times"></i></button></div>`); };
         
         $('#settings-form').submit(async (e) => {
-            e.preventDefault();
-            const bgPhotos = []; $('#bg-photo-list .photo-input').each(function(){ if($(this).val()) bgPhotos.push($(this).val()); });
+            e.preventDefault(); const bgPhotos = []; $('#bg-photo-list .photo-input').each(function(){ if($(this).val()) bgPhotos.push($(this).val()); });
             const cardPhotos = []; $('#card-photo-list .photo-input').each(function(){ if($(this).val()) cardPhotos.push($(this).val()); });
             await db.collection('site_config').doc('main').set({
                 theme: $('#set-theme').val(), musicTrack: $('#set-music').val(), names: $('#set-names').val(), deadline: $('#set-deadline').val(),
-                reception: { loc: $('#set-rec-loc').val(), time: $('#set-rec-time').val() },
-                matrimony: { loc: $('#set-mat-loc').val(), time: $('#set-mat-time').val() },
+                reception: { loc: $('#set-rec-loc').val(), time: $('#set-rec-time').val() }, matrimony: { loc: $('#set-mat-loc').val(), time: $('#set-mat-time').val() },
                 bgPhotos, cardPhotos
-            });
-            alert('Settings deployed successfully.'); location.reload();
+            }); alert('Settings saved.'); location.reload();
         });
 
         async function createInvite() {
-            const code = $('#new-code').val().toUpperCase(); const names = $('#new-names').val();
-            if(!code || !names) return;
+            const code = $('#new-code').val().toUpperCase(); const names = $('#new-names').val(); if(!code || !names) return;
             const guests = names.split(',').map(n => ({ name: n.trim(), isAttending: null }));
             await db.collection('invitations').add({ inviteCode: code, guestNames: names, side: $('input[name="new-side"]:checked').val(), guests, status: 'pending' });
             $('#modal-add-guest').fadeOut(); $('#new-code, #new-names').val('');
@@ -537,17 +491,16 @@
         
         async function downloadGuestList() {
             const snap = await db.collection('invitations').get();
-            let csv = "Invite Code,Guest Side,Group Name,Individual Name,Attending,Wish Message\n";
-            snap.forEach(doc => {
-                const d = doc.data(); if(d.isAdmin) return;
+            let csv = "Invite Code,Side,Group,Name,Attending,Wish\n";
+            snap.forEach(doc => { const d = doc.data(); if(d.isAdmin) return;
                 d.guests.forEach(g => { csv += `${d.inviteCode},${d.side},"${d.guestNames}","${g.name}",${g.isAttending===true?'Yes':(g.isAttending===false?'No':'N/A')},"${(d.note || '').replace(/"/g, '""')}"\n`; });
             });
             const blob = new Blob([csv], { type: 'text/csv' });
-            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'GuestList_Master.csv'; link.click();
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'GuestList.csv'; link.click();
         }
 
-        async function deleteWish(id) { if(confirm('Remove this message from the guestbook?')) await db.collection('invitations').doc(id).update({ note: "" }); }
-        async function delInv(id) { if(confirm('Delete invitation? Guests with this code will lose access.')) await db.collection('invitations').doc(id).delete(); }
+        async function deleteWish(id) { if(confirm('Delete wish?')) await db.collection('invitations').doc(id).update({ note: "" }); }
+        async function delInv(id) { if(confirm('Delete invite?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
         function switchAdminTab(t) { $('#admin-tab-guests, #admin-tab-settings, #admin-tab-wishes').hide(); $(`#admin-tab-${t}`).fadeIn(); }
     </script>
