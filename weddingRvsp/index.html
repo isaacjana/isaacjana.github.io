@@ -293,7 +293,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         const firebaseConfig = { apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ", authDomain: "wedding-rvsp-e446c.firebaseapp.com", projectId: "wedding-rvsp-e446c", storageBucket: "wedding-rvsp-e446c.firebasestorage.app", messagingSenderId: "836260285764", appId: "1:836260285764:web:b1e8ca3ea64f7616e7db11" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
@@ -303,6 +303,43 @@
         let isAdmin = localStorage.getItem('rsvp_admin') === 'true';
         let bgInterval, cardInterval, countdownInterval, audio = document.getElementById('bg-music');
         let currentQRLink = "";
+
+        // --- INIT ---
+        $(document).ready(async () => {
+            // 1. Load Config First
+            await loadConfig();
+            
+            // 2. Check for Auto-Login
+            const urlParams = new URLSearchParams(window.location.search);
+            let autoLoginSuccess = false;
+            
+            if(urlParams.get('code')) { 
+                autoLoginSuccess = await handleAutoLogin(urlParams.get('code')); 
+            }
+
+            // 3. Load Data
+            await loadStatsAndWishes();
+            startCountdown();
+
+            if(!isAdmin) trackVisit();
+            $('#loading-screen').fadeOut(1000);
+            
+            // 4. Router Logic
+            if(isAdmin) { 
+                $('#entrance-overlay, #entrance-content').hide(); 
+                $('#view-admin').addClass('active'); 
+                loadAdmin(); 
+            } 
+            else if (autoLoginSuccess) {
+                // Do NOT render landing if auto-login worked
+                // Entrance overlay hides automatically inside loadRSVP view switch
+                $('#entrance-overlay, #entrance-content').hide();
+            }
+            else { 
+                // Default behavior
+                renderLanding(); 
+            }
+        });
 
         // --- FUNCTIONS ---
         async function loadConfig() {
@@ -315,6 +352,20 @@
                 if(siteConfig.theme === 'midnight') { root.style.setProperty('--curtain-color', '#0f172a'); }
                 if(siteConfig.theme === 'floral') { root.style.setProperty('--curtain-color', '#fff'); root.style.setProperty('--curtain-border', '#ffe4e6'); }
             } catch(e) {}
+        }
+
+        async function handleAutoLogin(code) {
+            try {
+                const snap = await db.collection('invitations').where('inviteCode', '==', code.toUpperCase()).limit(1).get();
+                if(!snap.empty) { 
+                    const doc = snap.docs[0]; 
+                    localStorage.setItem('rsvp_id', doc.id); 
+                    currentInviteId = doc.id; 
+                    loadRSVP(doc.data()); 
+                    return true; // Auto-login successful
+                }
+            } catch(e) { console.error("Login failed", e); }
+            return false; // Auto-login failed
         }
 
         async function loadStatsAndWishes() {
@@ -394,37 +445,11 @@
             card.html(layout); $('.page-section').removeClass('active'); $('#view-landing').addClass('active');
         }
 
-        // --- INIT ---
-        $(document).ready(async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if(urlParams.get('code')) { await handleAutoLogin(urlParams.get('code')); }
-
-            await loadConfig();
-            await loadStatsAndWishes();
-            startCountdown();
-
-            if(!isAdmin) trackVisit();
-            $('#loading-screen').fadeOut(1000);
-            
-            if(isAdmin) { 
-                $('#entrance-overlay, #entrance-content').hide(); 
-                $('#view-admin').addClass('active'); 
-                loadAdmin(); 
-            } else { 
-                renderLanding(); 
-            }
-        });
-
         // --- INTERACTION ---
         function enterSite() {
             $('body').addClass('open'); $('#entrance-content').fadeOut();
             if(audio.src) { audio.volume = 0.5; audio.play().catch(()=>{}); }
             setTimeout(() => { $('#entrance-overlay').fadeOut(1200); $('#invite-card').removeClass('translate-y-12 opacity-0'); }, 1200);
-        }
-
-        async function handleAutoLogin(code) {
-            const snap = await db.collection('invitations').where('inviteCode', '==', code.toUpperCase()).limit(1).get();
-            if(!snap.empty) { const doc = snap.docs[0]; localStorage.setItem('rsvp_id', doc.id); currentInviteId = doc.id; loadRSVP(doc.data()); }
         }
 
         $('#btn-enter-code').click(async () => {
@@ -443,9 +468,7 @@
             $('#guest-group-name').text(data.guestNames);
             const cont = $('#guest-list-container'); cont.empty();
             
-            // Generate Guest List with Radio Buttons
             data.guests.forEach((g, i) => {
-                // Determine styling based on current state
                 const yesClass = g.isAttending === true ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-inner' : 'hover:bg-gray-50';
                 const noClass = g.isAttending === false ? 'bg-rose-50 border-rose-500 text-rose-700 shadow-inner' : 'hover:bg-gray-50';
 
@@ -488,13 +511,10 @@
             details.append(renderLoc("Religious Service", c.matrimony.loc, c.matrimony.time));
         }
 
-        // Logic for Instant Visual Feedback on RSVP
         $(document).on('change', '.rsvp-radio', function() {
             const name = $(this).attr('name');
             const val = $(this).val();
-            // Reset siblings
             $(`input[name="${name}"]`).parent().removeClass('bg-emerald-50 border-emerald-500 text-emerald-700 bg-rose-50 border-rose-500 text-rose-700 shadow-inner').addClass('hover:bg-gray-50');
-            // Set active
             if(val === 'y') $(this).parent().removeClass('hover:bg-gray-50').addClass('bg-emerald-50 border-emerald-500 text-emerald-700 shadow-inner');
             else $(this).parent().removeClass('hover:bg-gray-50').addClass('bg-rose-50 border-rose-500 text-rose-700 shadow-inner');
         });
@@ -585,8 +605,6 @@
         async function deleteWish(id) { if(confirm('Delete wish?')) await db.collection('invitations').doc(id).update({ note: "" }); }
         async function delInv(id) { if(confirm('Delete invite?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
-        
-        // --- ADMIN TAB SWITCHER (FIXED) ---
         function switchAdminTab(t) {
             $('.admin-content-tab').hide().removeClass('active');
             $('#admin-tab-' + t).show().addClass('active');
