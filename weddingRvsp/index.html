@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wedding RSVP</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400;700&family=Montserrat:wght@300;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Great+Vibes&family=Lato:wght@300;400;700&family=Montserrat:wght@200;400;900&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -14,286 +17,562 @@
     <script>
         tailwind.config = {
             theme: { extend: {
-                colors: { gold: { 400: '#D4AF37', 500: '#C5A028' }, rose: { 50: '#fff1f2', 900: '#881337' } },
-                fontFamily: { classic: ['Cinzel', 'serif'], modern: ['Montserrat', 'sans-serif'], floral: ['Great Vibes', 'cursive'], body: ['Lato', 'sans-serif'] }
+                colors: { gold: { 300: '#F5D061', 400: '#D4AF37', 500: '#C5A028', 900: '#5C4010' }, rose: { 50: '#fff0f3', 100: '#ffe4e6', 900: '#881337' } },
+                fontFamily: { classic: ['Cinzel', 'serif'], modern: ['Montserrat', 'sans-serif'], floral: ['Great Vibes', 'cursive'], body: ['Lato', 'sans-serif'] },
+                animation: { 'fade-in': 'fadeIn 1s ease-out' },
+                keyframes: { fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } } }
             }}
         }
     </script>
     <style>
         body { -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .page-section { display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .page-section { display: none; opacity: 0; transition: opacity 0.6s ease-in-out; }
         .page-section.active { display: block; opacity: 1; }
-        #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
-        .heartbeat { font-size: 3rem; color: #D4AF37; animation: beat 1.5s infinite; }
-        @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         
-        /* Curtain Animation */
-        #entrance-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #1a1a1a; transition: all 1.5s ease-in-out; }
-        .theme-classic .curtain-left { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: #1a1a1a; border-right: 2px solid #D4AF37; transition: transform 1.5s ease-in-out; z-index: 1; }
-        .theme-classic .curtain-right { position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background: #1a1a1a; border-left: 2px solid #D4AF37; transition: transform 1.5s ease-in-out; z-index: 1; }
-        .theme-classic.open .curtain-left { transform: translateX(-100%); }
-        .theme-classic.open .curtain-right { transform: translateX(100%); }
-        .theme-modern #entrance-overlay { background: #000; transition: transform 0.8s cubic-bezier(0.7,0,0.3,1); }
-        .theme-modern.open #entrance-overlay { transform: translateY(-100%); }
-        .theme-floral #entrance-overlay { background: #fff1f2; transition: opacity 1.5s; }
-        .theme-floral.open #entrance-overlay { opacity: 0; visibility: hidden; }
-        .tap-hint { animation: pulse-text 2s infinite; z-index: 10; pointer-events: none; }
-        @keyframes pulse-text { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; transform: scale(1.05); } }
+        /* Loading Screen */
+        #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .loader-ring { width: 48px; height: 48px; border: 3px solid #f3f3f3; border-top: 3px solid #D4AF37; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Slideshow & Music */
-        .slide-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease-in-out; z-index: 0; transform: scale(1.05); }
-        .slide-bg.active { opacity: 1; transform: scale(1); transition: opacity 2s ease-in-out, transform 10s linear; }
-        .music-playing { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); animation: pulse-gold 2s infinite; }
-        @keyframes pulse-gold { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); } 100% { transform: scale(0.95); } }
-        .text-shadow { text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        /* Slideshow Background */
+        #slideshow-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background: #1a1a1a; }
+        .slide-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease-in-out, transform 8s linear; transform: scale(1.05); }
+        .slide-bg.active { opacity: 0.6; transform: scale(1); } /* 0.6 opacity allows text to pop */
+
+        /* Curtain Animation */
+        #entrance-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #000; transition: all 1.5s ease-in-out; }
+        .tap-hint { animation: pulse-text 2s infinite; }
+        @keyframes pulse-text { 0%, 100% { opacity: 0.5; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1); } }
+        
+        /* Curtain Themes */
+        .theme-classic #entrance-overlay { background: transparent; pointer-events: none; } /* Handled by inner divs */
+        .curtain-panel { position: absolute; top: 0; bottom: 0; width: 50%; background: #111; transition: transform 1.5s cubic-bezier(0.77, 0, 0.175, 1); z-index: 51; }
+        .curtain-left { left: 0; border-right: 1px solid #333; } .curtain-right { right: 0; border-left: 1px solid #333; }
+        .open .curtain-left { transform: translateX(-100%); } .open .curtain-right { transform: translateX(100%); }
+        .theme-modern #entrance-overlay { background: #000; transform-origin: top; } 
+        .theme-modern.open #entrance-overlay { transform: scaleY(0); }
+        .theme-floral #entrance-overlay { background: #fff; } 
+        .theme-floral.open #entrance-overlay { opacity: 0; visibility: hidden; }
+
+        /* Music Fab */
+        .music-playing { animation: ripple 1.5s infinite; }
+        @keyframes ripple { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
+
+        /* Glassmorphism Utilities */
+        .glass-dark { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-light { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
     </style>
 </head>
-<body class="text-gray-800 min-h-screen bg-gray-50 overflow-x-hidden font-body">
+<body class="text-gray-800 min-h-screen font-body bg-gray-900">
 
-    <div id="loading-screen"><i class="fas fa-heart heartbeat"></i><div class="mt-4 text-xs font-bold tracking-[0.3em] text-gray-400 uppercase">Loading</div></div>
-
-    <div id="entrance-overlay" onclick="enterSite()">
-        <div id="curtain-content" class="text-center z-20">
-            <div class="w-16 h-16 rounded-full border-2 border-white/30 flex items-center justify-center mx-auto mb-4 bg-white/10 backdrop-blur-sm animate-pulse"><i class="fas fa-hand-pointer text-white text-xl"></i></div>
-            <h2 class="text-white font-classic text-2xl tracking-widest mb-1 tap-hint">TAP TO OPEN</h2>
-            <p class="text-white/60 text-[10px] uppercase tracking-[0.2em]">Wedding Invitation</p>
-        </div>
+    <div id="loading-screen">
+        <div class="loader-ring"></div>
+        <div class="mt-4 text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase">Loading Invitation</div>
     </div>
 
     <audio id="bg-music" loop></audio>
-    <button id="music-fab" onclick="toggleMusic()" class="fixed bottom-6 right-6 z-[100] bg-white text-gray-900 w-12 h-12 rounded-full shadow-2xl hidden flex items-center justify-center transition hover:scale-110 active:scale-90 border border-gray-100"><i id="music-icon" class="fas fa-play ml-1"></i></button>
+    <button id="music-fab" onclick="toggleMusic()" class="fixed bottom-6 right-6 z-[90] bg-white text-gray-900 w-12 h-12 rounded-full shadow-2xl hidden flex items-center justify-center transition hover:scale-110 active:scale-90 border border-gray-100">
+        <i id="music-icon" class="fas fa-play ml-1"></i>
+    </button>
 
-    <div id="view-landing" class="page-section min-h-screen w-full relative">
-        <div id="slideshow-wrapper" class="absolute inset-0 z-0 overflow-hidden bg-gray-900"></div>
-        <div id="bg-overlay" class="absolute inset-0 z-10 bg-black/30 transition-colors duration-1000"></div>
-        <div class="relative z-20 min-h-screen flex items-center justify-center p-4">
-            <div id="invite-card" class="w-full max-w-4xl min-h-[60vh] relative transition-all duration-500 flex flex-col items-center justify-center text-center p-6 md:p-12"></div>
-        </div>
-        <div class="absolute bottom-6 left-0 right-0 z-30 text-center">
-            <button onclick="openLogin()" class="text-[10px] text-white/80 hover:text-white uppercase tracking-[0.2em] bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm border border-white/10 transition hover:bg-black/60">Admin / Guest Login</button>
+    <div id="slideshow-container"></div>
+
+    <div id="entrance-curtains-container"></div> <div id="entrance-content" class="fixed inset-0 z-[55] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000">
+        <div class="pointer-events-auto cursor-pointer flex flex-col items-center" onclick="enterSite()">
+            <div class="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-sm animate-pulse mb-4">
+                <i class="fas fa-fingerprint text-white/80 text-3xl"></i>
+            </div>
+            <h2 class="text-white font-classic text-xl tracking-[0.3em] mb-2 tap-hint">OPEN</h2>
         </div>
     </div>
 
-    <div id="view-login" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-white max-w-sm w-full p-8 rounded-3xl shadow-2xl relative text-center">
+    <div id="view-landing" class="page-section min-h-screen w-full flex items-center justify-center p-4 relative z-10">
+        <div id="invite-card" class="w-full max-w-lg transition-all duration-700 transform translate-y-4 opacity-0"></div>
+        
+        <button onclick="openLogin()" class="fixed bottom-6 left-6 text-[9px] text-white/50 hover:text-white uppercase tracking-widest bg-black/20 px-3 py-1 rounded border border-white/5 backdrop-blur transition z-20">
+            Guest / Admin Login
+        </button>
+    </div>
+
+    <div id="view-login" class="hidden fixed inset-0 z-[80] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm p-8 rounded-2xl shadow-2xl relative text-center">
             <button onclick="$('#view-login').fadeOut()" class="absolute top-4 right-4 text-gray-300 p-2"><i class="fas fa-times"></i></button>
-            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gold-500"><i class="fas fa-key"></i></div>
-            <h2 class="text-2xl font-bold font-classic mb-1">Access</h2>
-            <input type="text" id="input-invite-code" placeholder="CODE" class="w-full p-4 bg-gray-50 border rounded-xl text-center font-bold text-xl uppercase tracking-widest mb-4 outline-none focus:border-gold-500">
-            <button id="btn-enter-code" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold uppercase text-xs tracking-widest shadow-lg">Unlock RSVP</button>
-            <div id="login-error" class="hidden text-red-500 text-xs font-bold mt-3"></div>
+            <h2 class="text-xl font-bold font-classic mb-6 text-gray-900">Enter Code</h2>
+            <input type="text" id="input-invite-code" placeholder="XYZ-123" class="w-full p-4 bg-gray-50 border rounded-xl text-center font-bold text-lg uppercase tracking-widest mb-4 outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-400">
+            <button id="btn-enter-code" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold uppercase text-xs tracking-widest shadow-lg hover:bg-black">Unlock</button>
+            <div id="login-error" class="hidden text-red-500 text-xs font-bold mt-4 bg-red-50 p-2 rounded"></div>
         </div>
     </div>
 
-    <main id="view-rsvp" class="page-section max-w-3xl mx-auto w-full p-4 pt-8 pb-24">
-        <div class="flex justify-between items-center mb-6 px-2">
-            <button onclick="location.reload()" class="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-gray-800"><i class="fas fa-chevron-left mr-1"></i> Home</button>
-            <button onclick="logout()" class="text-xs font-bold uppercase tracking-widest text-red-400 hover:text-red-600">Logout</button>
+    <main id="view-rsvp" class="page-section max-w-2xl mx-auto w-full p-4 pt-10 pb-24 relative z-10">
+        <div class="flex justify-between items-center mb-6 px-2 text-white drop-shadow-md">
+            <button onclick="location.reload()" class="text-xs font-bold uppercase tracking-widest hover:text-gold-300"><i class="fas fa-arrow-left mr-1"></i> Home</button>
+            <button onclick="logout()" class="text-xs font-bold uppercase tracking-widest hover:text-red-300">Logout</button>
         </div>
-        <div class="bg-white rounded-[2rem] shadow-xl overflow-hidden mb-6 border border-gray-100">
-            <div class="bg-gray-900 p-8 text-center text-white relative">
-                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
-                <h2 class="text-3xl font-classic mb-2 relative z-10">RSVP</h2>
-                <p class="opacity-80 text-sm relative z-10">Hello, <span id="guest-group-name" class="font-bold text-gold-400"></span></p>
-                <div id="deadline-badge" class="mt-4 inline-block bg-white/10 border border-white/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest relative z-10"></div>
+
+        <div class="glass-light rounded-2xl shadow-2xl overflow-hidden mb-6">
+            <div class="bg-gray-900 text-white p-8 text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <h2 class="text-3xl font-classic relative z-10">RSVP</h2>
+                <p class="text-xs uppercase tracking-widest text-gold-400 mt-2 relative z-10">Welcome, <span id="guest-group-name" class="text-white"></span></p>
             </div>
             <div class="p-6 md:p-8">
-                <div id="rsvp-locked-msg" class="hidden bg-red-50 border border-red-100 rounded-xl p-4 mb-6 text-red-800 text-xs font-bold text-center">Deadline passed.</div>
+                <div id="rsvp-locked-msg" class="hidden bg-red-50 text-red-800 text-xs font-bold p-4 rounded-xl text-center mb-6">RSVP Closed</div>
                 <form id="rsvp-form" class="space-y-6">
                     <div id="guest-list-container" class="space-y-4"></div>
-                    <div><label class="block text-xs font-bold uppercase text-gray-400 mb-2 ml-1">Note</label><textarea id="rsvp-note" rows="3" class="w-full p-4 border rounded-2xl bg-gray-50 outline-none text-sm"></textarea></div>
-                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-4 rounded-2xl shadow-lg uppercase tracking-widest text-sm">Save Response</button>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Message</label>
+                        <textarea id="rsvp-note" rows="3" class="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:bg-white transition" placeholder="Dietary requirements or wishes..."></textarea>
+                    </div>
+                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-widest text-sm transition transform active:scale-[0.98]">Confirm RSVP</button>
                 </form>
             </div>
         </div>
-        <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 md:p-8">
-            <h3 class="font-classic text-lg text-center mb-6 border-b border-gray-100 pb-4">Wedding Contacts</h3>
-            <div id="contact-list-display" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+        <div class="glass-light rounded-2xl p-6 md:p-8 shadow-lg">
+            <h3 class="font-classic text-center mb-6 text-gray-800 border-b pb-4">Contact Us</h3>
+            <div id="contact-list-display" class="grid grid-cols-1 gap-3"></div>
         </div>
     </main>
 
-    <main id="view-admin" class="page-section max-w-6xl mx-auto w-full p-4 md:p-6">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 gap-4">
-            <div><h2 class="text-xl font-bold font-classic">Admin Dashboard</h2></div>
-            <div class="flex gap-2">
-                <button onclick="switchAdminTab('guests')" class="px-4 py-2 rounded-xl bg-gray-100 text-xs font-bold uppercase">Guests</button>
-                <button onclick="switchAdminTab('settings')" class="px-4 py-2 rounded-xl bg-gray-100 text-xs font-bold uppercase">Settings</button>
-                <button onclick="logout()" class="px-4 py-2 text-red-500 bg-red-50 rounded-xl"><i class="fas fa-sign-out-alt"></i></button>
+    <main id="view-admin" class="page-section max-w-5xl mx-auto w-full p-4 relative z-10 bg-gray-50 min-h-screen text-gray-800">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+            <h2 class="text-xl font-bold font-classic">Admin Panel</h2>
+            <div class="flex gap-2 mt-4 md:mt-0">
+                <button onclick="switchAdminTab('guests')" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold uppercase">Guests</button>
+                <button onclick="switchAdminTab('settings')" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold uppercase">Settings</button>
+                <button onclick="logout()" class="px-3 py-2 text-red-500 border rounded-lg hover:bg-red-50"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </div>
 
         <div id="admin-tab-guests">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border text-center"><div class="text-[10px] uppercase text-gray-400 font-bold">Total</div><div id="stat-total" class="text-2xl font-black">0</div></div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-green-100 bg-green-50/50 text-center"><div class="text-[10px] uppercase text-green-600 font-bold">Attending</div><div id="stat-attending" class="text-2xl font-black text-green-700">0</div></div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 bg-blue-50/50 text-center"><div class="text-[10px] uppercase text-blue-600 font-bold">Groom</div><div id="stat-groom" class="text-2xl font-black text-blue-700">0</div></div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-pink-100 bg-pink-50/50 text-center"><div class="text-[10px] uppercase text-pink-600 font-bold">Bride</div><div id="stat-bride" class="text-2xl font-black text-pink-700">0</div></div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-gray-400 font-bold">Total</div><div id="stat-total" class="text-2xl font-black">0</div></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-green-600 font-bold">Yes</div><div id="stat-attending" class="text-2xl font-black text-green-600">0</div></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-blue-600 font-bold">Groom</div><div id="stat-groom" class="text-2xl font-black text-blue-600">0</div></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-pink-600 font-bold">Bride</div><div id="stat-bride" class="text-2xl font-black text-pink-600">0</div></div>
             </div>
-            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                <div class="p-4 border-b bg-gray-50/50 flex flex-col md:flex-row gap-3">
-                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-gray-900 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase shadow-lg">+ New Invite</button>
-                    <input type="text" id="admin-search" placeholder="Search..." class="flex-1 p-3 border rounded-xl text-sm bg-white outline-none">
+            
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div class="p-4 border-b bg-gray-50 flex gap-2">
+                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-black text-white px-4 py-2 rounded-lg text-xs font-bold uppercase shadow hover:bg-gray-800">+ Add Invite</button>
                 </div>
                 <div class="overflow-x-auto max-h-[600px]"><table class="w-full text-sm text-left"><tbody id="admin-table-body"></tbody></table></div>
             </div>
         </div>
 
         <div id="admin-tab-settings" class="hidden">
-            <form id="settings-form" class="max-w-4xl mx-auto space-y-6 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label class="font-bold text-xs uppercase text-gray-400">Theme</label><select id="set-theme" class="w-full p-3 mt-1 border rounded-xl bg-gray-50"><option value="classic">🏛️ Classic</option><option value="modern">🔳 Modern</option><option value="floral">🌸 Floral</option></select></div>
-                    <div><label class="font-bold text-xs uppercase text-gray-400">Music Selection</label>
-                        <select id="set-music" class="w-full p-3 mt-1 border rounded-xl bg-gray-50">
-                            <option value="">No Music</option>
-                            <option value="music1.mp3">Selection 1 (music1.mp3)</option>
-                            <option value="music2.mp3">Selection 2 (music2.mp3)</option>
-                            <option value="music3.mp3">Selection 3 (music3.mp3)</option>
-                        </select>
+            <form id="settings-form" class="max-w-3xl mx-auto space-y-8 bg-white p-8 rounded-2xl shadow-sm border">
+                <div class="space-y-4">
+                    <h3 class="font-bold border-b pb-2 uppercase text-xs text-gray-400">Appearance & Audio</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold mb-1">Visual Theme</label>
+                            <select id="set-theme" class="w-full p-2 border rounded bg-gray-50"><option value="classic">🏛️ Classic (Gold/Cream)</option><option value="modern">🔳 Modern (B&W)</option><option value="floral">🌸 Floral (Soft Rose)</option></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1">Background Music</label>
+                            <select id="set-music" class="w-full p-2 border rounded bg-gray-50">
+                                <option value="">None</option>
+                                <option value="music1.mp3">Track 1 (music1.mp3)</option>
+                                <option value="music2.mp3">Track 2 (music2.mp3)</option>
+                                <option value="music3.mp3">Track 3 (music3.mp3)</option>
+                            </select>
+                        </div>
                     </div>
-                    <div><label class="font-bold text-xs uppercase text-gray-400">Names</label><input type="text" id="set-names" class="w-full p-3 mt-1 border rounded-xl"></div>
-                    <div><label class="font-bold text-xs uppercase text-gray-400">Deadline</label><input type="date" id="set-deadline" class="w-full p-3 mt-1 border rounded-xl"></div>
+                    <div>
+                        <label class="block text-xs font-bold mb-2">Slideshow Photos</label>
+                        <div id="photo-list-inputs" class="space-y-2 mb-2"></div>
+                        <button type="button" onclick="addPhotoInput('')" class="text-xs text-blue-600 font-bold hover:underline">+ Add Photo URL</button>
+                    </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                    <div><label class="font-bold text-xs uppercase text-gray-500">Reception</label><input type="text" id="set-rec-loc" class="w-full p-2 border rounded-lg mt-1 text-sm bg-white" placeholder="Location"><input type="datetime-local" id="set-rec-time" class="w-full p-2 border rounded-lg mt-1 text-sm bg-white"></div>
-                    <div><div class="flex justify-between items-center"><label class="font-bold text-xs uppercase text-gray-500">Matrimony</label><label class="text-xs flex items-center gap-1"><input type="checkbox" id="set-mat-enable"> Enable</label></div><input type="text" id="set-mat-loc" class="w-full p-2 border rounded-lg mt-1 text-sm bg-white" placeholder="Location"><input type="datetime-local" id="set-mat-time" class="w-full p-2 border rounded-lg mt-1 text-sm bg-white"></div>
+
+                <div class="space-y-4">
+                    <h3 class="font-bold border-b pb-2 uppercase text-xs text-gray-400">Event Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold mb-1">Couple Names</label><input id="set-names" class="w-full p-2 border rounded"></div>
+                        <div><label class="block text-xs font-bold mb-1">RSVP Deadline</label><input type="date" id="set-deadline" class="w-full p-2 border rounded"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                        <div><label class="block text-xs font-bold mb-1 text-gray-500">Reception Location</label><input id="set-rec-loc" class="w-full p-2 border rounded text-sm mb-2"><input type="datetime-local" id="set-rec-time" class="w-full p-2 border rounded text-sm"></div>
+                        <div><label class="block text-xs font-bold mb-1 text-gray-500">Matrimony Location</label><input id="set-mat-loc" class="w-full p-2 border rounded text-sm mb-2"><input type="datetime-local" id="set-mat-time" class="w-full p-2 border rounded text-sm"></div>
+                    </div>
                 </div>
-                <div><label class="font-bold text-xs uppercase text-gray-400 block mb-2">Slideshow Photos</label><div id="photo-list-inputs" class="space-y-2 mb-2"></div><button type="button" onclick="addPhotoInput('')" class="text-xs font-bold text-gold-500">+ Add Photo URL</button></div>
-                <div><label class="font-bold text-xs uppercase text-gray-400 block mb-2">Contacts</label><div id="contact-list-inputs" class="space-y-2 mb-2"></div><button type="button" onclick="addContactInput()" class="text-xs font-bold text-gold-500">+ Add Contact</button></div>
-                <button type="submit" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold uppercase tracking-widest">Save Config</button>
+
+                <div class="space-y-4">
+                    <h3 class="font-bold border-b pb-2 uppercase text-xs text-gray-400">Contacts</h3>
+                    <div id="contact-list-inputs" class="space-y-2"></div>
+                    <button type="button" onclick="addContactInput()" class="text-xs text-blue-600 font-bold hover:underline">+ Add Contact</button>
+                </div>
+
+                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow hover:bg-green-700">Save Changes</button>
             </form>
         </div>
     </main>
 
-    <div id="modal-add-guest" class="fixed inset-0 bg-black/60 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md shadow-2xl">
-            <h3 class="font-bold text-xl mb-4 font-classic">Create Invitation</h3>
-            <input type="text" id="new-code" placeholder="CODE" class="w-full p-3 border-2 border-gray-100 rounded-xl mb-3 uppercase font-bold">
-            <div class="flex gap-3 mb-3"><label class="flex-1 cursor-pointer"><input type="radio" name="new-side" value="groom" checked class="peer hidden"><div class="p-3 border rounded-xl text-center peer-checked:bg-blue-50 peer-checked:border-blue-500 font-bold text-sm">Groom</div></label><label class="flex-1 cursor-pointer"><input type="radio" name="new-side" value="bride" class="peer hidden"><div class="p-3 border rounded-xl text-center peer-checked:bg-pink-50 peer-checked:border-pink-500 font-bold text-sm">Bride</div></label></div>
-            <input type="text" id="new-names" placeholder="Names..." class="w-full p-3 border rounded-xl mb-6">
-            <div class="flex gap-3"><button onclick="$('#modal-add-guest').fadeOut()" class="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl">Cancel</button><button onclick="createInvite()" class="flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg">Create</button></div>
+    <div id="modal-add-guest" class="fixed inset-0 bg-black/50 hidden z-[90] flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-xl w-full max-w-sm">
+            <h3 class="font-bold mb-4">New Invitation</h3>
+            <input id="new-code" placeholder="CODE (e.g. FAM01)" class="w-full p-2 border rounded mb-2 uppercase font-bold">
+            <input id="new-names" placeholder="Names (e.g. John, Jane)" class="w-full p-2 border rounded mb-4">
+            <div class="flex gap-2 mb-4">
+                <label><input type="radio" name="new-side" value="groom" checked> Groom</label>
+                <label><input type="radio" name="new-side" value="bride"> Bride</label>
+            </div>
+            <button onclick="createInvite()" class="w-full bg-black text-white py-2 rounded font-bold">Create</button>
+            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-2 text-gray-500 text-sm">Cancel</button>
         </div>
     </div>
-    <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl hidden z-[80] flex items-center gap-3"><i class="fas fa-check-circle text-green-400"></i> <span id="toast-msg">Saved</span></div>
+    
+    <div id="toast" class="fixed bottom-6 right-6 bg-black text-white px-4 py-3 rounded shadow-lg hidden z-[100]">Saved successfully</div>
 
     <script>
-        // 1. CONFIG
-        const firebaseConfig = { apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ", authDomain: "wedding-rvsp-e446c.firebaseapp.com", projectId: "wedding-rvsp-e446c", storageBucket: "wedding-rvsp-e446c.firebasestorage.app", messagingSenderId: "836260285764", appId: "1:836260285764:web:b1e8ca3ea64f7616e7db11", measurementId: "G-461QMHPHXQ" };
+        // 1. CONFIG & SETUP
+        const firebaseConfig = { apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ", authDomain: "wedding-rvsp-e446c.firebaseapp.com", projectId: "wedding-rvsp-e446c", storageBucket: "wedding-rvsp-e446c.firebasestorage.app", messagingSenderId: "836260285764", appId: "1:836260285764:web:b1e8ca3ea64f7616e7db11" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let siteConfig = { theme: 'classic', names: 'Jane & John', deadline: '2026-12-31', reception: {}, matrimony: {}, photos: [], contacts: [], musicTrack: "" };
+
+        let siteConfig = { theme: 'classic', names: '', deadline: '', musicTrack: '', photos: [], contacts: [] };
         let currentInviteId = localStorage.getItem('rsvp_id');
         let isAdmin = localStorage.getItem('rsvp_admin') === 'true';
-        let slideshowInterval, audio = document.getElementById('bg-music');
+        let slideInterval, audio = document.getElementById('bg-music');
 
-        // 2. INIT
         $(document).ready(async () => {
-            setTimeout(() => { if($('#loading-screen').is(':visible')) completeLoading(); }, 2500);
-            await loadSiteConfig();
-        });
-        async function loadSiteConfig() {
-            try { const doc = await db.collection('site_config').doc('main').get(); if (doc.exists) siteConfig = { ...siteConfig, ...doc.data() }; } catch (e) {} finally { completeLoading(); }
-        }
-        function completeLoading() {
-            $('#loading-screen').fadeOut(500);
-            renderLandingPage();
-            if(isAdmin) { $('#entrance-overlay').hide(); switchView('admin'); loadAdminData(); }
-            else { switchView('landing'); }
-            if(siteConfig.musicTrack) { audio.src = siteConfig.musicTrack; $('#music-fab').removeClass('hidden').addClass('flex'); }
-        }
-
-        // 3. CURTAIN & MUSIC
-        function enterSite() {
-            $('body').addClass('open');
-            // Try Autoplay
-            if(audio.src) { 
-                audio.play().then(() => updateMusicIcon(true)).catch(e => console.log("Audio blocked"));
+            await loadConfig();
+            $('#loading-screen').fadeOut();
+            
+            // Route
+            if(isAdmin) { 
+                $('#entrance-curtains-container').hide(); 
+                $('#entrance-content').hide();
+                $('#view-admin').addClass('active'); 
+                loadAdmin(); 
+            } else {
+                renderLanding(); 
+                // Wait for click to show RSVP login or dashboard
             }
-            setTimeout(() => { $('#entrance-overlay').hide(); }, 1500);
-        }
-        function toggleMusic() { 
-            if(audio.paused) { audio.play(); updateMusicIcon(true); } 
-            else { audio.pause(); updateMusicIcon(false); } 
-        }
-        function updateMusicIcon(p) { 
-            if(p){$('#music-icon').removeClass('fa-play').addClass('fa-pause');$('#music-fab').addClass('music-playing');}
-            else{$('#music-icon').removeClass('fa-pause').addClass('fa-play');$('#music-fab').removeClass('music-playing');} 
+        });
+
+        async function loadConfig() {
+            try {
+                const doc = await db.collection('site_config').doc('main').get();
+                if(doc.exists) siteConfig = { ...siteConfig, ...doc.data() };
+                if(siteConfig.musicTrack) { audio.src = siteConfig.musicTrack; }
+            } catch(e) { console.error(e); }
         }
 
-        // 4. LANDING
-        function renderLandingPage() {
+        // 2. VISUALS
+        function renderLanding() {
             const c = siteConfig;
-            $('body').removeClass().addClass(`text-gray-800 min-h-screen bg-gray-50 overflow-x-hidden font-body theme-${c.theme}`);
-            const curtain = $('#entrance-overlay');
-            if(c.theme === 'classic') { if(!curtain.find('.curtain-left').length) { curtain.append('<div class="curtain-left"></div><div class="curtain-right"></div>'); $('#curtain-content').appendTo(curtain); } } else { curtain.find('.curtain-left, .curtain-right').remove(); }
+            // Setup Curtain
+            const curtainCont = $('#entrance-curtains-container');
+            $('body').removeClass().addClass(`theme-${c.theme}`);
+            
+            if(c.theme === 'classic') {
+                curtainCont.html('<div id="entrance-overlay"><div class="curtain-panel curtain-left"></div><div class="curtain-panel curtain-right"></div></div>');
+            } else if (c.theme === 'modern') {
+                curtainCont.html('<div id="entrance-overlay"></div>');
+            } else {
+                curtainCont.html('<div id="entrance-overlay" class="bg-white"></div>');
+            }
 
-            const wrap = $('#slideshow-wrapper'); wrap.empty();
-            const photos = (c.photos && c.photos.length > 0) ? c.photos : ["https://via.placeholder.com/1920x1080?text=Wedding"];
-            photos.forEach((url, i) => wrap.append(`<div class="slide-bg ${i===0?'active':''}" style="background-image: url('${url}');"></div>`));
-            if(photos.length > 1) { if(slideshowInterval) clearInterval(slideshowInterval); let cur = 0; const slides = $('.slide-bg'); slideshowInterval = setInterval(() => { slides.eq(cur).removeClass('active'); cur = (cur + 1) % slides.length; slides.eq(cur).addClass('active'); }, 5000); }
+            // Setup Slideshow
+            const slideCont = $('#slideshow-container'); slideCont.empty();
+            const photos = (c.photos && c.photos.length) ? c.photos : ["https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000"];
+            photos.forEach((url, i) => slideCont.append(`<div class="slide-bg ${i===0?'active':''}" style="background-image: url('${url}')"></div>`));
+            
+            // Start Slideshow Loop
+            if(photos.length > 1) {
+                let cur = 0;
+                if(slideInterval) clearInterval(slideInterval);
+                slideInterval = setInterval(() => {
+                    $('.slide-bg').removeClass('active');
+                    cur = (cur + 1) % photos.length;
+                    $('.slide-bg').eq(cur).addClass('active');
+                }, 5000);
+            }
 
+            // Render Card
             const card = $('#invite-card');
-            const d = new Date(c.reception.time || Date.now());
-            const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-            const names = (c.names || "Couple").replace('&', '<span class="text-gold-500 mx-2">&</span>');
+            const dateObj = new Date(c.reception.time || Date.now());
+            const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
             
             let html = '';
-            if(c.theme === 'classic') html = `<p class="uppercase tracking-[0.3em] text-[10px] md:text-xs text-gray-500 mb-6 font-bold">The Wedding Of</p><h1 class="font-classic text-4xl md:text-6xl text-gray-800 mb-6 leading-tight text-shadow">${names}</h1><div class="w-16 h-px bg-gold-400 mb-6"></div><p class="font-classic text-lg md:text-2xl font-bold mb-2 text-gray-700">${dateStr}</p><p class="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gray-500 mb-8 font-bold">${c.reception.loc || 'Location TBD'}</p><button onclick="openLogin()" class="bg-white text-gray-900 border border-gray-300 font-classic py-3 px-10 hover:bg-gold-500 hover:text-white transition uppercase text-xs font-bold">RSVP</button>`;
-            else if (c.theme === 'modern') html = `<h1 class="font-modern font-black text-5xl md:text-8xl tracking-tighter mb-6 uppercase leading-none">${c.names.replace('&','<br><span class="text-gray-200">&</span><br>')}</h1><div class="bg-black text-white px-6 py-2 text-lg font-bold font-modern -rotate-2 mt-2 inline-block">${dateStr}</div><button onclick="openLogin()" class="mt-12 border-4 border-black px-12 py-4 font-black hover:bg-black hover:text-white transition uppercase tracking-widest text-sm">Respond</button>`;
-            else html = `<div class="p-4 md:p-8"><h1 class="font-floral text-6xl md:text-8xl text-rose-900 mb-2 drop-shadow-sm leading-none">${c.names}</h1><p class="font-body italic text-gray-500 mb-8">Request the honor of your presence</p><div class="border-y border-rose-200 py-6"><p class="font-bold text-rose-800 text-xl font-classic">${dateStr}</p><p class="text-xs text-gray-500 mt-2 uppercase tracking-widest">${c.reception.loc || ''}</p></div><button onclick="openLogin()" class="mt-8 bg-rose-900 text-white font-serif italic py-3 px-12 rounded-full shadow-lg hover:bg-rose-800 transition hover:scale-105">Save Your Seat</button></div>`;
+            if(c.theme === 'classic') {
+                html = `
+                    <div class="bg-[#fdfbf7] border-[12px] border-double border-gold-300 p-8 md:p-12 text-center shadow-2xl relative">
+                        <div class="absolute inset-0 border border-gold-400 m-2 pointer-events-none"></div>
+                        <p class="uppercase tracking-[0.3em] text-xs text-gray-500 mb-6 font-bold">The Wedding Of</p>
+                        <h1 class="font-classic text-5xl md:text-6xl text-gray-800 mb-6 leading-tight">${c.names || 'Jane & John'}</h1>
+                        <div class="h-px w-24 bg-gold-400 mx-auto mb-6"></div>
+                        <p class="font-classic text-xl font-bold mb-2 text-gray-700">${dateStr}</p>
+                        <p class="text-xs uppercase tracking-[0.2em] text-gray-500">${c.reception.loc || 'Location TBD'}</p>
+                    </div>`;
+            } else if (c.theme === 'modern') {
+                html = `
+                    <div class="bg-white p-10 md:p-16 text-center shadow-2xl">
+                        <h1 class="font-modern font-black text-6xl md:text-8xl tracking-tighter mb-4 uppercase leading-none">${(c.names||'J&J').replace('&','<br><span class="text-gray-300">&</span><br>')}</h1>
+                        <div class="bg-black text-white px-6 py-2 text-lg font-bold font-modern inline-block rotate-[-2deg]">${dateStr}</div>
+                    </div>`;
+            } else {
+                html = `
+                    <div class="glass-light p-8 md:p-12 text-center rounded-[3rem] shadow-xl border border-white">
+                        <h1 class="font-floral text-7xl md:text-8xl text-rose-900 mb-4">${c.names || 'Jane & John'}</h1>
+                        <p class="font-body italic text-gray-500 text-lg mb-8">Request the honor of your presence</p>
+                        <div class="border-t border-b border-rose-200 py-4">
+                            <p class="font-classic text-2xl text-rose-900">${dateStr}</p>
+                        </div>
+                    </div>`;
+            }
             card.html(html);
         }
 
-        // 5. APP LOGIC
+        // 3. INTERACTION (Unlock Site)
+        function enterSite() {
+            $('body').addClass('open');
+            $('#entrance-content').css('opacity', '0');
+            setTimeout(() => { $('#entrance-content').hide(); }, 1000);
+            
+            // Try Play Music
+            if(audio.src) {
+                $('#music-fab').removeClass('hidden').addClass('flex');
+                audio.play().then(() => $('#music-fab').addClass('music-playing')).catch(e => console.log("Auto-play blocked"));
+            }
+
+            // Show Landing Card animation
+            setTimeout(() => {
+                $('#view-landing').addClass('active');
+                $('#invite-card').removeClass('translate-y-4 opacity-0');
+            }, 800);
+        }
+
+        function toggleMusic() {
+            if(audio.paused) { audio.play(); $('#music-fab').addClass('music-playing').find('i').removeClass('fa-play').addClass('fa-pause'); }
+            else { audio.pause(); $('#music-fab').removeClass('music-playing').find('i').removeClass('fa-pause').addClass('fa-play'); }
+        }
+
+        // 4. LOGIN & RSVP
         function openLogin() { $('#view-login').fadeIn(); }
-        function switchView(viewId) { $('.page-section').removeClass('active'); $(`#view-${viewId}`).addClass('active'); window.scrollTo(0,0); }
+        
         $('#btn-enter-code').click(async () => {
             const code = $('#input-invite-code').val().trim().toUpperCase();
-            if(code === 'ADMIN') { localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload(); return; }
-            $('#btn-enter-code').text('Verifying...').prop('disabled', true);
+            if(code === 'ADMIN') { localStorage.setItem('rsvp_admin', 'true'); location.reload(); return; }
+            
+            const btn = $('#btn-enter-code'); btn.text('Checking...');
             try {
                 const snap = await db.collection('invitations').where('inviteCode', '==', code).limit(1).get();
-                if(snap.empty) { $('#login-error').text('Invalid Code').removeClass('hidden'); $('#btn-enter-code').text('Unlock').prop('disabled', false); return; }
-                const doc = snap.docs[0]; const data = doc.data();
-                if(data.isAdmin) { localStorage.setItem('rsvp_admin', 'true'); isAdmin=true; location.reload(); }
-                else { localStorage.setItem('rsvp_id', doc.id); currentInviteId = doc.id; loadGuestRSVP(doc.id, data); }
+                if(snap.empty) { 
+                    $('#login-error').text('Invalid Code').removeClass('hidden'); 
+                    btn.text('Unlock'); 
+                    return; 
+                }
+                const doc = snap.docs[0];
+                const data = doc.data();
+                
+                if(data.isAdmin) { localStorage.setItem('rsvp_admin', 'true'); location.reload(); }
+                else { 
+                    localStorage.setItem('rsvp_id', doc.id); 
+                    currentInviteId = doc.id; 
+                    loadRSVP(data); 
+                }
             } catch(e) { console.error(e); }
         });
-        function loadGuestRSVP(id, data) {
-            $('#view-login').fadeOut(); switchView('rsvp');
-            $('#guest-group-name').text(data.guestNames); $('#rsvp-note').val(data.note || '');
-            const d = new Date(siteConfig.deadline);
-            if(new Date() > d) { $('#rsvp-locked-msg').removeClass('hidden'); $('#btn-submit-rsvp').hide(); $('#rsvp-form input, textarea, select').prop('disabled', true); }
-            $('#deadline-badge').text(`Due: ${d.toLocaleDateString()}`);
-            const c = $('#guest-list-container'); c.empty();
-            data.guests.forEach((g, i) => { c.append(`<div class="guest-card bg-gray-50 p-5 rounded-2xl border border-gray-100 shadow-sm" data-idx="${i}"><div class="flex justify-between items-center mb-3"><span class="font-bold text-gray-800 text-lg">${g.name}</span><div class="flex gap-2"><label class="cursor-pointer px-4 py-2 bg-white border rounded-xl shadow-sm ${g.isAttending===true?'bg-green-100 border-green-500 font-bold':''}"><input type="radio" name="s${i}" value="y" class="hidden" ${g.isAttending===true?'checked':''}>Accept</label><label class="cursor-pointer px-4 py-2 bg-white border rounded-xl shadow-sm ${g.isAttending===false?'bg-red-100 border-red-500 font-bold':''}"><input type="radio" name="s${i}" value="n" class="hidden" ${g.isAttending===false?'checked':''}>Decline</label></div></div><div class="meal-sel ${g.isAttending===true?'block':'hidden'}"><select class="w-full text-sm p-3 border rounded-xl bg-white"><option value="Standard" ${g.meal=='Standard'?'selected':''}>Standard Meal</option><option value="Veg" ${g.meal=='Veg'?'selected':''}>Vegetarian</option><option value="Kids" ${g.meal=='Kids'?'selected':''}>Kids Meal</option></select></div></div>`); });
-            $('input[type=radio]').change(function() { const card=$(this).closest('.guest-card'); if($(this).val()==='y')card.find('.meal-sel').slideDown();else card.find('.meal-sel').slideUp(); });
-            const cl = $('#contact-list-display'); cl.empty();
-            if(siteConfig.contacts) siteConfig.contacts.forEach(ct => cl.append(`<div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100"><div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold">${ct.name.charAt(0)}</div><div><div class="font-bold text-sm">${ct.name}</div><div class="text-[10px] text-gold-600 font-bold uppercase">${ct.role}</div><a href="tel:${ct.phone}" class="text-xs text-gray-500 mt-1 block">${ct.phone}</a></div></div>`));
-        }
-        $('#rsvp-form').submit(async (e) => { e.preventDefault(); const guests=[]; $('.guest-card').each(function(){ const i=$(this).data('idx'); const val=$(this).find(`input[name="s${i}"]:checked`).val(); guests.push({name:$(this).find('span').text(), isAttending: val==='y'?true:(val==='n'?false:null), meal:$(this).find('.meal-sel select').val()}); }); let status='pending'; if(guests.every(g=>g.isAttending===true))status='accepted'; else if(guests.every(g=>g.isAttending===false))status='declined'; else if(guests.some(g=>g.isAttending!==null))status='responded'; await db.collection('invitations').doc(currentInviteId).update({guests, note:$('#rsvp-note').val(), status}); showToast('RSVP Confirmed'); });
 
-        // ADMIN
-        function loadAdminData() {
-            if(siteConfig) {
-                $('#set-theme').val(siteConfig.theme||'classic'); $('#set-music').val(siteConfig.musicTrack||''); $('#set-names').val(siteConfig.names||''); $('#set-deadline').val(siteConfig.deadline||''); $('#set-rec-loc').val(siteConfig.reception?.loc||''); $('#set-rec-time').val(siteConfig.reception?.time||''); $('#set-mat-enable').prop('checked', siteConfig.matrimony?.enabled||false); $('#set-mat-loc').val(siteConfig.matrimony?.loc||''); $('#set-mat-time').val(siteConfig.matrimony?.time||'');
-                $('#photo-list-inputs').empty(); (siteConfig.photos||[]).forEach(url => addPhotoInput(url)); $('#contact-list-inputs').empty(); (siteConfig.contacts||[]).forEach(c => addContactInput(c.name, c.role, c.phone));
+        function loadRSVP(data) {
+            $('#view-login').fadeOut();
+            $('#view-landing').hide(); // Hide landing so RSVP is clear
+            $('#view-rsvp').addClass('active');
+            
+            $('#guest-group-name').text(data.guestNames);
+            $('#rsvp-note').val(data.note || '');
+            
+            // Deadline Check
+            if(new Date() > new Date(siteConfig.deadline)) {
+                $('#rsvp-locked-msg').removeClass('hidden');
+                $('#btn-submit-rsvp').hide();
+                $('#rsvp-form :input').prop('disabled', true);
             }
-            db.collection('invitations').orderBy('status').onSnapshot(snap => {
-                const list=$('#admin-table-body'); list.empty(); let s={total:0,acc:0,groom:0,bride:0};
-                snap.forEach(doc => { const d=doc.data(); if(d.isAdmin)return; s.total+=d.guests.length; d.guests.forEach(g=>{if(g.isAttending)s.acc++}); if(d.status!=='pending'&&d.status!==undefined){const c=d.guests.filter(g=>g.isAttending).length; if(d.side==='groom')s.groom+=c;else s.bride+=c;} 
-                list.append(`<tr class="border-b hover:bg-gray-50"><td class="p-3 font-mono font-bold">${d.inviteCode}</td><td class="p-3"><div class="font-bold">${d.guestNames}</div><div class="text-xs text-gray-400">${d.guests.length} seats • ${d.side.toUpperCase()}</div></td><td class="p-3"><span class="px-2 py-1 rounded text-[10px] uppercase font-bold bg-gray-100">${d.status||'pending'}</span></td><td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-gray-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td></tr>`); });
-                $('#stat-total').text(s.total); $('#stat-attending').text(s.acc); $('#stat-groom').text(s.groom); $('#stat-bride').text(s.bride);
+
+            // Guests
+            const cont = $('#guest-list-container'); cont.empty();
+            data.guests.forEach((g, i) => {
+                cont.append(`
+                    <div class="guest-card bg-white p-5 rounded-xl border border-gray-100 shadow-sm" data-idx="${i}">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-bold text-gray-800 text-lg">${g.name}</span>
+                            <div class="flex gap-2">
+                                <label class="cursor-pointer px-3 py-2 bg-gray-50 border rounded-lg transition hover:bg-green-50 ${g.isAttending===true?'bg-green-100 border-green-500 text-green-700':''}"><input type="radio" name="g${i}" value="y" class="hidden" ${g.isAttending===true?'checked':''}>Accept</label>
+                                <label class="cursor-pointer px-3 py-2 bg-gray-50 border rounded-lg transition hover:bg-red-50 ${g.isAttending===false?'bg-red-100 border-red-500 text-red-700':''}"><input type="radio" name="g${i}" value="n" class="hidden" ${g.isAttending===false?'checked':''}>Decline</label>
+                            </div>
+                        </div>
+                        <div class="meal-sel ${g.isAttending===true?'block':'hidden'}">
+                            <select class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
+                                <option value="Standard" ${g.meal=='Standard'?'selected':''}>Standard Meal</option>
+                                <option value="Veg" ${g.meal=='Veg'?'selected':''}>Vegetarian</option>
+                                <option value="Kids" ${g.meal=='Kids'?'selected':''}>Kids Meal</option>
+                            </select>
+                        </div>
+                    </div>
+                `);
+            });
+            
+            $('input[type=radio]').change(function() {
+                const card = $(this).closest('.guest-card');
+                if($(this).val() === 'y') card.find('.meal-sel').slideDown(); else card.find('.meal-sel').slideUp();
+            });
+
+            // Contacts
+            const cc = $('#contact-list-display'); cc.empty();
+            siteConfig.contacts.forEach(c => {
+                cc.append(`<div class="flex items-center gap-4 p-3 border-b border-gray-200 last:border-0"><div class="w-8 h-8 rounded-full bg-gold-400 text-white flex items-center justify-center font-bold">${c.name[0]}</div><div><div class="font-bold text-sm">${c.name}</div><div class="text-[10px] text-gray-500 uppercase">${c.role}</div><a href="tel:${c.phone}" class="text-xs text-blue-600">${c.phone}</a></div></div>`);
             });
         }
-        window.addPhotoInput=(v)=>$('#photo-list-inputs').append(`<div class="flex gap-2"><input value="${v}" class="w-full p-2 border rounded photo-input"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
-        window.addContactInput=()=>$('#contact-list-inputs').append(`<div class="flex gap-2 contact-row mb-2"><input class="w-1/3 p-2 border rounded c-name" placeholder="Name"><input class="w-1/3 p-2 border rounded c-role" placeholder="Role"><input class="w-1/3 p-2 border rounded c-phone" placeholder="Phone"><button type="button" onclick="$(this).parent().remove()" class="text-red-500">×</button></div>`);
-        $('#settings-form').submit(async (e) => { e.preventDefault(); const photos=[]; $('.photo-input').each(function(){if($(this).val())photos.push($(this).val())}); const contacts=[]; $('.contact-row').each(function(){contacts.push({name:$(this).find('.c-name').val()||"", role:$(this).find('.c-role').val()||"", phone:$(this).find('.c-phone').val()||""})}); 
-        const cfg={theme:$('#set-theme').val()||'classic', musicTrack:$('#set-music').val()||'', names:$('#set-names').val()||'', deadline:$('#set-deadline').val()||'', reception:{loc:$('#set-rec-loc').val()||'', time:$('#set-rec-time').val()||''}, matrimony:{enabled:$('#set-mat-enable').is(':checked'), loc:$('#set-mat-loc').val()||'', time:$('#set-mat-time').val()||''}, photos, contacts}; await db.collection('site_config').doc('main').set(cfg); showToast('Saved'); siteConfig=cfg; renderLandingPage(); if(siteConfig.musicTrack) audio.src=siteConfig.musicTrack; });
-        async function createInvite(){ const code=$('#new-code').val().trim().toUpperCase(); const names=$('#new-names').val(); if(!code||!names)return alert('Required'); const guests=names.split(',').map(n=>({name:n.trim(), isAttending:null, meal:'Standard'})); await db.collection('invitations').add({inviteCode:code, guestNames:names, side:$('input[name="new-side"]:checked').val(), guests, status:'pending'}); $('#modal-add-guest').fadeOut(); showToast('Created'); }
-        async function delInv(id){if(confirm('Delete?'))await db.collection('invitations').doc(id).delete();}
-        function logout(){localStorage.clear();location.reload();}
-        function switchAdminTab(t){$('[id^=admin-tab]').hide();$(`#admin-tab-${t}`).fadeIn();}
-        function showToast(m){$('#toast-msg').text(m); $('#toast').removeClass('hidden opacity-0').addClass('opacity-100'); setTimeout(()=>$('#toast').addClass('opacity-0'),3000);}
+
+        $('#rsvp-form').submit(async (e) => {
+            e.preventDefault();
+            const btn = $('#btn-submit-rsvp'); btn.text('Saving...').prop('disabled', true);
+            
+            const guests = [];
+            $('.guest-card').each(function() {
+                const i = $(this).data('idx');
+                const val = $(this).find(`input[name="g${i}"]:checked`).val();
+                guests.push({
+                    name: $(this).find('span').text(),
+                    isAttending: val === 'y' ? true : (val === 'n' ? false : null),
+                    meal: $(this).find('select').val()
+                });
+            });
+
+            let status = 'pending';
+            if(guests.every(g => g.isAttending === true)) status = 'accepted';
+            else if(guests.every(g => g.isAttending === false)) status = 'declined';
+            else if(guests.some(g => g.isAttending !== null)) status = 'responded';
+
+            await db.collection('invitations').doc(currentInviteId).update({ guests, note: $('#rsvp-note').val(), status });
+            btn.text('Saved').prop('disabled', false);
+            alert("RSVP Updated!");
+        });
+
+        // 5. ADMIN
+        function switchAdminTab(t) { $('[id^=admin-tab]').hide(); $(`#admin-tab-${t}`).fadeIn(); }
+        function logout() { localStorage.clear(); location.reload(); }
+
+        function loadAdmin() {
+            // Fill Form
+            const c = siteConfig;
+            $('#set-theme').val(c.theme||'classic');
+            $('#set-music').val(c.musicTrack||'');
+            $('#set-names').val(c.names||'');
+            $('#set-deadline').val(c.deadline||'');
+            $('#set-rec-loc').val(c.reception?.loc||''); $('#set-rec-time').val(c.reception?.time||'');
+            $('#set-mat-loc').val(c.matrimony?.loc||''); $('#set-mat-time').val(c.matrimony?.time||'');
+            
+            const pl = $('#photo-list-inputs'); pl.empty();
+            (c.photos||[]).forEach(u => addPhotoInput(u));
+            
+            const cl = $('#contact-list-inputs'); cl.empty();
+            (c.contacts||[]).forEach(ct => addContactInput(ct.name, ct.role, ct.phone));
+
+            // Load Guests Table
+            db.collection('invitations').orderBy('status').onSnapshot(snap => {
+                const tb = $('#admin-table-body'); tb.empty();
+                let s = { total:0, yes:0, gr:0, br:0 };
+                
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.isAdmin) return;
+                    s.total += d.guests.length;
+                    
+                    const yesCount = d.guests.filter(g => g.isAttending).length;
+                    s.yes += yesCount;
+                    if(d.side === 'groom') s.gr += yesCount; else s.br += yesCount;
+
+                    let badge = d.status==='accepted'?'bg-green-100 text-green-800':(d.status==='declined'?'bg-red-100 text-red-800':'bg-gray-100 text-gray-600');
+                    
+                    tb.append(`
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3 font-mono font-bold">${d.inviteCode}</td>
+                            <td class="p-3">
+                                <div class="font-bold">${d.guestNames}</div>
+                                <div class="text-xs text-gray-500">${d.guests.length} pax • ${d.side.toUpperCase()}</div>
+                            </td>
+                            <td class="p-3"><span class="px-2 py-1 rounded text-[10px] uppercase font-bold ${badge}">${d.status||'pending'}</span></td>
+                            <td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-gray-400 hover:text-red-600"><i class="fas fa-trash"></i></button></td>
+                        </tr>
+                    `);
+                });
+                $('#stat-total').text(s.total); $('#stat-attending').text(s.yes); $('#stat-groom').text(s.gr); $('#stat-bride').text(s.br);
+            });
+        }
+
+        // --- DYNAMIC INPUTS (FIXED) ---
+        window.addPhotoInput = (val) => {
+            $('#photo-list-inputs').append(`<div class="flex gap-2"><input value="${val}" class="w-full p-2 border rounded text-sm photo-input" placeholder="Image URL"><button type="button" onclick="$(this).parent().remove()" class="text-red-500 font-bold px-2">×</button></div>`);
+        };
+        window.addContactInput = (n='', r='', p='') => {
+            $('#contact-list-inputs').append(`
+                <div class="flex gap-2 contact-row mb-2">
+                    <input class="w-1/3 p-2 border rounded text-sm c-name" placeholder="Name" value="${n}">
+                    <input class="w-1/3 p-2 border rounded text-sm c-role" placeholder="Role" value="${r}">
+                    <input class="w-1/3 p-2 border rounded text-sm c-phone" placeholder="Phone" value="${p}">
+                    <button type="button" onclick="$(this).parent().remove()" class="text-red-500 font-bold px-2">×</button>
+                </div>
+            `);
+        };
+
+        // --- SAVE SETTINGS (FIXED) ---
+        $('#settings-form').submit(async (e) => {
+            e.preventDefault();
+            const btn = $(this).find('button[type="submit"]'); btn.text('Saving...').prop('disabled', true);
+            
+            const photos = []; 
+            $('.photo-input').each(function() { if($(this).val()) photos.push($(this).val()); });
+
+            const contacts = [];
+            $('.contact-row').each(function() {
+                const n = $(this).find('.c-name').val();
+                const r = $(this).find('.c-role').val();
+                const p = $(this).find('.c-phone').val();
+                if(n) contacts.push({ name: n, role: r, phone: p });
+            });
+
+            const cfg = {
+                theme: $('#set-theme').val(),
+                musicTrack: $('#set-music').val(),
+                names: $('#set-names').val(),
+                deadline: $('#set-deadline').val(),
+                reception: { loc: $('#set-rec-loc').val(), time: $('#set-rec-time').val() },
+                matrimony: { loc: $('#set-mat-loc').val(), time: $('#set-mat-time').val() },
+                photos: photos,
+                contacts: contacts
+            };
+
+            await db.collection('site_config').doc('main').set(cfg);
+            btn.text('Save Changes').prop('disabled', false);
+            alert('Settings Saved! Refreshing...');
+            location.reload();
+        });
+
+        async function createInvite() {
+            const code = $('#new-code').val().toUpperCase();
+            const names = $('#new-names').val();
+            if(!code || !names) return alert("Fill all fields");
+            
+            const guests = names.split(',').map(n => ({ name: n.trim(), isAttending: null, meal: 'Standard' }));
+            
+            await db.collection('invitations').add({
+                inviteCode: code,
+                guestNames: names,
+                side: $('input[name="new-side"]:checked').val(),
+                guests,
+                status: 'pending'
+            });
+            $('#modal-add-guest').fadeOut();
+            $('#new-code').val(''); $('#new-names').val('');
+        }
+
+        async function delInv(id) { if(confirm("Delete?")) await db.collection('invitations').doc(id).delete(); }
+
     </script>
 </body>
 </html>
