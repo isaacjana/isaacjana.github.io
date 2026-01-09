@@ -64,6 +64,26 @@
         <div id="invite-card" class="w-full max-w-md transition-all duration-1000 transform translate-y-8 opacity-0"></div>
         
         <div class="mt-8 w-full max-w-md text-center">
+            
+            <div id="wedding-countdown" class="grid grid-cols-4 gap-2 mb-6 px-4">
+                <div class="bg-black/40 backdrop-blur rounded-lg p-2 border border-white/10">
+                    <div id="days" class="text-white font-bold text-lg leading-none">00</div>
+                    <div class="text-[8px] text-gold-400 uppercase tracking-widest mt-1">Days</div>
+                </div>
+                <div class="bg-black/40 backdrop-blur rounded-lg p-2 border border-white/10">
+                    <div id="hours" class="text-white font-bold text-lg leading-none">00</div>
+                    <div class="text-[8px] text-gold-400 uppercase tracking-widest mt-1">Hrs</div>
+                </div>
+                <div class="bg-black/40 backdrop-blur rounded-lg p-2 border border-white/10">
+                    <div id="minutes" class="text-white font-bold text-lg leading-none">00</div>
+                    <div class="text-[8px] text-gold-400 uppercase tracking-widest mt-1">Min</div>
+                </div>
+                <div class="bg-black/40 backdrop-blur rounded-lg p-2 border border-white/10">
+                    <div id="seconds" class="text-white font-bold text-lg leading-none">00</div>
+                    <div class="text-[8px] text-gold-400 uppercase tracking-widest mt-1">Sec</div>
+                </div>
+            </div>
+
             <div id="live-attendance" class="inline-block bg-black/40 backdrop-blur px-6 py-2 rounded-full border border-white/10 text-white text-[10px] font-bold tracking-widest mb-6 opacity-0 transition-opacity duration-1000">
                 <span id="pax-count">0</span> GUESTS ATTENDING
             </div>
@@ -118,57 +138,57 @@
         <div class="flex justify-between items-center p-6 border-b">
             <div>
                 <h2 class="font-classic font-bold text-xl">Admin Dashboard</h2>
-                <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Total App Visits: <span id="visit-count" class="text-black">0</span></p>
+                <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Total App Visits: <span id="visit-count" class="text-black font-black">0</span></p>
             </div>
             <button onclick="logout()" class="text-red-500 font-bold text-xs border border-red-200 px-3 py-1 rounded">LOGOUT</button>
         </div>
         <div class="p-6">
-            <div class="flex gap-2 mb-8 overflow-x-auto">
+            <div class="flex gap-2 mb-8 overflow-x-auto pb-2">
                 <button onclick="switchAdminTab('guests')" class="px-4 py-2 bg-gray-100 rounded-lg text-[10px] font-bold shrink-0">GUESTS</button>
                 <button onclick="switchAdminTab('wishes')" class="px-4 py-2 bg-gray-100 rounded-lg text-[10px] font-bold shrink-0">WISHES</button>
                 <button onclick="switchAdminTab('settings')" class="px-4 py-2 bg-gray-100 rounded-lg text-[10px] font-bold shrink-0">SETTINGS</button>
-                <button onclick="downloadGuestList()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-[10px] font-bold shrink-0 ml-auto"><i class="fas fa-download mr-1"></i> EXCEL</button>
+                <button onclick="downloadGuestList()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-[10px] font-bold shrink-0 ml-auto"><i class="fas fa-file-excel mr-1"></i> EXPORT EXCEL</button>
             </div>
             
             <div id="admin-tab-guests">
                 <div class="mb-4"><button onclick="$('#modal-add-guest').fadeIn()" class="bg-black text-white px-4 py-2 rounded-lg text-xs">+ ADD INVITE</button></div>
-                <table class="w-full text-left text-xs border-collapse"><tbody id="admin-table-body"></tbody></table>
+                <table class="w-full text-left text-[11px] border-collapse"><tbody id="admin-table-body"></tbody></table>
             </div>
 
             <div id="admin-tab-wishes" class="hidden">
-                <table class="w-full text-left text-xs border-collapse"><tbody id="admin-wishes-body"></tbody></table>
+                <table class="w-full text-left text-[11px] border-collapse"><tbody id="admin-wishes-body"></tbody></table>
             </div>
 
             <div id="admin-tab-settings" class="hidden">
                 <form id="settings-form" class="space-y-6 max-w-2xl">
                     <div class="grid grid-cols-2 gap-4">
-                        <select id="set-theme" class="p-2 border rounded text-sm"><option value="classic">Classic</option><option value="modern">Modern</option><option value="floral">Floral</option></select>
-                        <select id="set-music" class="p-2 border rounded text-sm"><option value="">No Music</option><option value="music1.mp3">Track 1</option><option value="music2.mp3">Track 2</option><option value="music3.mp3">Track 3</option></select>
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Theme</label><select id="set-theme" class="w-full p-2 border rounded text-sm"><option value="classic">Classic</option><option value="modern">Modern</option><option value="floral">Floral</option></select></div>
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Music</label><select id="set-music" class="w-full p-2 border rounded text-sm"><option value="">No Music</option><option value="music1.mp3">Track 1</option><option value="music2.mp3">Track 2</option><option value="music3.mp3">Track 3</option></select></div>
                     </div>
-                    <input id="set-names" placeholder="Couple Names" class="w-full p-2 border rounded text-sm">
-                    <input id="set-deadline" type="date" class="w-full p-2 border rounded text-sm">
+                    <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Wedding Date (For Countdown)</label><input id="set-deadline" type="datetime-local" class="w-full p-2 border rounded text-sm"></div>
+                    <input id="set-names" placeholder="Couple Names (e.g. John & Jane)" class="w-full p-2 border rounded text-sm">
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl">
-                        <div><label class="block font-bold text-[10px] text-gray-400 uppercase mb-2">Reception</label><input id="set-rec-loc" placeholder="Location" class="w-full p-2 border rounded mb-2 text-sm"><input id="set-rec-time" type="datetime-local" class="w-full p-2 border rounded text-sm"></div>
-                        <div><label class="block font-bold text-[10px] text-gray-400 uppercase mb-2">Matrimony (Optional)</label><input id="set-mat-loc" placeholder="Location" class="w-full p-2 border rounded mb-2 text-sm"><input id="set-mat-time" type="datetime-local" class="w-full p-2 border rounded text-sm"></div>
+                        <div><label class="block font-bold text-[10px] text-gray-400 uppercase mb-2">Reception</label><input id="set-rec-loc" placeholder="Location Name/Address" class="w-full p-2 border rounded mb-2 text-sm"><input id="set-rec-time" type="datetime-local" class="w-full p-2 border rounded text-sm"></div>
+                        <div><label class="block font-bold text-[10px] text-gray-400 uppercase mb-2">Holy Matrimony</label><input id="set-mat-loc" placeholder="Location Name/Address" class="w-full p-2 border rounded mb-2 text-sm"><input id="set-mat-time" type="datetime-local" class="w-full p-2 border rounded text-sm"></div>
                     </div>
 
-                    <div><label class="block font-bold text-xs mb-2 uppercase text-gray-400">Background Slideshow</label><div id="bg-photo-list" class="space-y-2"></div><button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-blue-500 text-xs mt-2">+ Add BG URL</button></div>
+                    <div><label class="block font-bold text-xs mb-2 uppercase text-gray-400">Background Photos</label><div id="bg-photo-list" class="space-y-2"></div><button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-blue-500 text-xs mt-2">+ Add BG URL</button></div>
                     <div><label class="block font-bold text-xs mb-2 uppercase text-gray-400">Card Gallery</label><div id="card-photo-list" class="space-y-2"></div><button type="button" onclick="addPhotoInput('card-photo-list')" class="text-blue-500 text-xs mt-2">+ Add Gallery URL</button></div>
-                    <button type="submit" class="w-full bg-black text-white py-4 rounded-xl font-bold uppercase tracking-widest text-xs">Save Everything</button>
+                    <button type="submit" class="w-full bg-black text-white py-4 rounded-xl font-bold uppercase tracking-widest text-xs">Save Settings</button>
                 </form>
             </div>
         </div>
     </main>
 
     <div id="modal-add-guest" class="fixed inset-0 bg-black/80 hidden z-[90] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl w-full max-w-sm">
-            <h3 class="font-bold mb-4 font-classic">New Invite</h3>
+        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl">
+            <h3 class="font-bold mb-4 font-classic text-lg">New Invitation</h3>
             <input id="new-code" placeholder="INVITE CODE" class="w-full p-3 border rounded-xl mb-2 uppercase font-bold">
             <input id="new-names" placeholder="GUEST NAMES" class="w-full p-3 border rounded-xl mb-4">
-            <div class="flex gap-4 mb-4"><label><input type="radio" name="new-side" value="groom" checked> Groom</label><label><input type="radio" name="new-side" value="bride"> Bride</label></div>
+            <div class="flex gap-4 mb-4"><label class="text-sm"><input type="radio" name="new-side" value="groom" checked> Groom</label><label class="text-sm"><input type="radio" name="new-side" value="bride"> Bride</label></div>
             <button onclick="createInvite()" class="w-full bg-black text-white py-3 rounded-xl font-bold">CREATE</button>
-            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-2 text-gray-400 text-sm">Cancel</button>
+            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-2 text-gray-400 text-xs">Cancel</button>
         </div>
     </div>
 
@@ -180,11 +200,12 @@
         let siteConfig = { theme: 'classic', names: '', deadline: '', musicTrack: '', bgPhotos: [], cardPhotos: [], reception: {}, matrimony: {} };
         let currentInviteId = localStorage.getItem('rsvp_id');
         let isAdmin = localStorage.getItem('rsvp_admin') === 'true';
-        let bgInterval, cardInterval, audio = document.getElementById('bg-music');
+        let bgInterval, cardInterval, countdownInterval, audio = document.getElementById('bg-music');
 
         $(document).ready(async () => {
             await loadConfig();
             loadStatsAndWishes();
+            startCountdown();
             if(!isAdmin) trackVisit();
             $('#loading-screen').fadeOut();
             if(isAdmin) { $('#entrance-overlay').hide(); $('#view-admin').addClass('active'); loadAdmin(); }
@@ -208,6 +229,28 @@
             });
         }
 
+        function startCountdown() {
+            if(!siteConfig.deadline) return;
+            if(countdownInterval) clearInterval(countdownInterval);
+            const target = new Date(siteConfig.deadline).getTime();
+            
+            countdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const diff = target - now;
+                if(diff < 0) { clearInterval(countdownInterval); return; }
+                
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                $('#days').text(String(d).padStart(2, '0'));
+                $('#hours').text(String(h).padStart(2, '0'));
+                $('#minutes').text(String(m).padStart(2, '0'));
+                $('#seconds').text(String(s).padStart(2, '0'));
+            }, 1000);
+        }
+
         async function loadStatsAndWishes() {
             const stats = await db.collection('site_config').doc('stats').get();
             if(stats.exists) $('#visit-count').text(stats.data().visits);
@@ -225,7 +268,7 @@
             const scroller = $('#wishes-scroller'); scroller.empty();
             if(wishes.length > 0) {
                 if(wishes.length > 2) scroller.addClass('wish-scroll');
-                [...wishes, ...wishes].forEach(w => scroller.append(`<div class="text-white/80 text-center"><p class="italic text-xs">"${w.note}"</p><p class="text-[9px] uppercase tracking-widest text-gold-400 mt-2">— ${w.name}</p></div>`));
+                [...wishes, ...wishes].forEach(w => scroller.append(`<div class="text-white/80 text-center"><p class="italic text-[11px] leading-relaxed">"${w.note}"</p><p class="text-[8px] uppercase tracking-[0.2em] text-gold-400 mt-2">— ${w.name}</p></div>`));
             } else scroller.append(`<div class="text-white/20 text-xs italic">Wishes will appear here...</div>`);
         }
 
@@ -288,8 +331,8 @@
 
             const details = $('#event-details-display'); details.empty();
             const c = siteConfig;
-            if(c.reception?.loc) details.append(`<div><h4 class="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Reception</h4><p class="font-bold text-sm text-gray-800">${c.reception.loc}</p><p class="text-xs text-gray-500">${new Date(c.reception.time).toLocaleString()}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.reception.loc)}" target="_blank" class="text-[10px] text-blue-500 font-bold mt-2 inline-block">GET DIRECTIONS <i class="fas fa-external-link-alt ml-1"></i></a></div>`);
-            if(c.matrimony?.loc) details.append(`<div><h4 class="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Holy Matrimony</h4><p class="font-bold text-sm text-gray-800">${c.matrimony.loc}</p><p class="text-xs text-gray-500">${new Date(c.matrimony.time).toLocaleString()}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.matrimony.loc)}" target="_blank" class="text-[10px] text-blue-500 font-bold mt-2 inline-block">GET DIRECTIONS <i class="fas fa-external-link-alt ml-1"></i></a></div>`);
+            if(c.reception?.loc) details.append(`<div><h4 class="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Reception</h4><p class="font-bold text-sm text-gray-800">${c.reception.loc}</p><p class="text-[10px] text-gray-500">${new Date(c.reception.time).toLocaleString()}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.reception.loc)}" target="_blank" class="text-[10px] text-blue-500 font-bold mt-2 inline-block">GET DIRECTIONS <i class="fas fa-external-link-alt ml-1"></i></a></div>`);
+            if(c.matrimony?.loc) details.append(`<div><h4 class="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Holy Matrimony</h4><p class="font-bold text-sm text-gray-800">${c.matrimony.loc}</p><p class="text-[10px] text-gray-500">${new Date(c.matrimony.time).toLocaleString()}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.matrimony.loc)}" target="_blank" class="text-[10px] text-blue-500 font-bold mt-2 inline-block">GET DIRECTIONS <i class="fas fa-external-link-alt ml-1"></i></a></div>`);
         }
 
         $('#rsvp-form').submit(async (e) => {
@@ -304,14 +347,16 @@
 
         async function downloadGuestList() {
             const snap = await db.collection('invitations').get();
-            let csv = "Code,Group Name,Guest,Attending,Side,Note\n";
+            let csv = "Code,Group Name,Guest Name,Attending,Side,Wishes\n";
             snap.forEach(doc => {
                 const d = doc.data(); if(d.isAdmin) return;
-                d.guests.forEach(g => { csv += `${d.inviteCode},"${d.guestNames}","${g.name}",${g.isAttending},${d.side},"${d.note || ''}"\n`; });
+                d.guests.forEach(g => {
+                    csv += `${d.inviteCode},"${d.guestNames}","${g.name}",${g.isAttending || 'No Response'},${d.side},"${(d.note || '').replace(/"/g, '""')}"\n`;
+                });
             });
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'GuestList.csv'; a.click();
+            const a = document.createElement('a'); a.href = url; a.download = 'GuestList_RSVP.csv'; a.click();
         }
 
         function loadAdmin() {
@@ -328,8 +373,8 @@
                 const wb = $('#admin-wishes-body'); wb.empty();
                 snap.forEach(doc => {
                     const d = doc.data(); if(d.isAdmin) return;
-                    tb.append(`<tr class="border-b"><td class="p-3 font-bold">${d.inviteCode}</td><td class="p-3">${d.guestNames}</td><td class="p-3 text-right"><button onclick="delInv('${doc.id}')" class="text-red-500 font-bold">X</button></td></tr>`);
-                    if(d.note) wb.append(`<tr class="border-b"><td class="p-3 text-[10px] italic">"${d.note}"</td><td class="p-3 text-[9px] uppercase font-bold text-gray-400">${d.guestNames}</td><td class="p-3 text-right"><button onclick="deleteWish('${doc.id}')" class="text-gray-400 hover:text-red-500">DELETE</button></td></tr>`);
+                    tb.append(`<tr class="border-b"><td class="p-2 font-bold">${d.inviteCode}</td><td class="p-2">${d.guestNames}</td><td class="p-2 text-right"><button onclick="delInv('${doc.id}')" class="text-red-500 font-bold">X</button></td></tr>`);
+                    if(d.note) wb.append(`<tr class="border-b"><td class="p-2 italic">"${d.note}"</td><td class="p-2 uppercase font-bold text-gray-400">By: ${d.guestNames}</td><td class="p-2 text-right"><button onclick="deleteWish('${doc.id}')" class="text-gray-400 hover:text-red-500">DEL</button></td></tr>`);
                 });
             });
         }
@@ -346,7 +391,7 @@
                 matrimony: { loc: $('#set-mat-loc').val(), time: $('#set-mat-time').val() },
                 bgPhotos, cardPhotos
             });
-            alert('SAVED!'); location.reload();
+            alert('SETTINGS SAVED!'); location.reload();
         });
 
         async function createInvite() {
@@ -355,8 +400,8 @@
             await db.collection('invitations').add({ inviteCode: code, guestNames: names, side: $('input[name="new-side"]:checked').val(), guests, status: 'pending' });
             $('#modal-add-guest').fadeOut();
         }
-        async function deleteWish(id) { if(confirm('Delete?')) await db.collection('invitations').doc(id).update({ note: "" }); }
-        async function delInv(id) { if(confirm('Delete?')) await db.collection('invitations').doc(id).delete(); }
+        async function deleteWish(id) { if(confirm('Delete wish?')) await db.collection('invitations').doc(id).update({ note: "" }); }
+        async function delInv(id) { if(confirm('Permanently delete invitation?')) await db.collection('invitations').doc(id).delete(); }
         function logout() { localStorage.clear(); location.reload(); }
         function switchAdminTab(t) { $('#admin-tab-guests, #admin-tab-settings, #admin-tab-wishes').hide(); $(`#admin-tab-${t}`).show(); }
     </script>
