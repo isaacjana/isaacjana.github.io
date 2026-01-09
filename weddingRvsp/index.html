@@ -1,202 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wedding RSVP</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Great+Vibes&family=Lato:wght@300;400;700&family=Montserrat:wght@200;400;900&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-    
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wedding RSVP</title>
 
-    <script>
-        tailwind.config = {
-            theme: { extend: {
-                colors: { gold: { 300: '#F5D061', 400: '#D4AF37', 500: '#C5A028', 900: '#5C4010' }, rose: { 50: '#fff0f3', 100: '#ffe4e6', 900: '#881337' } },
-                fontFamily: { classic: ['Cinzel', 'serif'], modern: ['Montserrat', 'sans-serif'], floral: ['Great Vibes', 'cursive'], body: ['Lato', 'sans-serif'] },
-                animation: { 'fade-in': 'fadeIn 1s ease-out' },
-                keyframes: { fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } } }
-            }}
-        }
-    </script>
-    <style>
-        body { -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .page-section { display: none; opacity: 0; transition: opacity 0.6s ease-in-out; }
-        .page-section.active { display: block; opacity: 1; }
-        
-        /* Loading */
-        #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
-        .loader-ring { width: 48px; height: 48px; border: 3px solid #f3f3f3; border-top: 3px solid #D4AF37; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        gold: { 300:'#F5D061',400:'#D4AF37',500:'#C5A028' },
+        rose: { 50:'#fff0f3',900:'#881337' }
+      },
+      fontFamily: {
+        classic:['Cinzel','serif'],
+        modern:['Montserrat','sans-serif'],
+        floral:['Great Vibes','cursive'],
+        body:['Lato','sans-serif']
+      }
+    }
+  }
+}
+</script>
 
-        /* Background Slideshow */
-        #bg-slideshow { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background: #1a1a1a; }
-        .bg-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease-in-out, transform 8s linear; transform: scale(1.05); }
-        .bg-slide.active { opacity: 0.5; transform: scale(1); }
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Great+Vibes&family=Lato:wght@300;400;700&family=Montserrat:wght@400;800&display=swap" rel="stylesheet">
 
-        /* Card Internal Gallery */
-        .card-gallery-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.5s ease-in-out; }
-        .card-gallery-img.active { opacity: 1; }
-
-        /* Curtain Animation */
-        #entrance-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #000; transition: all 1.5s ease-in-out; }
-        .tap-hint { animation: pulse-text 2s infinite; }
-        @keyframes pulse-text { 0%, 100% { opacity: 0.5; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1); } }
-        
-        /* Curtain Themes */
-        .theme-classic #entrance-overlay { background: transparent; pointer-events: none; }
-        .curtain-panel { position: absolute; top: 0; bottom: 0; width: 50%; background: #111; transition: transform 1.5s cubic-bezier(0.77, 0, 0.175, 1); z-index: 51; }
-        .curtain-left { left: 0; border-right: 1px solid #333; } .curtain-right { right: 0; border-left: 1px solid #333; }
-        .open .curtain-left { transform: translateX(-100%); } .open .curtain-right { transform: translateX(100%); }
-        .theme-modern #entrance-overlay { background: #000; transform-origin: top; } .theme-modern.open #entrance-overlay { transform: scaleY(0); }
-        .theme-floral #entrance-overlay { background: #fff; } .theme-floral.open #entrance-overlay { opacity: 0; visibility: hidden; }
-
-        /* Music Fab */
-        .music-playing { animation: ripple 1.5s infinite; }
-        @keyframes ripple { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
-
-        /* Glassmorphism */
-        .glass-light { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
-    </style>
+<style>
+body{overflow-x:hidden}
+.page-section{display:none;opacity:0;transition:.6s}
+.page-section.active{display:block;opacity:1}
+.bg-slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 2s}
+.bg-slide.active{opacity:.55}
+.card-gallery-img{position:absolute;inset:0;object-fit:cover;opacity:0;transition:1.5s}
+.card-gallery-img.active{opacity:1}
+.glass{background:rgba(255,255,255,.9);backdrop-filter:blur(14px)}
+</style>
 </head>
-<body class="text-gray-800 min-h-screen font-body bg-gray-900">
 
-    <div id="loading-screen">
-        <div class="loader-ring"></div>
-        <div class="mt-4 text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase">Loading Invitation</div>
+<body class="bg-gray-900 text-gray-800 font-body">
+
+<div id="bg-slideshow" class="fixed inset-0 -z-10"></div>
+
+<!-- LANDING -->
+<section id="view-landing" class="page-section min-h-screen flex items-center justify-center px-6">
+  <div class="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+    <div id="invite-card" class="transition-all duration-1000 opacity-0 translate-y-6"></div>
+    <div class="text-center md:text-left text-white space-y-6">
+      <h2 class="font-classic text-4xl md:text-6xl">You’re Invited</h2>
+      <p class="max-w-md text-white/80">
+        Kindly join us as we celebrate love, laughter and a lifetime together.
+      </p>
+      <button onclick="openLogin()" class="px-8 py-4 bg-gold-400 text-black font-bold uppercase tracking-widest rounded-xl hover:bg-gold-300 transition">
+        RSVP Now
+      </button>
     </div>
+  </div>
+</section>
 
-    <audio id="bg-music" loop></audio>
-    <button id="music-fab" onclick="toggleMusic()" class="fixed bottom-6 right-6 z-[90] bg-white text-gray-900 w-12 h-12 rounded-full shadow-2xl hidden flex items-center justify-center transition hover:scale-110 active:scale-90 border border-gray-100">
-        <i id="music-icon" class="fas fa-play ml-1"></i>
+<!-- LOGIN -->
+<div id="view-login" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-10 text-center">
+    <h3 class="font-classic text-2xl mb-6">Enter Invitation Code</h3>
+    <input id="input-invite-code" class="w-full p-4 border rounded-xl text-center uppercase tracking-widest font-bold mb-4">
+    <button id="btn-enter-code" class="w-full bg-black text-white py-4 rounded-xl font-bold uppercase tracking-widest">
+      Unlock
     </button>
+    <div id="login-error" class="hidden mt-4 text-xs font-bold text-red-600"></div>
+  </div>
+</div>
 
-    <div id="bg-slideshow"></div>
-
-    <div id="entrance-curtains-container"></div>
-    <div id="entrance-content" class="fixed inset-0 z-[55] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000">
-        <div class="pointer-events-auto cursor-pointer flex flex-col items-center" onclick="enterSite()">
-            <div class="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-sm animate-pulse mb-4">
-                <i class="fas fa-fingerprint text-white/80 text-3xl"></i>
-            </div>
-            <h2 class="text-white font-classic text-xl tracking-[0.3em] mb-2 tap-hint">OPEN</h2>
-        </div>
-    </div>
-
-    <div id="view-landing" class="page-section min-h-screen w-full flex items-center justify-center p-4 relative z-10">
-        <div id="invite-card" class="w-full max-w-md transition-all duration-1000 transform translate-y-8 opacity-0"></div>
-        <button onclick="openLogin()" class="fixed bottom-6 left-6 text-[9px] text-white/50 hover:text-white uppercase tracking-widest bg-black/20 px-3 py-1 rounded border border-white/5 backdrop-blur transition z-20">
-            Guest / Admin Login
+<!-- RSVP -->
+<section id="view-rsvp" class="page-section max-w-6xl mx-auto px-6 py-16">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+    <div class="lg:col-span-2 glass rounded-3xl shadow-xl p-8">
+      <h2 class="font-classic text-3xl mb-6">RSVP</h2>
+      <form id="rsvp-form" class="space-y-6">
+        <div id="guest-list-container" class="space-y-4"></div>
+        <textarea id="rsvp-note" rows="3" class="w-full p-4 rounded-xl border" placeholder="Message or dietary notes"></textarea>
+        <button id="btn-submit-rsvp" class="w-full bg-gold-500 text-white py-4 rounded-xl font-bold uppercase tracking-widest">
+          Confirm RSVP
         </button>
+      </form>
     </div>
+    <aside class="glass rounded-3xl shadow-xl p-8">
+      <h3 class="font-classic text-xl mb-4">Contact</h3>
+      <div id="contact-list-display" class="space-y-4"></div>
+    </aside>
+  </div>
+</section>
 
-    <div id="view-login" class="hidden fixed inset-0 z-[80] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm p-8 rounded-2xl shadow-2xl relative text-center">
-            <button onclick="$('#view-login').fadeOut()" class="absolute top-4 right-4 text-gray-300 p-2"><i class="fas fa-times"></i></button>
-            <h2 class="text-xl font-bold font-classic mb-6 text-gray-900">Enter Code</h2>
-            <input type="text" id="input-invite-code" placeholder="XYZ-123" class="w-full p-4 bg-gray-50 border rounded-xl text-center font-bold text-lg uppercase tracking-widest mb-4 outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-400">
-            <button id="btn-enter-code" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold uppercase text-xs tracking-widest shadow-lg hover:bg-black">Unlock</button>
-            <div id="login-error" class="hidden text-red-500 text-xs font-bold mt-4 bg-red-50 p-2 rounded"></div>
+<!-- ADMIN -->
+<section id="view-admin" class="page-section min-h-screen bg-gray-100">
+  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6 p-6">
+    <aside class="bg-white rounded-2xl shadow p-6 space-y-4">
+      <h3 class="font-classic text-xl">Admin</h3>
+      <button onclick="switchAdminTab('guests')" class="w-full py-2 rounded-lg bg-gray-100 font-bold">Guests</button>
+      <button onclick="switchAdminTab('settings')" class="w-full py-2 rounded-lg bg-gray-100 font-bold">Settings</button>
+      <button onclick="logout()" class="w-full py-2 rounded-lg bg-red-50 text-red-600 font-bold">Logout</button>
+    </aside>
+    <main class="bg-white rounded-2xl shadow p-6">
+      <div id="admin-tab-guests">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="p-4 border rounded-xl text-center"><div class="text-xs uppercase">Total</div><div id="stat-total" class="text-2xl font-black">0</div></div>
+          <div class="p-4 border rounded-xl text-center"><div class="text-xs uppercase">Yes</div><div id="stat-attending" class="text-2xl font-black">0</div></div>
+          <div class="p-4 border rounded-xl text-center"><div class="text-xs uppercase">Groom</div><div id="stat-groom" class="text-2xl font-black">0</div></div>
+          <div class="p-4 border rounded-xl text-center"><div class="text-xs uppercase">Bride</div><div id="stat-bride" class="text-2xl font-black">0</div></div>
         </div>
-    </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <tbody id="admin-table-body"></tbody>
+          </table>
+        </div>
+      </div>
 
-    <main id="view-rsvp" class="page-section max-w-2xl mx-auto w-full p-4 pt-10 pb-24 relative z-10">
-        <div class="flex justify-between items-center mb-6 px-2 text-white drop-shadow-md">
-            <button onclick="location.reload()" class="text-xs font-bold uppercase tracking-widest hover:text-gold-300"><i class="fas fa-arrow-left mr-1"></i> Home</button>
-            <button onclick="logout()" class="text-xs font-bold uppercase tracking-widest hover:text-red-300">Logout</button>
-        </div>
-
-        <div class="glass-light rounded-2xl shadow-2xl overflow-hidden mb-6">
-            <div class="bg-gray-900 text-white p-8 text-center relative overflow-hidden">
-                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <h2 class="text-3xl font-classic relative z-10">RSVP</h2>
-                <p class="text-xs uppercase tracking-widest text-gold-400 mt-2 relative z-10">Welcome, <span id="guest-group-name" class="text-white"></span></p>
-            </div>
-            <div class="p-6 md:p-8">
-                <div id="rsvp-locked-msg" class="hidden bg-red-50 text-red-800 text-xs font-bold p-4 rounded-xl text-center mb-6">RSVP Closed</div>
-                <form id="rsvp-form" class="space-y-6">
-                    <div id="guest-list-container" class="space-y-4"></div>
-                    <div><label class="block text-xs font-bold uppercase text-gray-400 mb-2">Message</label><textarea id="rsvp-note" rows="3" class="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:bg-white transition" placeholder="Dietary requirements or wishes..."></textarea></div>
-                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-widest text-sm transition transform active:scale-[0.98]">Confirm RSVP</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="glass-light rounded-2xl p-6 md:p-8 shadow-lg">
-            <h3 class="font-classic text-center mb-6 text-gray-800 border-b pb-4">Contact Us</h3>
-            <div id="contact-list-display" class="grid grid-cols-1 gap-3"></div>
-        </div>
+      <div id="admin-tab-settings" class="hidden">
+        <form id="settings-form" class="max-w-3xl space-y-8">
+          <h3 class="font-classic text-xl">Settings</h3>
+          <div class="grid md:grid-cols-2 gap-4">
+            <input id="set-names" class="p-3 border rounded" placeholder="Couple Names">
+            <input type="date" id="set-deadline" class="p-3 border rounded">
+          </div>
+          <button class="bg-green-600 text-white py-3 rounded-xl font-bold">Save</button>
+        </form>
+      </div>
     </main>
+  </div>
+</section>
 
-    <main id="view-admin" class="page-section max-w-5xl mx-auto w-full p-4 relative z-10 bg-gray-50 min-h-screen text-gray-800">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-            <h2 class="text-xl font-bold font-classic">Admin Panel</h2>
-            <div class="flex gap-2 mt-4 md:mt-0">
-                <button onclick="switchAdminTab('guests')" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold uppercase">Guests</button>
-                <button onclick="switchAdminTab('settings')" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold uppercase">Settings</button>
-                <button onclick="logout()" class="px-3 py-2 text-red-500 border rounded-lg hover:bg-red-50"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
-        </div>
-        <div id="admin-tab-guests">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-gray-400 font-bold">Total</div><div id="stat-total" class="text-2xl font-black">0</div></div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-green-600 font-bold">Yes</div><div id="stat-attending" class="text-2xl font-black text-green-600">0</div></div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-blue-600 font-bold">Groom</div><div id="stat-groom" class="text-2xl font-black text-blue-600">0</div></div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-[10px] uppercase text-pink-600 font-bold">Bride</div><div id="stat-bride" class="text-2xl font-black text-pink-600">0</div></div>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div class="p-4 border-b bg-gray-50 flex gap-2"><button onclick="$('#modal-add-guest').fadeIn()" class="bg-black text-white px-4 py-2 rounded-lg text-xs font-bold uppercase shadow hover:bg-gray-800">+ Add Invite</button></div>
-                <div class="overflow-x-auto max-h-[600px]"><table class="w-full text-sm text-left"><tbody id="admin-table-body"></tbody></table></div>
-            </div>
-        </div>
-        <div id="admin-tab-settings" class="hidden">
-            <form id="settings-form" class="max-w-3xl mx-auto space-y-8 bg-white p-8 rounded-2xl shadow-sm border">
-                <div class="space-y-4">
-                    <h3 class="font-bold border-b pb-2 uppercase text-xs text-gray-400">Design</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-xs font-bold mb-1">Layout</label><select id="set-theme" class="w-full p-2 border rounded bg-gray-50"><option value="classic">🏛️ Classic</option><option value="modern">🔳 Modern</option><option value="floral">🌸 Floral</option></select></div>
-                        <div><label class="block text-xs font-bold mb-1">Music (Local MP3)</label><select id="set-music" class="w-full p-2 border rounded bg-gray-50"><option value="">None</option><option value="music1.mp3">Track 1</option><option value="music2.mp3">Track 2</option><option value="music3.mp3">Track 3</option></select></div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <h3 class="font-bold border-b pb-2 uppercase text-xs text-gray-400">Imagery</h3>
-                    <div><label class="block text-xs font-bold mb-2">1. Background Photos (Full Screen)</label><div id="bg-photo-list" class="space-y-2 mb-2"></div><button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-xs text-blue-600 font-bold">+ Add Background URL</button></div>
-                    <div><label class="block text-xs font-bold mb-2">2. Card Photos (Gallery Inside Card)</label><div id="card-photo-list" class="space-y-2 mb-2"></div><button type="button" onclick="addPhotoInput('card-photo-list')" class="text-xs text-blue-600 font-bold">+ Add Card Photo URL</button></div>
-                </div>
-                <div class="space-y-4">
-                    <h3 class="font-bold border-b pb-2 uppercase text-xs text-gray-400">Details</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-xs font-bold mb-1">Names</label><input id="set-names" class="w-full p-2 border rounded"></div>
-                        <div><label class="block text-xs font-bold mb-1">Deadline</label><input type="date" id="set-deadline" class="w-full p-2 border rounded"></div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                        <div><label class="block text-xs font-bold mb-1 text-gray-500">Reception</label><input id="set-rec-loc" class="w-full p-2 border rounded text-sm mb-2"><input type="datetime-local" id="set-rec-time" class="w-full p-2 border rounded text-sm"></div>
-                        <div><label class="block text-xs font-bold mb-1 text-gray-500">Matrimony</label><input id="set-mat-loc" class="w-full p-2 border rounded text-sm mb-2"><input type="datetime-local" id="set-mat-time" class="w-full p-2 border rounded text-sm"></div>
-                    </div>
-                    <div><label class="block text-xs font-bold mb-2">Contacts</label><div id="contact-list-inputs" class="space-y-2"></div><button type="button" onclick="addContactInput()" class="text-xs text-blue-600 font-bold">+ Add Contact</button></div>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow hover:bg-green-700">Save Changes</button>
-            </form>
-        </div>
-    </main>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    <div id="modal-add-guest" class="fixed inset-0 bg-black/50 hidden z-[90] flex items-center justify-center p-4">
-        <div class="bg-white p-6 rounded-xl w-full max-w-sm">
-            <h3 class="font-bold mb-4">New Invitation</h3>
-            <input id="new-code" placeholder="CODE (e.g. FAM01)" class="w-full p-2 border rounded mb-2 uppercase font-bold">
-            <input id="new-names" placeholder="Names (e.g. John, Jane)" class="w-full p-2 border rounded mb-4">
-            <div class="flex gap-2 mb-4"><label><input type="radio" name="new-side" value="groom" checked> Groom</label><label><input type="radio" name="new-side" value="bride"> Bride</label></div>
-            <button onclick="createInvite()" class="w-full bg-black text-white py-2 rounded font-bold">Create</button>
-            <button onclick="$('#modal-add-guest').fadeOut()" class="w-full mt-2 text-gray-500 text-sm">Cancel</button>
-        </div>
-    </div>
-
-    <script>
+<script>
         // --- 1. CONFIG & SETUP ---
         const firebaseConfig = { apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ", authDomain: "wedding-rvsp-e446c.firebaseapp.com", projectId: "wedding-rvsp-e446c", storageBucket: "wedding-rvsp-e446c.firebasestorage.app", messagingSenderId: "836260285764", appId: "1:836260285764:web:b1e8ca3ea64f7616e7db11" };
         firebase.initializeApp(firebaseConfig);
