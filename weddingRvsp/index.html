@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wedding Invitation & RSVP</title>
+    <title>Wedding Invitation</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -26,181 +26,175 @@
         :root { --curtain-color: #111; --curtain-border: #D4AF37; }
         body { background: #000; overflow-x: hidden; -webkit-tap-highlight-color: transparent; font-family: 'Lato', sans-serif; }
         
-        /* Layout Transitions */
-        .page-section { display: none; opacity: 0; transform: translateY(15px); transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* Views */
+        .page-section { display: none; opacity: 0; transform: translateY(20px); transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .page-section.active { display: block; opacity: 1; transform: translateY(0); }
         
-        #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #loading-screen { position: fixed; inset: 0; background: #fff; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         
-        /* Slideshow */
+        /* Backgrounds */
         #bg-slideshow { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
-        .bg-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease-in-out; transform: scale(1.05); }
+        .bg-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2.5s ease-in-out; transform: scale(1.05); }
         .bg-slide.active { opacity: 0.5; transform: scale(1); }
         .card-gallery-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.5s ease; }
         .card-gallery-img.active { opacity: 1; }
 
-        /* Curtains */
-        #entrance-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; cursor: pointer; }
-        .curtain-panel { width: 50.5%; background: var(--curtain-color); transition: transform 1.5s cubic-bezier(0.77, 0, 0.175, 1); z-index: 1001; }
+        /* Curtain Animation */
+        #entrance-overlay { position: fixed; inset: 0; z-index: 2000; display: flex; cursor: pointer; }
+        .curtain-panel { width: 50.5%; background: var(--curtain-color); transition: transform 1.8s cubic-bezier(0.77, 0, 0.175, 1); z-index: 2001; }
         .curtain-left { border-right: 1px solid var(--curtain-border); } 
         .curtain-right { border-left: 1px solid var(--curtain-border); }
         .open .curtain-left { transform: translateX(-100%); } 
         .open .curtain-right { transform: translateX(100%); }
 
-        .glass-light { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); }
-        .wish-scroll { animation: scrollWishes 40s linear infinite; }
+        /* UI Elements */
+        .glass-light { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px); }
+        .wish-scroll { animation: scrollWishes 45s linear infinite; }
         @keyframes scrollWishes { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-        
-        .map-preview { height: 200px; width: 100%; border-radius: 1.5rem; overflow: hidden; border: 1px solid #eee; margin-bottom: 1rem; position: relative; }
-        .map-preview iframe { width: 100%; height: 100%; border: 0; filter: grayscale(0.2) contrast(1.1); pointer-events: none; }
-        
-        /* Utility */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .photo-input { transition: all 0.3s ease; }
-        .photo-input:focus { background: white; border-color: #D4AF37; }
+        .map-frame { width: 100%; height: 220px; border-radius: 1.5rem; overflow: hidden; border: 1px solid #e5e7eb; margin-bottom: 1rem; position: relative; background: #f9fafb; }
+        .map-frame iframe { width: 100%; height: 100%; border: 0; filter: grayscale(0.1); }
+        .photo-input:focus { border-color: #D4AF37; background: #fff; }
     </style>
 </head>
 <body class="min-h-screen text-gray-800 antialiased font-body">
 
     <div id="loading-screen">
         <div class="relative flex items-center justify-center">
-            <div class="w-20 h-20 border-2 border-gold-100 border-t-gold-400 rounded-full animate-spin"></div>
-            <i class="fas fa-heart text-gold-400 absolute text-2xl animate-pulse"></i>
+            <div class="w-16 h-16 border-4 border-gold-100 border-t-gold-500 rounded-full animate-spin"></div>
+            <i class="fas fa-heart text-gold-500 absolute text-xl animate-pulse"></i>
         </div>
-        <p class="mt-6 font-classic tracking-[0.3em] text-[10px] text-gold-500 uppercase">Loading Experience...</p>
+        <p class="mt-4 font-classic text-[10px] text-gold-600 uppercase tracking-[0.3em]">Loading Love Story...</p>
     </div>
 
-    <audio id="bg-music" loop></audio>
+    <audio id="bg-music" loop preload="auto"></audio>
     <div id="bg-slideshow"></div>
     <div id="entrance-curtains-container"></div>
     
-    <div id="entrance-content" class="fixed inset-0 z-[1100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000">
+    <div id="entrance-content" class="fixed inset-0 z-[2100] flex flex-col items-center justify-center pointer-events-none transition-opacity duration-1000">
         <div class="pointer-events-auto cursor-pointer flex flex-col items-center group" onclick="enterSite()">
-            <div class="w-24 h-24 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-md animate-pulse mb-8 transition-all hover:bg-white/10 hover:scale-105">
-                <i class="fas fa-envelope-open-text text-white text-3xl"></i>
+            <div class="w-24 h-24 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-md animate-pulse mb-8 transition-all hover:bg-white/10 hover:scale-105 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                <i class="fas fa-envelope-open-text text-white text-3xl opacity-90"></i>
             </div>
-            <p class="text-white font-classic tracking-[0.5em] text-xs opacity-70">REVEAL INVITATION</p>
+            <p class="text-white font-classic tracking-[0.5em] text-[10px] opacity-80">TAP TO OPEN</p>
         </div>
     </div>
 
-    <div id="view-landing" class="page-section min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
+    <div id="view-landing" class="page-section min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
         <div id="invite-card" class="w-full max-w-md transition-all duration-1000 transform translate-y-12 opacity-0"></div>
         
-        <div class="mt-12 w-full max-w-md text-center">
+        <div class="mt-10 w-full max-w-md text-center">
             <div id="wedding-countdown" class="grid grid-cols-4 gap-3 mb-8 px-2">
-                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-4 border border-white/10 shadow-2xl">
-                    <div id="days" class="text-white font-bold text-2xl font-modern">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-2 font-black">Days</div>
+                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-3 border border-white/10 shadow-2xl">
+                    <div id="days" class="text-white font-bold text-xl font-modern">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Days</div>
                 </div>
-                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-4 border border-white/10 shadow-2xl">
-                    <div id="hours" class="text-white font-bold text-2xl font-modern">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-2 font-black">Hrs</div>
+                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-3 border border-white/10 shadow-2xl">
+                    <div id="hours" class="text-white font-bold text-xl font-modern">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Hrs</div>
                 </div>
-                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-4 border border-white/10 shadow-2xl">
-                    <div id="minutes" class="text-white font-bold text-2xl font-modern">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-2 font-black">Min</div>
+                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-3 border border-white/10 shadow-2xl">
+                    <div id="minutes" class="text-white font-bold text-xl font-modern">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Min</div>
                 </div>
-                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-4 border border-white/10 shadow-2xl">
-                    <div id="seconds" class="text-white font-bold text-2xl font-modern">00</div>
-                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-2 font-black">Sec</div>
+                <div class="bg-black/40 backdrop-blur-lg rounded-2xl p-3 border border-white/10 shadow-2xl">
+                    <div id="seconds" class="text-white font-bold text-xl font-modern">00</div>
+                    <div class="text-[7px] text-gold-300 uppercase tracking-widest mt-1 font-black">Sec</div>
                 </div>
             </div>
 
-            <div id="live-attendance" class="inline-flex items-center gap-3 bg-white/5 backdrop-blur-md px-8 py-3 rounded-full border border-white/10 text-white text-[10px] font-bold tracking-[0.3em] mb-10 opacity-0 transition-opacity duration-1000">
-                <i class="fas fa-circle text-[6px] text-emerald-400 animate-pulse"></i>
-                <span><span id="pax-count" class="text-gold-300">0</span> GUESTS JOINING US</span>
+            <div id="live-attendance" class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 text-white text-[10px] font-bold tracking-[0.2em] mb-8 opacity-0 transition-opacity duration-1000">
+                <i class="fas fa-check-circle text-emerald-400 text-[8px]"></i>
+                <span><span id="pax-count" class="text-gold-300">0</span> CONFIRMED GUESTS</span>
             </div>
             
             <div class="h-28 overflow-hidden relative">
-                <div id="wishes-scroller" class="space-y-8 py-6"></div>
-                <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black to-transparent opacity-40"></div>
-                <div class="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black to-transparent opacity-40"></div>
+                <div id="wishes-scroller" class="space-y-6 py-4"></div>
+                <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black to-transparent opacity-30"></div>
+                <div class="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black to-transparent opacity-30"></div>
             </div>
         </div>
 
-        <button onclick="$('#view-login').fadeIn()" class="fixed bottom-8 right-8 text-[9px] text-white/50 hover:text-white uppercase tracking-[0.4em] bg-black/40 px-6 py-3 rounded-full border border-white/5 backdrop-blur shadow-2xl transition-all">
+        <button onclick="$('#view-login').fadeIn()" class="fixed bottom-8 right-8 text-[9px] text-white/60 hover:text-white uppercase tracking-[0.3em] bg-black/40 px-6 py-3 rounded-full border border-white/10 backdrop-blur shadow-2xl transition-colors">
             GUEST LOGIN
         </button>
     </div>
 
-    <div id="view-login" class="hidden fixed inset-0 z-[1200] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
+    <div id="view-login" class="hidden fixed inset-0 z-[2500] bg-black/98 backdrop-blur-2xl flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm p-12 rounded-[3rem] shadow-2xl relative text-center">
-            <button onclick="$('#view-login').fadeOut()" class="absolute top-10 right-10 text-gray-300 hover:text-gray-900"><i class="fas fa-times text-2xl"></i></button>
-            <div class="w-20 h-20 bg-gold-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                <i class="fas fa-fingerprint text-gold-500 text-3xl"></i>
+            <button onclick="$('#view-login').fadeOut()" class="absolute top-8 right-8 text-gray-300 hover:text-gray-900"><i class="fas fa-times text-2xl"></i></button>
+            <div class="w-16 h-16 bg-gold-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                <i class="fas fa-lock text-gold-500 text-2xl"></i>
             </div>
-            <h2 class="text-xl font-bold font-classic mb-8 uppercase tracking-widest text-gray-800">Private Access</h2>
-            <input type="text" id="input-invite-code" placeholder="ENTER ACCESS CODE" class="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] text-center font-black text-lg mb-8 uppercase tracking-[0.2em] outline-none focus:border-gold-300 focus:bg-white transition-all">
+            <h2 class="text-lg font-bold font-classic mb-8 uppercase tracking-widest text-gray-900">Guest Access</h2>
+            <input type="text" id="input-invite-code" placeholder="ENTER CODE" class="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-center font-black text-lg mb-8 uppercase tracking-[0.2em] outline-none focus:border-gold-300 focus:bg-white transition-all">
             <button id="btn-enter-code" class="w-full bg-navy-900 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.3em] shadow-xl hover:bg-black transition-all">Verify Code</button>
             <div id="login-error" class="hidden text-red-500 text-[10px] font-black mt-6 uppercase tracking-widest"></div>
         </div>
     </div>
 
     <main id="view-rsvp" class="page-section max-w-2xl mx-auto w-full p-4 pt-16 pb-40 relative z-10">
-        <div class="glass-light rounded-[3.5rem] shadow-2xl overflow-hidden mb-12 border border-white/50">
-            <div class="bg-navy-900 text-white p-14 text-center">
+        <div class="glass-light rounded-[3rem] shadow-2xl overflow-hidden mb-12 border border-white/50">
+            <div class="bg-navy-900 text-white p-12 text-center">
                 <h2 class="text-3xl font-classic tracking-[0.4em] uppercase">RSVP</h2>
-                <div class="h-1 w-12 bg-gold-500 mx-auto my-6 rounded-full"></div>
-                <p class="text-[11px] text-gold-400 font-black tracking-[0.5em] uppercase" id="guest-group-name"></p>
+                <div class="h-1 w-12 bg-gold-500 mx-auto my-6 rounded-full opacity-50"></div>
+                <p class="text-[10px] text-gold-400 font-black tracking-[0.4em] uppercase" id="guest-group-name"></p>
             </div>
-            <div class="p-10 md:p-20">
-                <form id="rsvp-form" class="space-y-12">
-                    <div id="guest-list-container" class="space-y-6"></div>
+            <div class="p-8 md:p-16">
+                <form id="rsvp-form" class="space-y-10">
+                    <div id="guest-list-container" class="space-y-5"></div>
                     <div class="pt-6 border-t border-gray-100">
-                        <label class="block text-[11px] font-black uppercase text-gray-300 mb-4 tracking-[0.2em] ml-2">Wedding Wishes</label>
-                        <textarea id="rsvp-note" rows="5" class="w-full p-8 border-2 border-gray-50 rounded-[2.5rem] bg-gray-50/50 text-sm focus:bg-white focus:border-gold-200 outline-none transition-all shadow-inner" placeholder="Leave a wish for the happy couple..."></textarea>
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-4 tracking-[0.2em] ml-2">Your Message</label>
+                        <textarea id="rsvp-note" rows="4" class="w-full p-6 border-2 border-gray-50 rounded-[2rem] bg-gray-50/50 text-sm focus:bg-white focus:border-gold-200 outline-none transition-all shadow-inner" placeholder="Write a wish for the couple..."></textarea>
                     </div>
-                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 text-white font-bold py-7 rounded-[2rem] shadow-2xl uppercase tracking-[0.4em] text-xs hover:bg-gold-600 transition-all active:scale-[0.98]">Confirm RSVP</button>
+                    <button type="submit" id="btn-submit-rsvp" class="w-full bg-gold-500 text-white font-bold py-6 rounded-[2rem] shadow-2xl uppercase tracking-[0.4em] text-xs hover:bg-gold-600 transition-all active:scale-[0.98]">Confirm Attendance</button>
                 </form>
             </div>
         </div>
         
-        <div class="glass-light rounded-[3rem] p-12 shadow-2xl border border-white/50">
-            <h3 class="font-classic text-center mb-12 border-b border-gray-100 pb-8 uppercase text-sm tracking-[0.3em] font-black text-gray-400">Event Details</h3>
-            <div id="event-details-display" class="space-y-14"></div>
+        <div class="glass-light rounded-[2.5rem] p-10 shadow-2xl border border-white/50">
+            <h3 class="font-classic text-center mb-10 border-b border-gray-100 pb-8 uppercase text-xs tracking-[0.3em] font-black text-gray-400">Location & Schedule</h3>
+            <div id="event-details-display" class="space-y-12"></div>
         </div>
     </main>
 
     <main id="view-admin" class="page-section max-w-6xl mx-auto w-full p-6 bg-gray-50/50 min-h-screen text-gray-800">
-        <div class="flex justify-between items-center p-10 bg-white rounded-[2.5rem] mb-10 border border-gray-100 shadow-sm">
+        <div class="flex justify-between items-center p-8 bg-white rounded-[2rem] mb-10 border border-gray-100 shadow-sm">
             <div>
-                <h2 class="font-classic font-bold text-3xl text-gray-900">Admin Console</h2>
-                <div class="flex items-center gap-6 mt-3">
-                    <p class="text-[11px] text-gray-400 uppercase font-black tracking-widest">Global Visits: <span id="visit-count" class="text-gold-600">0</span></p>
-                </div>
+                <h2 class="font-classic font-bold text-2xl text-gray-900">Admin Console</h2>
+                <p class="text-[10px] text-gray-400 uppercase font-black mt-2 tracking-widest">Total Visits: <span id="visit-count" class="text-gold-600">0</span></p>
             </div>
-            <button onclick="logout()" class="text-rose-500 font-black text-[11px] border-2 border-rose-50 px-8 py-3.5 rounded-full hover:bg-rose-50 transition-all uppercase tracking-widest">Logout</button>
+            <button onclick="logout()" class="text-rose-500 font-black text-[10px] border-2 border-rose-50 px-6 py-3 rounded-xl hover:bg-rose-50 transition-all uppercase tracking-widest">Logout</button>
         </div>
         
         <div class="px-2">
-            <nav class="flex gap-4 mb-12 overflow-x-auto pb-6 scrollbar-hide">
-                <button onclick="switchAdminTab('guests')" class="px-10 py-5 bg-white border border-gray-100 shadow-sm rounded-3xl text-[12px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Guests</button>
-                <button onclick="switchAdminTab('wishes')" class="px-10 py-5 bg-white border border-gray-100 shadow-sm rounded-3xl text-[12px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Wishes</button>
-                <button onclick="switchAdminTab('settings')" class="px-10 py-5 bg-white border border-gray-100 shadow-sm rounded-3xl text-[12px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Site Config</button>
-                <button onclick="downloadGuestList()" class="px-10 py-5 bg-emerald-600 text-white shadow-xl rounded-3xl text-[12px] font-black uppercase tracking-widest ml-auto active:scale-95 transition-transform">Download CSV</button>
+            <nav class="flex gap-3 mb-10 overflow-x-auto pb-4 scrollbar-hide">
+                <button onclick="switchAdminTab('guests')" class="px-8 py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Guests</button>
+                <button onclick="switchAdminTab('wishes')" class="px-8 py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Wishes</button>
+                <button onclick="switchAdminTab('settings')" class="px-8 py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-gold-300 transition-all">Config</button>
+                <button onclick="downloadGuestList()" class="px-8 py-4 bg-emerald-600 text-white shadow-xl rounded-2xl text-[11px] font-black uppercase tracking-widest ml-auto active:scale-95 transition-transform">Download CSV</button>
             </nav>
             
-            <div id="admin-tab-guests" class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div id="admin-tab-guests" class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-8 bg-gray-50/50 border-b flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-gray-400">Guest Database</h3>
-                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-navy-900 text-white px-8 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-black shadow-xl">+ New Invite</button>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400">Guest Database</h3>
+                    <button onclick="$('#modal-add-guest').fadeIn()" class="bg-navy-900 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-black shadow-xl">+ New Invite</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs"><tbody id="admin-table-body" class="divide-y divide-gray-50"></tbody></table>
                 </div>
             </div>
 
-            <div id="admin-tab-wishes" class="hidden bg-white rounded-[3rem] border border-gray-100 overflow-hidden shadow-sm">
+            <div id="admin-tab-wishes" class="hidden bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm">
                 <table class="w-full text-left text-xs"><tbody id="admin-wishes-body" class="divide-y divide-gray-50"></tbody></table>
             </div>
 
             <div id="admin-tab-settings" class="hidden">
                 <form id="settings-form" class="space-y-10 max-w-4xl mx-auto pb-20">
-                    <div class="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-10">
-                        <div class="grid grid-cols-2 gap-10">
+                    <div class="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-8">
+                        <div class="grid grid-cols-2 gap-8">
                             <div>
-                                <label class="block text-[11px] font-black text-gray-300 uppercase mb-4 tracking-widest">Layout Theme</label>
-                                <select id="set-theme" class="w-full p-5 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none focus:border-gold-300">
+                                <label class="block text-[10px] font-black text-gray-300 uppercase mb-3 tracking-widest">Theme</label>
+                                <select id="set-theme" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none focus:border-gold-300">
                                     <option value="classic">🏛️ Classic Royale</option>
                                     <option value="modern">🔳 Editorial Modern</option>
                                     <option value="floral">🌸 Enchanted Floral</option>
@@ -210,91 +204,92 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[11px] font-black text-gray-300 uppercase mb-4 tracking-widest">Background Music</label>
-                                <select id="set-music" class="w-full p-5 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none focus:border-gold-300">
+                                <label class="block text-[10px] font-black text-gray-300 uppercase mb-3 tracking-widest">Music URL</label>
+                                <select id="set-music" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none focus:border-gold-300">
                                     <option value="">No Music</option>
                                     <option value="music1.mp3">Track 1</option>
                                     <option value="music2.mp3">Track 2</option>
-                                    <option value="music3.mp3">Track 3</option>
                                 </select>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[11px] font-black text-gray-300 uppercase mb-4 tracking-widest">Main Wedding Date & Time (For Countdown)</label>
-                            <input id="set-deadline" type="datetime-local" class="w-full p-5 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
+                            <label class="block text-[10px] font-black text-gray-300 uppercase mb-3 tracking-widest">Wedding Date (Countdown)</label>
+                            <input id="set-deadline" type="datetime-local" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-black text-gray-300 uppercase mb-4 tracking-widest">Couple Display Names</label>
-                            <input id="set-names" placeholder="e.g., Benjamin & Catherine" class="w-full p-5 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
+                            <label class="block text-[10px] font-black text-gray-300 uppercase mb-3 tracking-widest">Couple Names</label>
+                            <input id="set-names" placeholder="e.g. Romeo & Juliet" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <div class="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
-                            <label class="block font-black text-[11px] text-gray-300 uppercase mb-6 tracking-widest">Ceremony & Reception</label>
-                            <input id="set-rec-loc" placeholder="Venue Address" class="w-full p-5 border-2 border-gray-50 rounded-2xl mb-5 text-sm bg-gray-50/50 outline-none">
-                            <input id="set-rec-time" type="datetime-local" class="w-full p-5 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                            <label class="block font-black text-[10px] text-gray-300 uppercase mb-4 tracking-widest">Reception Info</label>
+                            <input id="set-rec-loc" placeholder="Venue Address" class="w-full p-4 border-2 border-gray-50 rounded-2xl mb-4 text-sm bg-gray-50/50 outline-none">
+                            <input id="set-rec-time" type="datetime-local" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
                         </div>
-                        <div class="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
-                            <label class="block font-black text-[11px] text-gray-300 uppercase mb-6 tracking-widest">Matrimony (Optional)</label>
-                            <input id="set-mat-loc" placeholder="Church/Temple Address" class="w-full p-5 border-2 border-gray-50 rounded-2xl mb-5 text-sm bg-gray-50/50 outline-none">
-                            <input id="set-mat-time" type="datetime-local" class="w-full p-5 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
+                        <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                            <label class="block font-black text-[10px] text-gray-300 uppercase mb-4 tracking-widest">Ceremony Info (Optional)</label>
+                            <input id="set-mat-loc" placeholder="Venue Address" class="w-full p-4 border-2 border-gray-50 rounded-2xl mb-4 text-sm bg-gray-50/50 outline-none">
+                            <input id="set-mat-time" type="datetime-local" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50 outline-none">
                         </div>
                     </div>
 
-                    <div class="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-12">
+                    <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-8">
                         <div>
-                            <div class="flex justify-between items-center mb-8">
-                                <label class="block font-black text-[11px] text-gray-300 uppercase tracking-widest">Background Photos</label>
-                                <button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-gold-600 text-[11px] font-black uppercase tracking-widest hover:underline">+ Add URL</button>
+                            <div class="flex justify-between items-center mb-6">
+                                <label class="block font-black text-[10px] text-gray-300 uppercase tracking-widest">Background Photos</label>
+                                <button type="button" onclick="addPhotoInput('bg-photo-list')" class="text-gold-600 text-[10px] font-black uppercase tracking-widest hover:underline">+ Add URL</button>
                             </div>
-                            <div id="bg-photo-list" class="space-y-4"></div>
+                            <div id="bg-photo-list" class="space-y-3"></div>
                         </div>
                         <div class="h-px bg-gray-50"></div>
                         <div>
-                            <div class="flex justify-between items-center mb-8">
-                                <label class="block font-black text-[11px] text-gray-300 uppercase tracking-widest">Card Gallery Photos</label>
-                                <button type="button" onclick="addPhotoInput('card-photo-list')" class="text-gold-600 text-[11px] font-black uppercase tracking-widest hover:underline">+ Add URL</button>
+                            <div class="flex justify-between items-center mb-6">
+                                <label class="block font-black text-[10px] text-gray-300 uppercase tracking-widest">Gallery Photos</label>
+                                <button type="button" onclick="addPhotoInput('card-photo-list')" class="text-gold-600 text-[10px] font-black uppercase tracking-widest hover:underline">+ Add URL</button>
                             </div>
-                            <div id="card-photo-list" class="space-y-4"></div>
+                            <div id="card-photo-list" class="space-y-3"></div>
                         </div>
                     </div>
                     
-                    <button type="submit" class="w-full bg-navy-900 text-white py-7 rounded-[2.5rem] font-bold uppercase tracking-[0.4em] text-xs shadow-2xl hover:bg-black transition-all">Save All Changes</button>
+                    <button type="submit" class="w-full bg-navy-900 text-white py-6 rounded-[2rem] font-bold uppercase tracking-[0.4em] text-xs shadow-2xl hover:bg-black transition-all">Save Configuration</button>
                 </form>
             </div>
         </div>
     </main>
 
-    <div id="modal-qr" class="hidden fixed inset-0 z-[2000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
-        <div class="bg-white p-12 rounded-[4rem] w-full max-w-sm text-center">
-            <h3 id="qr-title" class="font-bold mb-8 font-classic uppercase tracking-[0.2em] text-gray-800">Guest Access</h3>
-            <div id="qr-container" class="flex justify-center mb-8 p-6 bg-white border-2 border-gray-50 rounded-[2.5rem] shadow-inner"></div>
-            <p class="text-[11px] text-gray-400 uppercase mb-10 leading-relaxed font-bold tracking-widest">Scan to RSVP Automatically</p>
-            <button onclick="$('#modal-qr').fadeOut()" class="w-full bg-navy-900 text-white py-5 rounded-2xl font-bold uppercase tracking-widest">Done</button>
+    <div id="modal-qr" class="hidden fixed inset-0 z-[3000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[3rem] w-full max-w-sm text-center">
+            <h3 id="qr-title" class="font-bold mb-6 font-classic uppercase tracking-[0.2em] text-gray-800">Guest Access</h3>
+            <div id="qr-container" class="flex justify-center mb-6 p-4 bg-white border-2 border-gray-50 rounded-[2rem] shadow-inner"></div>
+            <p class="text-[10px] text-gray-400 uppercase mb-8 leading-relaxed font-bold tracking-widest">Scan to RSVP Automatically</p>
+            <div class="flex gap-2">
+                <button onclick="copyQRLink()" class="flex-1 bg-gray-100 text-gray-600 py-4 rounded-xl font-bold uppercase text-[10px] tracking-widest">Copy Link</button>
+                <button onclick="$('#modal-qr').fadeOut()" class="flex-1 bg-navy-900 text-white py-4 rounded-xl font-bold uppercase text-[10px] tracking-widest">Close</button>
+            </div>
         </div>
     </div>
 
-    <div id="modal-add-guest" class="hidden fixed inset-0 z-[2000] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-6">
-        <div class="bg-white p-12 rounded-[3.5rem] w-full max-w-sm shadow-2xl scale-95 transition-transform duration-500">
-            <h3 class="font-bold mb-10 font-classic text-center text-gray-800 uppercase tracking-widest">Create Invitation</h3>
-            <div class="space-y-5">
-                <input id="new-code" placeholder="INVITE CODE (e.g. FAM001)" class="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl uppercase font-black text-center tracking-[0.2em] outline-none">
-                <input id="new-names" placeholder="GUEST NAME(S)" class="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-center font-bold outline-none">
+    <div id="modal-add-guest" class="hidden fixed inset-0 z-[3000] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[3rem] w-full max-w-sm shadow-2xl scale-95 transition-transform duration-500">
+            <h3 class="font-bold mb-8 font-classic text-center text-gray-800 uppercase tracking-widest">Create Invitation</h3>
+            <div class="space-y-4">
+                <input id="new-code" placeholder="CODE (e.g. FAM001)" class="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl uppercase font-black text-center tracking-[0.2em] outline-none">
+                <input id="new-names" placeholder="GUEST NAME(S)" class="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-center font-bold outline-none">
             </div>
-            <div class="flex gap-8 my-10 justify-center">
-                <label class="text-[11px] font-black flex items-center gap-2 cursor-pointer uppercase tracking-widest"><input type="radio" name="new-side" value="groom" checked class="w-4 h-4 accent-navy-900"> Groom</label>
-                <label class="text-[11px] font-black flex items-center gap-2 cursor-pointer uppercase tracking-widest"><input type="radio" name="new-side" value="bride" class="w-4 h-4 accent-navy-900"> Bride</label>
+            <div class="flex gap-6 my-8 justify-center">
+                <label class="text-[10px] font-black flex items-center gap-2 cursor-pointer uppercase tracking-widest"><input type="radio" name="new-side" value="groom" checked class="w-4 h-4 accent-navy-900"> Groom</label>
+                <label class="text-[10px] font-black flex items-center gap-2 cursor-pointer uppercase tracking-widest"><input type="radio" name="new-side" value="bride" class="w-4 h-4 accent-navy-900"> Bride</label>
             </div>
             <div class="flex gap-4">
-                <button onclick="$('#modal-add-guest').fadeOut()" class="flex-1 py-5 text-gray-400 text-[11px] font-black uppercase tracking-widest">Cancel</button>
-                <button onclick="createInvite()" class="flex-[2] bg-navy-900 text-white py-5 rounded-2xl font-bold uppercase tracking-widest shadow-xl">Create</button>
+                <button onclick="$('#modal-add-guest').fadeOut()" class="flex-1 py-4 text-gray-400 text-[10px] font-black uppercase tracking-widest">Cancel</button>
+                <button onclick="createInvite()" class="flex-[2] bg-navy-900 text-white py-4 rounded-2xl font-bold uppercase tracking-widest shadow-xl">Create</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION ---
         const firebaseConfig = { apiKey: "AIzaSyAOEMrxylKIxZQgsY-aHMI87KmVIqMh9AQ", authDomain: "wedding-rvsp-e446c.firebaseapp.com", projectId: "wedding-rvsp-e446c", storageBucket: "wedding-rvsp-e446c.firebasestorage.app", messagingSenderId: "836260285764", appId: "1:836260285764:web:b1e8ca3ea64f7616e7db11" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
@@ -303,8 +298,10 @@
         let currentInviteId = localStorage.getItem('rsvp_id');
         let isAdmin = localStorage.getItem('rsvp_admin') === 'true';
         let bgInterval, cardInterval, countdownInterval, audio = document.getElementById('bg-music');
+        let currentQRLink = "";
 
-        // --- 2. DEFINE FUNCTIONS BEFORE USE ---
+        // --- CORE FUNCTIONS (DEFINED BEFORE EXECUTION) ---
+
         async function loadConfig() {
             try {
                 const doc = await db.collection('site_config').doc('main').get();
@@ -339,8 +336,7 @@
 
         function startCountdown() {
             if(!siteConfig.deadline) return;
-            // Robust parsing for Safari/Mobile
-            const targetDate = new Date(siteConfig.deadline.replace(' ', 'T')).getTime();
+            const targetDate = new Date(siteConfig.deadline).getTime();
             if(isNaN(targetDate)) return;
 
             if(countdownInterval) clearInterval(countdownInterval);
@@ -395,9 +391,8 @@
             card.html(layout); $('.page-section').removeClass('active'); $('#view-landing').addClass('active');
         }
 
-        // --- 3. INIT LOGIC ---
+        // --- INIT ---
         $(document).ready(async () => {
-            // Auto Login
             const urlParams = new URLSearchParams(window.location.search);
             if(urlParams.get('code')) { await handleAutoLogin(urlParams.get('code')); }
 
@@ -417,7 +412,7 @@
             }
         });
 
-        // --- 4. INTERACTIONS ---
+        // --- HELPERS ---
         function enterSite() {
             $('body').addClass('open'); $('#entrance-content').fadeOut();
             if(audio.src) { audio.volume = 0.5; audio.play().catch(()=>{}); }
@@ -466,8 +461,8 @@
                     <h4 class="text-[11px] font-black text-gold-500 uppercase tracking-[0.3em] mb-4">${title}</h4>
                     <p class="font-bold text-lg text-gray-900 mb-2 leading-tight">${venue}</p>
                     <p class="text-[12px] text-gray-400 font-bold mb-6">${new Date(time).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}</p>
-                    <div class="map-preview mb-6">
-                        <iframe width="100%" height="100%" src="${mapEmbed}"></iframe>
+                    <div class="map-frame mb-6">
+                        <iframe src="${mapEmbed}"></iframe>
                     </div>
                     <div class="flex gap-3">
                         <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}" target="_blank" class="flex-1 text-[10px] bg-white border border-gray-200 px-6 py-4 rounded-2xl font-black text-center uppercase tracking-widest shadow-sm hover:shadow-md transition-all">Directions</a>
@@ -482,8 +477,18 @@
         function addToCalendar(loc, time) {
             const date = new Date(time);
             const title = "Wedding of " + siteConfig.names;
+            // Generate Google Calendar Link
             const googleUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${date.toISOString().replace(/-|:|\.\d\d\d/g, "")}/${date.toISOString().replace(/-|:|\.\d\d\d/g, "")}&details=Wedding Invitation&location=${encodeURIComponent(loc)}&sf=true&output=xml`;
-            window.open(googleUrl, '_blank');
+            
+            // Generate ICS File
+            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${title}\nDTSTART:${date.toISOString().replace(/-|:|\.\d\d\d/g, "")}\nLOCATION:${loc}\nDESCRIPTION:Wedding Invitation\nEND:VEVENT\nEND:VCALENDAR`;
+            const blob = new Blob([icsContent], { type: 'text/calendar' });
+            
+            if (confirm("Choose Calendar Type:\nOK for Google Calendar\nCancel for Apple/Outlook (.ics file)")) {
+                window.open(googleUrl, '_blank');
+            } else {
+                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'wedding.ics'; link.click();
+            }
         }
 
         $('#rsvp-form').submit(async (e) => {
@@ -495,7 +500,7 @@
             alert('RSVP Saved!'); location.reload();
         });
 
-        // --- 5. ADMIN ---
+        // --- ADMIN ---
         function loadAdmin() {
             const c = siteConfig;
             $('#set-theme').val(c.theme); $('#set-music').val(c.musicTrack); $('#set-names').val(c.names); $('#set-deadline').val(c.deadline);
@@ -516,9 +521,13 @@
 
         function generateQR(code, name) {
             $('#qr-container').empty(); $('#qr-title').text(name);
-            const loginUrl = window.location.origin + window.location.pathname + '?code=' + code;
-            new QRCode(document.getElementById("qr-container"), { text: loginUrl, width: 256, height: 256, colorDark : "#0f172a", correctLevel : QRCode.CorrectLevel.H });
+            currentQRLink = window.location.origin + window.location.pathname + '?code=' + code;
+            new QRCode(document.getElementById("qr-container"), { text: currentQRLink, width: 256, height: 256, colorDark : "#0f172a", correctLevel : QRCode.CorrectLevel.H });
             $('#modal-qr').fadeIn();
+        }
+
+        function copyQRLink() {
+            navigator.clipboard.writeText(currentQRLink).then(() => alert('Link copied to clipboard!'));
         }
 
         window.addPhotoInput = (id, v='') => { $(`#${id}`).append(`<div class="flex gap-4 items-center"><input value="${v}" class="flex-grow p-5 border-2 border-gray-50 rounded-2xl text-[12px] photo-input bg-gray-50/50" placeholder="Paste image URL here"><button type="button" onclick="$(this).parent().remove()" class="bg-rose-50 text-rose-500 w-12 h-12 rounded-2xl flex items-center justify-center font-black">X</button></div>`); };
