@@ -262,20 +262,46 @@
 
         $('#btn-logout').click(() => auth.signOut());
 
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async user => {
             if (user) {
                 currentUser = user;
+
+                // --- NEW: SYNC USER ROLE TO FIRESTORE ---
+                const userRef = db.collection('users').doc(user.uid);
+                const userDoc = await userRef.get();
+
+                if (!userDoc.exists) {
+                    // First time login: Create profile with selected role from login screen
+                    // In a real app, default would be 'dev' and Admin would upgrade them manually.
+                    await userRef.set({
+                        displayName: user.displayName,
+                        email: user.email,
+                        role: currentRole, // Taken from the dropdown variable
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    // Existing user: Load their ACTUAL role from DB (Override the dropdown)
+                    const userData = userDoc.data();
+                    currentRole = userData.role; 
+                }
+                // ----------------------------------------
+
                 $('#login-screen').addClass('hidden');
                 $('#app-dashboard').removeClass('hidden');
                 $('#user-display').text(user.displayName);
                 
-                // Set Role UI
+                // Update UI based on the Loaded Role
                 $('#role-badge').text(currentRole === 'master' ? 'Scrum Master' : 'Developer');
-                if(currentRole === 'master') $('.role-master').removeClass('hidden');
-                else $('.role-master').addClass('hidden');
+                
+                if(currentRole === 'master') {
+                    $('.role-master').removeClass('hidden');
+                } else {
+                    $('.role-master').addClass('hidden');
+                }
 
                 initApp();
             } else {
+                currentUser = null;
                 $('#login-screen').removeClass('hidden');
                 $('#app-dashboard').addClass('hidden');
             }
