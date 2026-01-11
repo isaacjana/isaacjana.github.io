@@ -244,7 +244,11 @@
             messagingSenderId: "588869159638",
             appId: "1:588869159638:web:5bfc6e3740ec231776d777"
         };
-        firebase.initializeApp(firebaseConfig);
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
         const db = firebase.firestore();
         const auth = firebase.auth();
 
@@ -260,29 +264,37 @@
             auth.signInWithPopup(provider).catch(e => alert(e.message));
         });
 
-        $('#btn-logout').click(() => auth.signOut());
+        $('#btn-logout').click(() => {
+            auth.signOut();
+            window.location.reload();
+        });
 
         auth.onAuthStateChanged(async user => {
             if (user) {
                 currentUser = user;
 
-                // --- NEW: SYNC USER ROLE TO FIRESTORE ---
+                // --- SYNC USER ROLE TO FIRESTORE ---
                 const userRef = db.collection('users').doc(user.uid);
-                const userDoc = await userRef.get();
+                
+                try {
+                    const userDoc = await userRef.get();
 
-                if (!userDoc.exists) {
-                    // First time login: Create profile with selected role from login screen
-                    // In a real app, default would be 'dev' and Admin would upgrade them manually.
-                    await userRef.set({
-                        displayName: user.displayName,
-                        email: user.email,
-                        role: currentRole, // Taken from the dropdown variable
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } else {
-                    // Existing user: Load their ACTUAL role from DB (Override the dropdown)
-                    const userData = userDoc.data();
-                    currentRole = userData.role; 
+                    if (!userDoc.exists) {
+                        // First time login: Create profile with selected role from login screen
+                        await userRef.set({
+                            displayName: user.displayName,
+                            email: user.email,
+                            role: currentRole, 
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        // Existing user: Load their ACTUAL role from DB
+                        const userData = userDoc.data();
+                        currentRole = userData.role; 
+                    }
+                } catch (error) {
+                    console.error("Error fetching user data:", error);
+                    alert("Ensure Firestore rules allowed read/write. Check console.");
                 }
                 // ----------------------------------------
 
@@ -308,18 +320,26 @@
         });
 
         function initApp() {
+            setupTabs(); // FIXED: Called here, defined below
             loadSprints();
             setupRetro();
             setupPoker();
-            setupTabs();
         }
 
-        // 3. TAB SYSTEM
+        // 3. TAB SYSTEM (FIXED: Added this function)
+        function setupTabs() {
+            // Default tab
+            switchTab('board');
+        }
+
         window.switchTab = (tabId) => {
             $('.view-section').addClass('hidden');
             $(`#view-${tabId}`).removeClass('hidden');
             $('.nav-btn').removeClass('text-blue-600 border-b-2 border-blue-600').addClass('text-gray-500');
-            $(event.target).removeClass('text-gray-500').addClass('text-blue-600 border-b-2 border-blue-600');
+            // Find the button that called this (if clicked) or default
+            if(event && event.target) {
+                $(event.target).removeClass('text-gray-500').addClass('text-blue-600 border-b-2 border-blue-600');
+            }
             
             if(tabId === 'analytics') loadVelocityChart();
         };
@@ -336,21 +356,31 @@
             db.collection('sprints').orderBy('createdAt', 'desc').onSnapshot(snap => {
                 const $sel = $('#sprint-select');
                 $sel.empty();
+                
+                if (snap.empty) {
+                    $sel.append('<option value="">No Sprints Created</option>');
+                    return;
+                }
+
                 snap.docs.forEach(doc => {
                     const s = doc.data();
                     if(s.status !== 'completed') {
                         $sel.append(`<option value="${doc.id}">${s.name}</option>`);
                     }
                 });
+                
+                // Select first sprint if none selected
                 if(!currentSprintId && snap.docs.length > 0) {
                     $sel.val(snap.docs[0].id).change();
                 }
+            }, error => {
+                console.log("Sprint load error:", error);
             });
         }
 
         $('#sprint-select').change(function() {
             currentSprintId = $(this).val();
-            loadItems(currentSprintId);
+            if(currentSprintId) loadItems(currentSprintId);
         });
 
         function loadItems(sprintId) {
@@ -383,8 +413,8 @@
             return `
                 <div class="bg-white dark:bg-darkcard p-3 rounded shadow-sm border-l-4 ${item.status==='done'?'border-green-500':'border-blue-500'} cursor-pointer hover:shadow-md transition" onclick="openDetailModal('${id}')">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="font-bold text-sm">${item.title}</span>
-                        <span class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded h-fit">${item.points || '-'}</span>
+                        <span class="font-bold text-sm text-gray-800 dark:text-gray-200">${item.title}</span>
+                        <span class="text-xs bg-gray-200 dark:bg-gray-700 dark:text-gray-300 px-1 rounded h-fit">${item.points || '-'}</span>
                     </div>
                     <div class="flex justify-between items-center" onclick="event.stopPropagation()">
                         <span class="text-[10px] text-gray-400 uppercase">${item.type}</span>
@@ -431,8 +461,6 @@
 
         // Note: In real app, separate subcollection. Here using array for simplicity.
         function loadComments(id) {
-            // Using a simple workaround: fetching the doc again or listening to it
-            // Assuming 'comments' field is array of objects { user, text, time }
             db.collection('items').doc(id).onSnapshot(doc => {
                 const data = doc.data();
                 const $box = $('#detail-comments').empty();
@@ -462,11 +490,11 @@
         });
 
         window.openItemModal = (type) => {
-            // Quick add for demo
             const title = prompt("Task Title:");
-            if(title) db.collection('items').add({
+            if(title && currentSprintId) db.collection('items').add({
                 title, type, status: 'todo', sprintId: currentSprintId, points: 0, createdAt: Date.now()
             });
+            else if(!currentSprintId) alert("Please create and select a Sprint first.");
         };
 
         // 7. RETROSPECTIVE
@@ -475,7 +503,7 @@
                 $('#retro-start, #retro-stop, #retro-continue').empty();
                 snap.docs.forEach(doc => {
                     const d = doc.data();
-                    const html = `<div class="bg-white dark:bg-darkcard p-2 rounded shadow text-sm relative group">
+                    const html = `<div class="bg-white dark:bg-darkcard p-2 rounded shadow text-sm relative group text-gray-800 dark:text-gray-200">
                         ${d.text}
                         <button onclick="db.collection('retro').doc('${doc.id}').delete()" class="hidden group-hover:block absolute top-1 right-1 text-red-500"><i class="fa-solid fa-times"></i></button>
                     </div>`;
@@ -505,13 +533,12 @@
                 // Render Table Players
                 $('#poker-players').empty();
                 Object.keys(votes).forEach((uid, index) => {
-                    // Visual positioning logic skipped for brevity, just listing them
                     const val = votes[uid];
                     const isRevealed = data.revealed;
                     
                     const cardContent = isRevealed 
                         ? `<div class="bg-white text-black font-bold text-xl flex items-center justify-center h-16 w-12 rounded border-2 border-blue-500 shadow">${val}</div>`
-                        : `<div class="bg-blue-600 h-16 w-12 rounded border-2 border-white shadow bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')]"></div>`;
+                        : `<div class="bg-blue-600 h-16 w-12 rounded border-2 border-white shadow"></div>`;
 
                     $('#poker-players').append(`
                         <div class="inline-block m-2 text-center">
@@ -524,9 +551,12 @@
         }
 
         window.castVote = (val) => {
-            db.collection('poker').doc('session').set({
-                votes: { [currentUser.uid]: val }
-            }, { merge: true });
+            const update = {};
+            update[`votes.${currentUser.uid}`] = val;
+            db.collection('poker').doc('session').update(update).catch(err => {
+                // If doc doesn't exist yet
+                db.collection('poker').doc('session').set({ votes: { [currentUser.uid]: val }, revealed: false });
+            });
         };
 
         window.togglePokerReveal = (revealed) => {
@@ -538,7 +568,6 @@
         };
 
         // 9. ANALYTICS (Velocity)
-        // Note: For this to work, we need to mark sprints as complete and save their total points.
         $('#btn-complete-sprint').click(async () => {
              if(!confirm("Complete this sprint and archive stats?")) return;
              
@@ -584,17 +613,16 @@
         // Utils
         $('#btn-new-sprint-modal').click(() => $('#modal-sprint').removeClass('hidden'));
         $('#btn-create-sprint').click(() => {
-            db.collection('sprints').add({
-                name: $('#new-sprint-name').val(),
-                status: 'active',
-                createdAt: Date.now()
-            });
-            $('#modal-sprint').addClass('hidden');
-        });
-
-        // Initialize Poker Session if not exists
-        db.collection('poker').doc('session').get().then(doc => {
-            if(!doc.exists) db.collection('poker').doc('session').set({ revealed: false, votes: {} });
+            const name = $('#new-sprint-name').val();
+            if(name) {
+                db.collection('sprints').add({
+                    name: name,
+                    status: 'active',
+                    createdAt: Date.now()
+                });
+                $('#modal-sprint').addClass('hidden');
+                $('#new-sprint-name').val('');
+            }
         });
 
     </script>
