@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgileWorks Scrum Tracker</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        .drag-card { cursor: pointer; transition: all 0.2s; }
+        .drag-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .loader { border-top-color: #3498db; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+
+    <div id="login-screen" class="flex items-center justify-center h-screen bg-blue-900">
+        <div class="bg-white p-8 rounded-lg shadow-2xl text-center w-96">
+            <h1 class="text-3xl font-bold mb-2 text-blue-700">AgileWorks</h1>
+            <p class="text-gray-500 mb-6">Scrum Progress Tracker</p>
+            <button id="btn-login" class="w-full bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5">
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <div id="app-dashboard" class="hidden min-h-screen flex flex-col">
+        
+        <nav class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-layer-group text-blue-600 text-2xl mr-2"></i>
+                        <span class="font-bold text-xl text-gray-800">AgileWorks</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span id="user-display" class="text-sm font-medium text-gray-600"></span>
+                        <button id="btn-logout" class="text-sm text-red-600 hover:text-red-800">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <div class="lg:col-span-1 space-y-6">
+                
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h2 class="font-bold text-gray-700 mb-3">Sprint Management</h2>
+                    <select id="sprint-select" class="w-full border-gray-300 rounded-md shadow-sm border p-2 mb-3">
+                        <option value="">Select a Sprint...</option>
+                    </select>
+                    <button id="btn-new-sprint-modal" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm">
+                        + New Sprint / Capacity
+                    </button>
+                    <button id="btn-export-excel" class="w-full mt-2 bg-green-600 text-white py-2 rounded hover:bg-green-700 text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i> Export Sprint
+                    </button>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow h-[600px] flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-gray-700">Backlog (PBI)</h2>
+                        <button id="btn-add-pbi" class="text-blue-600 hover:text-blue-800 text-sm font-bold">+ Add</button>
+                    </div>
+                    <div id="pbi-list" class="flex-grow overflow-y-auto space-y-2">
+                        </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 space-y-6">
+                
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-lg shadow text-center">
+                        <p class="text-xs text-gray-500 uppercase">Capacity</p>
+                        <p id="stat-capacity" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow text-center">
+                        <p class="text-xs text-gray-500 uppercase">Points Committed</p>
+                        <p id="stat-committed" class="text-2xl font-bold text-gray-700">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow text-center">
+                        <p class="text-xs text-gray-500 uppercase">Completed</p>
+                        <p id="stat-completed" class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 h-[500px]">
+                    <div class="bg-gray-200 p-3 rounded-lg flex flex-col">
+                        <h3 class="font-bold text-gray-600 mb-3 text-sm uppercase tracking-wide">To Do</h3>
+                        <div id="col-todo" class="kanban-col flex-grow overflow-y-auto space-y-2 min-h-[100px]"></div>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-lg flex flex-col">
+                        <h3 class="font-bold text-blue-600 mb-3 text-sm uppercase tracking-wide">In Progress</h3>
+                        <div id="col-doing" class="kanban-col flex-grow overflow-y-auto space-y-2 min-h-[100px]"></div>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-lg flex flex-col">
+                        <h3 class="font-bold text-green-600 mb-3 text-sm uppercase tracking-wide">Done</h3>
+                        <div id="col-done" class="kanban-col flex-grow overflow-y-auto space-y-2 min-h-[100px]"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="font-bold text-gray-700 mb-2">Burndown Chart</h3>
+                    <div class="h-64">
+                        <canvas id="burndownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-item" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-bold mb-4">Add Item</h3>
+            <input type="text" id="inp-title" placeholder="Task Title" class="w-full border p-2 mb-3 rounded">
+            <input type="number" id="inp-points" placeholder="Story Points (e.g. 3)" class="w-full border p-2 mb-3 rounded">
+            <select id="inp-type" class="w-full border p-2 mb-3 rounded">
+                <option value="PBI">Product Backlog Item</option>
+                <option value="SBI">Sprint Backlog Item</option>
+            </select>
+            <div class="flex justify-end gap-2">
+                <button class="modal-close px-4 py-2 text-gray-500">Cancel</button>
+                <button id="btn-save-item" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-sprint" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-bold mb-4">New Sprint</h3>
+            <input type="text" id="sprint-name" placeholder="Sprint Name (e.g. Sprint 1)" class="w-full border p-2 mb-3 rounded">
+            <input type="number" id="sprint-capacity" placeholder="Total Capacity (Hours/Points)" class="w-full border p-2 mb-3 rounded">
+            <div class="flex gap-2 mb-3">
+                <input type="date" id="sprint-start" class="w-1/2 border p-2 rounded">
+                <input type="date" id="sprint-end" class="w-1/2 border p-2 rounded">
+            </div>
+            <div class="flex justify-end gap-2">
+                <button class="modal-close px-4 py-2 text-gray-500">Cancel</button>
+                <button id="btn-save-sprint" class="px-4 py-2 bg-blue-600 text-white rounded">Create Sprint</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k",
+            authDomain: "agile-works-ba545.firebaseapp.com",
+            projectId: "agile-works-ba545",
+            storageBucket: "agile-works-ba545.firebasestorage.app",
+            messagingSenderId: "588869159638",
+            appId: "1:588869159638:web:5bfc6e3740ec231776d777"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+        let currentSprintId = null;
+        let chartInstance = null;
+
+        // 2. AUTHENTICATION
+        $('#btn-login').click(() => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(error => alert(error.message));
+        });
+
+        $('#btn-logout').click(() => auth.signOut());
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                $('#login-screen').addClass('hidden');
+                $('#app-dashboard').removeClass('hidden');
+                $('#user-display').text(user.displayName);
+                loadSprints();
+            } else {
+                currentUser = null;
+                $('#login-screen').removeClass('hidden');
+                $('#app-dashboard').addClass('hidden');
+            }
+        });
+
+        // 3. SPRINT MANAGEMENT
+        function loadSprints() {
+            db.collection('sprints').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                const $select = $('#sprint-select');
+                $select.empty().append('<option value="">Select a Sprint...</option>');
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    $select.append(`<option value="${doc.id}" data-cap="${data.capacity}" data-start="${data.startDate}" data-end="${data.endDate}">${data.name}</option>`);
+                });
+                
+                // If we have a stored current sprint, re-select it
+                if(currentSprintId) $select.val(currentSprintId);
+            });
+        }
+
+        $('#sprint-select').change(function() {
+            currentSprintId = $(this).val();
+            if (currentSprintId) {
+                const $opt = $(this).find(':selected');
+                $('#stat-capacity').text($opt.data('cap'));
+                loadItems(currentSprintId);
+                updateBurndown($opt.data('start'), $opt.data('end'), $opt.data('cap'));
+            } else {
+                clearBoard();
+            }
+        });
+
+        $('#btn-save-sprint').click(async () => {
+            const name = $('#sprint-name').val();
+            const capacity = parseInt($('#sprint-capacity').val());
+            const start = $('#sprint-start').val();
+            const end = $('#sprint-end').val();
+
+            if (!name || !capacity) return alert("Fill all fields");
+
+            await db.collection('sprints').add({
+                name, capacity, startDate: start, endDate: end, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            $('#modal-sprint').addClass('hidden');
+            $('#sprint-name').val('');
+        });
+
+        // 4. ITEM MANAGEMENT (PBI/SBI) & KANBAN
+        function loadItems(sprintId) {
+            db.collection('items').where('sprintId', '==', sprintId).onSnapshot(snapshot => {
+                $('#col-todo, #col-doing, #col-done, #pbi-list').empty();
+                
+                let committed = 0;
+                let completed = 0;
+
+                snapshot.docs.forEach(doc => {
+                    const item = doc.data();
+                    item.id = doc.id; // Append ID
+                    
+                    const cardHtml = renderCard(item);
+
+                    if (item.type === 'PBI') {
+                        $('#pbi-list').append(cardHtml);
+                    } else {
+                        // It's an SBI (Sprint Task)
+                        if (item.status === 'todo') $('#col-todo').append(cardHtml);
+                        else if (item.status === 'doing') $('#col-doing').append(cardHtml);
+                        else if (item.status === 'done') {
+                            $('#col-done').append(cardHtml);
+                            completed += (parseInt(item.points) || 0);
+                        }
+                        committed += (parseInt(item.points) || 0);
+                    }
+                });
+
+                $('#stat-committed').text(committed);
+                $('#stat-completed').text(completed);
+            });
+        }
+
+        function renderCard(item) {
+            // Simplified Kanban actions
+            let actions = '';
+            if(item.type === 'PBI') {
+                actions = `<button onclick="moveToSprint('${item.id}')" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Move to Sprint</button>`;
+            } else {
+                // Status changers
+                if(item.status === 'todo') actions = `<button onclick="updateStatus('${item.id}', 'doing')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Start</button>`;
+                if(item.status === 'doing') actions = `<button onclick="updateStatus('${item.id}', 'done')" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Done</button> <button onclick="updateStatus('${item.id}', 'todo')" class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Back</button>`;
+            }
+
+            return `
+                <div class="bg-white p-3 rounded shadow-sm border-l-4 ${item.status === 'done' ? 'border-green-500' : 'border-blue-500'} mb-2">
+                    <div class="flex justify-between items-start">
+                        <span class="font-bold text-sm text-gray-800">${item.title}</span>
+                        <span class="text-xs bg-gray-200 px-1 rounded">${item.points} pts</span>
+                    </div>
+                    <div class="mt-2 flex justify-between items-center">
+                        <span class="text-xs text-gray-400 uppercase">${item.type}</span>
+                        <div class="flex gap-1">${actions}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Global functions for inline onclick handlers
+        window.moveToSprint = (id) => db.collection('items').doc(id).update({ type: 'SBI', status: 'todo' });
+        window.updateStatus = (id, status) => db.collection('items').doc(id).update({ status: status });
+
+        $('#btn-save-item').click(async () => {
+            if (!currentSprintId) return alert("Select a sprint first");
+            const title = $('#inp-title').val();
+            const points = parseInt($('#inp-points').val());
+            const type = $('#inp-type').val(); // PBI or SBI
+
+            await db.collection('items').add({
+                title, points, type, 
+                status: 'todo', 
+                sprintId: currentSprintId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            $('#modal-item').addClass('hidden');
+            $('#inp-title').val('');
+        });
+
+        // 5. BURNDOWN CHART
+        function updateBurndown(start, end, capacity) {
+            // NOTE: In a real app, you'd calculate daily remaining points from history.
+            // Here we simulate a simple ideal line vs current completed for demo.
+            
+            const ctx = document.getElementById('burndownChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+
+            // Mock Data Generation based on date range
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            const days = [];
+            const ideal = [];
+            let currentCap = capacity;
+            const diffTime = Math.abs(endDate - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            const dailyBurn = capacity / diffDays;
+
+            for(let i=0; i<=diffDays; i++) {
+                days.push(`Day ${i+1}`);
+                ideal.push(Math.max(0, capacity - (dailyBurn * i)));
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Ideal Burndown',
+                        data: ideal,
+                        borderColor: '#9ca3af',
+                        borderDash: [5, 5],
+                        fill: false
+                    }, {
+                        label: 'Actual Remaining',
+                        data: ideal.map(v => v + (Math.random() * 5 - 2)), // Simulated data for demo visual
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // 6. EXCEL EXPORT
+        $('#btn-export-excel').click(async () => {
+            if (!currentSprintId) return alert("Select a Sprint to export");
+
+            const snapshot = await db.collection('items').where('sprintId', '==', currentSprintId).get();
+            const data = [];
+            
+            snapshot.forEach(doc => {
+                const item = doc.data();
+                data.push({
+                    "Task ID": doc.id,
+                    "Title": item.title,
+                    "Points": item.points,
+                    "Type": item.type,
+                    "Status": item.status,
+                    "Sprint ID": item.sprintId
+                });
+            });
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sprint Data");
+            XLSX.writeFile(wb, "Sprint_Export.xlsx");
+        });
+
+        // UI Helpers
+        function clearBoard() {
+            $('#col-todo, #col-doing, #col-done, #pbi-list').empty();
+            $('#stat-capacity, #stat-committed, #stat-completed').text('0');
+        }
+        
+        // Modal Toggles
+        $('#btn-new-sprint-modal').click(() => $('#modal-sprint').removeClass('hidden'));
+        $('#btn-add-pbi').click(() => $('#modal-item').removeClass('hidden'));
+        $('.modal-close').click(() => $('.fixed').addClass('hidden'));
+
+    </script>
+</body>
+</html>
