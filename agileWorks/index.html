@@ -146,6 +146,7 @@
         <div id="view-admin" class="view-section hidden h-full overflow-y-auto pr-2 custom-scroll">
             <div class="max-w-6xl mx-auto space-y-8">
                 <h2 class="text-3xl font-bold text-gray-800 dark:text-white">Admin Dashboard</h2>
+                
                 <div id="admin-create-project" class="hidden bg-white dark:bg-darkcard p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-bold mb-4 text-indigo-600">Create New Project</h3>
                     <div class="flex gap-4 items-center">
@@ -153,17 +154,27 @@
                         <button id="btn-create-project" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition">Create</button>
                     </div>
                 </div>
+
                 <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"><h3 class="font-bold text-lg">System Users</h3></div>
-                    <div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-gray-100 dark:bg-gray-700/50 uppercase text-xs font-bold"><tr><th class="p-5">User</th><th class="p-5">Role</th><th class="p-5">Projects</th><th class="p-5 text-right">Action</th></tr></thead><tbody id="user-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-gray-100 dark:bg-gray-700/50 uppercase text-xs font-bold"><tr><th class="p-5">User</th><th class="p-5">Role</th><th class="p-5">Projects</th><th class="p-5 text-right">Action</th></tr></thead>
+                            <tbody id="user-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
     <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><input id="detail-title" class="text-2xl font-bold w-full bg-transparent border-none focus:ring-0"><button onclick="closeModal('modal-details')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-3 gap-6"><div class="col-span-2 space-y-4"><textarea id="detail-desc" class="w-full border p-3 rounded-xl h-32 dark:bg-gray-700" placeholder="Description..."></textarea><div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"><div id="subtask-list" class="space-y-2 mb-2"></div><div class="flex gap-2"><input id="new-subtask" class="flex-grow border p-2 rounded-lg dark:bg-gray-700" placeholder="New subtask..."><button onclick="addSubtask()" class="bg-indigo-100 text-indigo-600 px-3 rounded-lg">+</button></div></div></div><div class="col-span-1 space-y-4"><select id="detail-assignee" class="w-full border p-2 rounded-xl dark:bg-gray-700"></select><input id="detail-points" type="number" class="w-full border p-2 rounded-xl dark:bg-gray-700" placeholder="Points"><button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2 rounded-xl">Save</button><button id="btn-delete-item" class="w-full border border-red-200 text-red-500 py-2 rounded-xl hidden role-master">Delete</button></div></div></div></div>
+    
     <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500"><h3 class="text-xl font-bold mb-4 text-green-600">Definition of Done</h3><div class="space-y-4 mb-8"><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Code Reviewed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Tests Passed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> QA Verified</label></div><div class="flex justify-end gap-3"><button onclick="closeModal('modal-dod'); cancelDrag();" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg opacity-50" disabled>Confirm</button></div></div></div>
+    
     <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">New Sprint</h3><input id="new-sprint-name" class="w-full border p-3 mb-6 rounded-xl dark:bg-gray-700" placeholder="Sprint Name"><div class="flex justify-end gap-2"><button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Create</button></div></div></div>
+    
+    <div id="modal-assign-project" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[120]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">Assign Project</h3><p class="mb-2 text-sm text-gray-500">Select a project to assign to this user.</p><select id="assign-project-dropdown" class="w-full border p-3 mb-6 rounded-xl dark:bg-gray-700"><option>Loading...</option></select><div class="flex justify-end gap-2"><button onclick="closeModal('modal-assign-project')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-assign" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Assign</button></div></div></div>
 
     <script>
         // --- CONFIG & STATE ---
@@ -178,12 +189,11 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingDrag: null };
+        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingDrag: null, pendingAssignUser: null };
 
         // --- UTILS ---
         function showToast(msg, type='success') {
-            const color = type==='error'?'bg-red-500':'bg-green-600';
-            const id = Date.now();
+            const color = type==='error'?'bg-red-500':'bg-green-600'; const id = Date.now();
             $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-lg shadow-lg flex gap-3"><i class="fa-solid fa-circle-info mt-1"></i> ${msg}</div>`);
             setTimeout(()=>$(`#t-${id}`).removeClass('toast-enter').addClass('toast-enter-active'),10);
             setTimeout(()=>$(`#t-${id}`).remove(),3000);
@@ -232,11 +242,17 @@
                 appState.projects = [];
                 snap.forEach(d => {
                     const p = d.data();
+                    // Superadmin sees all, others see assigned. 
                     if(appState.user.role==='superadmin' || (appState.user.projects||[]).includes(d.id)) {
                         appState.projects.push({id:d.id, name:p.name});
                         $sel.append(`<option value="${d.id}">${p.name}</option>`);
                     }
                 });
+                
+                // Also populate admin assign dropdown
+                const $admSel = $('#assign-project-dropdown').empty();
+                appState.projects.forEach(p => $admSel.append(`<option value="${p.id}">${p.name}</option>`));
+
                 if(appState.projects.length>0) {
                     appState.projectId = appState.projects[0].id;
                     $sel.val(appState.projectId);
@@ -258,7 +274,7 @@
         function loadSprints() {
             db.collection('sprints').where('projectId','==',appState.projectId).orderBy('createdAt','desc').onSnapshot(snap => {
                 const $sel = $('#sprint-select').empty();
-                if(snap.empty) { $sel.append('<option>No Sprints</option>'); clearBoard(); return; }
+                if(snap.empty) { $sel.append('<option value="">No Sprints</option>'); clearBoard(); return; }
                 let activeId = null;
                 snap.forEach(d => {
                     if(d.data().status!=='completed') {
@@ -324,11 +340,12 @@
                 snap.forEach(doc => {
                     const u = doc.data(); const uId = doc.id;
                     const canManage = appState.user.role==='superadmin' || (appState.user.role==='master' && appState.user.projects.includes(appState.projectId));
+                    
                     let act = '-';
-                    if(canManage && appState.projectId) {
-                        const inProj = (u.projects||[]).includes(appState.projectId);
-                        act = `<button onclick="toggleAccess('${uId}','${appState.projectId}',${!inProj})" class="${inProj?'text-red-500':'text-green-600'} font-bold text-xs">${inProj?'Remove':'Add'}</button>`;
+                    if(canManage) {
+                         act = `<button onclick="openAssignModal('${uId}')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-200">Manage Access</button>`;
                     }
+
                     const roleSel = `<select onchange="changeRole('${uId}',this.value)" class="border rounded p-1 text-xs dark:bg-gray-700" ${appState.user.role!=='superadmin'?'disabled':''}>
                         <option value="dev" ${u.role==='dev'?'selected':''}>Dev</option><option value="master" ${u.role==='master'?'selected':''}>Master</option><option value="superadmin" ${u.role==='superadmin'?'selected':''}>Admin</option>
                     </select>`;
@@ -340,9 +357,33 @@
 
         // --- ACTIONS ---
         $('#btn-create-project').click(async ()=>{ const n=$('#new-project-name').val(); if(n){ const ref=await db.collection('projects').add({name:n, createdBy:appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects:firebase.firestore.FieldValue.arrayUnion(ref.id)}); location.reload(); }});
-        $('#btn-create-sprint').click(async ()=>{ const n=$('#new-sprint-name').val(); if(n){ await db.collection('sprints').add({name:n, projectId:appState.projectId, status:'active', createdAt:Date.now()}); closeModal('modal-sprint'); }});
+        
+        // FIX: SPRINT CREATION
+        $('#btn-create-sprint').click(async ()=>{ 
+            if(!appState.projectId) return showToast('Select a project first', 'error');
+            const n=$('#new-sprint-name').val(); 
+            if(n){ 
+                try {
+                    await db.collection('sprints').add({name:n, projectId:appState.projectId, status:'active', createdAt:Date.now()}); 
+                    closeModal('modal-sprint');
+                    showToast('Sprint Created');
+                } catch(e) { showToast('Error: '+e.message, 'error'); }
+            }
+        });
+
         window.changeRole = (uid,r) => db.collection('users').doc(uid).update({role:r});
-        window.toggleAccess = (uid,pid,add) => db.collection('users').doc(uid).update({projects:add?firebase.firestore.FieldValue.arrayUnion(pid):firebase.firestore.FieldValue.arrayRemove(pid)});
+        
+        // FIX: Project Assignment Modal Logic
+        window.openAssignModal = (uid) => { appState.pendingAssignUser = uid; openModal('modal-assign-project'); }
+        $('#btn-confirm-assign').click(() => {
+            const pid = $('#assign-project-dropdown').val();
+            if(pid && appState.pendingAssignUser) {
+                db.collection('users').doc(appState.pendingAssignUser).update({projects: firebase.firestore.FieldValue.arrayUnion(pid)})
+                .then(()=> { showToast('User Assigned'); closeModal('modal-assign-project'); })
+                .catch(e=> showToast(e.message, 'error'));
+            }
+        });
+
         window.updateItem = (id,d) => db.collection('items').doc(id).update(d);
         
         window.openItemModal = (t) => {
@@ -380,7 +421,6 @@
             $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden');
             $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600');
             $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600');
-            // Z-INDEX FIX: Explicitly hide overlay when entering Admin
             if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); } 
             else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); }
         };
