@@ -110,6 +110,10 @@
                 <div class="flex items-center gap-4 w-full md:w-auto">
                     <select id="sprint-select" class="w-full md:w-64 pl-4 pr-8 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm font-bold focus:ring-2 focus:ring-indigo-500 appearance-none bg-white cursor-pointer"><option>Loading...</option></select>
                     <button id="btn-new-sprint-modal" class="role-master hidden bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap hover:bg-indigo-100 transition">+ Sprint</button>
+                    <select id="view-mode" class="border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500">
+                        <option value="standard">Standard View</option>
+                        <option value="swimlane">Swimlanes by Assignee</option>
+                    </select>
                     <input id="board-search" type="text" placeholder="Filter..." class="border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 w-32 focus:w-48 transition-all">
                 </div>
                 <div class="flex items-center gap-3 w-full md:w-auto justify-end">
@@ -118,15 +122,15 @@
                     <button id="btn-complete-sprint" class="role-master hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 shadow-sm transition"><i class="fa-solid fa-flag-checkered"></i> Complete</button>
                 </div>
             </div>
+            
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div class="lg:col-span-1 bg-white dark:bg-darkcard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50"><h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog</h2><button onclick="openItemModal('PBI')" class="text-indigo-600 hover:bg-indigo-100 w-8 h-8 rounded-lg flex items-center justify-center transition"><i class="fa-solid fa-plus"></i></button></div><div id="pbi-list" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-darkbg/20 custom-scroll"></div>
+                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50"><h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog</h2><button onclick="openItemModal('PBI')" class="text-indigo-600 hover:bg-indigo-100 w-8 h-8 rounded-lg flex items-center justify-center transition"><i class="fa-solid fa-plus"></i></button></div>
+                    <div id="pbi-list" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-darkbg/20 custom-scroll"></div>
                 </div>
-                <div class="lg:col-span-3 grid grid-cols-3 gap-4 h-full">
-                    <div class="flex flex-col h-full bg-gray-100 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"><div class="p-3 border-b dark:border-gray-700 font-bold text-xs uppercase text-gray-500 tracking-wider bg-gray-50 dark:bg-gray-800 flex justify-between"><span>To Do</span> <span id="count-todo" class="bg-gray-200 dark:bg-gray-700 px-2 rounded text-[10px]">0</span></div><div id="col-todo" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 custom-scroll"></div></div>
-                    <div class="flex flex-col h-full bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 overflow-hidden"><div class="p-3 border-b border-blue-100 dark:border-blue-900/30 font-bold text-xs uppercase text-blue-600 tracking-wider bg-blue-50 dark:bg-blue-900/20 flex justify-between"><span>Doing</span> <span id="count-doing" class="bg-blue-200 dark:bg-blue-800 px-2 rounded text-[10px]">0</span></div><div id="col-doing" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 custom-scroll"></div></div>
-                    <div class="flex flex-col h-full bg-green-50/50 dark:bg-green-900/10 rounded-xl border border-green-100 dark:border-green-900/30 overflow-hidden"><div class="p-3 border-b border-green-100 dark:border-green-900/30 font-bold text-xs uppercase text-green-600 tracking-wider bg-green-50 dark:bg-green-900/20 flex justify-between"><span>Done</span> <span id="count-done" class="bg-green-200 dark:bg-green-800 px-2 rounded text-[10px]">0</span></div><div id="col-done" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 custom-scroll"></div></div>
-                </div>
+                
+                <div class="lg:col-span-3 h-full overflow-hidden" id="kanban-area">
+                    </div>
             </div>
         </div>
 
@@ -232,13 +236,11 @@
         async function loadProjects() { const snap = await db.collection('projects').get(); const $sel = $('#project-select').empty(); const $admSel = $('#assign-project-dropdown').empty(); appState.projects = []; snap.forEach(d => { const p = d.data(); if(appState.user.role==='superadmin' || (appState.user.projects||[]).includes(d.id)) { appState.projects.push({id:d.id, name:p.name}); $sel.append(`<option value="${d.id}">${p.name}</option>`); } $admSel.append(`<option value="${d.id}">${p.name}</option>`); }); if(appState.projects.length>0) { appState.projectId = appState.projects[0].id; $sel.val(appState.projectId); handleProjectChange(); } else { $sel.append('<option>No Projects</option>'); if(!$('#view-admin').is(':visible')) $('#no-project-state').removeClass('hidden'); } }
         function handleProjectChange() { if(!appState.projectId) return; $('#no-project-state').addClass('hidden'); loadSprints(); loadRetro(); loadProjectUsers(); }
 
-        // SPRINT LOGIC FIXED
         function loadSprints() {
             db.collection('sprints').where('projectId','==',appState.projectId).orderBy('createdAt','desc').onSnapshot(snap => {
                 const $sel = $('#sprint-select').empty();
                 appState.sprintDataMap = {};
                 if(snap.empty) { $sel.append('<option value="">No Sprints</option>'); $('#sprint-info-banner').addClass('hidden'); clearBoard(); return; }
-                
                 let activeId = null;
                 snap.forEach(d => { 
                     const s = d.data();
@@ -248,73 +250,95 @@
                         if(!activeId) activeId = d.id; 
                     }
                 });
-                
-                if(!appState.sprintId || !appState.sprintDataMap[appState.sprintId]) {
-                    appState.sprintId = activeId;
-                }
-                
+                if(!appState.sprintId || !appState.sprintDataMap[appState.sprintId]) appState.sprintId = activeId;
                 if(appState.sprintId) { 
                     $sel.val(appState.sprintId);
                     updateSprintBanner(appState.sprintId);
                     loadItems(appState.sprintId); 
-                } else {
-                    $('#sprint-info-banner').addClass('hidden');
-                    clearBoard();
-                }
+                } else { $('#sprint-info-banner').addClass('hidden'); clearBoard(); }
             });
-
-            // FIXED: Change Handler inside loadSprints isn't needed if we use appState map,
-            // but we need to attach the listener once.
             $('#sprint-select').off('change').on('change', function(){ 
-                appState.sprintId=$(this).val(); 
-                updateSprintBanner(appState.sprintId);
-                loadItems(appState.sprintId); 
+                appState.sprintId=$(this).val(); updateSprintBanner(appState.sprintId); loadItems(appState.sprintId); 
             });
         }
 
         function updateSprintBanner(sid) {
-            const currentSprint = appState.sprintDataMap[sid];
-            appState.currentSprintData = currentSprint;
-            
+            const currentSprint = appState.sprintDataMap[sid]; appState.currentSprintData = currentSprint;
             if(currentSprint && currentSprint.goal) {
-                $('#sprint-info-banner').removeClass('hidden'); 
-                $('#banner-goal').text(currentSprint.goal);
+                $('#sprint-info-banner').removeClass('hidden'); $('#banner-goal').text(currentSprint.goal);
                 const start = new Date(currentSprint.startDate); const end = new Date(currentSprint.endDate);
                 $('#banner-dates').text(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
-                const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24)); 
-                $('#banner-days').text(diff > 0 ? diff : 0);
+                const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24)); $('#banner-days').text(diff > 0 ? diff : 0);
                 if(appState.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
-            } else { 
-                $('#sprint-info-banner').addClass('hidden'); 
-                $('#btn-open-burndown').addClass('hidden'); 
-            }
+            } else { $('#sprint-info-banner').addClass('hidden'); $('#btn-open-burndown').addClass('hidden'); }
         }
 
-        // FIXED: Complete Button Logic
         $('#btn-complete-sprint').click(async () => {
             if(!appState.sprintId) return;
             if(!confirm("Complete this sprint? Unfinished tasks will stay in history.")) return;
-            try {
-                await db.collection('sprints').doc(appState.sprintId).update({ status: 'completed', completedAt: Date.now() });
-                showToast("Sprint Completed");
-                // onSnapshot in loadSprints will handle UI update
-            } catch(e) { showToast(e.message, 'error'); }
+            try { await db.collection('sprints').doc(appState.sprintId).update({ status: 'completed', completedAt: Date.now() }); showToast("Sprint Completed"); } catch(e) { showToast(e.message, 'error'); }
         });
 
         function loadItems(sid) {
             db.collection('items').where('projectId','==',appState.projectId).where('sprintId','==',sid).onSnapshot(snap => {
-                clearBoard(); appState.sprintItems = [];
-                let counts = {todo:0, doing:0, done:0};
-                snap.forEach(doc => { 
-                    const i = doc.data(); appState.sprintItems.push(i); 
-                    const card = renderCard(doc.id, i); if(i.type==='PBI') $('#pbi-list').append(card); else { $(`#col-${i.status}`).append(card); counts[i.status]++; } 
-                });
-                $('#count-todo').text(counts.todo); $('#count-doing').text(counts.doing); $('#count-done').text(counts.done);
-                const filter = $('#board-search').val().toLowerCase(); if(filter) $('#board-search').trigger('keyup');
+                appState.sprintItems = [];
+                snap.forEach(doc => { appState.sprintItems.push({id: doc.id, ...doc.data()}); });
+                renderKanbanBoard();
             });
         }
         
-        $('#board-search').on('keyup', function() { const val=$(this).val().toLowerCase(); $('.group').each(function(){ const text=$(this).text().toLowerCase(); $(this).toggle(text.indexOf(val)>-1); }); });
+        $('#view-mode').change(() => renderKanbanBoard());
+        $('#board-search').on('keyup', renderKanbanBoard);
+
+        function renderKanbanBoard() {
+            const viewMode = $('#view-mode').val();
+            const filter = $('#board-search').val().toLowerCase();
+            const $area = $('#kanban-area').empty();
+            $('#pbi-list').empty();
+
+            // RENDER BACKLOG FIRST (PBI)
+            const pbis = appState.sprintItems.filter(i => i.type === 'PBI');
+            pbis.forEach(i => { if(!filter || i.title.toLowerCase().includes(filter)) $('#pbi-list').append(renderCard(i.id, i)); });
+
+            // RENDER MAIN BOARD
+            const tasks = appState.sprintItems.filter(i => i.type !== 'PBI' && (!filter || i.title.toLowerCase().includes(filter)));
+
+            if(viewMode === 'standard') {
+                $area.html(`
+                    <div class="grid grid-cols-3 gap-4 h-full">
+                        <div class="flex flex-col h-full bg-gray-100 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"><div class="p-3 border-b dark:border-gray-700 font-bold text-xs uppercase text-gray-500 tracking-wider bg-gray-50 dark:bg-gray-800 flex justify-between"><span>To Do</span><span class="bg-gray-200 dark:bg-gray-700 px-2 rounded text-[10px]">${tasks.filter(t=>t.status==='todo').length}</span></div><div class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 custom-scroll" id="std-todo"></div></div>
+                        <div class="flex flex-col h-full bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 overflow-hidden"><div class="p-3 border-b border-blue-100 dark:border-blue-900/30 font-bold text-xs uppercase text-blue-600 tracking-wider bg-blue-50 dark:bg-blue-900/20 flex justify-between"><span>Doing</span><span class="bg-blue-200 dark:bg-blue-800 px-2 rounded text-[10px]">${tasks.filter(t=>t.status==='doing').length}</span></div><div class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 custom-scroll" id="std-doing"></div></div>
+                        <div class="flex flex-col h-full bg-green-50/50 dark:bg-green-900/10 rounded-xl border border-green-100 dark:border-green-900/30 overflow-hidden"><div class="p-3 border-b border-green-100 dark:border-green-900/30 font-bold text-xs uppercase text-green-600 tracking-wider bg-green-50 dark:bg-green-900/20 flex justify-between"><span>Done</span><span class="bg-green-200 dark:bg-green-800 px-2 rounded text-[10px]">${tasks.filter(t=>t.status==='done').length}</span></div><div class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 custom-scroll" id="std-done"></div></div>
+                    </div>
+                `);
+                tasks.forEach(t => $(`#std-${t.status}`).append(renderCard(t.id, t)));
+            } else {
+                // SWIMLANE MODE
+                $area.addClass('overflow-y-auto custom-scroll pr-2');
+                const assignees = [...new Set(tasks.map(t => t.assignee || "Unassigned"))].sort();
+                
+                assignees.forEach(user => {
+                    const userTasks = tasks.filter(t => (t.assignee || "Unassigned") === user);
+                    const avatar = `https://ui-avatars.com/api/?name=${user}&size=24&background=random`;
+                    
+                    const swimlaneHtml = `
+                        <div class="mb-4 bg-white dark:bg-darkcard border dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+                            <div class="p-2 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 font-bold flex items-center gap-2">
+                                <img src="${avatar}" class="w-6 h-6 rounded-full"> ${user} <span class="text-xs text-gray-500 font-normal">(${userTasks.length} tasks)</span>
+                            </div>
+                            <div class="grid grid-cols-3 divide-x dark:divide-gray-700 h-auto min-h-[120px]">
+                                <div class="p-2 space-y-2 bg-gray-50/30 dark:bg-gray-800/20" id="sl-${user.replace(/\s/g,'')}-todo"></div>
+                                <div class="p-2 space-y-2 bg-blue-50/20 dark:bg-blue-900/10" id="sl-${user.replace(/\s/g,'')}-doing"></div>
+                                <div class="p-2 space-y-2 bg-green-50/20 dark:bg-green-900/10" id="sl-${user.replace(/\s/g,'')}-done"></div>
+                            </div>
+                        </div>
+                    `;
+                    $area.append(swimlaneHtml);
+                    userTasks.forEach(t => $(`#sl-${user.replace(/\s/g,'')}-${t.status}`).append(renderCard(t.id, t)));
+                });
+            }
+        }
+
         function renderCard(id, i) {
             const avatar = `https://ui-avatars.com/api/?name=${i.assignee||'U'}&size=24&background=random`;
             const border = i.status==='done'?'border-l-green-500':i.status==='doing'?'border-l-blue-500':'border-l-indigo-500';
@@ -329,7 +353,7 @@
             }
             return `<div class="bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 border-l-4 ${border} group hover:shadow-md transition" onclick="openDetailModal('${id}')"><div class="font-bold text-sm mb-2 text-gray-800 dark:text-gray-200">${i.title}</div><div class="flex justify-between items-center"><img src="${avatar}" class="w-6 h-6 rounded-full border border-white dark:border-gray-600"> <div class="flex items-center">${actionBtns}</div></div></div>`;
         }
-        function clearBoard(){ $('#col-todo, #col-doing, #col-done, #pbi-list').empty(); }
+        function clearBoard(){ $('#pbi-list, #kanban-area').empty(); }
         window.moveStatus = (id, status) => { const data = { status: status }; if (status !== 'done') data.completedAt = null; updateItem(id, data); };
         window.checkDoD = (id) => { appState.pendingItem = id; $('.dod-check').prop('checked',false); $('#btn-confirm-dod').prop('disabled',true).addClass('opacity-50'); openModal('modal-dod'); };
         $('#btn-confirm-dod').click(() => { if(appState.pendingItem) { updateItem(appState.pendingItem, {status: 'done', completedAt: Date.now()}); closeModal('modal-dod'); confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); showToast('Task Completed! 🎉'); }});
