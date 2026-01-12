@@ -34,6 +34,10 @@
 
         .toast-enter { transform: translateX(100%); opacity: 0; }
         .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 0.3s ease-out; }
+        
+        /* Sidebar active state */
+        .admin-nav-active { background-color: #e0e7ff; color: #4338ca; border-right: 4px solid #4338ca; }
+        .dark .admin-nav-active { background-color: #312e81; color: #c7d2fe; border-right: 4px solid #6366f1; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-darkbg text-gray-800 dark:text-gray-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
@@ -143,49 +147,91 @@
             </div>
         </div>
 
-        <div id="view-admin" class="view-section hidden h-full overflow-y-auto pr-2 custom-scroll">
-            <div class="max-w-6xl mx-auto space-y-8">
-                <h2 class="text-3xl font-bold text-gray-800 dark:text-white">Admin Dashboard</h2>
-                
-                <div id="admin-create-project" class="hidden bg-white dark:bg-darkcard p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-bold mb-4 text-indigo-600">Create New Project</h3>
-                    <div class="flex gap-4 items-center">
-                        <input id="new-project-name" placeholder="Project Name" class="flex-grow border p-3 rounded-xl dark:bg-gray-700 dark:border-gray-600">
-                        <button id="btn-create-project" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition">Create</button>
-                    </div>
+        <div id="view-admin" class="view-section hidden h-full flex bg-white dark:bg-darkcard rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            
+            <div class="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-bold text-lg text-gray-700 dark:text-white">Admin Config</h2>
                 </div>
+                <button onclick="showAdminSub('users')" id="admin-sub-btn-users" class="admin-nav-btn text-left px-6 py-4 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 admin-nav-active">
+                    <i class="fa-solid fa-users mr-2"></i> System Users
+                </button>
+                <button onclick="showAdminSub('projects')" id="admin-sub-btn-projects" class="admin-nav-btn text-left px-6 py-4 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+                    <i class="fa-solid fa-briefcase mr-2"></i> Project Setup
+                </button>
+            </div>
 
-                <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"><h3 class="font-bold text-lg">System Users</h3></div>
+            <div class="flex-grow p-8 overflow-y-auto">
+                
+                <div id="admin-sub-users" class="admin-sub-view">
+                    <h3 class="text-2xl font-bold mb-6">User Management</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead class="bg-gray-100 dark:bg-gray-700/50 uppercase text-xs font-bold"><tr><th class="p-5">User</th><th class="p-5">Role</th><th class="p-5">Projects</th><th class="p-5 text-right">Action</th></tr></thead>
+                            <thead class="bg-gray-100 dark:bg-gray-700/50 uppercase text-xs font-bold"><tr><th class="p-4">User</th><th class="p-4">Global Role</th><th class="p-4">Projects</th><th class="p-4 text-right">Action</th></tr></thead>
                             <tbody id="user-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
                         </table>
                     </div>
                 </div>
+
+                <div id="admin-sub-projects" class="admin-sub-view hidden">
+                    <h3 class="text-2xl font-bold mb-6">Project Management Setup</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="border rounded-xl overflow-hidden dark:border-gray-700 h-[600px] flex flex-col">
+                            <div class="bg-gray-50 dark:bg-gray-700 p-4 border-b dark:border-gray-600 flex justify-between items-center">
+                                <span class="font-bold">All Projects</span>
+                                <button onclick="resetProjectForm()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">+ New</button>
+                            </div>
+                            <div id="admin-project-list" class="overflow-y-auto flex-grow p-2 space-y-2">
+                                </div>
+                        </div>
+
+                        <div class="p-6 border rounded-xl dark:border-gray-700 h-fit">
+                            <h4 class="font-bold text-lg mb-4 text-indigo-600" id="form-project-header">Create New Project</h4>
+                            <input type="hidden" id="edit-project-id">
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Project Name</label>
+                                    <input id="edit-project-name" class="w-full border p-2 rounded-lg dark:bg-gray-700" placeholder="e.g. Website Redesign">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Description</label>
+                                    <textarea id="edit-project-desc" class="w-full border p-2 rounded-lg dark:bg-gray-700 h-24" placeholder="Scope and goals..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Scrum Master In-Charge</label>
+                                    <select id="edit-project-master" class="w-full border p-2 rounded-lg dark:bg-gray-700">
+                                        <option value="">-- Select Master --</option>
+                                    </select>
+                                    <p class="text-[10px] text-gray-400 mt-1">Assigns lead permission for this project.</p>
+                                </div>
+                                
+                                <div class="pt-4 flex gap-2 border-t dark:border-gray-700 mt-4">
+                                    <button onclick="saveProjectConfig()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex-grow">Save Changes</button>
+                                </div>
+                                
+                                <div id="project-actions" class="hidden grid grid-cols-2 gap-2 mt-2">
+                                    <button onclick="duplicateProject()" class="border border-indigo-200 text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-50 text-xs font-bold">Duplicate Project</button>
+                                    <button onclick="deleteProject()" class="border border-red-200 text-red-500 px-3 py-2 rounded-lg hover:bg-red-50 text-xs font-bold">Delete Project</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
 
     <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><input id="detail-title" class="text-2xl font-bold w-full bg-transparent border-none focus:ring-0"><button onclick="closeModal('modal-details')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-3 gap-6"><div class="col-span-2 space-y-4"><textarea id="detail-desc" class="w-full border p-3 rounded-xl h-32 dark:bg-gray-700" placeholder="Description..."></textarea><div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"><div id="subtask-list" class="space-y-2 mb-2"></div><div class="flex gap-2"><input id="new-subtask" class="flex-grow border p-2 rounded-lg dark:bg-gray-700" placeholder="New subtask..."><button onclick="addSubtask()" class="bg-indigo-100 text-indigo-600 px-3 rounded-lg">+</button></div></div></div><div class="col-span-1 space-y-4"><select id="detail-assignee" class="w-full border p-2 rounded-xl dark:bg-gray-700"></select><input id="detail-points" type="number" class="w-full border p-2 rounded-xl dark:bg-gray-700" placeholder="Points"><button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2 rounded-xl">Save</button><button id="btn-delete-item" class="w-full border border-red-200 text-red-500 py-2 rounded-xl hidden role-master">Delete</button></div></div></div></div>
-    
     <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500"><h3 class="text-xl font-bold mb-4 text-green-600">Definition of Done</h3><div class="space-y-4 mb-8"><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Code Reviewed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Tests Passed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> QA Verified</label></div><div class="flex justify-end gap-3"><button onclick="closeModal('modal-dod'); cancelDrag();" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg opacity-50" disabled>Confirm</button></div></div></div>
-    
     <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">New Sprint</h3><input id="new-sprint-name" class="w-full border p-3 mb-6 rounded-xl dark:bg-gray-700" placeholder="Sprint Name"><div class="flex justify-end gap-2"><button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Create</button></div></div></div>
-    
     <div id="modal-assign-project" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[120]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">Assign Project</h3><p class="mb-2 text-sm text-gray-500">Select a project to assign to this user.</p><select id="assign-project-dropdown" class="w-full border p-3 mb-6 rounded-xl dark:bg-gray-700"><option>Loading...</option></select><div class="flex justify-end gap-2"><button onclick="closeModal('modal-assign-project')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-assign" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Assign</button></div></div></div>
 
     <script>
         // --- CONFIG & STATE ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k",
-            authDomain: "agile-works-ba545.firebaseapp.com",
-            projectId: "agile-works-ba545",
-            storageBucket: "agile-works-ba545.firebasestorage.app",
-            messagingSenderId: "588869159638",
-            appId: "1:588869159638:web:5bfc6e3740ec231776d777"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k", authDomain: "agile-works-ba545.firebaseapp.com", projectId: "agile-works-ba545", storageBucket: "agile-works-ba545.firebasestorage.app", messagingSenderId: "588869159638", appId: "1:588869159638:web:5bfc6e3740ec231776d777" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
@@ -232,7 +278,11 @@
             switchTab('board');
             await loadProjects();
             $('#project-select').change(function(){ appState.projectId=$(this).val(); handleProjectChange(); });
-            $('#tab-btn-admin').click(loadUsers);
+            $('#tab-btn-admin').click(() => {
+                loadUsers();
+                loadAdminProjectsList();
+                loadMastersForDropdown();
+            });
         }
 
         async function loadProjects() {
@@ -242,7 +292,6 @@
                 appState.projects = [];
                 snap.forEach(d => {
                     const p = d.data();
-                    // Superadmin sees all, others see assigned. 
                     if(appState.user.role==='superadmin' || (appState.user.projects||[]).includes(d.id)) {
                         appState.projects.push({id:d.id, name:p.name});
                         $sel.append(`<option value="${d.id}">${p.name}</option>`);
@@ -332,14 +381,136 @@
         });
         window.cancelDrag = () => loadItems(appState.sprintId);
 
-        // --- ADMIN & USERS ---
+        // --- NEW ADMIN FEATURES (SPLIT VIEW) ---
+        window.showAdminSub = (sub) => {
+            $('.admin-sub-view').addClass('hidden');
+            $(`#admin-sub-${sub}`).removeClass('hidden');
+            $('.admin-nav-btn').removeClass('admin-nav-active');
+            $(`#admin-sub-btn-${sub}`).addClass('admin-nav-active');
+        }
+
+        // 1. PROJECT MANAGEMENT SETUP
+        function loadAdminProjectsList() {
+            db.collection('projects').onSnapshot(snap => {
+                $('#admin-project-list').empty();
+                snap.forEach(doc => {
+                    const p = doc.data();
+                    $('#admin-project-list').append(`
+                        <div class="p-3 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded cursor-pointer hover:border-indigo-500 transition" onclick="loadProjectIntoForm('${doc.id}', '${p.name}', '${p.description||''}', '${p.scrumMaster||''}')">
+                            <div class="font-bold text-sm">${p.name}</div>
+                            <div class="text-xs text-gray-500">${p.description ? p.description.substring(0,30)+'...' : 'No description'}</div>
+                        </div>
+                    `);
+                });
+            });
+        }
+        
+        function loadMastersForDropdown() {
+             db.collection('users').where('role','in',['master','superadmin']).get().then(s => {
+                 $('#edit-project-master').empty().append('<option value="">-- Select Master --</option>');
+                 s.forEach(d => $('#edit-project-master').append(`<option value="${d.id}">${d.data().displayName}</option>`));
+             });
+        }
+
+        window.loadProjectIntoForm = (id, name, desc, master) => {
+            $('#edit-project-id').val(id);
+            $('#edit-project-name').val(name);
+            $('#edit-project-desc').val(desc);
+            $('#edit-project-master').val(master);
+            $('#project-actions').removeClass('hidden');
+            $('#form-project-header').text("Edit Project");
+        }
+
+        window.resetProjectForm = () => {
+            $('#edit-project-id').val('');
+            $('#edit-project-name').val('');
+            $('#edit-project-desc').val('');
+            $('#edit-project-master').val('');
+            $('#project-actions').addClass('hidden');
+            $('#form-project-header').text("Create New Project");
+        }
+
+        window.saveProjectConfig = async () => {
+            const id = $('#edit-project-id').val();
+            const data = {
+                name: $('#edit-project-name').val(),
+                description: $('#edit-project-desc').val(),
+                scrumMaster: $('#edit-project-master').val()
+            };
+            
+            if(!data.name) return showToast("Project name required", "error");
+
+            toggleLoader(true);
+            try {
+                if(id) {
+                    await db.collection('projects').doc(id).update(data);
+                    showToast("Project updated");
+                } else {
+                    const ref = await db.collection('projects').add({...data, createdBy: appState.user.uid});
+                    // Auto assign superadmin to it
+                    await db.collection('users').doc(appState.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)});
+                    showToast("Project created");
+                }
+                resetProjectForm();
+            } catch(e) { showToast(e.message, 'error'); }
+            toggleLoader(false);
+        }
+
+        window.duplicateProject = async () => {
+             const id = $('#edit-project-id').val();
+             if(!id) return;
+             if(!confirm("Duplicate this project configuration?")) return;
+             
+             toggleLoader(true);
+             try {
+                 const src = await db.collection('projects').doc(id).get();
+                 const data = src.data();
+                 const newName = data.name + " (Copy)";
+                 
+                 const ref = await db.collection('projects').add({...data, name: newName, createdBy: appState.user.uid});
+                 await db.collection('users').doc(appState.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)});
+                 
+                 // Copy Sprints (Optional - Deep copy is complex client side, keeping simple)
+                 const sprints = await db.collection('sprints').where('projectId','==',id).get();
+                 sprints.forEach(s => {
+                     db.collection('sprints').add({...s.data(), projectId: ref.id});
+                 });
+                 
+                 showToast("Project duplicated successfully");
+                 resetProjectForm();
+             } catch(e) { showToast(e.message, 'error'); }
+             toggleLoader(false);
+        }
+
+        window.deleteProject = async () => {
+            const id = $('#edit-project-id').val();
+            if(!id) return;
+            const confirmName = prompt("Type DELETE to confirm deletion of this project and all its data:");
+            if(confirmName !== "DELETE") return;
+
+            toggleLoader(true);
+            try {
+                // Delete Project Doc
+                await db.collection('projects').doc(id).delete();
+                
+                // Cleanup Sprints & Items (Client side cleanup is limited, ideally use Cloud Functions)
+                // For demo, we just remove the project doc. The orphaned items won't show up in UI.
+                
+                showToast("Project deleted");
+                resetProjectForm();
+                loadProjects(); // Refresh global list
+            } catch(e) { showToast(e.message, 'error'); }
+            toggleLoader(false);
+        }
+
+        // 2. SYSTEM USER SETUP (UNCHANGED MOSTLY)
         function loadUsers() {
             if(appState.user.role==='dev') return;
             db.collection('users').onSnapshot(snap => {
                 $('#user-table-body').empty();
                 snap.forEach(doc => {
                     const u = doc.data(); const uId = doc.id;
-                    const canManage = appState.user.role==='superadmin' || (appState.user.role==='master' && appState.user.projects.includes(appState.projectId));
+                    const canManage = appState.user.role==='superadmin';
                     
                     let act = '-';
                     if(canManage) {
@@ -356,54 +527,20 @@
         }
 
         // --- ACTIONS ---
-        $('#btn-create-project').click(async ()=>{ const n=$('#new-project-name').val(); if(n){ const ref=await db.collection('projects').add({name:n, createdBy:appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects:firebase.firestore.FieldValue.arrayUnion(ref.id)}); location.reload(); }});
-        
-        // --- SPRINT CREATION LOGIC ---
-
-        // Open Modal
-        $('#btn-new-sprint-modal').click(() => {
-            if(!appState.projectId) {
-                showToast('Please create or select a project first.', 'error');
-                return;
-            }
-            openModal('modal-sprint');
-        });
-
-        // Create Sprint Action
-        $('#btn-create-sprint').click(async () => { 
-            const name = $('#new-sprint-name').val().trim(); 
-            
-            // Validation
-            if (!name) return showToast('Sprint name is required', 'error');
-            if (!appState.projectId) return showToast('No Project Selected', 'error');
-
-            // UI Feedback
-            const btn = $('#btn-create-sprint');
-            const originalText = btn.text();
-            btn.text('Creating...').prop('disabled', true);
-
-            try {
-                await db.collection('sprints').add({
-                    name: name, 
-                    projectId: appState.projectId, 
-                    status: 'active', 
-                    createdAt: Date.now()
-                }); 
-                
-                closeModal('modal-sprint');
-                $('#new-sprint-name').val(''); // Clear input
-                showToast('Sprint Created Successfully!');
-            } catch(e) { 
-                console.error("Sprint Create Error:", e);
-                showToast('Error: ' + e.message, 'error'); 
-            } finally {
-                btn.text(originalText).prop('disabled', false);
+        // SPRINT FIX
+        $('#btn-create-sprint').click(async ()=>{ 
+            if(!appState.projectId) return showToast('Select a project first', 'error');
+            const n=$('#new-sprint-name').val(); 
+            if(n){ 
+                try {
+                    await db.collection('sprints').add({name:n, projectId:appState.projectId, status:'active', createdAt:Date.now()}); 
+                    closeModal('modal-sprint');
+                    showToast('Sprint Created');
+                } catch(e) { showToast('Error: '+e.message, 'error'); }
             }
         });
 
         window.changeRole = (uid,r) => db.collection('users').doc(uid).update({role:r});
-        
-        // FIX: Project Assignment Modal Logic
         window.openAssignModal = (uid) => { appState.pendingAssignUser = uid; openModal('modal-assign-project'); }
         $('#btn-confirm-assign').click(() => {
             const pid = $('#assign-project-dropdown').val();
@@ -451,7 +588,8 @@
             $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden');
             $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600');
             $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600');
-            if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); } 
+            // Z-INDEX FIX: Explicitly hide overlay when entering Admin
+            if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } 
             else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); }
         };
 
