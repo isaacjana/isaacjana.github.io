@@ -41,6 +41,7 @@
         .dark .admin-nav-active { background-color: #312e81; color: #c7d2fe; border-right: 4px solid #6366f1; }
         .retro-card { transition: all 0.2s; }
         .retro-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .notif-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; border: 2px solid white; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-darkbg text-gray-800 dark:text-gray-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
@@ -74,6 +75,17 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <button id="btn-notifs" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition relative">
+                            <i class="fa-solid fa-bell"></i>
+                            <div id="notif-dot" class="notif-dot hidden"></div>
+                        </button>
+                        <div id="notif-dropdown" class="absolute right-0 top-12 w-80 bg-white dark:bg-darkcard border dark:border-gray-700 shadow-xl rounded-xl hidden z-50 overflow-hidden">
+                            <div class="p-3 border-b dark:border-gray-700 font-bold text-sm flex justify-between"><span>Notifications</span><button onclick="markAllRead()" class="text-xs text-indigo-600">Mark all read</button></div>
+                            <div id="notif-list" class="max-h-80 overflow-y-auto"></div>
+                        </div>
+                    </div>
+
                     <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition"><i class="fa-solid fa-moon"></i></button>
                     <div class="text-right hidden sm:block"><div id="user-display" class="text-sm font-bold leading-tight">User</div><div id="role-badge" class="text-[10px] uppercase tracking-wider text-white px-2 py-0.5 rounded-full inline-block bg-gray-400">Loading...</div></div>
                     <button id="btn-logout" class="text-red-500 hover:bg-red-50 p-2 rounded transition"><i class="fa-solid fa-power-off"></i></button>
@@ -91,18 +103,10 @@
         </div>
 
         <div id="view-board" class="view-section flex flex-col h-full gap-4">
-            
             <div id="sprint-info-banner" class="hidden bg-indigo-600 text-white p-3 rounded-xl shadow-md flex justify-between items-center text-sm shrink-0">
-                <div class="flex items-center gap-3">
-                    <span class="bg-indigo-500 px-2 py-1 rounded text-xs uppercase font-bold tracking-wider">Sprint Goal</span>
-                    <span id="banner-goal" class="font-medium italic">...</span>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2 text-indigo-200"><i class="fa-regular fa-calendar"></i> <span id="banner-dates">...</span></div>
-                    <div class="bg-white text-indigo-600 px-3 py-1 rounded-lg font-bold shadow-sm"><i class="fa-solid fa-clock mr-1"></i> <span id="banner-days">0</span> Days Left</div>
-                </div>
+                <div class="flex items-center gap-3"><span class="bg-indigo-500 px-2 py-1 rounded text-xs uppercase font-bold tracking-wider">Sprint Goal</span><span id="banner-goal" class="font-medium italic">...</span></div>
+                <div class="flex items-center gap-4"><div class="flex items-center gap-2 text-indigo-200"><i class="fa-regular fa-calendar"></i> <span id="banner-dates">...</span></div><div class="bg-white text-indigo-600 px-3 py-1 rounded-lg font-bold shadow-sm"><i class="fa-solid fa-clock mr-1"></i> <span id="banner-days">0</span> Days Left</div></div>
             </div>
-
             <div class="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 shrink-0 gap-4">
                 <div class="flex items-center gap-4 w-full md:w-auto">
                     <select id="sprint-select" class="w-full md:w-64 pl-4 pr-8 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm font-bold focus:ring-2 focus:ring-indigo-500 appearance-none bg-white cursor-pointer"><option>Loading...</option></select>
@@ -115,11 +119,9 @@
                     <button id="btn-complete-sprint" class="role-master hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 shadow-sm transition"><i class="fa-solid fa-flag-checkered"></i> Complete</button>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div class="lg:col-span-1 bg-white dark:bg-darkcard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50"><h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog</h2><button onclick="openItemModal('PBI')" class="text-indigo-600 hover:bg-indigo-100 w-8 h-8 rounded-lg flex items-center justify-center transition"><i class="fa-solid fa-plus"></i></button></div>
-                    <div id="pbi-list" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-darkbg/20 custom-scroll"></div>
+                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50"><h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog</h2><button onclick="openItemModal('PBI')" class="text-indigo-600 hover:bg-indigo-100 w-8 h-8 rounded-lg flex items-center justify-center transition"><i class="fa-solid fa-plus"></i></button></div><div id="pbi-list" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-darkbg/20 custom-scroll"></div>
                 </div>
                 <div class="lg:col-span-3 grid grid-cols-3 gap-4 h-full">
                     <div class="flex flex-col h-full bg-gray-100 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"><div class="p-3 border-b dark:border-gray-700 font-bold text-xs uppercase text-gray-500 tracking-wider bg-gray-50 dark:bg-gray-800 flex justify-between"><span>To Do</span> <span id="count-todo" class="bg-gray-200 dark:bg-gray-700 px-2 rounded text-[10px]">0</span></div><div id="col-todo" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 custom-scroll"></div></div>
@@ -195,7 +197,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null };
+        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null, projectUsers: [] };
 
         function showToast(msg, type='success') { const color=type==='error'?'bg-red-500':'bg-green-600'; const id=Date.now(); $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-lg shadow-lg flex gap-3"><i class="fa-solid fa-circle-info mt-1"></i> ${msg}</div>`); setTimeout(()=>$(`#t-${id}`).removeClass('toast-enter').addClass('toast-enter-active'),10); setTimeout(()=>$(`#t-${id}`).remove(),3000); }
         function toggleLoader(s) { s ? $('#global-loader').removeClass('hidden') : $('#global-loader').addClass('hidden'); }
@@ -216,7 +218,14 @@
             } else { $('#login-screen').removeClass('hidden'); toggleLoader(false); }
         });
 
-        async function initApp() { switchTab('board'); await loadProjects(); $('#project-select').change(function(){ appState.projectId=$(this).val(); handleProjectChange(); }); $('#tab-btn-admin').click(() => { showAdminSub('users'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); }); }
+        async function initApp() { 
+            switchTab('board'); await loadProjects(); 
+            $('#project-select').change(function(){ appState.projectId=$(this).val(); handleProjectChange(); }); 
+            $('#tab-btn-admin').click(() => { showAdminSub('users'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); });
+            // Notification Init
+            listenForNotifications();
+        }
+        
         async function loadProjects() { const snap = await db.collection('projects').get(); const $sel = $('#project-select').empty(); const $admSel = $('#assign-project-dropdown').empty(); appState.projects = []; snap.forEach(d => { const p = d.data(); if(appState.user.role==='superadmin' || (appState.user.projects||[]).includes(d.id)) { appState.projects.push({id:d.id, name:p.name}); $sel.append(`<option value="${d.id}">${p.name}</option>`); } $admSel.append(`<option value="${d.id}">${p.name}</option>`); }); if(appState.projects.length>0) { appState.projectId = appState.projects[0].id; $sel.val(appState.projectId); handleProjectChange(); } else { $sel.append('<option>No Projects</option>'); if(!$('#view-admin').is(':visible')) $('#no-project-state').removeClass('hidden'); } }
         function handleProjectChange() { if(!appState.projectId) return; $('#no-project-state').addClass('hidden'); loadSprints(); loadRetro(); loadProjectUsers(); }
 
@@ -249,11 +258,8 @@
                 clearBoard(); appState.sprintItems = [];
                 let counts = {todo:0, doing:0, done:0};
                 snap.forEach(doc => { 
-                    const i = doc.data(); 
-                    appState.sprintItems.push(i); 
-                    const card = renderCard(doc.id, i); 
-                    if(i.type==='PBI') $('#pbi-list').append(card); 
-                    else { $(`#col-${i.status}`).append(card); counts[i.status]++; } 
+                    const i = doc.data(); appState.sprintItems.push(i); 
+                    const card = renderCard(doc.id, i); if(i.type==='PBI') $('#pbi-list').append(card); else { $(`#col-${i.status}`).append(card); counts[i.status]++; } 
                 });
                 $('#count-todo').text(counts.todo); $('#count-doing').text(counts.doing); $('#count-done').text(counts.done);
                 const filter = $('#board-search').val().toLowerCase(); if(filter) $('#board-search').trigger('keyup');
@@ -261,7 +267,6 @@
         }
         
         $('#board-search').on('keyup', function() { const val=$(this).val().toLowerCase(); $('.group').each(function(){ const text=$(this).text().toLowerCase(); $(this).toggle(text.indexOf(val)>-1); }); });
-
         function renderCard(id, i) {
             const avatar = `https://ui-avatars.com/api/?name=${i.assignee||'U'}&size=24&background=random`;
             const border = i.status==='done'?'border-l-green-500':i.status==='doing'?'border-l-blue-500':'border-l-indigo-500';
@@ -277,110 +282,118 @@
             return `<div class="bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 border-l-4 ${border} group hover:shadow-md transition" onclick="openDetailModal('${id}')"><div class="font-bold text-sm mb-2 text-gray-800 dark:text-gray-200">${i.title}</div><div class="flex justify-between items-center"><img src="${avatar}" class="w-6 h-6 rounded-full border border-white dark:border-gray-600"> <div class="flex items-center">${actionBtns}</div></div></div>`;
         }
         function clearBoard(){ $('#col-todo, #col-doing, #col-done, #pbi-list').empty(); }
-
-        // UPDATE LOGIC TO SAVE COMPLETED DATE
-        window.moveStatus = (id, status) => {
-            const data = { status: status };
-            if (status !== 'done') data.completedAt = null; 
-            updateItem(id, data);
-        };
+        window.moveStatus = (id, status) => { const data = { status: status }; if (status !== 'done') data.completedAt = null; updateItem(id, data); };
         window.checkDoD = (id) => { appState.pendingItem = id; $('.dod-check').prop('checked',false); $('#btn-confirm-dod').prop('disabled',true).addClass('opacity-50'); openModal('modal-dod'); };
         $('#btn-confirm-dod').click(() => { if(appState.pendingItem) { updateItem(appState.pendingItem, {status: 'done', completedAt: Date.now()}); closeModal('modal-dod'); confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); showToast('Task Completed! 🎉'); }});
         $('.dod-check').change(() => { const allChecked = $('.dod-check:checked').length === 3; $('#btn-confirm-dod').prop('disabled', !allChecked).toggleClass('opacity-50 cursor-not-allowed', !allChecked); });
         window.deletePBI = (id) => { if(confirm('Delete this Backlog Item?')) db.collection('items').doc(id).delete().catch(e => showToast(e.message, 'error')); }
-
-        // BURNDOWN CHART LOGIC
-        $('#btn-open-burndown').click(() => {
-            openModal('modal-burndown');
-            const sd = appState.currentSprintData;
-            if(!sd) return;
-            const start = new Date(sd.startDate); const end = new Date(sd.endDate);
-            const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-            const labels = [];
-            const idealData = [];
-            const actualData = [];
-            let totalPoints = 0;
-            
-            // Calc Total Points
-            appState.sprintItems.forEach(i => { if(i.type!=='PBI') totalPoints += (parseInt(i.points)||0); });
-            const burnRate = totalPoints / (totalDays - 1);
-
-            for(let i=0; i<totalDays; i++) {
-                const d = new Date(start); d.setDate(start.getDate() + i);
-                labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'}));
-                // Ideal
-                let ideal = totalPoints - (burnRate * i);
-                idealData.push(ideal < 0 ? 0 : ideal);
-                // Actual
-                let remaining = totalPoints;
-                const checkTime = d.setHours(23,59,59,999);
-                appState.sprintItems.forEach(item => {
-                    if(item.status === 'done' && item.completedAt && item.completedAt <= checkTime) {
-                        remaining -= (parseInt(item.points)||0);
-                    }
-                });
-                if(d <= new Date()) actualData.push(remaining);
-            }
-
-            if(window.myChart) window.myChart.destroy();
-            const ctx = document.getElementById('burndownChart').getContext('2d');
-            window.myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Ideal Burn', data: idealData, borderColor: '#9ca3af', borderDash: [5, 5], fill: false },
-                        { label: 'Actual Remaining', data: actualData, borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.2)', fill: true, tension: 0.1 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: {display: true, text: 'Story Points'} } } }
-            });
-        });
+        $('#btn-open-burndown').click(() => { openModal('modal-burndown'); const sd=appState.currentSprintData; if(!sd) return; const start=new Date(sd.startDate); const end=new Date(sd.endDate); const totalDays=Math.ceil((end-start)/(1000*60*60*24))+1; const labels=[],idealData=[],actualData=[]; let totalPoints=0; appState.sprintItems.forEach(i=>{if(i.type!=='PBI')totalPoints+=(parseInt(i.points)||0)}); const burnRate=totalPoints/(totalDays-1); for(let i=0;i<totalDays;i++){ const d=new Date(start); d.setDate(start.getDate()+i); labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'})); let ideal=totalPoints-(burnRate*i); idealData.push(ideal<0?0:ideal); let remaining=totalPoints; const checkTime=d.setHours(23,59,59,999); appState.sprintItems.forEach(item=>{if(item.status==='done'&&item.completedAt&&item.completedAt<=checkTime){remaining-=(parseInt(item.points)||0)}}); if(d<=new Date())actualData.push(remaining); } if(window.myChart)window.myChart.destroy(); const ctx=document.getElementById('burndownChart').getContext('2d'); window.myChart=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'Ideal Burn',data:idealData,borderColor:'#9ca3af',borderDash:[5,5],fill:false},{label:'Actual Remaining',data:actualData,borderColor:'#4f46e5',backgroundColor:'rgba(79,70,229,0.2)',fill:true,tension:0.1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,title:{display:true,text:'Story Points'}}}}}); });
 
         window.showAdminSub = (sub) => { $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${sub}`).removeClass('hidden'); $('.admin-nav-btn').removeClass('admin-nav-active'); $(`#admin-sub-btn-${sub}`).addClass('admin-nav-active'); }
         function loadAdminProjectsList() { db.collection('projects').onSnapshot(snap => { $('#admin-project-list').empty(); snap.forEach(doc => { const p=doc.data(); $('#admin-project-list').append(`<div class="p-3 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-500 transition group" onclick="loadProjectIntoForm('${doc.id}', '${p.name}', '${p.description||''}', '${p.scrumMaster||''}')"><div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-indigo-600">${p.name}</div><div class="text-xs text-gray-500 truncate">${p.description || 'No description'}</div></div>`); }); }); }
         function loadMastersForDropdown() { db.collection('users').where('role','in',['master','superadmin']).get().then(s => { $('#edit-project-master').empty().append('<option value="">-- Select Master --</option>'); s.forEach(d => $('#edit-project-master').append(`<option value="${d.id}">${d.data().displayName}</option>`)); }); }
         window.loadProjectIntoForm = (id, n, d, m) => { $('#edit-project-id').val(id); $('#edit-project-name').val(n); $('#edit-project-desc').val(d); $('#edit-project-master').val(m); $('#project-actions').removeClass('hidden'); $('#form-project-header').text("Edit Project Settings"); }
         window.resetProjectForm = () => { $('#edit-project-id').val(''); $('#edit-project-name').val(''); $('#edit-project-desc').val(''); $('#edit-project-master').val(''); $('#project-actions').addClass('hidden'); $('#form-project-header').text("Create New Project"); }
-        window.saveProjectConfig = async () => {
-            const id = $('#edit-project-id').val(); const data = { name: $('#edit-project-name').val(), description: $('#edit-project-desc').val(), scrumMaster: $('#edit-project-master').val() };
-            if(!data.name) return showToast("Name required", "error");
-            toggleLoader(true);
-            try { if(id) { await db.collection('projects').doc(id).update(data); showToast("Project updated"); } else { const ref = await db.collection('projects').add({...data, createdBy: appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)}); showToast("Project created"); } resetProjectForm(); } catch(e) { showToast(e.message, 'error'); } toggleLoader(false);
-        }
+        window.saveProjectConfig = async () => { const id = $('#edit-project-id').val(); const data = { name: $('#edit-project-name').val(), description: $('#edit-project-desc').val(), scrumMaster: $('#edit-project-master').val() }; if(!data.name) return showToast("Name required", "error"); toggleLoader(true); try { if(id) { await db.collection('projects').doc(id).update(data); showToast("Project updated"); } else { const ref = await db.collection('projects').add({...data, createdBy: appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)}); showToast("Project created"); } resetProjectForm(); } catch(e) { showToast(e.message, 'error'); } toggleLoader(false); }
         window.duplicateProject = async () => { const id=$('#edit-project-id').val(); if(!confirm("Duplicate project?")) return; toggleLoader(true); try{ const src=await db.collection('projects').doc(id).get(); const data=src.data(); const ref=await db.collection('projects').add({...data, name:data.name+" (Copy)", createdBy:appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects:firebase.firestore.FieldValue.arrayUnion(ref.id)}); showToast("Duplicated"); resetProjectForm(); }catch(e){showToast(e.message,'error')} toggleLoader(false); }
         window.deleteProject = async () => { const id=$('#edit-project-id').val(); if(prompt("Type DELETE to confirm:")!=="DELETE") return; toggleLoader(true); try{ await db.collection('projects').doc(id).delete(); const users=await db.collection('users').where('projects','array-contains',id).get(); const batch=db.batch(); users.forEach(u=>{ batch.update(u.ref,{projects:firebase.firestore.FieldValue.arrayRemove(id)}); }); await batch.commit(); showToast("Project deleted"); resetProjectForm(); loadProjects(); }catch(e){showToast(e.message,'error')} toggleLoader(false); }
         function loadUsers() { if(appState.user.role==='dev') return; db.collection('users').onSnapshot(snap => { $('#user-table-body').empty(); snap.forEach(doc => { const u=doc.data(); const canManage=appState.user.role==='superadmin'; let act='-'; if(canManage) act=`<button onclick="openAssignModal('${doc.id}')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-200">Manage Access</button>`; const roleSel=`<select onchange="changeRole('${doc.id}',this.value)" class="border rounded p-1 text-xs dark:bg-gray-700" ${appState.user.role!=='superadmin'?'disabled':''}><option value="dev" ${u.role==='dev'?'selected':''}>Dev</option><option value="master" ${u.role==='master'?'selected':''}>Master</option><option value="superadmin" ${u.role==='superadmin'?'selected':''}>Admin</option></select>`; const pNames=(u.projects||[]).map(pid=>{const p=appState.projects.find(x=>x.id===pid);return p?`<span class="bg-gray-200 dark:bg-gray-700 px-1 rounded text-xs mr-1">${p.name}</span>`:'';}).join(''); $('#user-table-body').append(`<tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"><div class="flex items-center gap-2"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=24" class="rounded-full"> ${u.displayName}</div></td><td class="p-4">${roleSel}</td><td class="p-4 overflow-hidden max-w-xs">${pNames}</td><td class="p-4 text-right">${act}</td></tr>`); }); }); }
-
         $('#btn-new-sprint-modal').click(() => { if(!appState.projectId) return showToast('Please select a project', 'error'); openModal('modal-sprint'); });
-        $('#btn-create-sprint').click(async ()=>{ 
-            if(!appState.projectId) return; const n=$('#new-sprint-name').val(); const g=$('#new-sprint-goal').val(); const s=$('#new-sprint-start').val(); const e=$('#new-sprint-end').val();
-            if(n && s && e){ try{ await db.collection('sprints').add({name:n, goal:g, startDate:s, endDate:e, projectId:appState.projectId, status:'active', createdAt:Date.now()}); closeModal('modal-sprint'); showToast('Sprint Created'); }catch(e){showToast(e.message,'error')} } else { showToast('Fill all fields','error'); }
-        });
+        $('#btn-create-sprint').click(async ()=>{ if(!appState.projectId) return; const n=$('#new-sprint-name').val(); const g=$('#new-sprint-goal').val(); const s=$('#new-sprint-start').val(); const e=$('#new-sprint-end').val(); if(n && s && e){ try{ await db.collection('sprints').add({name:n, goal:g, startDate:s, endDate:e, projectId:appState.projectId, status:'active', createdAt:Date.now()}); closeModal('modal-sprint'); showToast('Sprint Created'); }catch(e){showToast(e.message,'error')} } else { showToast('Fill all fields','error'); } });
         window.changeRole = (uid,r) => db.collection('users').doc(uid).update({role:r});
         window.openAssignModal = (uid) => { appState.pendingAssignUser = uid; openModal('modal-assign-project'); }
         $('#btn-confirm-assign').click(() => { const pid=$('#assign-project-dropdown').val(); if(pid&&appState.pendingAssignUser) { db.collection('users').doc(appState.pendingAssignUser).update({projects:firebase.firestore.FieldValue.arrayUnion(pid)}).then(()=>{ showToast('User Assigned'); closeModal('modal-assign-project'); }).catch(e=>showToast(e.message,'error')); } });
         window.updateItem = (id,d) => db.collection('items').doc(id).update(d);
         window.openItemModal = (t) => { if(!appState.projectId) return showToast('No Project','error'); const tit=prompt("Title:"); if(tit) db.collection('items').add({title:tit, type:t, status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); };
         
+        // MODAL LOGIC (UPDATED FOR ASSIGNEE UID)
         window.openDetailModal = (id) => { 
             appState.detailId=id; 
             db.collection('items').doc(id).onSnapshot(doc => { 
                 if(!doc.exists) return; const d=doc.data(); 
-                $('#detail-title').val(d.title); $('#detail-desc').val(d.description||''); $('#detail-points').val(d.points||0); $('#detail-assignee').val(d.assignee||''); 
+                $('#detail-title').val(d.title); $('#detail-desc').val(d.description||''); $('#detail-points').val(d.points||0); 
+                // Set Assignee if available, fallback to empty
+                const currentAssigneeUid = appState.projectUsers.find(u => u.name === d.assignee)?.uid;
+                $('#detail-assignee').val(currentAssigneeUid || ""); 
+                
                 $('#subtask-list').empty(); (d.subtasks||[]).forEach((t,i)=>$('#subtask-list').append(`<div class="flex items-center gap-2"><input type="checkbox" ${t.done?'checked':''} onchange="togSub(${i},${t.done})"> <span>${t.text}</span> <button onclick="delSub(${i})" class="text-red-500">&times;</button></div>`));
                 const $cl=$('#comments-list').empty(); const cmts=d.comments||[]; if(cmts.length===0)$cl.append('<div class="text-gray-400 text-xs text-center italic">No comments.</div>'); else cmts.forEach(c=>{ const isMe=c.uid===appState.user.uid; const align=isMe?'ml-auto bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100':'mr-auto bg-white border dark:bg-gray-700 dark:border-gray-600'; $cl.append(`<div class="w-fit max-w-[80%] ${align} p-2 rounded-lg shadow-sm"><div class="text-[10px] opacity-70 mb-0.5 font-bold flex justify-between gap-4"><span>${c.user}</span></div><div>${c.text}</div></div>`); });
                 openModal('modal-details'); 
             }); 
         }
-        $('#btn-save-details').click(()=>{ updateItem(appState.detailId,{title:$('#detail-title').val(), description:$('#detail-desc').val(), points:parseInt($('#detail-points').val()), assignee:$('#detail-assignee').val()}); closeModal('modal-details'); });
+        
+        $('#btn-save-details').click(async ()=>{ 
+            const newUid = $('#detail-assignee').val();
+            const newName = $('#detail-assignee option:selected').text();
+            
+            // Check if assignee changed for notification
+            const doc = await db.collection('items').doc(appState.detailId).get();
+            const oldAssignee = doc.data().assignee;
+            
+            const updates = { title:$('#detail-title').val(), description:$('#detail-desc').val(), points:parseInt($('#detail-points').val()), assignee: newUid ? newName : '' };
+            if(newUid) updates.assigneeUid = newUid;
+            
+            await updateItem(appState.detailId, updates);
+            
+            // Send Notification if changed
+            if(newUid && newName !== oldAssignee && newUid !== appState.user.uid) {
+                sendNotification(newUid, `You were assigned to task: ${updates.title}`);
+            }
+            closeModal('modal-details'); 
+        });
+
         $('#btn-delete-item').click(async () => { if(!appState.detailId) return; if(confirm('Are you sure you want to delete this item?')) { try { await db.collection('items').doc(appState.detailId).delete(); closeModal('modal-details'); showToast('Item Deleted'); } catch(e) { showToast('Permission denied', 'error'); } } });
         
-        window.addComment = () => { const t=$('#new-comment').val().trim(); if(!t) return; db.collection('items').doc(appState.detailId).update({comments:firebase.firestore.FieldValue.arrayUnion({text:t, user:appState.user.displayName, uid:appState.user.uid, at:Date.now()})}); $('#new-comment').val(''); };
+        window.addComment = async () => { 
+            const t=$('#new-comment').val().trim(); if(!t) return; 
+            await db.collection('items').doc(appState.detailId).update({comments:firebase.firestore.FieldValue.arrayUnion({text:t, user:appState.user.displayName, uid:appState.user.uid, at:Date.now()})}); 
+            $('#new-comment').val('');
+            
+            // Notify Assignee if it's not me
+            const doc = await db.collection('items').doc(appState.detailId).get();
+            const data = doc.data();
+            if(data.assigneeUid && data.assigneeUid !== appState.user.uid) {
+                sendNotification(data.assigneeUid, `${appState.user.displayName} commented on: ${data.title}`);
+            }
+        };
+
         window.addSubtask=()=>{ const t=$('#new-subtask').val(); if(t) db.collection('items').doc(appState.detailId).update({subtasks:firebase.firestore.FieldValue.arrayUnion({text:t,done:false})}); };
         window.togSub=async(i,o)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s[i].done=!o; updateItem(appState.detailId,{subtasks:s}); };
         window.delSub=async(i)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s.splice(i,1); updateItem(appState.detailId,{subtasks:s}); };
         
+        // NOTIFICATIONS
+        function listenForNotifications() {
+            if(!appState.user) return;
+            db.collection('notifications').where('recipientId','==',appState.user.uid).orderBy('createdAt','desc').limit(10).onSnapshot(snap => {
+                const $list = $('#notif-list').empty();
+                let unread = 0;
+                if(snap.empty) { $list.append('<div class="p-4 text-sm text-gray-500 text-center">No notifications</div>'); }
+                else {
+                    snap.forEach(d => {
+                        const n = d.data();
+                        if(!n.read) unread++;
+                        const bg = n.read ? 'bg-white dark:bg-darkcard' : 'bg-indigo-50 dark:bg-indigo-900/20';
+                        $list.append(`<div onclick="markRead('${d.id}')" class="p-3 border-b dark:border-gray-700 cursor-pointer ${bg} hover:bg-gray-50 dark:hover:bg-gray-700"><div class="text-sm">${n.message}</div><div class="text-[10px] text-gray-400 mt-1">${new Date(n.createdAt).toLocaleTimeString()}</div></div>`);
+                    });
+                }
+                if(unread > 0) { $('#notif-dot').removeClass('hidden'); } else { $('#notif-dot').addClass('hidden'); }
+            });
+        }
+        
+        window.sendNotification = (uid, msg) => {
+            db.collection('notifications').add({ recipientId: uid, message: msg, read: false, createdAt: Date.now(), sender: appState.user.displayName });
+        }
+        
+        window.markRead = (id) => db.collection('notifications').doc(id).update({read:true});
+        window.markAllRead = async () => {
+            const snap = await db.collection('notifications').where('recipientId','==',appState.user.uid).where('read','==',false).get();
+            const batch = db.batch(); snap.forEach(d => batch.update(d.ref, {read:true})); await batch.commit();
+        }
+        
+        $('#btn-notifs').click((e) => { e.stopPropagation(); $('#notif-dropdown').toggleClass('hidden'); });
+        $(document).click(() => $('#notif-dropdown').addClass('hidden'));
+        $('#notif-dropdown').click((e) => e.stopPropagation());
+
         function loadRetro(){ db.collection('retro').where('projectId','==',appState.projectId).onSnapshot(s=>{ $('#retro-start, #retro-stop, #retro-continue').empty(); s.forEach(d=>{ 
             const dd=d.data(); const voters=dd.votedBy||[]; const iVoted=voters.includes(appState.user.uid); const voteColor=iVoted?'text-indigo-600 font-bold bg-indigo-50':'text-gray-400 hover:text-indigo-500'; const voteIcon=iVoted?'fa-solid fa-thumbs-up':'fa-regular fa-thumbs-up';
             const isMine=appState.user.uid===dd.uid; const canDel=isMine||appState.user.role!=='dev'; const delBtn=canDel?`<button onclick="deleteRetro('${d.id}')" class="text-gray-300 hover:text-red-500 transition px-2"><i class="fa-solid fa-times"></i></button>`:'';
@@ -392,7 +405,20 @@
         window.deleteRetro=(id)=>{ if(confirm("Delete note?")) db.collection('retro').doc(id).delete(); };
         window.addRetro=(t)=>{ const txt=$(`#input-retro-${t}`).val().trim(); const anon=$('#retro-anon').is(':checked'); if(!txt)return; db.collection('retro').add({projectId:appState.projectId, type:t, text:txt, uid:anon?'anonymous':appState.user.uid, votedBy:[], createdAt:Date.now()}); $(`#input-retro-${t}`).val(''); };
         window.promoteToTask=(t)=>{ if(confirm("Promote to Backlog?")) db.collection('items').add({title:t, type:'PBI', status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); showToast("Promoted"); };
-        function loadProjectUsers(){ db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); s.forEach(d=>$('#detail-assignee').append(`<option value="${d.data().displayName}">${d.data().displayName}</option>`)); }); }
+        
+        // LOAD USERS AND CACHE FOR DROPDOWNS
+        function loadProjectUsers(){ 
+            db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ 
+                $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); 
+                appState.projectUsers = [];
+                s.forEach(d=>{ 
+                    const u = d.data();
+                    appState.projectUsers.push({uid: d.id, name: u.displayName});
+                    $('#detail-assignee').append(`<option value="${d.id}">${u.displayName}</option>`); 
+                }); 
+            }); 
+        }
+        
         window.switchTab = (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600'); $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600'); if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); } };
         $('#theme-toggle').click(()=>{$('html').toggleClass('dark');});
     </script>
