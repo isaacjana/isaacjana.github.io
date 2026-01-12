@@ -12,12 +12,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script>
-        // DARK MODE INIT (Prevents FOUC)
+        // DARK MODE INIT
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -49,9 +52,17 @@
         .retro-card { transition: all 0.2s; }
         .retro-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         .notif-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; border: 2px solid white; }
-        /* Dark mode inputs override */
         .dark input, .dark select, .dark textarea { background-color: #334155; color: white; border-color: #475569; }
         .dark input::placeholder, .dark textarea::placeholder { color: #94a3b8; }
+        
+        /* QUILL DARK MODE OVERRIDES */
+        .dark .ql-toolbar { background-color: #334155; border-color: #475569; color: #e2e8f0; }
+        .dark .ql-container { background-color: #1e293b; border-color: #475569; color: #e2e8f0; }
+        .dark .ql-stroke { stroke: #e2e8f0 !important; }
+        .dark .ql-fill { fill: #e2e8f0 !important; }
+        .dark .ql-picker { color: #e2e8f0 !important; }
+        .dark .ql-picker-options { background-color: #334155 !important; border-color: #475569 !important; }
+        .ql-editor { min-height: 150px; font-size: 0.95rem; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-darkbg text-gray-800 dark:text-gray-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
@@ -132,13 +143,11 @@
                     <button id="btn-complete-sprint" class="role-master hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 shadow-sm transition"><i class="fa-solid fa-flag-checkered"></i> Complete</button>
                 </div>
             </div>
-            
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div class="lg:col-span-1 bg-white dark:bg-darkcard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden">
                     <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50"><h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog</h2><button onclick="openItemModal('PBI')" class="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 w-8 h-8 rounded-lg flex items-center justify-center transition"><i class="fa-solid fa-plus"></i></button></div>
                     <div id="pbi-list" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-darkbg/20 custom-scroll"></div>
                 </div>
-                
                 <div class="lg:col-span-3 h-full overflow-hidden" id="kanban-area"></div>
             </div>
         </div>
@@ -192,8 +201,13 @@
     </main>
 
     <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><input id="detail-title" class="text-2xl font-bold w-full bg-transparent border-none focus:ring-0 dark:text-white"><button onclick="closeModal('modal-details')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-3 gap-6">
-        <div class="col-span-2 space-y-4"><textarea id="detail-desc" class="w-full border p-3 rounded-xl h-32 dark:bg-darkbg dark:border-gray-600" placeholder="Description..."></textarea><div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"><div id="subtask-list" class="space-y-2 mb-2"></div><div class="flex gap-2"><input id="new-subtask" class="flex-grow border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600" placeholder="New subtask..."><button onclick="addSubtask()" class="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 px-3 rounded-lg">+</button></div></div>
-        <div class="mt-4 border-t pt-4 dark:border-gray-700"><h4 class="font-bold text-sm text-gray-500 dark:text-gray-400 mb-2">Comments</h4><div id="comments-list" class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl max-h-48 overflow-y-auto mb-2 space-y-2 text-sm custom-scroll"></div><div class="flex gap-2"><input id="new-comment" class="flex-grow border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 text-sm" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment()"><button onclick="addComment()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button></div></div></div>
+        <div class="col-span-2 space-y-4">
+            <div class="h-48 mb-6 border rounded-xl overflow-hidden dark:border-gray-600">
+                <div id="quill-editor" class="h-full bg-white dark:bg-darkbg text-gray-800 dark:text-gray-200"></div>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"><div id="subtask-list" class="space-y-2 mb-2"></div><div class="flex gap-2"><input id="new-subtask" class="flex-grow border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600" placeholder="New subtask..."><button onclick="addSubtask()" class="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 px-3 rounded-lg">+</button></div></div>
+            <div class="mt-4 border-t pt-4 dark:border-gray-700"><h4 class="font-bold text-sm text-gray-500 dark:text-gray-400 mb-2">Comments</h4><div id="comments-list" class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl max-h-48 overflow-y-auto mb-2 space-y-2 text-sm custom-scroll"></div><div class="flex gap-2"><input id="new-comment" class="flex-grow border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 text-sm" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment()"><button onclick="addComment()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button></div></div></div>
         <div class="col-span-1 space-y-4"><select id="detail-assignee" class="w-full border p-2 rounded-xl dark:bg-darkbg dark:border-gray-600"></select><input id="detail-points" type="number" class="w-full border p-2 rounded-xl dark:bg-darkbg dark:border-gray-600" placeholder="Points"><button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2 rounded-xl">Save</button><button id="btn-delete-item" class="w-full border border-red-200 dark:border-red-900/30 text-red-500 dark:text-red-400 py-2 rounded-xl hidden role-master mt-2">Delete</button></div></div></div></div>
     
     <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500"><h3 class="text-xl font-bold mb-4 text-green-600">Definition of Done</h3><div class="space-y-4 mb-8"><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Code Reviewed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Tests Passed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> QA Verified</label></div><div class="flex justify-end gap-3"><button onclick="closeModal('modal-dod')" class="px-5 py-2 text-gray-500 dark:text-gray-400">Cancel</button><button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg opacity-50" disabled>Confirm Move</button></div></div></div>
@@ -215,6 +229,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
         const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null, projectUsers: [], sprintDataMap: {} };
+        var quill; // Global Quill instance
 
         function showToast(msg, type='success') { const color=type==='error'?'bg-red-500':'bg-green-600'; const id=Date.now(); $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-lg shadow-lg flex gap-3"><i class="fa-solid fa-circle-info mt-1"></i> ${msg}</div>`); setTimeout(()=>$(`#t-${id}`).removeClass('toast-enter').addClass('toast-enter-active'),10); setTimeout(()=>$(`#t-${id}`).remove(),3000); }
         function toggleLoader(s) { s ? $('#global-loader').removeClass('hidden') : $('#global-loader').addClass('hidden'); }
@@ -236,6 +251,9 @@
         });
 
         async function initApp() { 
+            // INIT QUILL
+            quill = new Quill('#quill-editor', { theme: 'snow', modules: { toolbar: [['bold', 'italic', 'underline', 'strike'], [{'list':'ordered'}, {'list':'bullet'}], ['clean']] } });
+
             switchTab('board'); await loadProjects(); 
             $('#project-select').change(function(){ appState.projectId=$(this).val(); handleProjectChange(); }); 
             $('#tab-btn-admin').click(() => { showAdminSub('users'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); });
@@ -401,11 +419,16 @@
         window.updateItem = (id,d) => db.collection('items').doc(id).update(d);
         window.openItemModal = (t) => { if(!appState.projectId) return showToast('No Project','error'); const tit=prompt("Title:"); if(tit) db.collection('items').add({title:tit, type:t, status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); };
         
+        // MODAL LOGIC WITH QUILL
         window.openDetailModal = (id) => { 
             appState.detailId=id; 
             db.collection('items').doc(id).onSnapshot(doc => { 
                 if(!doc.exists) return; const d=doc.data(); 
-                $('#detail-title').val(d.title); $('#detail-desc').val(d.description||''); $('#detail-points').val(d.points||0); 
+                $('#detail-title').val(d.title); 
+                // Set Quill content
+                quill.root.innerHTML = d.description || '';
+                
+                $('#detail-points').val(d.points||0); 
                 const currentAssigneeUid = appState.projectUsers.find(u => u.name === d.assignee)?.uid; $('#detail-assignee').val(currentAssigneeUid || ""); 
                 $('#subtask-list').empty(); (d.subtasks||[]).forEach((t,i)=>$('#subtask-list').append(`<div class="flex items-center gap-2"><input type="checkbox" ${t.done?'checked':''} onchange="togSub(${i},${t.done})"> <span>${t.text}</span> <button onclick="delSub(${i})" class="text-red-500">&times;</button></div>`));
                 const $cl=$('#comments-list').empty(); const cmts=d.comments||[]; if(cmts.length===0)$cl.append('<div class="text-gray-400 text-xs text-center italic">No comments.</div>'); else cmts.forEach(c=>{ const isMe=c.uid===appState.user.uid; const align=isMe?'ml-auto bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100':'mr-auto bg-white border dark:bg-gray-700 dark:border-gray-600'; $cl.append(`<div class="w-fit max-w-[80%] ${align} p-2 rounded-lg shadow-sm"><div class="text-[10px] opacity-70 mb-0.5 font-bold flex justify-between gap-4"><span>${c.user}</span></div><div>${c.text}</div></div>`); });
@@ -415,7 +438,9 @@
         $('#btn-save-details').click(async ()=>{ 
             const newUid = $('#detail-assignee').val(); const newName = $('#detail-assignee option:selected').text();
             const doc = await db.collection('items').doc(appState.detailId).get(); const oldAssignee = doc.data().assignee;
-            const updates = { title:$('#detail-title').val(), description:$('#detail-desc').val(), points:parseInt($('#detail-points').val()), assignee: newUid ? newName : '' }; if(newUid) updates.assigneeUid = newUid;
+            // Get Quill content
+            const desc = quill.root.innerHTML;
+            const updates = { title:$('#detail-title').val(), description:desc, points:parseInt($('#detail-points').val()), assignee: newUid ? newName : '' }; if(newUid) updates.assigneeUid = newUid;
             await updateItem(appState.detailId, updates);
             if(newUid && newName !== oldAssignee && newUid !== appState.user.uid) { sendNotification(newUid, `You were assigned to task: ${updates.title}`); }
             closeModal('modal-details'); 
@@ -474,7 +499,6 @@
         
         window.switchTab = (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600'); $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600'); if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); } };
         
-        // DARK MODE TOGGLE & SAVE
         $('#theme-toggle').click(()=> {
             if(document.documentElement.classList.contains('dark')) {
                 document.documentElement.classList.remove('dark');
