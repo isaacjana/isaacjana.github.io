@@ -358,16 +358,46 @@
         // --- ACTIONS ---
         $('#btn-create-project').click(async ()=>{ const n=$('#new-project-name').val(); if(n){ const ref=await db.collection('projects').add({name:n, createdBy:appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects:firebase.firestore.FieldValue.arrayUnion(ref.id)}); location.reload(); }});
         
-        // FIX: SPRINT CREATION
-        $('#btn-create-sprint').click(async ()=>{ 
-            if(!appState.projectId) return showToast('Select a project first', 'error');
-            const n=$('#new-sprint-name').val(); 
-            if(n){ 
-                try {
-                    await db.collection('sprints').add({name:n, projectId:appState.projectId, status:'active', createdAt:Date.now()}); 
-                    closeModal('modal-sprint');
-                    showToast('Sprint Created');
-                } catch(e) { showToast('Error: '+e.message, 'error'); }
+        // --- SPRINT CREATION LOGIC ---
+
+        // Open Modal
+        $('#btn-new-sprint-modal').click(() => {
+            if(!appState.projectId) {
+                showToast('Please create or select a project first.', 'error');
+                return;
+            }
+            openModal('modal-sprint');
+        });
+
+        // Create Sprint Action
+        $('#btn-create-sprint').click(async () => { 
+            const name = $('#new-sprint-name').val().trim(); 
+            
+            // Validation
+            if (!name) return showToast('Sprint name is required', 'error');
+            if (!appState.projectId) return showToast('No Project Selected', 'error');
+
+            // UI Feedback
+            const btn = $('#btn-create-sprint');
+            const originalText = btn.text();
+            btn.text('Creating...').prop('disabled', true);
+
+            try {
+                await db.collection('sprints').add({
+                    name: name, 
+                    projectId: appState.projectId, 
+                    status: 'active', 
+                    createdAt: Date.now()
+                }); 
+                
+                closeModal('modal-sprint');
+                $('#new-sprint-name').val(''); // Clear input
+                showToast('Sprint Created Successfully!');
+            } catch(e) { 
+                console.error("Sprint Create Error:", e);
+                showToast('Error: ' + e.message, 'error'); 
+            } finally {
+                btn.text(originalText).prop('disabled', false);
             }
         });
 
