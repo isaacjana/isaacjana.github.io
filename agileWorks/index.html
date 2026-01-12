@@ -17,11 +17,18 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script>
+        // DARK MODE INIT (Prevents FOUC)
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
         tailwind.config = {
             darkMode: 'class',
             theme: { 
                 extend: { 
-                    colors: { darkbg: '#0f172a', darkcard: '#1e293b' },
+                    colors: { darkbg: '#0f172a', darkcard: '#1e293b', darkborder: '#334155' },
                     fontFamily: { sans: ['Inter', 'sans-serif'] }
                 } 
             }
@@ -42,6 +49,9 @@
         .retro-card { transition: all 0.2s; }
         .retro-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         .notif-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; border: 2px solid white; }
+        /* Dark mode inputs override */
+        .dark input, .dark select, .dark textarea { background-color: #334155; color: white; border-color: #475569; }
+        .dark input::placeholder, .dark textarea::placeholder { color: #94a3b8; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-darkbg text-gray-800 dark:text-gray-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
@@ -65,7 +75,7 @@
                 <div class="flex items-center gap-6">
                     <div class="flex items-center gap-2"><i class="fa-solid fa-layer-group text-indigo-600 text-2xl"></i><span class="font-bold text-xl hidden sm:block">AgileWorks</span></div>
                     <div class="relative group">
-                        <select id="project-select" class="bg-gray-100 dark:bg-gray-800 border-none rounded-lg py-2 pl-4 pr-8 text-sm font-bold focus:ring-2 focus:ring-indigo-500 w-48 lg:w-64 appearance-none cursor-pointer"><option value="">Loading Projects...</option></select>
+                        <select id="project-select" class="bg-gray-100 dark:bg-darkbg border-none rounded-lg py-2 pl-4 pr-8 text-sm font-bold focus:ring-2 focus:ring-indigo-500 w-48 lg:w-64 appearance-none cursor-pointer"><option value="">Loading Projects...</option></select>
                         <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-gray-400 text-xs pointer-events-none"></i>
                     </div>
                     <div class="hidden md:flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg ml-4">
@@ -76,18 +86,18 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="relative">
-                        <button id="btn-notifs" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition relative">
+                        <button id="btn-notifs" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition relative">
                             <i class="fa-solid fa-bell"></i>
                             <div id="notif-dot" class="notif-dot hidden"></div>
                         </button>
                         <div id="notif-dropdown" class="absolute right-0 top-12 w-80 bg-white dark:bg-darkcard border dark:border-gray-700 shadow-xl rounded-xl hidden z-50 overflow-hidden">
-                            <div class="p-3 border-b dark:border-gray-700 font-bold text-sm flex justify-between"><span>Notifications</span><button onclick="markAllRead()" class="text-xs text-indigo-600">Mark all read</button></div>
+                            <div class="p-3 border-b dark:border-gray-700 font-bold text-sm flex justify-between bg-gray-50 dark:bg-darkbg"><span>Notifications</span><button onclick="markAllRead()" class="text-xs text-indigo-600 dark:text-indigo-400">Mark all read</button></div>
                             <div id="notif-list" class="max-h-80 overflow-y-auto"></div>
                         </div>
                     </div>
-                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition"><i class="fa-solid fa-moon"></i></button>
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition"><i class="fa-solid fa-moon"></i></button>
                     <div class="text-right hidden sm:block"><div id="user-display" class="text-sm font-bold leading-tight">User</div><div id="role-badge" class="text-[10px] uppercase tracking-wider text-white px-2 py-0.5 rounded-full inline-block bg-gray-400">Loading...</div></div>
-                    <button id="btn-logout" class="text-red-500 hover:bg-red-50 p-2 rounded transition"><i class="fa-solid fa-power-off"></i></button>
+                    <button id="btn-logout" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded transition"><i class="fa-solid fa-power-off"></i></button>
                 </div>
             </div>
         </div>
@@ -102,22 +112,22 @@
         </div>
 
         <div id="view-board" class="view-section flex flex-col h-full gap-4">
-            <div id="sprint-info-banner" class="hidden bg-indigo-600 text-white p-3 rounded-xl shadow-md flex justify-between items-center text-sm shrink-0">
+            <div id="sprint-info-banner" class="hidden bg-indigo-600 dark:bg-indigo-700 text-white p-3 rounded-xl shadow-md flex justify-between items-center text-sm shrink-0">
                 <div class="flex items-center gap-3"><span class="bg-indigo-500 px-2 py-1 rounded text-xs uppercase font-bold tracking-wider">Sprint Goal</span><span id="banner-goal" class="font-medium italic">...</span></div>
-                <div class="flex items-center gap-4"><div class="flex items-center gap-2 text-indigo-200"><i class="fa-regular fa-calendar"></i> <span id="banner-dates">...</span></div><div class="bg-white text-indigo-600 px-3 py-1 rounded-lg font-bold shadow-sm"><i class="fa-solid fa-clock mr-1"></i> <span id="banner-days">0</span> Days Left</div></div>
+                <div class="flex items-center gap-4"><div class="flex items-center gap-2 text-indigo-200"><i class="fa-regular fa-calendar"></i> <span id="banner-dates">...</span></div><div class="bg-white dark:bg-darkbg text-indigo-600 px-3 py-1 rounded-lg font-bold shadow-sm"><i class="fa-solid fa-clock mr-1"></i> <span id="banner-days">0</span> Days Left</div></div>
             </div>
             <div class="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 shrink-0 gap-4">
                 <div class="flex items-center gap-4 w-full md:w-auto">
-                    <select id="sprint-select" class="w-full md:w-64 pl-4 pr-8 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm font-bold focus:ring-2 focus:ring-indigo-500 appearance-none bg-white cursor-pointer"><option>Loading...</option></select>
-                    <button id="btn-new-sprint-modal" class="role-master hidden bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap hover:bg-indigo-100 transition">+ Sprint</button>
-                    <select id="view-mode" class="border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500">
+                    <select id="sprint-select" class="w-full md:w-64 pl-4 pr-8 py-2 border rounded-lg dark:bg-darkbg dark:border-gray-600 text-sm font-bold focus:ring-2 focus:ring-indigo-500 appearance-none bg-white cursor-pointer"><option>Loading...</option></select>
+                    <button id="btn-new-sprint-modal" class="role-master hidden bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap hover:bg-indigo-100 transition">+ Sprint</button>
+                    <select id="view-mode" class="border rounded-lg px-3 py-2 text-sm dark:bg-darkbg dark:border-gray-600 focus:ring-2 focus:ring-indigo-500">
                         <option value="standard">Standard View</option>
                         <option value="swimlane">Swimlanes by Assignee</option>
                     </select>
-                    <input id="board-search" type="text" placeholder="Filter..." class="border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 w-32 focus:w-48 transition-all">
+                    <input id="board-search" type="text" placeholder="Filter..." class="border rounded-lg px-3 py-2 text-sm dark:bg-darkbg dark:border-gray-600 w-32 focus:w-48 transition-all">
                 </div>
                 <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-                    <button id="btn-open-burndown" class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg text-sm hover:bg-indigo-100 shadow-sm transition hidden role-master"><i class="fa-solid fa-chart-line"></i> Chart</button>
+                    <button id="btn-open-burndown" class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-4 py-2 rounded-lg text-sm hover:bg-indigo-100 shadow-sm transition hidden role-master"><i class="fa-solid fa-chart-line"></i> Chart</button>
                     <button id="btn-export-excel" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Export</button>
                     <button id="btn-complete-sprint" class="role-master hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 shadow-sm transition"><i class="fa-solid fa-flag-checkered"></i> Complete</button>
                 </div>
@@ -125,12 +135,11 @@
             
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div class="lg:col-span-1 bg-white dark:bg-darkcard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50"><h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog</h2><button onclick="openItemModal('PBI')" class="text-indigo-600 hover:bg-indigo-100 w-8 h-8 rounded-lg flex items-center justify-center transition"><i class="fa-solid fa-plus"></i></button></div>
+                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50"><h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog</h2><button onclick="openItemModal('PBI')" class="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 w-8 h-8 rounded-lg flex items-center justify-center transition"><i class="fa-solid fa-plus"></i></button></div>
                     <div id="pbi-list" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-darkbg/20 custom-scroll"></div>
                 </div>
                 
-                <div class="lg:col-span-3 h-full overflow-hidden" id="kanban-area">
-                    </div>
+                <div class="lg:col-span-3 h-full overflow-hidden" id="kanban-area"></div>
             </div>
         </div>
 
@@ -140,9 +149,9 @@
                 <div class="flex items-center gap-2"><label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"><input type="checkbox" id="retro-anon" class="rounded text-indigo-600"><span>Post Anonymously</span></label></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-[90%] overflow-hidden">
-                <div class="bg-green-50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100 dark:border-green-900/30 flex flex-col h-full"><div class="flex items-center gap-2 mb-3 text-green-700 dark:text-green-400 font-bold"><i class="fa-solid fa-play-circle"></i> <h3>Start Doing</h3></div><div class="mb-3"><input id="input-retro-start" onkeypress="if(event.key==='Enter') addRetro('start')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-green-400 dark:bg-gray-800 dark:text-white text-sm"></div><div id="retro-start" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div></div>
-                <div class="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 flex flex-col h-full"><div class="flex items-center gap-2 mb-3 text-red-700 dark:text-red-400 font-bold"><i class="fa-solid fa-stop-circle"></i> <h3>Stop Doing</h3></div><div class="mb-3"><input id="input-retro-stop" onkeypress="if(event.key==='Enter') addRetro('stop')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-red-400 dark:bg-gray-800 dark:text-white text-sm"></div><div id="retro-stop" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div></div>
-                <div class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 flex flex-col h-full"><div class="flex items-center gap-2 mb-3 text-blue-700 dark:text-blue-400 font-bold"><i class="fa-solid fa-forward"></i> <h3>Continue Doing</h3></div><div class="mb-3"><input id="input-retro-continue" onkeypress="if(event.key==='Enter') addRetro('continue')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-blue-400 dark:bg-gray-800 dark:text-white text-sm"></div><div id="retro-continue" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div></div>
+                <div class="bg-green-50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100 dark:border-green-900/30 flex flex-col h-full"><div class="flex items-center gap-2 mb-3 text-green-700 dark:text-green-400 font-bold"><i class="fa-solid fa-play-circle"></i> <h3>Start Doing</h3></div><div class="mb-3"><input id="input-retro-start" onkeypress="if(event.key==='Enter') addRetro('start')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-green-400 dark:bg-darkbg dark:text-white text-sm"></div><div id="retro-start" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div></div>
+                <div class="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 flex flex-col h-full"><div class="flex items-center gap-2 mb-3 text-red-700 dark:text-red-400 font-bold"><i class="fa-solid fa-stop-circle"></i> <h3>Stop Doing</h3></div><div class="mb-3"><input id="input-retro-stop" onkeypress="if(event.key==='Enter') addRetro('stop')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-red-400 dark:bg-darkbg dark:text-white text-sm"></div><div id="retro-stop" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div></div>
+                <div class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 flex flex-col h-full"><div class="flex items-center gap-2 mb-3 text-blue-700 dark:text-blue-400 font-bold"><i class="fa-solid fa-forward"></i> <h3>Continue Doing</h3></div><div class="mb-3"><input id="input-retro-continue" onkeypress="if(event.key==='Enter') addRetro('continue')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-blue-400 dark:bg-darkbg dark:text-white text-sm"></div><div id="retro-continue" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div></div>
             </div>
         </div>
 
@@ -156,46 +165,46 @@
             <div class="flex-grow p-8 overflow-y-auto bg-gray-50/50 dark:bg-darkbg/50">
                 <div id="admin-sub-users" class="admin-sub-view">
                     <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">User Access Management</h3>
-                    <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-gray-100 dark:bg-gray-700/50 uppercase text-xs font-bold text-gray-500"><tr><th class="p-4">User Details</th><th class="p-4">Role</th><th class="p-4">Assigned Projects</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="user-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
+                    <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-gray-100 dark:bg-gray-700/50 uppercase text-xs font-bold text-gray-500 dark:text-gray-400"><tr><th class="p-4">User Details</th><th class="p-4">Role</th><th class="p-4">Assigned Projects</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="user-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
                 </div>
                 <div id="admin-sub-projects" class="admin-sub-view hidden">
                     <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Project Management</h3>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="bg-white dark:bg-darkcard border rounded-xl overflow-hidden dark:border-gray-700 h-[600px] flex flex-col shadow-sm"><div class="bg-gray-50 dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center"><span class="font-bold text-sm uppercase text-gray-500">Active Projects</span><button onclick="resetProjectForm()" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700 transition"><i class="fa-solid fa-plus"></i> New</button></div><div id="admin-project-list" class="overflow-y-auto flex-grow p-3 space-y-2"></div></div>
+                        <div class="bg-white dark:bg-darkcard border rounded-xl overflow-hidden dark:border-gray-700 h-[600px] flex flex-col shadow-sm"><div class="bg-gray-50 dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center"><span class="font-bold text-sm uppercase text-gray-500 dark:text-gray-400">Active Projects</span><button onclick="resetProjectForm()" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700 transition"><i class="fa-solid fa-plus"></i> New</button></div><div id="admin-project-list" class="overflow-y-auto flex-grow p-3 space-y-2"></div></div>
                         <div class="bg-white dark:bg-darkcard p-6 border rounded-xl dark:border-gray-700 h-fit shadow-sm sticky top-0">
-                            <h4 class="font-bold text-lg mb-6 text-indigo-600 border-b pb-2 dark:border-gray-700" id="form-project-header">Create New Project</h4><input type="hidden" id="edit-project-id">
+                            <h4 class="font-bold text-lg mb-6 text-indigo-600 dark:text-indigo-400 border-b pb-2 dark:border-gray-700" id="form-project-header">Create New Project</h4><input type="hidden" id="edit-project-id">
                             <div class="space-y-5">
-                                <div><label class="block text-xs font-bold uppercase text-gray-500 mb-1">Project Name</label><input id="edit-project-name" class="w-full border p-2.5 rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Website Redesign"></div>
-                                <div><label class="block text-xs font-bold uppercase text-gray-500 mb-1">Description</label><textarea id="edit-project-desc" class="w-full border p-2.5 rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 h-24" placeholder="Scope and goals..."></textarea></div>
-                                <div><label class="block text-xs font-bold uppercase text-gray-500 mb-1">Assigned Scrum Master</label><select id="edit-project-master" class="w-full border p-2.5 rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500"><option value="">-- Select Master --</option></select></div>
+                                <div><label class="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">Project Name</label><input id="edit-project-name" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600 focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Website Redesign"></div>
+                                <div><label class="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">Description</label><textarea id="edit-project-desc" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 h-24" placeholder="Scope and goals..."></textarea></div>
+                                <div><label class="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">Assigned Scrum Master</label><select id="edit-project-master" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600 focus:ring-2 focus:ring-indigo-500"><option value="">-- Select Master --</option></select></div>
                                 <div class="pt-4 flex gap-2"><button onclick="saveProjectConfig()" class="bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 flex-grow font-bold shadow-md transition">Save Configuration</button></div>
-                                <div id="project-actions" class="hidden grid grid-cols-2 gap-3 mt-4 pt-4 border-t dark:border-gray-700"><button onclick="duplicateProject()" class="border border-indigo-200 text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-50 text-xs font-bold transition flex items-center justify-center gap-2"><i class="fa-solid fa-copy"></i> Duplicate</button><button onclick="deleteProject()" class="border border-red-200 text-red-500 px-3 py-2 rounded-lg hover:bg-red-50 text-xs font-bold transition flex items-center justify-center gap-2"><i class="fa-solid fa-trash"></i> Delete</button></div>
+                                <div id="project-actions" class="hidden grid grid-cols-2 gap-3 mt-4 pt-4 border-t dark:border-gray-700"><button onclick="duplicateProject()" class="border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-xs font-bold transition flex items-center justify-center gap-2"><i class="fa-solid fa-copy"></i> Duplicate</button><button onclick="deleteProject()" class="border border-red-200 dark:border-red-900/30 text-red-500 dark:text-red-400 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-xs font-bold transition flex items-center justify-center gap-2"><i class="fa-solid fa-trash"></i> Delete</button></div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div id="admin-sub-analytics" class="admin-sub-view hidden">
                     <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Team Velocity</h3>
-                    <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow-sm border dark:border-gray-700 h-[500px]"><canvas id="velocityChart"></canvas></div><p class="mt-4 text-sm text-gray-500 text-center">Comparing completed story points across the last 5 sprints.</p>
+                    <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow-sm border dark:border-gray-700 h-[500px]"><canvas id="velocityChart"></canvas></div><p class="mt-4 text-sm text-gray-500 dark:text-gray-400 text-center">Comparing completed story points across the last 5 sprints.</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><input id="detail-title" class="text-2xl font-bold w-full bg-transparent border-none focus:ring-0"><button onclick="closeModal('modal-details')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-3 gap-6">
-        <div class="col-span-2 space-y-4"><textarea id="detail-desc" class="w-full border p-3 rounded-xl h-32 dark:bg-gray-700" placeholder="Description..."></textarea><div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"><div id="subtask-list" class="space-y-2 mb-2"></div><div class="flex gap-2"><input id="new-subtask" class="flex-grow border p-2 rounded-lg dark:bg-gray-700" placeholder="New subtask..."><button onclick="addSubtask()" class="bg-indigo-100 text-indigo-600 px-3 rounded-lg">+</button></div></div>
-        <div class="mt-4 border-t pt-4 dark:border-gray-700"><h4 class="font-bold text-sm text-gray-500 mb-2">Comments</h4><div id="comments-list" class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl max-h-48 overflow-y-auto mb-2 space-y-2 text-sm custom-scroll"></div><div class="flex gap-2"><input id="new-comment" class="flex-grow border p-2 rounded-lg dark:bg-gray-700 text-sm" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment()"><button onclick="addComment()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button></div></div></div>
-        <div class="col-span-1 space-y-4"><select id="detail-assignee" class="w-full border p-2 rounded-xl dark:bg-gray-700"></select><input id="detail-points" type="number" class="w-full border p-2 rounded-xl dark:bg-gray-700" placeholder="Points"><button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2 rounded-xl">Save</button><button id="btn-delete-item" class="w-full border border-red-200 text-red-500 py-2 rounded-xl hidden role-master mt-2">Delete</button></div></div></div></div>
+    <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><input id="detail-title" class="text-2xl font-bold w-full bg-transparent border-none focus:ring-0 dark:text-white"><button onclick="closeModal('modal-details')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-3 gap-6">
+        <div class="col-span-2 space-y-4"><textarea id="detail-desc" class="w-full border p-3 rounded-xl h-32 dark:bg-darkbg dark:border-gray-600" placeholder="Description..."></textarea><div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"><div id="subtask-list" class="space-y-2 mb-2"></div><div class="flex gap-2"><input id="new-subtask" class="flex-grow border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600" placeholder="New subtask..."><button onclick="addSubtask()" class="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 px-3 rounded-lg">+</button></div></div>
+        <div class="mt-4 border-t pt-4 dark:border-gray-700"><h4 class="font-bold text-sm text-gray-500 dark:text-gray-400 mb-2">Comments</h4><div id="comments-list" class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl max-h-48 overflow-y-auto mb-2 space-y-2 text-sm custom-scroll"></div><div class="flex gap-2"><input id="new-comment" class="flex-grow border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 text-sm" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment()"><button onclick="addComment()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button></div></div></div>
+        <div class="col-span-1 space-y-4"><select id="detail-assignee" class="w-full border p-2 rounded-xl dark:bg-darkbg dark:border-gray-600"></select><input id="detail-points" type="number" class="w-full border p-2 rounded-xl dark:bg-darkbg dark:border-gray-600" placeholder="Points"><button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2 rounded-xl">Save</button><button id="btn-delete-item" class="w-full border border-red-200 dark:border-red-900/30 text-red-500 dark:text-red-400 py-2 rounded-xl hidden role-master mt-2">Delete</button></div></div></div></div>
     
-    <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500"><h3 class="text-xl font-bold mb-4 text-green-600">Definition of Done</h3><div class="space-y-4 mb-8"><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Code Reviewed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Tests Passed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> QA Verified</label></div><div class="flex justify-end gap-3"><button onclick="closeModal('modal-dod')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg opacity-50" disabled>Confirm Move</button></div></div></div>
+    <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500"><h3 class="text-xl font-bold mb-4 text-green-600">Definition of Done</h3><div class="space-y-4 mb-8"><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Code Reviewed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Tests Passed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> QA Verified</label></div><div class="flex justify-end gap-3"><button onclick="closeModal('modal-dod')" class="px-5 py-2 text-gray-500 dark:text-gray-400">Cancel</button><button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg opacity-50" disabled>Confirm Move</button></div></div></div>
     
-    <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">New Sprint</h3><div class="space-y-3"><input id="new-sprint-name" class="w-full border p-2.5 rounded-lg dark:bg-gray-700" placeholder="Sprint Name"><textarea id="new-sprint-goal" class="w-full border p-2.5 rounded-lg dark:bg-gray-700 h-20" placeholder="Sprint Goal..."></textarea><div class="grid grid-cols-2 gap-2"><div class="text-xs font-bold text-gray-500">Start Date<input type="date" id="new-sprint-start" class="w-full border p-2 rounded-lg dark:bg-gray-700 mt-1"></div><div class="text-xs font-bold text-gray-500">End Date<input type="date" id="new-sprint-end" class="w-full border p-2 rounded-lg dark:bg-gray-700 mt-1"></div></div></div><div class="flex justify-end gap-2 mt-6"><button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Create</button></div></div></div>
+    <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl dark:text-white">New Sprint</h3><div class="space-y-3"><input id="new-sprint-name" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600" placeholder="Sprint Name"><textarea id="new-sprint-goal" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600 h-20" placeholder="Sprint Goal..."></textarea><div class="grid grid-cols-2 gap-2"><div class="text-xs font-bold text-gray-500 dark:text-gray-400">Start Date<input type="date" id="new-sprint-start" class="w-full border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 mt-1"></div><div class="text-xs font-bold text-gray-500 dark:text-gray-400">End Date<input type="date" id="new-sprint-end" class="w-full border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 mt-1"></div></div></div><div class="flex justify-end gap-2 mt-6"><button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500 dark:text-gray-400">Cancel</button><button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Create</button></div></div></div>
     
-    <div id="modal-assign-project" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[120]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">Assign Project</h3><p class="mb-4 text-sm text-gray-500">Select which project this user can access.</p><select id="assign-project-dropdown" class="w-full border p-3 mb-6 rounded-xl dark:bg-gray-700 dark:border-gray-600"><option>Loading...</option></select><div class="flex justify-end gap-2"><button onclick="closeModal('modal-assign-project')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-assign" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Assign</button></div></div></div>
+    <div id="modal-assign-project" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[120]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl dark:text-white">Assign Project</h3><p class="mb-4 text-sm text-gray-500 dark:text-gray-400">Select which project this user can access.</p><select id="assign-project-dropdown" class="w-full border p-3 mb-6 rounded-xl dark:bg-darkbg dark:border-gray-600"><option>Loading...</option></select><div class="flex justify-end gap-2"><button onclick="closeModal('modal-assign-project')" class="px-5 py-2 text-gray-500 dark:text-gray-400">Cancel</button><button id="btn-confirm-assign" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Assign</button></div></div></div>
 
     <div id="modal-burndown" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[130] backdrop-blur-sm">
         <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-4xl shadow-2xl h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-xl">Sprint Burndown</h3><button onclick="closeModal('modal-burndown')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-xl dark:text-white">Sprint Burndown</h3><button onclick="closeModal('modal-burndown')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
             <div class="flex-grow relative w-full h-full"><canvas id="burndownChart"></canvas></div>
         </div>
     </div>
@@ -296,11 +305,9 @@
             const $area = $('#kanban-area').empty();
             $('#pbi-list').empty();
 
-            // RENDER BACKLOG FIRST (PBI)
             const pbis = appState.sprintItems.filter(i => i.type === 'PBI');
             pbis.forEach(i => { if(!filter || i.title.toLowerCase().includes(filter)) $('#pbi-list').append(renderCard(i.id, i)); });
 
-            // RENDER MAIN BOARD
             const tasks = appState.sprintItems.filter(i => i.type !== 'PBI' && (!filter || i.title.toLowerCase().includes(filter)));
 
             if(viewMode === 'standard') {
@@ -313,14 +320,11 @@
                 `);
                 tasks.forEach(t => $(`#std-${t.status}`).append(renderCard(t.id, t)));
             } else {
-                // SWIMLANE MODE
                 $area.addClass('overflow-y-auto custom-scroll pr-2');
                 const assignees = [...new Set(tasks.map(t => t.assignee || "Unassigned"))].sort();
-                
                 assignees.forEach(user => {
                     const userTasks = tasks.filter(t => (t.assignee || "Unassigned") === user);
                     const avatar = `https://ui-avatars.com/api/?name=${user}&size=24&background=random`;
-                    
                     const swimlaneHtml = `
                         <div class="mb-4 bg-white dark:bg-darkcard border dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
                             <div class="p-2 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 font-bold flex items-center gap-2">
@@ -347,11 +351,11 @@
                 const isMaster = appState.user.role !== 'dev'; const delBtn = isMaster ? `<button onclick="deletePBI('${id}'); event.stopPropagation()" class="text-gray-300 hover:text-red-500 ml-2"><i class="fa-solid fa-trash"></i></button>` : '';
                 actionBtns = `<div class="flex items-center"><button onclick="updateItem('${id}',{type:'SBI',status:'todo'}); event.stopPropagation()" class="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-100">Add</button>${delBtn}</div>`;
             } else {
-                if(i.status === 'todo') actionBtns = `<button onclick="moveStatus('${id}', 'doing'); event.stopPropagation()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-200">Start <i class="fa-solid fa-play ml-1"></i></button>`;
-                else if (i.status === 'doing') actionBtns = `<button onclick="moveStatus('${id}', 'todo'); event.stopPropagation()" class="text-xs text-gray-400 hover:text-gray-600 px-1 py-1 mr-1">Back</button><button onclick="checkDoD('${id}'); event.stopPropagation()" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold hover:bg-green-200">Done <i class="fa-solid fa-check ml-1"></i></button>`;
-                else if (i.status === 'done') actionBtns = `<button onclick="moveStatus('${id}', 'doing'); event.stopPropagation()" class="text-xs bg-yellow-50 text-yellow-600 px-2 py-1 rounded font-bold hover:bg-yellow-100">Reopen <i class="fa-solid fa-rotate-left ml-1"></i></button>`;
+                if(i.status === 'todo') actionBtns = `<button onclick="moveStatus('${id}', 'doing'); event.stopPropagation()" class="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-1 rounded font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/50">Start <i class="fa-solid fa-play ml-1"></i></button>`;
+                else if (i.status === 'doing') actionBtns = `<button onclick="moveStatus('${id}', 'todo'); event.stopPropagation()" class="text-xs text-gray-400 hover:text-gray-600 px-1 py-1 mr-1">Back</button><button onclick="checkDoD('${id}'); event.stopPropagation()" class="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold hover:bg-green-200 dark:hover:bg-green-900/50">Done <i class="fa-solid fa-check ml-1"></i></button>`;
+                else if (i.status === 'done') actionBtns = `<button onclick="moveStatus('${id}', 'doing'); event.stopPropagation()" class="text-xs bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded font-bold hover:bg-yellow-100 dark:hover:bg-yellow-900/50">Reopen <i class="fa-solid fa-rotate-left ml-1"></i></button>`;
             }
-            return `<div class="bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 border-l-4 ${border} group hover:shadow-md transition" onclick="openDetailModal('${id}')"><div class="font-bold text-sm mb-2 text-gray-800 dark:text-gray-200">${i.title}</div><div class="flex justify-between items-center"><img src="${avatar}" class="w-6 h-6 rounded-full border border-white dark:border-gray-600"> <div class="flex items-center">${actionBtns}</div></div></div>`;
+            return `<div class="bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 border-l-4 ${border} group hover:shadow-md transition cursor-pointer" onclick="openDetailModal('${id}')"><div class="font-bold text-sm mb-2 text-gray-800 dark:text-gray-200">${i.title}</div><div class="flex justify-between items-center"><img src="${avatar}" class="w-6 h-6 rounded-full border border-white dark:border-gray-600"> <div class="flex items-center">${actionBtns}</div></div></div>`;
         }
         function clearBoard(){ $('#pbi-list, #kanban-area').empty(); }
         window.moveStatus = (id, status) => { const data = { status: status }; if (status !== 'done') data.completedAt = null; updateItem(id, data); };
@@ -388,7 +392,7 @@
         window.saveProjectConfig = async () => { const id = $('#edit-project-id').val(); const data = { name: $('#edit-project-name').val(), description: $('#edit-project-desc').val(), scrumMaster: $('#edit-project-master').val() }; if(!data.name) return showToast("Name required", "error"); toggleLoader(true); try { if(id) { await db.collection('projects').doc(id).update(data); showToast("Project updated"); } else { const ref = await db.collection('projects').add({...data, createdBy: appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)}); showToast("Project created"); } resetProjectForm(); } catch(e) { showToast(e.message, 'error'); } toggleLoader(false); }
         window.duplicateProject = async () => { const id=$('#edit-project-id').val(); if(!confirm("Duplicate project?")) return; toggleLoader(true); try{ const src=await db.collection('projects').doc(id).get(); const data=src.data(); const ref=await db.collection('projects').add({...data, name:data.name+" (Copy)", createdBy:appState.user.uid}); await db.collection('users').doc(appState.user.uid).update({projects:firebase.firestore.FieldValue.arrayUnion(ref.id)}); showToast("Duplicated"); resetProjectForm(); }catch(e){showToast(e.message,'error')} toggleLoader(false); }
         window.deleteProject = async () => { const id=$('#edit-project-id').val(); if(prompt("Type DELETE to confirm:")!=="DELETE") return; toggleLoader(true); try{ await db.collection('projects').doc(id).delete(); const users=await db.collection('users').where('projects','array-contains',id).get(); const batch=db.batch(); users.forEach(u=>{ batch.update(u.ref,{projects:firebase.firestore.FieldValue.arrayRemove(id)}); }); await batch.commit(); showToast("Project deleted"); resetProjectForm(); loadProjects(); }catch(e){showToast(e.message,'error')} toggleLoader(false); }
-        function loadUsers() { if(appState.user.role==='dev') return; db.collection('users').onSnapshot(snap => { $('#user-table-body').empty(); snap.forEach(doc => { const u=doc.data(); const canManage=appState.user.role==='superadmin'; let act='-'; if(canManage) act=`<button onclick="openAssignModal('${doc.id}')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-200">Manage Access</button>`; const roleSel=`<select onchange="changeRole('${doc.id}',this.value)" class="border rounded p-1 text-xs dark:bg-gray-700" ${appState.user.role!=='superadmin'?'disabled':''}><option value="dev" ${u.role==='dev'?'selected':''}>Dev</option><option value="master" ${u.role==='master'?'selected':''}>Master</option><option value="superadmin" ${u.role==='superadmin'?'selected':''}>Admin</option></select>`; const pNames=(u.projects||[]).map(pid=>{const p=appState.projects.find(x=>x.id===pid);return p?`<span class="bg-gray-200 dark:bg-gray-700 px-1 rounded text-xs mr-1">${p.name}</span>`:'';}).join(''); $('#user-table-body').append(`<tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"><div class="flex items-center gap-2"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=24" class="rounded-full"> ${u.displayName}</div></td><td class="p-4">${roleSel}</td><td class="p-4 overflow-hidden max-w-xs">${pNames}</td><td class="p-4 text-right">${act}</td></tr>`); }); }); }
+        function loadUsers() { if(appState.user.role==='dev') return; db.collection('users').onSnapshot(snap => { $('#user-table-body').empty(); snap.forEach(doc => { const u=doc.data(); const canManage=appState.user.role==='superadmin'; let act='-'; if(canManage) act=`<button onclick="openAssignModal('${doc.id}')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-200">Manage Access</button>`; const roleSel=`<select onchange="changeRole('${doc.id}',this.value)" class="border rounded p-1 text-xs dark:bg-darkbg dark:border-gray-600" ${appState.user.role!=='superadmin'?'disabled':''}><option value="dev" ${u.role==='dev'?'selected':''}>Dev</option><option value="master" ${u.role==='master'?'selected':''}>Master</option><option value="superadmin" ${u.role==='superadmin'?'selected':''}>Admin</option></select>`; const pNames=(u.projects||[]).map(pid=>{const p=appState.projects.find(x=>x.id===pid);return p?`<span class="bg-gray-200 dark:bg-gray-700 px-1 rounded text-xs mr-1">${p.name}</span>`:'';}).join(''); $('#user-table-body').append(`<tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"><div class="flex items-center gap-2"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=24" class="rounded-full"> ${u.displayName}</div></td><td class="p-4">${roleSel}</td><td class="p-4 overflow-hidden max-w-xs">${pNames}</td><td class="p-4 text-right">${act}</td></tr>`); }); }); }
         $('#btn-new-sprint-modal').click(() => { if(!appState.projectId) return showToast('Please select a project', 'error'); openModal('modal-sprint'); });
         $('#btn-create-sprint').click(async ()=>{ if(!appState.projectId) return; const n=$('#new-sprint-name').val(); const g=$('#new-sprint-goal').val(); const s=$('#new-sprint-start').val(); const e=$('#new-sprint-end').val(); if(n && s && e){ try{ await db.collection('sprints').add({name:n, goal:g, startDate:s, endDate:e, projectId:appState.projectId, status:'active', createdAt:Date.now()}); closeModal('modal-sprint'); showToast('Sprint Created'); }catch(e){showToast(e.message,'error')} } else { showToast('Fill all fields','error'); } });
         window.changeRole = (uid,r) => db.collection('users').doc(uid).update({role:r});
@@ -433,7 +437,7 @@
             db.collection('notifications').where('recipientId','==',appState.user.uid).orderBy('createdAt','desc').limit(10).onSnapshot(snap => {
                 const $list = $('#notif-list').empty(); let unread = 0;
                 if(snap.empty) { $list.append('<div class="p-4 text-sm text-gray-500 text-center">No notifications</div>'); }
-                else { snap.forEach(d => { const n = d.data(); if(!n.read) unread++; const bg = n.read ? 'bg-white dark:bg-darkcard' : 'bg-indigo-50 dark:bg-indigo-900/20'; $list.append(`<div onclick="markRead('${d.id}')" class="p-3 border-b dark:border-gray-700 cursor-pointer ${bg} hover:bg-gray-50 dark:hover:bg-gray-700"><div class="text-sm">${n.message}</div><div class="text-[10px] text-gray-400 mt-1">${new Date(n.createdAt).toLocaleTimeString()}</div></div>`); }); }
+                else { snap.forEach(d => { const n = d.data(); if(!n.read) unread++; const bg = n.read ? 'bg-white dark:bg-darkcard' : 'bg-indigo-50 dark:bg-indigo-900/20'; $list.append(`<div onclick="markRead('${d.id}')" class="p-3 border-b dark:border-gray-700 cursor-pointer ${bg} hover:bg-gray-50 dark:hover:bg-gray-700"><div class="text-sm dark:text-gray-200">${n.message}</div><div class="text-[10px] text-gray-400 mt-1">${new Date(n.createdAt).toLocaleTimeString()}</div></div>`); }); }
                 if(unread > 0) { $('#notif-dot').removeClass('hidden'); } else { $('#notif-dot').addClass('hidden'); }
             });
         }
@@ -469,7 +473,17 @@
         }
         
         window.switchTab = (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600'); $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600'); if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); } };
-        $('#theme-toggle').click(()=>{$('html').toggleClass('dark');});
+        
+        // DARK MODE TOGGLE & SAVE
+        $('#theme-toggle').click(()=> {
+            if(document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            }
+        });
     </script>
 </body>
 </html>
