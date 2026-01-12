@@ -85,7 +85,6 @@
                             <div id="notif-list" class="max-h-80 overflow-y-auto"></div>
                         </div>
                     </div>
-
                     <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition"><i class="fa-solid fa-moon"></i></button>
                     <div class="text-right hidden sm:block"><div id="user-display" class="text-sm font-bold leading-tight">User</div><div id="role-badge" class="text-[10px] uppercase tracking-wider text-white px-2 py-0.5 rounded-full inline-block bg-gray-400">Loading...</div></div>
                     <button id="btn-logout" class="text-red-500 hover:bg-red-50 p-2 rounded transition"><i class="fa-solid fa-power-off"></i></button>
@@ -173,10 +172,7 @@
                 </div>
                 <div id="admin-sub-analytics" class="admin-sub-view hidden">
                     <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Team Velocity</h3>
-                    <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow-sm border dark:border-gray-700 h-[500px]">
-                        <canvas id="velocityChart"></canvas>
-                    </div>
-                    <p class="mt-4 text-sm text-gray-500 text-center">Comparing completed story points across the last 5 sprints.</p>
+                    <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow-sm border dark:border-gray-700 h-[500px]"><canvas id="velocityChart"></canvas></div><p class="mt-4 text-sm text-gray-500 text-center">Comparing completed story points across the last 5 sprints.</p>
                 </div>
             </div>
         </div>
@@ -205,7 +201,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null, projectUsers: [] };
+        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null, projectUsers: [], sprintDataMap: {} };
 
         function showToast(msg, type='success') { const color=type==='error'?'bg-red-500':'bg-green-600'; const id=Date.now(); $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-lg shadow-lg flex gap-3"><i class="fa-solid fa-circle-info mt-1"></i> ${msg}</div>`); setTimeout(()=>$(`#t-${id}`).removeClass('toast-enter').addClass('toast-enter-active'),10); setTimeout(()=>$(`#t-${id}`).remove(),3000); }
         function toggleLoader(s) { s ? $('#global-loader').removeClass('hidden') : $('#global-loader').addClass('hidden'); }
@@ -236,29 +232,74 @@
         async function loadProjects() { const snap = await db.collection('projects').get(); const $sel = $('#project-select').empty(); const $admSel = $('#assign-project-dropdown').empty(); appState.projects = []; snap.forEach(d => { const p = d.data(); if(appState.user.role==='superadmin' || (appState.user.projects||[]).includes(d.id)) { appState.projects.push({id:d.id, name:p.name}); $sel.append(`<option value="${d.id}">${p.name}</option>`); } $admSel.append(`<option value="${d.id}">${p.name}</option>`); }); if(appState.projects.length>0) { appState.projectId = appState.projects[0].id; $sel.val(appState.projectId); handleProjectChange(); } else { $sel.append('<option>No Projects</option>'); if(!$('#view-admin').is(':visible')) $('#no-project-state').removeClass('hidden'); } }
         function handleProjectChange() { if(!appState.projectId) return; $('#no-project-state').addClass('hidden'); loadSprints(); loadRetro(); loadProjectUsers(); }
 
+        // SPRINT LOGIC FIXED
         function loadSprints() {
             db.collection('sprints').where('projectId','==',appState.projectId).orderBy('createdAt','desc').onSnapshot(snap => {
                 const $sel = $('#sprint-select').empty();
+                appState.sprintDataMap = {};
                 if(snap.empty) { $sel.append('<option value="">No Sprints</option>'); $('#sprint-info-banner').addClass('hidden'); clearBoard(); return; }
+                
                 let activeId = null;
-                snap.forEach(d => { if(d.data().status!=='completed') { $sel.append(`<option value="${d.id}">${d.data().name}</option>`); if(!activeId) activeId = d.id; }});
-                if(!appState.sprintId && activeId) appState.sprintId = activeId;
+                snap.forEach(d => { 
+                    const s = d.data();
+                    if(s.status!=='completed') { 
+                        $sel.append(`<option value="${d.id}">${s.name}</option>`); 
+                        appState.sprintDataMap[d.id] = s;
+                        if(!activeId) activeId = d.id; 
+                    }
+                });
+                
+                if(!appState.sprintId || !appState.sprintDataMap[appState.sprintId]) {
+                    appState.sprintId = activeId;
+                }
+                
                 if(appState.sprintId) { 
-                    $sel.val(appState.sprintId); 
-                    const currentSprint = snap.docs.find(d => d.id === appState.sprintId)?.data();
-                    if(currentSprint && currentSprint.goal) {
-                        appState.currentSprintData = currentSprint;
-                        $('#sprint-info-banner').removeClass('hidden'); $('#banner-goal').text(currentSprint.goal);
-                        const start = new Date(currentSprint.startDate); const end = new Date(currentSprint.endDate);
-                        $('#banner-dates').text(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
-                        const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24)); $('#banner-days').text(diff > 0 ? diff : 0);
-                        if(appState.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
-                    } else { $('#sprint-info-banner').addClass('hidden'); $('#btn-open-burndown').addClass('hidden'); appState.currentSprintData = null; }
+                    $sel.val(appState.sprintId);
+                    updateSprintBanner(appState.sprintId);
                     loadItems(appState.sprintId); 
+                } else {
+                    $('#sprint-info-banner').addClass('hidden');
+                    clearBoard();
                 }
             });
-            $('#sprint-select').off('change').on('change', function(){ appState.sprintId=$(this).val(); loadItems(appState.sprintId); });
+
+            // FIXED: Change Handler inside loadSprints isn't needed if we use appState map,
+            // but we need to attach the listener once.
+            $('#sprint-select').off('change').on('change', function(){ 
+                appState.sprintId=$(this).val(); 
+                updateSprintBanner(appState.sprintId);
+                loadItems(appState.sprintId); 
+            });
         }
+
+        function updateSprintBanner(sid) {
+            const currentSprint = appState.sprintDataMap[sid];
+            appState.currentSprintData = currentSprint;
+            
+            if(currentSprint && currentSprint.goal) {
+                $('#sprint-info-banner').removeClass('hidden'); 
+                $('#banner-goal').text(currentSprint.goal);
+                const start = new Date(currentSprint.startDate); const end = new Date(currentSprint.endDate);
+                $('#banner-dates').text(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
+                const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24)); 
+                $('#banner-days').text(diff > 0 ? diff : 0);
+                if(appState.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
+            } else { 
+                $('#sprint-info-banner').addClass('hidden'); 
+                $('#btn-open-burndown').addClass('hidden'); 
+            }
+        }
+
+        // FIXED: Complete Button Logic
+        $('#btn-complete-sprint').click(async () => {
+            if(!appState.sprintId) return;
+            if(!confirm("Complete this sprint? Unfinished tasks will stay in history.")) return;
+            try {
+                await db.collection('sprints').doc(appState.sprintId).update({ status: 'completed', completedAt: Date.now() });
+                showToast("Sprint Completed");
+                // onSnapshot in loadSprints will handle UI update
+            } catch(e) { showToast(e.message, 'error'); }
+        });
 
         function loadItems(sid) {
             db.collection('items').where('projectId','==',appState.projectId).where('sprintId','==',sid).onSnapshot(snap => {
@@ -296,7 +337,6 @@
         window.deletePBI = (id) => { if(confirm('Delete this Backlog Item?')) db.collection('items').doc(id).delete().catch(e => showToast(e.message, 'error')); }
         $('#btn-open-burndown').click(() => { openModal('modal-burndown'); const sd=appState.currentSprintData; if(!sd) return; const start=new Date(sd.startDate); const end=new Date(sd.endDate); const totalDays=Math.ceil((end-start)/(1000*60*60*24))+1; const labels=[],idealData=[],actualData=[]; let totalPoints=0; appState.sprintItems.forEach(i=>{if(i.type!=='PBI')totalPoints+=(parseInt(i.points)||0)}); const burnRate=totalPoints/(totalDays-1); for(let i=0;i<totalDays;i++){ const d=new Date(start); d.setDate(start.getDate()+i); labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'})); let ideal=totalPoints-(burnRate*i); idealData.push(ideal<0?0:ideal); let remaining=totalPoints; const checkTime=d.setHours(23,59,59,999); appState.sprintItems.forEach(item=>{if(item.status==='done'&&item.completedAt&&item.completedAt<=checkTime){remaining-=(parseInt(item.points)||0)}}); if(d<=new Date())actualData.push(remaining); } if(window.myChart)window.myChart.destroy(); const ctx=document.getElementById('burndownChart').getContext('2d'); window.myChart=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'Ideal Burn',data:idealData,borderColor:'#9ca3af',borderDash:[5,5],fill:false},{label:'Actual Remaining',data:actualData,borderColor:'#4f46e5',backgroundColor:'rgba(79,70,229,0.2)',fill:true,tension:0.1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,title:{display:true,text:'Story Points'}}}}}); });
 
-        // VELOCITY CHART LOGIC
         async function loadVelocityChart() {
             if(!appState.projectId) return;
             const sprintsSnap = await db.collection('sprints').where('projectId','==',appState.projectId).where('status','==','completed').orderBy('createdAt','asc').limitToLast(5).get();
@@ -333,7 +373,6 @@
         window.updateItem = (id,d) => db.collection('items').doc(id).update(d);
         window.openItemModal = (t) => { if(!appState.projectId) return showToast('No Project','error'); const tit=prompt("Title:"); if(tit) db.collection('items').add({title:tit, type:t, status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); };
         
-        // MODAL LOGIC WITH NOTIFICATIONS
         window.openDetailModal = (id) => { 
             appState.detailId=id; 
             db.collection('items').doc(id).onSnapshot(doc => { 
@@ -365,7 +404,6 @@
         window.togSub=async(i,o)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s[i].done=!o; updateItem(appState.detailId,{subtasks:s}); };
         window.delSub=async(i)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s.splice(i,1); updateItem(appState.detailId,{subtasks:s}); };
         
-        // NOTIFICATIONS
         function listenForNotifications() {
             if(!appState.user) return;
             db.collection('notifications').where('recipientId','==',appState.user.uid).orderBy('createdAt','desc').limit(10).onSnapshot(snap => {
@@ -394,7 +432,17 @@
         window.addRetro=(t)=>{ const txt=$(`#input-retro-${t}`).val().trim(); const anon=$('#retro-anon').is(':checked'); if(!txt)return; db.collection('retro').add({projectId:appState.projectId, type:t, text:txt, uid:anon?'anonymous':appState.user.uid, votedBy:[], createdAt:Date.now()}); $(`#input-retro-${t}`).val(''); };
         window.promoteToTask=(t)=>{ if(confirm("Promote to Backlog?")) db.collection('items').add({title:t, type:'PBI', status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); showToast("Promoted"); };
         
-        function loadProjectUsers(){ db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); appState.projectUsers = []; s.forEach(d=>{ const u = d.data(); appState.projectUsers.push({uid: d.id, name: u.displayName}); $('#detail-assignee').append(`<option value="${d.id}">${u.displayName}</option>`); }); }); }
+        function loadProjectUsers(){ 
+            db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ 
+                $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); 
+                appState.projectUsers = [];
+                s.forEach(d=>{ 
+                    const u = d.data();
+                    appState.projectUsers.push({uid: d.id, name: u.displayName});
+                    $('#detail-assignee').append(`<option value="${d.id}">${u.displayName}</option>`); 
+                }); 
+            }); 
+        }
         
         window.switchTab = (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600'); $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600'); if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); } };
         $('#theme-toggle').click(()=>{$('html').toggleClass('dark');});
