@@ -41,6 +41,10 @@
         /* Sidebar Active State */
         .admin-nav-active { background-color: #eef2ff; color: #4338ca; border-right: 4px solid #4338ca; }
         .dark .admin-nav-active { background-color: #312e81; color: #c7d2fe; border-right: 4px solid #6366f1; }
+
+        /* Retro Sticky Notes */
+        .retro-card { transition: all 0.2s; }
+        .retro-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-darkbg text-gray-800 dark:text-gray-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
@@ -146,13 +150,47 @@
 
         <div id="view-retro" class="view-section hidden h-full flex flex-col gap-6">
             <div class="flex justify-between items-center shrink-0">
-                <h2 class="text-2xl font-bold">Retrospective</h2>
-                <button onclick="addRetroItem('start')" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl shadow hover:bg-indigo-700 transition font-bold">+ Thought</button>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Retrospective Board</h2>
+                <div class="flex items-center gap-2">
+                    <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="retro-anon" class="rounded text-indigo-600">
+                        <span>Post Anonymously</span>
+                    </label>
+                </div>
             </div>
+            
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-[90%] overflow-hidden">
-                <div class="bg-green-50 dark:bg-green-900/20 p-5 rounded-2xl border border-green-100 flex flex-col h-full"><h3 class="font-bold text-green-700 mb-4">Start</h3><div id="retro-start" class="overflow-y-auto space-y-3 flex-grow pr-2"></div></div>
-                <div class="bg-red-50 dark:bg-red-900/20 p-5 rounded-2xl border border-red-100 flex flex-col h-full"><h3 class="font-bold text-red-700 mb-4">Stop</h3><div id="retro-stop" class="overflow-y-auto space-y-3 flex-grow pr-2"></div></div>
-                <div class="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-2xl border border-blue-100 flex flex-col h-full"><h3 class="font-bold text-blue-700 mb-4">Continue</h3><div id="retro-continue" class="overflow-y-auto space-y-3 flex-grow pr-2"></div></div>
+                
+                <div class="bg-green-50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100 dark:border-green-900/30 flex flex-col h-full">
+                    <div class="flex items-center gap-2 mb-3 text-green-700 dark:text-green-400 font-bold">
+                        <i class="fa-solid fa-play-circle"></i> <h3>Start Doing</h3>
+                    </div>
+                    <div class="mb-3">
+                        <input id="input-retro-start" onkeypress="if(event.key==='Enter') addRetro('start')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-green-400 dark:bg-gray-800 dark:text-white text-sm">
+                    </div>
+                    <div id="retro-start" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div>
+                </div>
+
+                <div class="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 flex flex-col h-full">
+                    <div class="flex items-center gap-2 mb-3 text-red-700 dark:text-red-400 font-bold">
+                        <i class="fa-solid fa-stop-circle"></i> <h3>Stop Doing</h3>
+                    </div>
+                    <div class="mb-3">
+                        <input id="input-retro-stop" onkeypress="if(event.key==='Enter') addRetro('stop')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-red-400 dark:bg-gray-800 dark:text-white text-sm">
+                    </div>
+                    <div id="retro-stop" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div>
+                </div>
+
+                <div class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 flex flex-col h-full">
+                    <div class="flex items-center gap-2 mb-3 text-blue-700 dark:text-blue-400 font-bold">
+                        <i class="fa-solid fa-forward"></i> <h3>Continue Doing</h3>
+                    </div>
+                    <div class="mb-3">
+                        <input id="input-retro-continue" onkeypress="if(event.key==='Enter') addRetro('continue')" placeholder="Add thought..." class="w-full border-none rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-blue-400 dark:bg-gray-800 dark:text-white text-sm">
+                    </div>
+                    <div id="retro-continue" class="overflow-y-auto space-y-3 flex-grow pr-1 custom-scroll"></div>
+                </div>
+
             </div>
         </div>
 
@@ -568,8 +606,69 @@
         window.togSub=async(i,o)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s[i].done=!o; updateItem(appState.detailId,{subtasks:s}); };
         window.delSub=async(i)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s.splice(i,1); updateItem(appState.detailId,{subtasks:s}); };
         
-        function loadRetro(){ db.collection('retro').where('projectId','==',appState.projectId).onSnapshot(s=>{ $('#retro-start, #retro-stop, #retro-continue').empty(); s.forEach(d=>{ const dd=d.data(); const btn=(appState.user.role==='master'||dd.uid===appState.user.uid)?`<button onclick="db.collection('retro').doc('${d.id}').delete()" class="text-red-400 float-right">&times;</button>`:''; $(`#retro-${dd.type}`).append(`<div class="bg-white dark:bg-darkcard p-2 rounded shadow mb-2 text-sm">${dd.text} ${btn}</div>`); }); }); }
-        window.addRetroItem=(t)=>{ const txt=prompt("Text:"); if(txt) db.collection('retro').add({projectId:appState.projectId, type:t, text:txt, uid:appState.user.uid}); };
+        // --- RETRO (New Inline) ---
+        function loadRetro(){ 
+            db.collection('retro').where('projectId','==',appState.projectId).onSnapshot(s=>{ 
+                $('#retro-start, #retro-stop, #retro-continue').empty(); 
+                s.forEach(d=>{ 
+                    const dd=d.data(); 
+                    // Card Template
+                    const isMine = appState.user.uid === dd.uid;
+                    const canDelete = isMine || appState.user.role === 'master' || appState.user.role === 'superadmin';
+                    const delBtn = canDelete ? `<button onclick="db.collection('retro').doc('${d.id}').delete()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button>` : '';
+                    const voteBtn = `<button onclick="voteRetro('${d.id}')" class="text-xs flex items-center gap-1 text-gray-500 hover:text-indigo-600"><i class="fa-regular fa-thumbs-up"></i> ${dd.votes||0}</button>`;
+                    const promoteBtn = (appState.user.role!=='dev') ? `<button onclick="promoteToTask('${dd.text}')" title="Convert to Backlog Item" class="text-gray-400 hover:text-green-600"><i class="fa-solid fa-share-from-square"></i></button>` : '';
+
+                    const card = `
+                    <div class="retro-card bg-white dark:bg-darkcard p-3 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm mb-2 group">
+                        <div class="text-sm mb-2 text-gray-700 dark:text-gray-300">${dd.text}</div>
+                        <div class="flex justify-between items-center pt-2 border-t border-gray-50 dark:border-gray-800">
+                            <div class="flex gap-3">${voteBtn} ${promoteBtn}</div>
+                            ${delBtn}
+                        </div>
+                    </div>`;
+                    $(`#retro-${dd.type}`).append(card); 
+                }); 
+            }); 
+        }
+
+        window.addRetro = (type) => { 
+            const inputId = `#input-retro-${type}`;
+            const text = $(inputId).val();
+            const anon = $('#retro-anon').is(':checked');
+            if(!text) return;
+            
+            db.collection('retro').add({
+                projectId: appState.projectId, 
+                type: type, 
+                text: text, 
+                uid: anon ? 'anonymous' : appState.user.uid,
+                votes: 0,
+                createdAt: Date.now()
+            });
+            $(inputId).val(''); // Clear
+        };
+
+        window.voteRetro = (id) => {
+             // Simple increment (For robust apps, use a subcollection of user IDs to prevent double voting)
+             db.collection('retro').doc(id).update({ votes: firebase.firestore.FieldValue.increment(1) });
+        };
+
+        window.promoteToTask = (text) => {
+             if(confirm("Create a Backlog Item from this card?")) {
+                 db.collection('items').add({
+                     title: text,
+                     type: 'PBI',
+                     status: 'todo', // Backlog in UI logic usually
+                     projectId: appState.projectId,
+                     sprintId: appState.sprintId, // Add to current sprint or leave null for backlog
+                     points: 0,
+                     createdAt: Date.now()
+                 });
+                 showToast("Card promoted to Backlog");
+             }
+        };
+
 
         function loadProjectUsers(){ db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); s.forEach(d=>$('#detail-assignee').append(`<option value="${d.data().displayName}">${d.data().displayName}</option>`)); }); }
         
