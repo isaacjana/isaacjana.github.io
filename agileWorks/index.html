@@ -20,108 +20,144 @@
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: { extend: { colors: { darkbg: '#0f172a', darkcard: '#1e293b' } } }
+            theme: { 
+                extend: { 
+                    colors: { darkbg: '#0f172a', darkcard: '#1e293b' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                } 
+            }
         }
     </script>
     <style>
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        /* Modern Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
         
-        .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Loading Spinner */
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 3px solid white; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        .spinner-blue { border-color: #e2e8f0; border-top-color: #3b82f6; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Toast Animation */
+        .toast-enter { transform: translateX(100%); opacity: 0; }
+        .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 0.3s ease-out; }
+        .toast-exit { transform: translateX(0); opacity: 1; }
+        .toast-exit-active { transform: translateX(100%); opacity: 0; transition: all 0.3s ease-in; }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-darkbg text-gray-800 dark:text-gray-200 font-sans h-screen overflow-hidden flex flex-col transition-colors duration-200">
+<body class="bg-gray-50 dark:bg-darkbg text-gray-800 dark:text-gray-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
+
+    <div id="global-loader" class="fixed inset-0 bg-white/80 dark:bg-black/50 z-[9999] hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="spinner spinner-blue w-12 h-12"></div>
+    </div>
+
+    <div id="toast-container" class="fixed top-5 right-5 z-[9999] space-y-3"></div>
 
     <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-900 to-slate-900">
-        <div class="bg-white dark:bg-darkcard p-8 rounded-xl shadow-2xl text-center w-96">
-            <h1 class="text-3xl font-bold mb-2 text-indigo-600">AgileWorks <span class="text-xs bg-indigo-100 text-indigo-800 px-2 rounded">ENT</span></h1>
-            <p class="text-gray-500 mb-8">Enterprise Scrum Platform</p>
-            <button id="btn-login" class="w-full bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition font-bold shadow-sm">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5">
-                Sign in with Google
+        <div class="bg-white dark:bg-darkcard p-10 rounded-2xl shadow-2xl text-center w-full max-w-md">
+            <div class="mb-6 flex justify-center">
+                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-layer-group text-3xl text-indigo-600"></i>
+                </div>
+            </div>
+            <h1 class="text-3xl font-extrabold mb-2 text-indigo-900 dark:text-white">AgileWorks</h1>
+            <p class="text-gray-500 dark:text-gray-400 mb-8">Enterprise Scrum & Project Management</p>
+            <button id="btn-login" class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white py-3 px-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-3 transition font-semibold shadow-sm">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6">
+                Continue with Google
             </button>
         </div>
     </div>
 
-    <nav class="bg-white dark:bg-darkcard shadow border-b border-gray-200 dark:border-gray-700 shrink-0 relative z-30">
+    <nav class="bg-white dark:bg-darkcard shadow-sm border-b border-gray-200 dark:border-gray-700 shrink-0 z-40">
         <div class="w-full px-6">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-6">
                     <div class="flex items-center gap-2">
                         <i class="fa-solid fa-layer-group text-indigo-600 text-2xl"></i>
-                        <span class="font-bold text-xl hidden sm:block">AgileWorks</span>
+                        <span class="font-bold text-xl hidden md:block">AgileWorks</span>
                     </div>
                     
                     <div class="relative group">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-folder text-gray-400"></i>
                         </div>
-                        <select id="project-select" class="bg-gray-100 dark:bg-gray-800 border-none rounded-lg py-2 pl-10 pr-8 text-sm font-bold focus:ring-2 focus:ring-indigo-500 w-56 appearance-none cursor-pointer">
-                            <option value="">Loading...</option>
+                        <select id="project-select" class="bg-gray-100 dark:bg-gray-800 border-none rounded-lg py-2 pl-10 pr-8 text-sm font-bold focus:ring-2 focus:ring-indigo-500 w-48 lg:w-64 appearance-none cursor-pointer text-ellipsis">
+                            <option value="">Loading Projects...</option>
                         </select>
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-chevron-down text-gray-400 text-xs"></i>
                         </div>
                     </div>
 
-                    <div class="hidden md:flex gap-1 text-sm font-medium ml-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                        <button onclick="switchTab('board')" class="nav-btn bg-white dark:bg-gray-700 text-indigo-600 shadow-sm px-4 py-1.5 rounded-md transition-all" id="tab-btn-board">Board</button>
-                        <button onclick="switchTab('retro')" class="nav-btn text-gray-500 hover:text-indigo-600 px-4 py-1.5 rounded-md transition-all" id="tab-btn-retro">Retro</button>
-                        <button onclick="switchTab('admin')" id="tab-admin" class="nav-btn text-gray-500 hover:text-indigo-600 px-4 py-1.5 rounded-md transition-all hidden">Admin</button>
+                    <div class="hidden md:flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg ml-4">
+                        <button onclick="switchTab('board')" id="tab-btn-board" class="nav-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white dark:bg-gray-700 text-indigo-600 shadow-sm">Board</button>
+                        <button onclick="switchTab('retro')" id="tab-btn-retro" class="nav-btn px-4 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-indigo-600 transition-all">Retro</button>
+                        <button onclick="switchTab('admin')" id="tab-btn-admin" class="nav-btn px-4 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-indigo-600 transition-all hidden">Admin</button>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"><i class="fa-solid fa-moon"></i></button>
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    
                     <div class="text-right hidden sm:block">
                         <div id="user-display" class="text-sm font-bold leading-tight">User</div>
-                        <div id="role-badge" class="text-[10px] uppercase tracking-wider text-white bg-gray-400 px-2 py-0.5 rounded-full inline-block mt-0.5">Dev</div>
+                        <div id="role-badge" class="text-[10px] uppercase tracking-wider text-white px-2 py-0.5 rounded-full inline-block bg-gray-400">Loading...</div>
                     </div>
-                    <button id="btn-logout" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition"><i class="fa-solid fa-power-off"></i></button>
+                    
+                    <button id="btn-logout" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded transition" title="Logout">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow p-6 overflow-hidden max-w-[1920px] mx-auto w-full relative">
-        
-        <div id="no-project-state" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white/95 dark:bg-darkbg/95 z-40 backdrop-blur-sm transition-opacity">
-            <div class="text-center p-8 max-w-md">
-                <div class="bg-indigo-100 dark:bg-indigo-900/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fa-solid fa-folder-open text-4xl text-indigo-600 dark:text-indigo-400"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">No Project Selected</h2>
-                <p class="text-gray-500 mb-6">You are not assigned to any projects yet. Please ask a Scrum Master or Admin to add you to a team.</p>
-                <div id="superadmin-cta" class="hidden">
-                    <p class="text-sm font-bold text-indigo-600 mb-2">You are a Super Admin</p>
-                    <button onclick="switchTab('admin')" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">Go to Admin Dashboard</button>
-                </div>
+    <main class="flex-grow p-4 lg:p-6 overflow-hidden max-w-[1920px] mx-auto w-full relative">
+
+        <div id="no-project-state" class="hidden absolute inset-0 z-30 bg-white/95 dark:bg-darkbg/95 flex flex-col items-center justify-center text-center p-6 backdrop-blur-sm">
+            <div class="w-24 h-24 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-6">
+                <i class="fa-solid fa-folder-plus text-5xl text-indigo-500"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-3">No Project Selected</h2>
+            <p class="text-gray-500 max-w-md mb-8">You haven't been assigned to a project yet. Contact your Scrum Master or Administrator.</p>
+            <div id="admin-setup-cta" class="hidden">
+                <p class="text-sm text-indigo-600 font-bold mb-2">You are a Super Admin</p>
+                <button onclick="switchTab('admin')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1">
+                    Go to Admin Dashboard
+                </button>
             </div>
         </div>
 
         <div id="view-board" class="view-section flex flex-col h-full gap-4">
-            <div class="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-darkcard p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 shrink-0 gap-4">
-                <div class="flex gap-4 items-center w-full md:w-auto">
-                    <div class="relative">
-                        <i class="fa-solid fa-rotate-right absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                        <select id="sprint-select" class="pl-8 pr-8 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm font-bold focus:ring-2 focus:ring-indigo-500 appearance-none bg-white">
+            <div class="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 shrink-0 gap-4">
+                <div class="flex items-center gap-4 w-full md:w-auto">
+                    <div class="relative w-full md:w-64">
+                        <i class="fa-solid fa-rotate-right absolute left-3 top-3 text-gray-400 text-xs"></i>
+                        <select id="sprint-select" class="w-full pl-8 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm font-bold focus:ring-2 focus:ring-indigo-500 appearance-none bg-white transition cursor-pointer">
                             <option>Loading Sprints...</option>
                         </select>
                     </div>
-                    <button id="btn-new-sprint-modal" class="role-master hidden bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-100 font-bold transition flex items-center gap-2">
-                        <i class="fa-solid fa-plus"></i> Sprint
+                    <button id="btn-new-sprint-modal" class="role-master hidden whitespace-nowrap bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-lg text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> <span class="hidden lg:inline">New Sprint</span>
                     </button>
                 </div>
-                <div class="flex gap-2 w-full md:w-auto justify-end">
-                     <button id="btn-export-excel" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 shadow-sm transition flex items-center gap-2">
-                        <i class="fa-solid fa-file-excel"></i> Export
+                
+                <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                    <label class="flex items-center gap-2 text-sm font-medium cursor-pointer select-none bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg border dark:border-gray-700 hover:bg-gray-100">
+                        <input type="checkbox" id="filter-my-tasks" class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <span>My Tasks</span>
+                    </label>
+
+                    <button id="btn-export-excel" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 shadow-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Export</span>
                     </button>
-                     <button id="btn-complete-sprint" class="role-master hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 shadow-sm transition flex items-center gap-2">
-                        <i class="fa-solid fa-flag-checkered"></i> Complete Sprint
+                    <button id="btn-complete-sprint" class="role-master hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 shadow-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-flag-checkered"></i> <span class="hidden sm:inline">Complete</span>
                     </button>
                 </div>
             </div>
@@ -129,34 +165,33 @@
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div class="lg:col-span-1 bg-white dark:bg-darkcard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden">
                     <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full bg-gray-400"></div>
-                            <h2 class="font-bold text-gray-700 dark:text-gray-200">Backlog (PBI)</h2>
-                        </div>
-                        <button onclick="openItemModal('PBI')" class="text-indigo-600 hover:bg-indigo-100 w-8 h-8 flex items-center justify-center rounded-lg transition"><i class="fa-solid fa-plus"></i></button>
+                        <h2 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-gray-400"></div> Backlog
+                        </h2>
+                        <button onclick="openItemModal('PBI')" class="text-indigo-600 hover:bg-indigo-100 w-8 h-8 rounded-lg transition flex items-center justify-center"><i class="fa-solid fa-plus"></i></button>
                     </div>
                     <div id="pbi-list" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3 bg-gray-50/50 dark:bg-darkbg/20" data-status="backlog"></div>
                 </div>
-                
+
                 <div class="lg:col-span-3 grid grid-cols-3 gap-4 h-full">
                     <div class="flex flex-col h-full bg-gray-100 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div class="p-3 border-b dark:border-gray-700 font-bold text-xs uppercase text-gray-500 tracking-wider bg-gray-50 dark:bg-gray-800 flex justify-between">
+                        <div class="p-3 border-b dark:border-gray-700 font-bold text-xs uppercase text-gray-500 tracking-wider bg-gray-50 dark:bg-gray-800 flex justify-between items-center">
                             <span>To Do</span>
-                            <span id="count-todo" class="bg-gray-200 dark:bg-gray-700 px-2 rounded-full text-[10px]">0</span>
+                            <span id="count-todo" class="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-[10px]">0</span>
                         </div>
                         <div id="col-todo" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3" data-status="todo"></div>
                     </div>
                     <div class="flex flex-col h-full bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
-                        <div class="p-3 border-b border-blue-100 dark:border-blue-900/30 font-bold text-xs uppercase text-blue-600 tracking-wider bg-blue-50 dark:bg-blue-900/20 flex justify-between">
+                        <div class="p-3 border-b border-blue-100 dark:border-blue-900/30 font-bold text-xs uppercase text-blue-600 tracking-wider bg-blue-50 dark:bg-blue-900/20 flex justify-between items-center">
                             <span>In Progress</span>
-                            <span id="count-doing" class="bg-blue-200 dark:bg-blue-800 px-2 rounded-full text-[10px] text-blue-800 dark:text-blue-100">0</span>
+                            <span id="count-doing" class="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-100 px-2 py-0.5 rounded text-[10px]">0</span>
                         </div>
                         <div id="col-doing" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3" data-status="doing"></div>
                     </div>
                     <div class="flex flex-col h-full bg-green-50/50 dark:bg-green-900/10 rounded-xl border border-green-100 dark:border-green-900/30 overflow-hidden">
-                        <div class="p-3 border-b border-green-100 dark:border-green-900/30 font-bold text-xs uppercase text-green-600 tracking-wider bg-green-50 dark:bg-green-900/20 flex justify-between">
+                        <div class="p-3 border-b border-green-100 dark:border-green-900/30 font-bold text-xs uppercase text-green-600 tracking-wider bg-green-50 dark:bg-green-900/20 flex justify-between items-center">
                             <span>Done</span>
-                            <span id="count-done" class="bg-green-200 dark:bg-green-800 px-2 rounded-full text-[10px] text-green-800 dark:text-green-100">0</span>
+                            <span id="count-done" class="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-0.5 rounded text-[10px]">0</span>
                         </div>
                         <div id="col-done" class="kanban-col flex-grow overflow-y-auto p-3 space-y-3" data-status="done"></div>
                     </div>
@@ -167,136 +202,158 @@
         <div id="view-retro" class="view-section hidden h-full flex flex-col gap-6">
             <div class="flex justify-between items-center shrink-0">
                 <h2 class="text-2xl font-bold">Retrospective Board</h2>
-                <button onclick="addRetroItem('start')" class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition flex items-center gap-2"><i class="fa-solid fa-plus"></i> Add Card</button>
+                <button onclick="addRetroItem('start')" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl shadow hover:bg-indigo-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add Thought
+                </button>
             </div>
-            <div class="grid grid-cols-3 gap-6 h-[90%]">
-                <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-900/50 flex flex-col">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-[90%] overflow-hidden">
+                <div class="bg-green-50 dark:bg-green-900/20 p-5 rounded-2xl border border-green-100 dark:border-green-900/50 flex flex-col h-full">
                     <h3 class="font-bold text-green-700 dark:text-green-400 mb-4 flex items-center gap-2"><i class="fa-solid fa-play-circle"></i> Start Doing</h3>
                     <div id="retro-start" class="overflow-y-auto space-y-3 flex-grow pr-2"></div>
                 </div>
-                <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-900/50 flex flex-col">
+                <div class="bg-red-50 dark:bg-red-900/20 p-5 rounded-2xl border border-red-100 dark:border-red-900/50 flex flex-col h-full">
                     <h3 class="font-bold text-red-700 dark:text-red-400 mb-4 flex items-center gap-2"><i class="fa-solid fa-stop-circle"></i> Stop Doing</h3>
                     <div id="retro-stop" class="overflow-y-auto space-y-3 flex-grow pr-2"></div>
                 </div>
-                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50 flex flex-col">
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/50 flex flex-col h-full">
                     <h3 class="font-bold text-blue-700 dark:text-blue-400 mb-4 flex items-center gap-2"><i class="fa-solid fa-forward"></i> Continue Doing</h3>
                     <div id="retro-continue" class="overflow-y-auto space-y-3 flex-grow pr-2"></div>
                 </div>
             </div>
         </div>
 
-        <div id="view-admin" class="view-section hidden h-full overflow-y-auto pr-2">
-            <div class="max-w-6xl mx-auto">
-                <h2 class="text-3xl font-bold mb-6 text-gray-800 dark:text-white">User & Project Management</h2>
+        <div id="view-admin" class="view-section hidden h-full overflow-y-auto pr-2 custom-scroll">
+            <div class="max-w-6xl mx-auto space-y-8">
                 
-                <div id="admin-create-project" class="hidden bg-white dark:bg-darkcard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
-                    <h3 class="text-lg font-bold mb-4 text-indigo-600 flex items-center gap-2"><i class="fa-solid fa-briefcase"></i> Create New Project</h3>
-                    <div class="flex gap-4">
-                        <input id="new-project-name" placeholder="Enter Project Name" class="border p-3 rounded-lg w-full max-w-md dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500">
-                        <button id="btn-create-project" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 font-bold transition">Create Project</button>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">Admin Dashboard</h2>
+                        <p class="text-gray-500">Manage projects, users, and permissions.</p>
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div class="p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
+                <div id="admin-create-project" class="hidden bg-white dark:bg-darkcard p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-bold mb-4 text-indigo-600 flex items-center gap-2">
+                        <i class="fa-solid fa-briefcase"></i> Create New Project
+                    </h3>
+                    <div class="flex gap-4 items-center">
+                        <input id="new-project-name" placeholder="Enter Project Name (e.g., Mobile App Redesign)" class="flex-grow border p-3 rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500">
+                        <button id="btn-create-project" class="bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-700 font-bold transition shadow-md whitespace-nowrap">
+                            Create Project
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
                         <h3 class="font-bold text-lg">System Users</h3>
-                        <div class="relative">
+                        <div class="relative w-full sm:w-64">
                             <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
-                            <input id="user-search" placeholder="Search users..." class="pl-8 pr-4 py-2 rounded-lg border text-sm w-64 dark:bg-gray-700 dark:border-gray-600">
+                            <input id="user-search" placeholder="Search by name..." class="w-full pl-9 pr-4 py-2 rounded-lg border text-sm dark:bg-gray-700 dark:border-gray-600">
                         </div>
                     </div>
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold tracking-wider">
-                            <tr>
-                                <th class="p-4">User Details</th>
-                                <th class="p-4">Global Role</th>
-                                <th class="p-4">Project Access</th>
-                                <th class="p-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="user-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
-                            </tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold tracking-wider">
+                                <tr>
+                                    <th class="p-5">User</th>
+                                    <th class="p-5">System Role</th>
+                                    <th class="p-5">Assigned Projects</th>
+                                    <th class="p-5 text-right">Access Control</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                                </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm">
-        <div class="bg-white dark:bg-darkcard rounded-xl w-[700px] max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
-            <div class="p-6 border-b dark:border-gray-700 flex justify-between items-start">
+    <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm transition-opacity opacity-0 pointer-events-none">
+        <div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col transform transition-transform scale-95">
+            <div class="p-6 border-b dark:border-gray-700 flex justify-between items-start sticky top-0 bg-white dark:bg-darkcard z-10">
                 <input id="detail-title" class="text-2xl font-bold bg-transparent border-none w-full focus:ring-0 text-gray-800 dark:text-white placeholder-gray-400" placeholder="Task Title">
-                <button onclick="$('#modal-details').addClass('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <button onclick="closeModal('modal-details')" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
-            <div class="p-6 grid grid-cols-3 gap-6 flex-grow">
-                <div class="col-span-2 space-y-6">
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow">
+                <div class="md:col-span-2 space-y-6">
                     <div>
                         <label class="text-xs uppercase text-gray-500 font-bold mb-1 block">Description</label>
-                        <textarea id="detail-desc" class="w-full border p-3 rounded-lg text-sm h-32 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 resize-none" placeholder="Add details..."></textarea>
+                        <textarea id="detail-desc" class="w-full border p-3 rounded-xl text-sm h-32 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 resize-none leading-relaxed" placeholder="Add a more detailed description..."></textarea>
                     </div>
-                    <div class="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border dark:border-gray-700">
-                        <label class="text-xs uppercase text-gray-500 font-bold mb-2 block">Subtasks</label>
+                    <div class="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border dark:border-gray-700">
+                        <label class="text-xs uppercase text-gray-500 font-bold mb-3 block flex justify-between">
+                            <span>Subtasks</span>
+                            <span id="subtask-count" class="text-gray-400 font-normal">0/0</span>
+                        </label>
                         <div id="subtask-list" class="space-y-2 mb-3"></div>
                         <div class="flex gap-2">
-                            <input id="new-subtask" placeholder="Add a step..." class="flex-grow border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600">
-                            <button onclick="addSubtask()" class="bg-indigo-100 text-indigo-600 px-3 rounded hover:bg-indigo-200"><i class="fa-solid fa-plus"></i></button>
+                            <input id="new-subtask" placeholder="Add a step..." class="flex-grow border p-2 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600">
+                            <button onclick="addSubtask()" class="bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 px-3 rounded-lg hover:bg-indigo-200"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
                 </div>
-                <div class="col-span-1 space-y-4">
+                <div class="md:col-span-1 space-y-4">
                     <div>
                         <label class="text-xs uppercase text-gray-500 font-bold block mb-1">Assignee</label>
-                        <select id="detail-assignee" class="w-full border p-2 rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"></select>
+                        <select id="detail-assignee" class="w-full border p-2.5 rounded-xl dark:bg-gray-700 dark:border-gray-600 text-sm"></select>
                     </div>
                     <div>
-                        <label class="text-xs uppercase text-gray-500 font-bold block mb-1">Points</label>
-                        <input id="detail-points" type="number" class="w-full border p-2 rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm">
+                        <label class="text-xs uppercase text-gray-500 font-bold block mb-1">Story Points</label>
+                        <input id="detail-points" type="number" class="w-full border p-2.5 rounded-xl dark:bg-gray-700 dark:border-gray-600 text-sm">
                     </div>
-                    <div class="pt-4 border-t dark:border-gray-700 space-y-2">
-                        <button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2 rounded-lg shadow hover:bg-indigo-700 transition font-bold">Save Changes</button>
-                        <button id="btn-delete-item" class="role-master hidden w-full border border-red-200 text-red-500 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition">Delete Task</button>
+                    <div class="pt-6 border-t dark:border-gray-700 space-y-3">
+                        <button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl shadow-md hover:bg-indigo-700 transition font-bold">Save Changes</button>
+                        <button id="btn-delete-item" class="role-master hidden w-full border border-red-200 text-red-500 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm">Delete Task</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110]">
-        <div class="bg-white dark:bg-darkcard p-6 rounded-xl w-96 shadow-2xl border-t-4 border-green-500">
-            <h3 class="text-lg font-bold mb-4 text-green-600 flex items-center gap-2"><i class="fa-solid fa-clipboard-check"></i> Definition of Done</h3>
-            <div class="space-y-3 mb-6">
-                <label class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer">
-                    <input type="checkbox" class="dod-check w-5 h-5 text-green-600 rounded"> <span class="text-sm">Code Reviewed</span>
+    <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500 transform transition-all scale-100">
+            <h3 class="text-xl font-bold mb-4 text-green-600 flex items-center gap-2"><i class="fa-solid fa-clipboard-check"></i> Definition of Done</h3>
+            <p class="text-gray-500 text-sm mb-6">Please confirm the following criteria are met before moving this task to Done.</p>
+            <div class="space-y-4 mb-8">
+                <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 transition">
+                    <input type="checkbox" class="dod-check w-5 h-5 text-green-600 rounded focus:ring-green-500"> 
+                    <span class="font-medium">Code Reviewed & Approved</span>
                 </label>
-                <label class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer">
-                    <input type="checkbox" class="dod-check w-5 h-5 text-green-600 rounded"> <span class="text-sm">Unit Tests Passed</span>
+                <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 transition">
+                    <input type="checkbox" class="dod-check w-5 h-5 text-green-600 rounded focus:ring-green-500"> 
+                    <span class="font-medium">Unit Tests Passed</span>
                 </label>
-                <label class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer">
-                    <input type="checkbox" class="dod-check w-5 h-5 text-green-600 rounded"> <span class="text-sm">QA Verified</span>
+                <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 transition">
+                    <input type="checkbox" class="dod-check w-5 h-5 text-green-600 rounded focus:ring-green-500"> 
+                    <span class="font-medium">QA / PO Verification</span>
                 </label>
             </div>
             <div class="flex justify-end gap-3">
-                <button onclick="$('#modal-dod').addClass('hidden'); cancelDrag();" class="px-4 py-2 text-gray-500">Cancel</button>
-                <button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded shadow opacity-50 cursor-not-allowed transition" disabled>Confirm Move</button>
+                <button onclick="closeModal('modal-dod'); cancelDrag();" class="px-5 py-2 text-gray-500 hover:text-gray-700 font-medium">Cancel</button>
+                <button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg shadow-md opacity-50 cursor-not-allowed transition hover:bg-green-700 font-bold" disabled>Confirm Move</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]">
-        <div class="bg-white dark:bg-darkcard p-6 rounded-xl w-96 shadow-lg">
-            <h3 class="font-bold mb-4 text-lg">Start New Sprint</h3>
-            <input id="new-sprint-name" placeholder="Sprint Name (e.g. Sprint 42)" class="w-full border p-3 mb-4 rounded dark:bg-gray-700 dark:border-gray-600">
+    <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl">
+            <h3 class="font-bold mb-2 text-xl text-indigo-900 dark:text-white">Start New Sprint</h3>
+            <p class="text-gray-500 text-sm mb-6">Create a new iteration container.</p>
+            <input id="new-sprint-name" placeholder="Sprint Name (e.g. Sprint 42)" class="w-full border p-3 mb-6 rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
             <div class="flex justify-end gap-2">
-                <button onclick="$('#modal-sprint').addClass('hidden')" class="px-4 py-2 text-gray-500">Cancel</button>
-                <button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Create</button>
+                <button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                <button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 shadow-md transition font-bold">Create</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION ---
+        // --- 1. CONFIG & UTILS ---
         const firebaseConfig = {
             apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k",
             authDomain: "agile-works-ba545.firebaseapp.com",
@@ -309,157 +366,213 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // State
-        let currentUser = null;
-        let currentProjectId = null;
-        let currentSprintId = null;
-        let currentDetailId = null;
-        let pendingMoveId = null;
-        let allProjects = [];
+        // Global State
+        const appState = {
+            user: null,
+            projectId: null,
+            sprintId: null,
+            projects: [],
+            detailId: null,
+            pendingDrag: null
+        };
+
+        // Custom Toast Notification
+        function showToast(msg, type = 'success') {
+            const colors = type === 'error' ? 'bg-red-500' : 'bg-green-600';
+            const icon = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check';
+            const id = Date.now();
+            
+            const html = `
+                <div id="toast-${id}" class="toast-enter flex items-center gap-3 ${colors} text-white px-4 py-3 rounded-lg shadow-lg min-w-[300px]">
+                    <i class="fa-solid ${icon}"></i>
+                    <span class="font-medium text-sm">${msg}</span>
+                </div>
+            `;
+            $('#toast-container').append(html);
+            
+            setTimeout(() => $(`#toast-${id}`).removeClass('toast-enter').addClass('toast-enter-active'), 10);
+            setTimeout(() => {
+                $(`#toast-${id}`).removeClass('toast-enter-active').addClass('toast-exit-active');
+                setTimeout(() => $(`#toast-${id}`).remove(), 300);
+            }, 3000);
+        }
+
+        function toggleLoader(show) {
+            show ? $('#global-loader').removeClass('hidden') : $('#global-loader').addClass('hidden');
+        }
 
         // --- 2. AUTHENTICATION ---
-        $('#btn-login').click(() => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));
-        $('#btn-logout').click(() => { auth.signOut(); location.reload(); });
+        $('#btn-login').click(() => {
+            toggleLoader(true);
+            auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => {
+                toggleLoader(false);
+                showToast(e.message, 'error');
+            });
+        });
+
+        $('#btn-logout').click(() => {
+            auth.signOut();
+            location.reload();
+        });
 
         auth.onAuthStateChanged(async user => {
             if (user) {
-                // Get or Create User
-                const userRef = db.collection('users').doc(user.uid);
-                const doc = await userRef.get();
-                
-                if (!doc.exists) {
-                    // New user defaults to 'dev'
-                    await userRef.set({
-                        displayName: user.displayName,
-                        email: user.email,
-                        role: 'dev',
-                        projects: [],
-                        createdAt: Date.now()
-                    });
-                    currentUser = { uid: user.uid, role: 'dev', projects: [], displayName: user.displayName };
-                } else {
-                    currentUser = { uid: user.uid, ...doc.data() };
-                }
-
-                // UI Setup
-                $('#login-screen').addClass('hidden');
-                $('#user-display').text(currentUser.displayName);
-                
-                // Role Badge
-                let roleLabel = 'Developer';
-                let roleColor = 'bg-gray-500';
-                if(currentUser.role === 'master') { roleLabel = 'Scrum Master'; roleColor = 'bg-indigo-500'; }
-                if(currentUser.role === 'superadmin') { roleLabel = 'Super Admin'; roleColor = 'bg-purple-600'; }
-                
-                $('#role-badge').text(roleLabel).removeClass('bg-gray-400 bg-gray-500 bg-indigo-500 bg-purple-600').addClass(roleColor);
-
-                // Admin Permissions
-                if (currentUser.role !== 'dev') {
-                    $('#tab-admin').removeClass('hidden');
-                    if(currentUser.role === 'superadmin') {
-                        $('#admin-create-project').removeClass('hidden');
-                        $('#superadmin-cta').removeClass('hidden');
+                try {
+                    const userRef = db.collection('users').doc(user.uid);
+                    const doc = await userRef.get();
+                    
+                    if (!doc.exists) {
+                        // Init new user
+                        await userRef.set({
+                            displayName: user.displayName,
+                            email: user.email,
+                            role: 'dev', // Default role
+                            projects: [],
+                            createdAt: Date.now()
+                        });
+                        appState.user = { uid: user.uid, role: 'dev', projects: [], displayName: user.displayName };
+                    } else {
+                        appState.user = { uid: user.uid, ...doc.data() };
                     }
-                    if(currentUser.role === 'master' || currentUser.role === 'superadmin') {
+
+                    // Setup UI based on Role
+                    $('#login-screen').addClass('hidden');
+                    $('#user-display').text(appState.user.displayName);
+                    
+                    const roleMap = { 'dev': 'Developer', 'master': 'Scrum Master', 'superadmin': 'Super Admin' };
+                    const colorMap = { 'dev': 'bg-gray-400', 'master': 'bg-indigo-500', 'superadmin': 'bg-purple-600' };
+                    
+                    $('#role-badge')
+                        .text(roleMap[appState.user.role])
+                        .removeClass('bg-gray-400 bg-indigo-500 bg-purple-600')
+                        .addClass(colorMap[appState.user.role]);
+
+                    // Visibility permissions
+                    if (appState.user.role !== 'dev') {
+                        $('#tab-btn-admin').removeClass('hidden');
                         $('.role-master').removeClass('hidden');
+                        if (appState.user.role === 'superadmin') {
+                            $('#admin-create-project').removeClass('hidden');
+                            $('#admin-setup-cta').removeClass('hidden');
+                        }
                     }
-                }
 
-                initApp();
+                    initApp();
+                } catch (e) {
+                    showToast("Login Init Error: " + e.message, 'error');
+                } finally {
+                    toggleLoader(false);
+                }
             } else {
                 $('#login-screen').removeClass('hidden');
+                toggleLoader(false);
             }
         });
 
-        // --- 3. INIT APP ---
+        // --- 3. INITIALIZATION & PROJECTS ---
         async function initApp() {
-            setupTabs();
-            await loadProjectsDropdown();
+            switchTab('board');
+            await loadProjects();
             
             // Listeners
             $('#project-select').change(function() {
-                currentProjectId = $(this).val();
+                appState.projectId = $(this).val();
                 handleProjectChange();
             });
             
-            // Admin Tab Load
-            $('#tab-admin').click(loadUserManagement);
+            // Lazy load users for admin
+            $('#tab-btn-admin').click(loadUserManagement);
         }
 
-        async function loadProjectsDropdown() {
+        async function loadProjects() {
             const $sel = $('#project-select');
             $sel.empty();
 
-            let q = db.collection('projects');
-            // Optimistic fetch: Filter client side for simplicity in demo
-            const snap = await q.get();
-            allProjects = [];
-            
-            snap.forEach(doc => {
-                const p = doc.data();
-                const pid = doc.id;
-                // Security filtering
-                if(currentUser.role === 'superadmin' || (currentUser.projects && currentUser.projects.includes(pid))) {
-                    allProjects.push({ id: pid, name: p.name });
-                    $sel.append(`<option value="${pid}">${p.name}</option>`);
-                }
-            });
+            try {
+                // In a real app with 1000s of projects, we'd query precisely.
+                // For this scale, fetching all and filtering in memory is faster/easier for demo.
+                const snap = await db.collection('projects').get();
+                appState.projects = [];
 
-            if(allProjects.length === 0) {
-                $sel.append('<option value="">No Projects</option>');
-                $('#no-project-state').removeClass('hidden');
-            } else {
-                // Select first
-                currentProjectId = allProjects[0].id;
-                $sel.val(currentProjectId);
-                handleProjectChange();
+                snap.forEach(doc => {
+                    const p = doc.data();
+                    const pid = doc.id;
+                    // Access Check
+                    if (appState.user.role === 'superadmin' || (appState.user.projects && appState.user.projects.includes(pid))) {
+                        appState.projects.push({ id: pid, name: p.name });
+                        $sel.append(`<option value="${pid}">${p.name}</option>`);
+                    }
+                });
+
+                if (appState.projects.length === 0) {
+                    $sel.append('<option value="">No Projects</option>');
+                    $('#no-project-state').removeClass('hidden');
+                } else {
+                    appState.projectId = appState.projects[0].id;
+                    $sel.val(appState.projectId);
+                    handleProjectChange();
+                }
+            } catch (e) {
+                console.error(e);
+                showToast("Error loading projects", 'error');
             }
         }
 
         function handleProjectChange() {
-            if(!currentProjectId) {
-                $('#no-project-state').removeClass('hidden');
-                return;
-            }
+            if (!appState.projectId) return;
             $('#no-project-state').addClass('hidden');
             loadSprints();
             loadRetro();
-            loadProjectTeam(); // For assignee dropdown
+            loadProjectUsers(); // For assignee dropdown
         }
 
-        // --- 4. BOARD DATA ---
+        // --- 4. BOARD LOGIC ---
         function loadSprints() {
-            db.collection('sprints')
-                .where('projectId', '==', currentProjectId)
-                .orderBy('createdAt', 'desc')
-                .onSnapshot(snap => {
-                    const $sel = $('#sprint-select').empty();
-                    if (snap.empty) { $sel.append('<option value="">No Sprints Created</option>'); return; }
-                    
-                    snap.forEach(d => {
-                        if(d.data().status !== 'completed')
-                            $sel.append(`<option value="${d.id}">${d.data().name}</option>`);
-                    });
-                    
-                    // Auto select first
-                    if(!currentSprintId && snap.docs.length > 0) {
-                        currentSprintId = $sel.val();
+            const sprintsRef = db.collection('sprints')
+                .where('projectId', '==', appState.projectId)
+                .orderBy('createdAt', 'desc');
+
+            sprintsRef.onSnapshot(snap => {
+                const $sel = $('#sprint-select').empty();
+                
+                if (snap.empty) {
+                    $sel.append('<option value="">No Sprints Created</option>');
+                    clearBoard();
+                    return;
+                }
+
+                let hasActive = false;
+                snap.forEach(doc => {
+                    if (doc.data().status !== 'completed') {
+                        $sel.append(`<option value="${doc.id}">${doc.data().name}</option>`);
+                        hasActive = true;
                     }
-                    if(currentSprintId) $sel.val(currentSprintId);
-                    
-                    loadItems($sel.val());
                 });
 
-            $('#sprint-select').off('change').on('change', function() { 
-                currentSprintId = $(this).val();
-                loadItems(currentSprintId); 
+                if (!hasActive) $sel.append('<option value="">No Active Sprints</option>');
+
+                // Auto select logic
+                if (!appState.sprintId && hasActive) {
+                    appState.sprintId = $sel.val();
+                }
+                
+                if (appState.sprintId) {
+                    $sel.val(appState.sprintId);
+                    loadItems(appState.sprintId);
+                }
+            });
+
+            $('#sprint-select').off('change').on('change', function() {
+                appState.sprintId = $(this).val();
+                loadItems(appState.sprintId);
             });
         }
 
         function loadItems(sprintId) {
-            if(!sprintId) return;
+            if (!sprintId) return;
+            
             db.collection('items')
-                .where('projectId', '==', currentProjectId)
+                .where('projectId', '==', appState.projectId)
                 .where('sprintId', '==', sprintId)
                 .onSnapshot(snap => {
                     $('#col-todo, #col-doing, #col-done, #pbi-list').empty();
@@ -468,56 +581,71 @@
                     snap.forEach(doc => {
                         const item = doc.data();
                         const card = renderCard(doc.id, item);
-                        
-                        if(item.type === 'PBI') {
+
+                        if (item.type === 'PBI') {
                             $('#pbi-list').append(card);
                         } else {
                             $(`#col-${item.status}`).append(card);
-                            if(counts[item.status] !== undefined) counts[item.status]++;
+                            if (counts[item.status] !== undefined) counts[item.status]++;
                         }
                     });
 
-                    // Update Counts
                     $('#count-todo').text(counts.todo);
                     $('#count-doing').text(counts.doing);
                     $('#count-done').text(counts.done);
+                    
+                    applyFilters(); // Re-apply filters if any
                 });
         }
 
         function renderCard(id, item) {
             const assignee = item.assignee || 'Unassigned';
-            const avatar = `https://ui-avatars.com/api/?name=${assignee}&background=random&color=fff&size=24`;
+            const avatar = `https://ui-avatars.com/api/?name=${assignee}&background=random&color=fff&size=24&font-size=0.4`;
             
-            // Subtask Progress
+            // Subtask Progress Bar
             let progressHtml = '';
             if (item.subtasks && item.subtasks.length > 0) {
                 const total = item.subtasks.length;
                 const done = item.subtasks.filter(t => t.done).length;
                 const pct = (done/total)*100;
                 progressHtml = `
-                <div class="mt-2 text-[10px] text-gray-400 flex items-center gap-2">
-                    <div class="flex-grow bg-gray-200 rounded-full h-1.5 dark:bg-gray-700"><div class="bg-indigo-500 h-1.5 rounded-full transition-all" style="width:${pct}%"></div></div>
-                    <span>${done}/${total}</span>
-                </div>`;
+                    <div class="mt-3">
+                        <div class="flex justify-between text-[10px] text-gray-400 mb-1">
+                            <span>Progress</span>
+                            <span>${Math.round(pct)}%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                `;
             }
 
-            // Move Button (Fallback)
-            let actionBtn = '';
-            if(item.type === 'PBI') actionBtn = `<button onclick="updateItem('${id}', {type:'SBI', status:'todo'}); event.stopPropagation();" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 font-bold">To Sprint</button>`;
+            // Fallback button for non-drag
+            let moveBtn = '';
+            if (item.type === 'PBI') {
+                moveBtn = `<button onclick="updateItem('${id}', {type:'SBI', status:'todo'}); event.stopPropagation();" class="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-100 font-bold ml-auto">Add to Sprint</button>`;
+            }
 
             return `
-                <div class="drag-item bg-white dark:bg-darkcard p-3 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 cursor-grab hover:shadow-md transition group relative border-l-4 ${item.status==='done'?'border-l-green-500':item.status==='doing'?'border-l-blue-500':'border-l-indigo-500'}" 
-                     data-id="${id}" onclick="openDetailModal('${id}')">
+                <div class="kanban-item bg-white dark:bg-darkcard p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 cursor-grab hover:shadow-md transition group relative border-l-4 ${item.status==='done'?'border-l-green-500':item.status==='doing'?'border-l-blue-500':'border-l-indigo-500'}" 
+                     data-id="${id}" 
+                     data-assignee="${assignee}"
+                     onclick="openDetailModal('${id}')">
+                    
                     <div class="flex justify-between items-start mb-1">
-                        <span class="font-bold text-sm text-gray-800 dark:text-gray-200 leading-snug">${item.title}</span>
-                        <span class="text-[10px] bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-500 font-mono">${item.points||'-'}</span>
+                        <span class="font-bold text-sm text-gray-800 dark:text-gray-200 leading-snug line-clamp-2">${item.title}</span>
+                        <span class="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-gray-500 font-mono whitespace-nowrap">${item.points||'-'} pts</span>
                     </div>
+                    
                     ${progressHtml}
-                    <div class="flex justify-between items-center mt-3">
+
+                    <div class="flex justify-between items-center mt-4">
                         <div class="flex items-center gap-2">
-                             <img src="${avatar}" class="w-5 h-5 rounded-full border border-white shadow-sm" title="Assigned to ${assignee}">
+                             <img src="${avatar}" class="w-6 h-6 rounded-full border border-white dark:border-gray-600 shadow-sm" title="Assigned to ${assignee}">
+                             <span class="text-xs text-gray-400 truncate max-w-[80px]">${assignee.split(' ')[0]}</span>
                         </div>
-                        <div class="opacity-0 group-hover:opacity-100 transition-opacity">${actionBtn}</div>
+                        ${moveBtn}
                     </div>
                 </div>
             `;
@@ -528,20 +656,21 @@
         containers.forEach(el => {
             new Sortable(el, {
                 group: 'kanban',
-                animation: 150,
+                animation: 200,
+                delay: 100, // Touch friendly
                 ghostClass: 'opacity-50',
-                delay: 100,
                 onEnd: (evt) => {
                     const itemId = evt.item.getAttribute('data-id');
                     const newStatus = evt.to.getAttribute('data-status');
-                    if(!newStatus) return; // Dropped outside
+                    
+                    if (!newStatus) return; // Dropped outside
 
                     if (newStatus === 'done') {
-                        pendingMoveId = itemId;
-                        // Reset DoD
+                        appState.pendingDrag = itemId;
+                        // Reset DoD Modal
                         $('.dod-check').prop('checked', false);
                         $('#btn-confirm-dod').prop('disabled', true).addClass('opacity-50');
-                        $('#modal-dod').removeClass('hidden');
+                        openModal('modal-dod');
                     } else {
                         updateItem(itemId, { status: newStatus });
                     }
@@ -549,11 +678,14 @@
             });
         });
 
-        window.cancelDrag = () => loadItems(currentSprintId); // Simple revert by reload
+        window.cancelDrag = () => {
+            // Re-fetch data to snap card back visually
+            loadItems(appState.sprintId);
+        };
 
-        // --- 6. ADMIN & USER MGMT ---
+        // --- 6. USER MANAGEMENT (Admin) ---
         function loadUserManagement() {
-            if(currentUser.role === 'dev') return;
+            if (appState.user.role === 'dev') return;
             
             db.collection('users').onSnapshot(snap => {
                 const $tbody = $('#user-table-body').empty();
@@ -563,189 +695,284 @@
                     const uid = doc.id;
                     
                     // Role Dropdown (SuperAdmin Only)
-                    const roleDisabled = currentUser.role !== 'superadmin' ? 'disabled' : '';
+                    const roleDisabled = appState.user.role !== 'superadmin' ? 'disabled' : '';
                     const roleSelect = `
-                        <select onchange="changeUserRole('${uid}', this.value)" class="border rounded p-1 text-xs dark:bg-gray-700" ${roleDisabled}>
+                        <select onchange="changeUserRole('${uid}', this.value)" class="border rounded-lg p-2 text-xs bg-white dark:bg-gray-700 dark:border-gray-600" ${roleDisabled}>
                             <option value="dev" ${u.role==='dev'?'selected':''}>Developer</option>
                             <option value="master" ${u.role==='master'?'selected':''}>Scrum Master</option>
                             <option value="superadmin" ${u.role==='superadmin'?'selected':''}>Super Admin</option>
                         </select>
                     `;
 
-                    // Project Access Logic
+                    // Project Badges
                     const assignedNames = (u.projects || []).map(pid => {
-                        const p = allProjects.find(ap => ap.id === pid);
-                        return p ? `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] mr-1 border border-indigo-100">${p.name}</span>` : '';
+                        const p = appState.projects.find(ap => ap.id === pid);
+                        return p ? `<span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded text-[10px] mr-1 border border-indigo-100 dark:border-indigo-800">${p.name}</span>` : '';
                     }).join('');
 
-                    // Add/Remove Controls (Master can only add to current project)
-                    const canManage = currentUser.role === 'superadmin' || (currentUser.role === 'master' && currentUser.projects.includes(currentProjectId));
+                    // Actions
                     let actionBtn = '-';
+                    // Can this admin manage this user?
+                    const canManage = appState.user.role === 'superadmin' || (appState.user.role === 'master' && appState.user.projects.includes(appState.projectId));
                     
-                    if(canManage && currentProjectId) {
-                        const isIn = (u.projects || []).includes(currentProjectId);
-                        if(isIn) {
-                            actionBtn = `<button onclick="toggleProjectAccess('${uid}', '${currentProjectId}', false)" class="text-red-500 hover:text-red-700 text-xs font-bold border border-red-200 px-2 py-1 rounded">Remove</button>`;
+                    if (canManage && appState.projectId) {
+                        const isIn = (u.projects || []).includes(appState.projectId);
+                        if (isIn) {
+                            actionBtn = `<button onclick="toggleProjectAccess('${uid}', '${appState.projectId}', false)" class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1 rounded text-xs font-bold transition">Remove</button>`;
                         } else {
-                            actionBtn = `<button onclick="toggleProjectAccess('${uid}', '${currentProjectId}', true)" class="text-green-600 hover:text-green-800 text-xs font-bold border border-green-200 px-2 py-1 rounded">Add to Team</button>`;
+                            actionBtn = `<button onclick="toggleProjectAccess('${uid}', '${appState.projectId}', true)" class="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 px-3 py-1 rounded text-xs font-bold transition">Add to Team</button>`;
                         }
                     }
 
                     $tbody.append(`
                         <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                            <td class="p-4 font-medium flex flex-col">
-                                <span>${u.displayName}</span>
-                                <span class="text-xs text-gray-400">${u.email}</span>
+                            <td class="p-5 font-medium">
+                                <div class="flex items-center gap-3">
+                                    <img src="https://ui-avatars.com/api/?name=${u.displayName}&background=random&color=fff&size=32" class="w-8 h-8 rounded-full">
+                                    <div class="flex flex-col">
+                                        <span>${u.displayName}</span>
+                                        <span class="text-xs text-gray-400">${u.email}</span>
+                                    </div>
+                                </div>
                             </td>
-                            <td class="p-4">${roleSelect}</td>
-                            <td class="p-4">${assignedNames || '<span class="text-gray-400 text-xs">None</span>'}</td>
-                            <td class="p-4 text-right">${actionBtn}</td>
+                            <td class="p-5">${roleSelect}</td>
+                            <td class="p-5 overflow-hidden max-w-xs">${assignedNames || '<span class="text-gray-400 text-xs italic">No Projects</span>'}</td>
+                            <td class="p-5 text-right">${actionBtn}</td>
                         </tr>
                     `);
                 });
             });
         }
 
-        // --- 7. ACTIONS (CRUD) ---
+        // --- 7. MODALS & FORMS ---
         
-        // Projects
+        // Modal Utils
+        window.openModal = (id) => {
+            $(`#${id}`).removeClass('hidden pointer-events-none opacity-0');
+            $(`#${id} > div`).removeClass('scale-95');
+        };
+        window.closeModal = (id) => {
+            $(`#${id}`).addClass('hidden pointer-events-none opacity-0');
+            $(`#${id} > div`).addClass('scale-95');
+        };
+
+        // Create Project
         $('#btn-create-project').click(async () => {
             const name = $('#new-project-name').val();
-            if(!name) return;
-            const ref = await db.collection('projects').add({ name, createdBy: currentUser.uid, createdAt: Date.now() });
-            // Auto-assign admin
-            await db.collection('users').doc(currentUser.uid).update({ projects: firebase.firestore.FieldValue.arrayUnion(ref.id) });
-            alert("Project Created! Reloading...");
-            location.reload();
+            if (!name) return showToast('Project name required', 'error');
+            
+            try {
+                const ref = await db.collection('projects').add({ name, createdBy: appState.user.uid, createdAt: Date.now() });
+                // Add creator to project automatically
+                await db.collection('users').doc(appState.user.uid).update({ projects: firebase.firestore.FieldValue.arrayUnion(ref.id) });
+                
+                showToast('Project created successfully');
+                setTimeout(() => location.reload(), 1000);
+            } catch (e) { showToast(e.message, 'error'); }
         });
 
-        // Sprints
-        $('#btn-new-sprint-modal').click(() => $('#modal-sprint').removeClass('hidden'));
-        $('#btn-create-sprint').click(() => {
+        // Create Sprint
+        $('#btn-new-sprint-modal').click(() => openModal('modal-sprint'));
+        $('#btn-create-sprint').click(async () => {
             const name = $('#new-sprint-name').val();
-            if(name) {
-                db.collection('sprints').add({ name, projectId: currentProjectId, status: 'active', createdAt: Date.now() });
-                $('#modal-sprint').addClass('hidden');
+            if (name) {
+                await db.collection('sprints').add({ 
+                    name, projectId: appState.projectId, status: 'active', createdAt: Date.now() 
+                });
+                closeModal('modal-sprint');
+                showToast('Sprint created');
             }
         });
 
-        // Items
+        // Open Task Logic
         window.openItemModal = (type) => {
-            if(!currentProjectId) return alert("Select Project first");
-            const t = prompt("Task Title:");
-            if(t) db.collection('items').add({ 
-                title: t, type, status: 'todo', projectId: currentProjectId, sprintId: $('#sprint-select').val(), points: 0, createdAt: Date.now() 
-            });
+            if (!appState.projectId) return showToast('Select a project first', 'error');
+            const title = prompt("Enter Task Title:");
+            if (title) {
+                db.collection('items').add({ 
+                    title, type, status: 'todo', 
+                    projectId: appState.projectId, sprintId: appState.sprintId, 
+                    points: 0, createdAt: Date.now() 
+                });
+            }
         };
 
-        window.updateItem = (id, data) => db.collection('items').doc(id).update(data);
-        
-        // Item Details & Subtasks
         window.openDetailModal = (id) => {
-            currentDetailId = id;
+            appState.detailId = id;
             db.collection('items').doc(id).onSnapshot(doc => {
-                if(!doc.exists) return;
+                if (!doc.exists) return; // Deleted
                 const d = doc.data();
+                
                 $('#detail-title').val(d.title);
                 $('#detail-desc').val(d.description || '');
                 $('#detail-points').val(d.points || 0);
                 $('#detail-assignee').val(d.assignee || '');
                 
                 $('#subtask-list').empty();
+                const total = d.subtasks ? d.subtasks.length : 0;
+                const done = d.subtasks ? d.subtasks.filter(t => t.done).length : 0;
+                $('#subtask-count').text(`${done}/${total}`);
+
                 (d.subtasks||[]).forEach((t, i) => {
                     $('#subtask-list').append(`
-                        <div class="flex items-center gap-2 text-sm group">
-                            <input type="checkbox" ${t.done?'checked':''} onchange="toggleSubtask(${i}, ${t.done})" class="cursor-pointer">
-                            <span class="${t.done?'line-through text-gray-400':''} flex-grow">${t.text}</span>
-                            <button onclick="deleteSubtask(${i})" class="text-red-400 opacity-0 group-hover:opacity-100">&times;</button>
+                        <div class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg group transition">
+                            <input type="checkbox" ${t.done?'checked':''} onchange="toggleSubtask(${i}, ${t.done})" class="w-4 h-4 text-indigo-600 rounded cursor-pointer">
+                            <span class="${t.done?'line-through text-gray-400':''} flex-grow text-sm">${t.text}</span>
+                            <button onclick="deleteSubtask(${i})" class="text-red-400 opacity-0 group-hover:opacity-100 hover:text-red-600 transition"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     `);
                 });
-                $('#modal-details').removeClass('hidden');
+                
+                openModal('modal-details');
             });
         };
 
+        // Task CRUD
         $('#btn-save-details').click(() => {
-            updateItem(currentDetailId, {
+            updateItem(appState.detailId, {
                 title: $('#detail-title').val(),
                 description: $('#detail-desc').val(),
                 points: parseInt($('#detail-points').val()),
                 assignee: $('#detail-assignee').val()
             });
-            $('#modal-details').addClass('hidden');
+            closeModal('modal-details');
+            showToast('Task updated');
         });
 
+        $('#btn-delete-item').click(() => {
+            if(confirm('Are you sure? This cannot be undone.')) {
+                db.collection('items').doc(appState.detailId).delete()
+                  .then(() => { closeModal('modal-details'); showToast('Task deleted'); })
+                  .catch(e => showToast(e.message, 'error'));
+            }
+        });
+
+        // Subtasks
         window.addSubtask = () => {
             const text = $('#new-subtask').val();
-            if(text) db.collection('items').doc(currentDetailId).update({ subtasks: firebase.firestore.FieldValue.arrayUnion({text, done: false}) });
-            $('#new-subtask').val('');
+            if(text) {
+                db.collection('items').doc(appState.detailId).update({ 
+                    subtasks: firebase.firestore.FieldValue.arrayUnion({text, done: false}) 
+                });
+                $('#new-subtask').val('');
+            }
         };
-        
-        window.toggleSubtask = async (idx, old) => {
-            const doc = await db.collection('items').doc(currentDetailId).get();
+
+        window.toggleSubtask = async (idx, oldVal) => {
+            const doc = await db.collection('items').doc(appState.detailId).get();
             const subs = doc.data().subtasks;
-            subs[idx].done = !old;
-            updateItem(currentDetailId, {subtasks: subs});
+            subs[idx].done = !oldVal;
+            updateItem(appState.detailId, {subtasks: subs});
         };
 
         window.deleteSubtask = async (idx) => {
-            const doc = await db.collection('items').doc(currentDetailId).get();
+            const doc = await db.collection('items').doc(appState.detailId).get();
             const subs = doc.data().subtasks;
             subs.splice(idx, 1);
-            updateItem(currentDetailId, {subtasks: subs});
+            updateItem(appState.detailId, {subtasks: subs});
         };
 
-        // Retro
+        // Retro Logic
         function loadRetro() {
-             db.collection('retro').where('projectId', '==', currentProjectId).onSnapshot(snap => {
-                 $('#retro-start, #retro-stop, #retro-continue').empty();
-                 snap.forEach(doc => {
-                     const d = doc.data();
-                     const btn = (currentUser.role === 'master' || d.uid === currentUser.uid) ? `<button onclick="db.collection('retro').doc('${doc.id}').delete()" class="text-red-400 ml-2">&times;</button>` : '';
-                     $(`#retro-${d.type}`).append(`<div class="bg-white dark:bg-darkcard p-3 rounded shadow-sm text-sm flex justify-between">${d.text} ${btn}</div>`);
-                 });
-             });
+            db.collection('retro').where('projectId', '==', appState.projectId).onSnapshot(snap => {
+                $('#retro-start, #retro-stop, #retro-continue').empty();
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const isMine = appState.user.role === 'master' || d.uid === appState.user.uid;
+                    const btn = isMine ? `<button onclick="db.collection('retro').doc('${doc.id}').delete()" class="text-red-400 hover:text-red-600 ml-2 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>` : '';
+                    
+                    $(`#retro-${d.type}`).append(`
+                        <div class="bg-white dark:bg-darkcard p-3 rounded-lg shadow-sm text-sm flex justify-between group border-l-4 ${d.type==='start'?'border-green-400':d.type==='stop'?'border-red-400':'border-blue-400'}">
+                            <span>${d.text}</span> ${btn}
+                        </div>
+                    `);
+                });
+            });
         }
         window.addRetroItem = (type) => {
-            const t = prompt("Text:");
-            if(t) db.collection('retro').add({ projectId: currentProjectId, type, text: t, uid: currentUser.uid });
-        }
-
-        // Roles & Access
-        window.changeUserRole = (uid, role) => {
-            if(currentUser.role === 'superadmin') db.collection('users').doc(uid).update({role});
+            const t = prompt("What's on your mind?");
+            if(t) db.collection('retro').add({ projectId: appState.projectId, type, text: t, uid: appState.user.uid });
         };
+
+        // User & Role Actions
+        window.changeUserRole = (uid, role) => {
+            db.collection('users').doc(uid).update({role})
+              .then(() => showToast('Role updated'))
+              .catch(e => showToast(e.message, 'error'));
+        };
+
         window.toggleProjectAccess = (uid, pid, add) => {
             const update = add ? firebase.firestore.FieldValue.arrayUnion(pid) : firebase.firestore.FieldValue.arrayRemove(pid);
-            db.collection('users').doc(uid).update({projects: update});
+            db.collection('users').doc(uid).update({projects: update})
+              .then(() => showToast(add ? 'User added to project' : 'User removed'))
+              .catch(e => showToast(e.message, 'error'));
         };
 
-        // DoD
-        $('.dod-check').change(() => $('#btn-confirm-dod').prop('disabled', $('.dod-check:checked').length !== 3).toggleClass('opacity-50', $('.dod-check:checked').length !== 3));
-        $('#btn-confirm-dod').click(() => {
-            updateItem(pendingMoveId, { status: 'done' });
-            $('#modal-dod').addClass('hidden');
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        // DoD Confirmation
+        $('.dod-check').change(() => {
+            const allChecked = $('.dod-check:checked').length === 3;
+            $('#btn-confirm-dod').prop('disabled', !allChecked).toggleClass('opacity-50 cursor-not-allowed', !allChecked);
         });
 
-        // Helpers
-        window.switchTab = (id) => {
-            $('.view-section').addClass('hidden');
-            $(`#view-${id}`).removeClass('hidden');
-            $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm').addClass('text-gray-500 hover:text-indigo-600');
-            $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500');
-            // Lazy load admin
-            if(id === 'admin') loadUserManagement();
-        };
+        $('#btn-confirm-dod').click(() => {
+            updateItem(appState.pendingDrag, { status: 'done' });
+            closeModal('modal-dod');
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            showToast('Task Completed! 🎉');
+        });
 
-        function loadProjectTeam() {
-            db.collection('users').where('projects', 'array-contains', currentProjectId).get().then(snap => {
-                $('#detail-assignee').empty().append('<option value="">Unassigned</option>');
-                snap.forEach(doc => $('#detail-assignee').append(`<option value="${doc.data().displayName}">${doc.data().displayName}</option>`));
+        // Filter Logic
+        $('#filter-my-tasks').change(function() {
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const onlyMyTasks = $('#filter-my-tasks').is(':checked');
+            const myName = appState.user.displayName;
+            
+            $('.kanban-item').each(function() {
+                const assignee = $(this).data('assignee');
+                if (onlyMyTasks && assignee !== myName) {
+                    $(this).addClass('hidden');
+                } else {
+                    $(this).removeClass('hidden');
+                }
             });
         }
 
-        $('#theme-toggle').click(() => { $('html').toggleClass('dark'); $('#theme-toggle i').toggleClass('fa-moon fa-sun'); });
+        // Generic Update Helper
+        function updateItem(id, data) {
+            db.collection('items').doc(id).update(data).catch(e => showToast(e.message, 'error'));
+        }
+        
+        // Helper: Load Users for Dropdown
+        function loadProjectUsers() {
+            db.collection('users').where('projects', 'array-contains', appState.projectId).get().then(snap => {
+                $('#detail-assignee').empty().append('<option value="">Unassigned</option>');
+                snap.forEach(doc => {
+                    $('#detail-assignee').append(`<option value="${doc.data().displayName}">${doc.data().displayName}</option>`);
+                });
+            });
+        }
+
+        // Tab Switching
+        window.switchTab = (id) => {
+            $('.view-section').addClass('hidden');
+            $(`#view-${id}`).removeClass('hidden');
+            
+            $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600');
+            $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600');
+        };
+
+        // Dark Mode
+        $('#theme-toggle').click(() => { 
+            $('html').toggleClass('dark'); 
+            $('#theme-toggle i').toggleClass('fa-moon fa-sun'); 
+        });
+
+        function clearBoard() {
+             $('#col-todo, #col-doing, #col-done, #pbi-list').empty();
+        }
 
     </script>
 </body>
