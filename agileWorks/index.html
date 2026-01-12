@@ -606,36 +606,85 @@
         window.togSub=async(i,o)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s[i].done=!o; updateItem(appState.detailId,{subtasks:s}); };
         window.delSub=async(i)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s.splice(i,1); updateItem(appState.detailId,{subtasks:s}); };
         
-        // --- RETRO (New Inline) ---
-        function loadRetro(){ 
-            db.collection('retro').where('projectId','==',appState.projectId).onSnapshot(s=>{ 
+        // --- IMPROVED RETRO LOGIC ---
+
+        function loadRetro() { 
+            db.collection('retro').where('projectId','==',appState.projectId).onSnapshot(s => { 
                 $('#retro-start, #retro-stop, #retro-continue').empty(); 
-                s.forEach(d=>{ 
-                    const dd=d.data(); 
-                    // Card Template
+                
+                s.forEach(d => { 
+                    const dd = d.data(); 
+                    const id = d.id;
+                    
+                    // 1. Calculate Votes
+                    // Safely handle cases where 'votedBy' might not exist yet
+                    const voters = dd.votedBy || []; 
+                    const voteCount = voters.length;
+                    const iVoted = voters.includes(appState.user.uid);
+
+                    // 2. Styling based on state
+                    // If I voted, make it Indigo (Active). If not, Gray.
+                    const voteColor = iVoted ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-400 hover:text-indigo-500';
+                    const voteIcon = iVoted ? 'fa-solid fa-thumbs-up' : 'fa-regular fa-thumbs-up';
+                    
+                    // 3. Permissions
                     const isMine = appState.user.uid === dd.uid;
                     const canDelete = isMine || appState.user.role === 'master' || appState.user.role === 'superadmin';
-                    const delBtn = canDelete ? `<button onclick="db.collection('retro').doc('${d.id}').delete()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button>` : '';
-                    const voteBtn = `<button onclick="voteRetro('${d.id}')" class="text-xs flex items-center gap-1 text-gray-500 hover:text-indigo-600"><i class="fa-regular fa-thumbs-up"></i> ${dd.votes||0}</button>`;
-                    const promoteBtn = (appState.user.role!=='dev') ? `<button onclick="promoteToTask('${dd.text}')" title="Convert to Backlog Item" class="text-gray-400 hover:text-green-600"><i class="fa-solid fa-share-from-square"></i></button>` : '';
+                    const delBtn = canDelete ? `<button onclick="deleteRetro('${id}')" class="text-gray-300 hover:text-red-500 transition px-2"><i class="fa-solid fa-times"></i></button>` : '';
+                    
+                    // 4. Promote Button (Only for Non-Devs)
+                    const promoteBtn = (appState.user.role !== 'dev') 
+                        ? `<button onclick="promoteToTask('${dd.text.replace(/'/g, "\\'")}')" title="Convert to Backlog Item" class="text-gray-300 hover:text-green-600 transition"><i class="fa-solid fa-share-from-square"></i></button>` 
+                        : '';
 
                     const card = `
-                    <div class="retro-card bg-white dark:bg-darkcard p-3 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm mb-2 group">
-                        <div class="text-sm mb-2 text-gray-700 dark:text-gray-300">${dd.text}</div>
+                    <div class="retro-card bg-white dark:bg-darkcard p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mb-3 group relative hover:border-indigo-200 dark:hover:border-indigo-900 transition-all">
+                        <div class="text-sm mb-3 text-gray-700 dark:text-gray-300 leading-relaxed">${dd.text}</div>
                         <div class="flex justify-between items-center pt-2 border-t border-gray-50 dark:border-gray-800">
-                            <div class="flex gap-3">${voteBtn} ${promoteBtn}</div>
+                            <div class="flex gap-2">
+                                <button onclick="voteRetro('${id}', ${iVoted})" class="${voteColor} text-xs px-2 py-1 rounded-md transition flex items-center gap-1.5 border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
+                                    <i class="${voteIcon}"></i> <span>${voteCount || 'Vote'}</span>
+                                </button>
+                                ${promoteBtn}
+                            </div>
                             ${delBtn}
                         </div>
                     </div>`;
+                    
                     $(`#retro-${dd.type}`).append(card); 
                 }); 
             }); 
         }
 
+        // TOGGLE VOTE FUNCTION
+        window.voteRetro = (id, currentlyVoted) => {
+            const docRef = db.collection('retro').doc(id);
+            
+            if (currentlyVoted) {
+                // Remove Vote (Unlike)
+                docRef.update({
+                    votedBy: firebase.firestore.FieldValue.arrayRemove(appState.user.uid)
+                }).catch(err => showToast("Error removing vote", "error"));
+            } else {
+                // Add Vote (Like)
+                docRef.update({
+                    votedBy: firebase.firestore.FieldValue.arrayUnion(appState.user.uid)
+                }).catch(err => showToast("Error adding vote", "error"));
+            }
+        };
+
+        window.deleteRetro = (id) => {
+            if(confirm("Delete this note?")) {
+                db.collection('retro').doc(id).delete();
+            }
+        };
+
+        // Add New Retro Item (Updated to initialize array)
         window.addRetro = (type) => { 
             const inputId = `#input-retro-${type}`;
-            const text = $(inputId).val();
+            const text = $(inputId).val().trim();
             const anon = $('#retro-anon').is(':checked');
+            
             if(!text) return;
             
             db.collection('retro').add({
@@ -643,15 +692,11 @@
                 type: type, 
                 text: text, 
                 uid: anon ? 'anonymous' : appState.user.uid,
-                votes: 0,
+                votedBy: [], // Initialize empty array
                 createdAt: Date.now()
             });
-            $(inputId).val(''); // Clear
-        };
-
-        window.voteRetro = (id) => {
-             // Simple increment (For robust apps, use a subcollection of user IDs to prevent double voting)
-             db.collection('retro').doc(id).update({ votes: firebase.firestore.FieldValue.increment(1) });
+            
+            $(inputId).val(''); // Clear input
         };
 
         window.promoteToTask = (text) => {
