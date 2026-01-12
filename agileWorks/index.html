@@ -522,6 +522,12 @@
         }
 
         // --- ACTIONS ---
+        // FIX: Added listener for opening the modal
+        $('#btn-new-sprint-modal').click(() => {
+             if(!appState.projectId) return showToast('Please select a project first', 'error');
+             openModal('modal-sprint');
+        });
+
         $('#btn-create-sprint').click(async ()=>{ 
             if(!appState.projectId) return showToast('Select project first', 'error');
             const n=$('#new-sprint-name').val(); 
