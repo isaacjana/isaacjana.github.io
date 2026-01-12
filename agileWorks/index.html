@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
@@ -109,6 +110,7 @@
                     <input id="board-search" type="text" placeholder="Filter..." class="border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 w-32 focus:w-48 transition-all">
                 </div>
                 <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                    <button id="btn-open-burndown" class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg text-sm hover:bg-indigo-100 shadow-sm transition hidden role-master"><i class="fa-solid fa-chart-line"></i> Chart</button>
                     <button id="btn-export-excel" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 shadow-sm transition"><i class="fa-solid fa-file-excel"></i> Export</button>
                     <button id="btn-complete-sprint" class="role-master hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 shadow-sm transition"><i class="fa-solid fa-flag-checkered"></i> Complete</button>
                 </div>
@@ -172,35 +174,30 @@
 
     <div id="modal-details" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between mb-4"><input id="detail-title" class="text-2xl font-bold w-full bg-transparent border-none focus:ring-0"><button onclick="closeModal('modal-details')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-3 gap-6">
         <div class="col-span-2 space-y-4"><textarea id="detail-desc" class="w-full border p-3 rounded-xl h-32 dark:bg-gray-700" placeholder="Description..."></textarea><div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"><div id="subtask-list" class="space-y-2 mb-2"></div><div class="flex gap-2"><input id="new-subtask" class="flex-grow border p-2 rounded-lg dark:bg-gray-700" placeholder="New subtask..."><button onclick="addSubtask()" class="bg-indigo-100 text-indigo-600 px-3 rounded-lg">+</button></div></div>
-        <div class="mt-4 border-t pt-4 dark:border-gray-700"><h4 class="font-bold text-sm text-gray-500 mb-2">Comments</h4><div id="comments-list" class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl max-h-48 overflow-y-auto mb-2 space-y-2 text-sm custom-scroll"></div><div class="flex gap-2"><input id="new-comment" class="flex-grow border p-2 rounded-lg dark:bg-gray-700 text-sm" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment()"><button onclick="addComment()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button></div></div>
-        </div>
+        <div class="mt-4 border-t pt-4 dark:border-gray-700"><h4 class="font-bold text-sm text-gray-500 mb-2">Comments</h4><div id="comments-list" class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl max-h-48 overflow-y-auto mb-2 space-y-2 text-sm custom-scroll"></div><div class="flex gap-2"><input id="new-comment" class="flex-grow border p-2 rounded-lg dark:bg-gray-700 text-sm" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment()"><button onclick="addComment()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button></div></div></div>
         <div class="col-span-1 space-y-4"><select id="detail-assignee" class="w-full border p-2 rounded-xl dark:bg-gray-700"></select><input id="detail-points" type="number" class="w-full border p-2 rounded-xl dark:bg-gray-700" placeholder="Points"><button id="btn-save-details" class="w-full bg-indigo-600 text-white py-2 rounded-xl">Save</button><button id="btn-delete-item" class="w-full border border-red-200 text-red-500 py-2 rounded-xl hidden role-master mt-2">Delete</button></div></div></div></div>
     
     <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500"><h3 class="text-xl font-bold mb-4 text-green-600">Definition of Done</h3><div class="space-y-4 mb-8"><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Code Reviewed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Tests Passed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> QA Verified</label></div><div class="flex justify-end gap-3"><button onclick="closeModal('modal-dod')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg opacity-50" disabled>Confirm Move</button></div></div></div>
     
-    <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">New Sprint</h3>
-        <div class="space-y-3">
-            <input id="new-sprint-name" class="w-full border p-2.5 rounded-lg dark:bg-gray-700" placeholder="Sprint Name">
-            <textarea id="new-sprint-goal" class="w-full border p-2.5 rounded-lg dark:bg-gray-700 h-20" placeholder="Sprint Goal..."></textarea>
-            <div class="grid grid-cols-2 gap-2"><div class="text-xs font-bold text-gray-500">Start Date<input type="date" id="new-sprint-start" class="w-full border p-2 rounded-lg dark:bg-gray-700 mt-1"></div><div class="text-xs font-bold text-gray-500">End Date<input type="date" id="new-sprint-end" class="w-full border p-2 rounded-lg dark:bg-gray-700 mt-1"></div></div>
-        </div>
-        <div class="flex justify-end gap-2 mt-6"><button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Create</button></div></div></div>
+    <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">New Sprint</h3><div class="space-y-3"><input id="new-sprint-name" class="w-full border p-2.5 rounded-lg dark:bg-gray-700" placeholder="Sprint Name"><textarea id="new-sprint-goal" class="w-full border p-2.5 rounded-lg dark:bg-gray-700 h-20" placeholder="Sprint Goal..."></textarea><div class="grid grid-cols-2 gap-2"><div class="text-xs font-bold text-gray-500">Start Date<input type="date" id="new-sprint-start" class="w-full border p-2 rounded-lg dark:bg-gray-700 mt-1"></div><div class="text-xs font-bold text-gray-500">End Date<input type="date" id="new-sprint-end" class="w-full border p-2 rounded-lg dark:bg-gray-700 mt-1"></div></div></div><div class="flex justify-end gap-2 mt-6"><button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Create</button></div></div></div>
     
     <div id="modal-assign-project" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[120]"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl"><h3 class="font-bold mb-4 text-xl">Assign Project</h3><p class="mb-4 text-sm text-gray-500">Select which project this user can access.</p><select id="assign-project-dropdown" class="w-full border p-3 mb-6 rounded-xl dark:bg-gray-700 dark:border-gray-600"><option>Loading...</option></select><div class="flex justify-end gap-2"><button onclick="closeModal('modal-assign-project')" class="px-5 py-2 text-gray-500">Cancel</button><button id="btn-confirm-assign" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Assign</button></div></div></div>
+
+    <div id="modal-burndown" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[130] backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-4xl shadow-2xl h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-xl">Sprint Burndown</h3><button onclick="closeModal('modal-burndown')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+            <div class="flex-grow relative w-full h-full"><canvas id="burndownChart"></canvas></div>
+        </div>
+    </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k", authDomain: "agile-works-ba545.firebaseapp.com", projectId: "agile-works-ba545", storageBucket: "agile-works-ba545.firebasestorage.app", messagingSenderId: "588869159638", appId: "1:588869159638:web:5bfc6e3740ec231776d777" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null };
+        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null };
 
-        function showToast(msg, type='success') {
-            const color = type==='error'?'bg-red-500':'bg-green-600'; const id = Date.now();
-            $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-lg shadow-lg flex gap-3"><i class="fa-solid fa-circle-info mt-1"></i> ${msg}</div>`);
-            setTimeout(()=>$(`#t-${id}`).removeClass('toast-enter').addClass('toast-enter-active'),10);
-            setTimeout(()=>$(`#t-${id}`).remove(),3000);
-        }
+        function showToast(msg, type='success') { const color=type==='error'?'bg-red-500':'bg-green-600'; const id=Date.now(); $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-lg shadow-lg flex gap-3"><i class="fa-solid fa-circle-info mt-1"></i> ${msg}</div>`); setTimeout(()=>$(`#t-${id}`).removeClass('toast-enter').addClass('toast-enter-active'),10); setTimeout(()=>$(`#t-${id}`).remove(),3000); }
         function toggleLoader(s) { s ? $('#global-loader').removeClass('hidden') : $('#global-loader').addClass('hidden'); }
         function openModal(id) { $(`#${id}`).removeClass('hidden'); }
         function closeModal(id) { $(`#${id}`).addClass('hidden'); }
@@ -213,10 +210,7 @@
                 const doc = await db.collection('users').doc(user.uid).get();
                 if(!doc.exists) { await db.collection('users').doc(user.uid).set({ displayName:user.displayName, email:user.email, role:'dev', projects:[], createdAt:Date.now() }); appState.user = { uid:user.uid, role:'dev', projects:[], displayName:user.displayName }; } 
                 else { appState.user = { uid:user.uid, ...doc.data() }; }
-                
-                $('#login-screen').addClass('hidden');
-                $('#user-display').text(appState.user.displayName);
-                $('#role-badge').text(appState.user.role).addClass(appState.user.role==='superadmin'?'bg-purple-600':appState.user.role==='master'?'bg-indigo-500':'bg-gray-400');
+                $('#login-screen').addClass('hidden'); $('#user-display').text(appState.user.displayName); $('#role-badge').text(appState.user.role).addClass(appState.user.role==='superadmin'?'bg-purple-600':appState.user.role==='master'?'bg-indigo-500':'bg-gray-400');
                 if(appState.user.role!=='dev') { $('#tab-btn-admin').removeClass('hidden'); $('.role-master').removeClass('hidden'); if(appState.user.role==='superadmin') $('#admin-create-project, #admin-setup-cta').removeClass('hidden'); }
                 initApp(); toggleLoader(false);
             } else { $('#login-screen').removeClass('hidden'); toggleLoader(false); }
@@ -226,27 +220,24 @@
         async function loadProjects() { const snap = await db.collection('projects').get(); const $sel = $('#project-select').empty(); const $admSel = $('#assign-project-dropdown').empty(); appState.projects = []; snap.forEach(d => { const p = d.data(); if(appState.user.role==='superadmin' || (appState.user.projects||[]).includes(d.id)) { appState.projects.push({id:d.id, name:p.name}); $sel.append(`<option value="${d.id}">${p.name}</option>`); } $admSel.append(`<option value="${d.id}">${p.name}</option>`); }); if(appState.projects.length>0) { appState.projectId = appState.projects[0].id; $sel.val(appState.projectId); handleProjectChange(); } else { $sel.append('<option>No Projects</option>'); if(!$('#view-admin').is(':visible')) $('#no-project-state').removeClass('hidden'); } }
         function handleProjectChange() { if(!appState.projectId) return; $('#no-project-state').addClass('hidden'); loadSprints(); loadRetro(); loadProjectUsers(); }
 
-        // SPRINT LOGIC (Updated for Banner)
         function loadSprints() {
             db.collection('sprints').where('projectId','==',appState.projectId).orderBy('createdAt','desc').onSnapshot(snap => {
                 const $sel = $('#sprint-select').empty();
                 if(snap.empty) { $sel.append('<option value="">No Sprints</option>'); $('#sprint-info-banner').addClass('hidden'); clearBoard(); return; }
                 let activeId = null;
                 snap.forEach(d => { if(d.data().status!=='completed') { $sel.append(`<option value="${d.id}">${d.data().name}</option>`); if(!activeId) activeId = d.id; }});
-                
                 if(!appState.sprintId && activeId) appState.sprintId = activeId;
                 if(appState.sprintId) { 
                     $sel.val(appState.sprintId); 
-                    // Update Banner
                     const currentSprint = snap.docs.find(d => d.id === appState.sprintId)?.data();
                     if(currentSprint && currentSprint.goal) {
-                        $('#sprint-info-banner').removeClass('hidden');
-                        $('#banner-goal').text(currentSprint.goal);
+                        appState.currentSprintData = currentSprint;
+                        $('#sprint-info-banner').removeClass('hidden'); $('#banner-goal').text(currentSprint.goal);
                         const start = new Date(currentSprint.startDate); const end = new Date(currentSprint.endDate);
                         $('#banner-dates').text(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
-                        const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
-                        $('#banner-days').text(diff > 0 ? diff : 0);
-                    } else { $('#sprint-info-banner').addClass('hidden'); }
+                        const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24)); $('#banner-days').text(diff > 0 ? diff : 0);
+                        if(appState.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
+                    } else { $('#sprint-info-banner').addClass('hidden'); $('#btn-open-burndown').addClass('hidden'); appState.currentSprintData = null; }
                     loadItems(appState.sprintId); 
                 }
             });
@@ -255,33 +246,28 @@
 
         function loadItems(sid) {
             db.collection('items').where('projectId','==',appState.projectId).where('sprintId','==',sid).onSnapshot(snap => {
-                clearBoard();
+                clearBoard(); appState.sprintItems = [];
                 let counts = {todo:0, doing:0, done:0};
-                snap.forEach(doc => { const i = doc.data(); const card = renderCard(doc.id, i); if(i.type==='PBI') $('#pbi-list').append(card); else { $(`#col-${i.status}`).append(card); counts[i.status]++; } });
+                snap.forEach(doc => { 
+                    const i = doc.data(); 
+                    appState.sprintItems.push(i); 
+                    const card = renderCard(doc.id, i); 
+                    if(i.type==='PBI') $('#pbi-list').append(card); 
+                    else { $(`#col-${i.status}`).append(card); counts[i.status]++; } 
+                });
                 $('#count-todo').text(counts.todo); $('#count-doing').text(counts.doing); $('#count-done').text(counts.done);
-                // Search Filter Apply
-                const filter = $('#board-search').val().toLowerCase();
-                if(filter) $('#board-search').trigger('keyup');
+                const filter = $('#board-search').val().toLowerCase(); if(filter) $('#board-search').trigger('keyup');
             });
         }
         
-        // Search Filter Logic
-        $('#board-search').on('keyup', function() {
-            const val = $(this).val().toLowerCase();
-            $('.group').each(function() {
-                const text = $(this).text().toLowerCase();
-                $(this).toggle(text.indexOf(val) > -1);
-            });
-        });
+        $('#board-search').on('keyup', function() { const val=$(this).val().toLowerCase(); $('.group').each(function(){ const text=$(this).text().toLowerCase(); $(this).toggle(text.indexOf(val)>-1); }); });
 
         function renderCard(id, i) {
             const avatar = `https://ui-avatars.com/api/?name=${i.assignee||'U'}&size=24&background=random`;
             const border = i.status==='done'?'border-l-green-500':i.status==='doing'?'border-l-blue-500':'border-l-indigo-500';
             let actionBtns = '';
-            
             if (i.type === 'PBI') {
-                const isMaster = appState.user.role !== 'dev';
-                const delBtn = isMaster ? `<button onclick="deletePBI('${id}'); event.stopPropagation()" class="text-gray-300 hover:text-red-500 ml-2"><i class="fa-solid fa-trash"></i></button>` : '';
+                const isMaster = appState.user.role !== 'dev'; const delBtn = isMaster ? `<button onclick="deletePBI('${id}'); event.stopPropagation()" class="text-gray-300 hover:text-red-500 ml-2"><i class="fa-solid fa-trash"></i></button>` : '';
                 actionBtns = `<div class="flex items-center"><button onclick="updateItem('${id}',{type:'SBI',status:'todo'}); event.stopPropagation()" class="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-100">Add</button>${delBtn}</div>`;
             } else {
                 if(i.status === 'todo') actionBtns = `<button onclick="moveStatus('${id}', 'doing'); event.stopPropagation()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-200">Start <i class="fa-solid fa-play ml-1"></i></button>`;
@@ -292,11 +278,64 @@
         }
         function clearBoard(){ $('#col-todo, #col-doing, #col-done, #pbi-list').empty(); }
 
-        window.moveStatus = (id, status) => updateItem(id, {status: status});
+        // UPDATE LOGIC TO SAVE COMPLETED DATE
+        window.moveStatus = (id, status) => {
+            const data = { status: status };
+            if (status !== 'done') data.completedAt = null; 
+            updateItem(id, data);
+        };
         window.checkDoD = (id) => { appState.pendingItem = id; $('.dod-check').prop('checked',false); $('#btn-confirm-dod').prop('disabled',true).addClass('opacity-50'); openModal('modal-dod'); };
-        $('#btn-confirm-dod').click(() => { if(appState.pendingItem) { updateItem(appState.pendingItem, {status: 'done'}); closeModal('modal-dod'); confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); showToast('Task Completed! 🎉'); }});
+        $('#btn-confirm-dod').click(() => { if(appState.pendingItem) { updateItem(appState.pendingItem, {status: 'done', completedAt: Date.now()}); closeModal('modal-dod'); confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); showToast('Task Completed! 🎉'); }});
         $('.dod-check').change(() => { const allChecked = $('.dod-check:checked').length === 3; $('#btn-confirm-dod').prop('disabled', !allChecked).toggleClass('opacity-50 cursor-not-allowed', !allChecked); });
         window.deletePBI = (id) => { if(confirm('Delete this Backlog Item?')) db.collection('items').doc(id).delete().catch(e => showToast(e.message, 'error')); }
+
+        // BURNDOWN CHART LOGIC
+        $('#btn-open-burndown').click(() => {
+            openModal('modal-burndown');
+            const sd = appState.currentSprintData;
+            if(!sd) return;
+            const start = new Date(sd.startDate); const end = new Date(sd.endDate);
+            const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            const labels = [];
+            const idealData = [];
+            const actualData = [];
+            let totalPoints = 0;
+            
+            // Calc Total Points
+            appState.sprintItems.forEach(i => { if(i.type!=='PBI') totalPoints += (parseInt(i.points)||0); });
+            const burnRate = totalPoints / (totalDays - 1);
+
+            for(let i=0; i<totalDays; i++) {
+                const d = new Date(start); d.setDate(start.getDate() + i);
+                labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'}));
+                // Ideal
+                let ideal = totalPoints - (burnRate * i);
+                idealData.push(ideal < 0 ? 0 : ideal);
+                // Actual
+                let remaining = totalPoints;
+                const checkTime = d.setHours(23,59,59,999);
+                appState.sprintItems.forEach(item => {
+                    if(item.status === 'done' && item.completedAt && item.completedAt <= checkTime) {
+                        remaining -= (parseInt(item.points)||0);
+                    }
+                });
+                if(d <= new Date()) actualData.push(remaining);
+            }
+
+            if(window.myChart) window.myChart.destroy();
+            const ctx = document.getElementById('burndownChart').getContext('2d');
+            window.myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Ideal Burn', data: idealData, borderColor: '#9ca3af', borderDash: [5, 5], fill: false },
+                        { label: 'Actual Remaining', data: actualData, borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.2)', fill: true, tension: 0.1 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: {display: true, text: 'Story Points'} } } }
+            });
+        });
 
         window.showAdminSub = (sub) => { $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${sub}`).removeClass('hidden'); $('.admin-nav-btn').removeClass('admin-nav-active'); $(`#admin-sub-btn-${sub}`).addClass('admin-nav-active'); }
         function loadAdminProjectsList() { db.collection('projects').onSnapshot(snap => { $('#admin-project-list').empty(); snap.forEach(doc => { const p=doc.data(); $('#admin-project-list').append(`<div class="p-3 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-500 transition group" onclick="loadProjectIntoForm('${doc.id}', '${p.name}', '${p.description||''}', '${p.scrumMaster||''}')"><div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-indigo-600">${p.name}</div><div class="text-xs text-gray-500 truncate">${p.description || 'No description'}</div></div>`); }); }); }
@@ -324,17 +363,13 @@
         window.updateItem = (id,d) => db.collection('items').doc(id).update(d);
         window.openItemModal = (t) => { if(!appState.projectId) return showToast('No Project','error'); const tit=prompt("Title:"); if(tit) db.collection('items').add({title:tit, type:t, status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); };
         
-        // MODAL WITH COMMENTS
         window.openDetailModal = (id) => { 
             appState.detailId=id; 
             db.collection('items').doc(id).onSnapshot(doc => { 
                 if(!doc.exists) return; const d=doc.data(); 
                 $('#detail-title').val(d.title); $('#detail-desc').val(d.description||''); $('#detail-points').val(d.points||0); $('#detail-assignee').val(d.assignee||''); 
                 $('#subtask-list').empty(); (d.subtasks||[]).forEach((t,i)=>$('#subtask-list').append(`<div class="flex items-center gap-2"><input type="checkbox" ${t.done?'checked':''} onchange="togSub(${i},${t.done})"> <span>${t.text}</span> <button onclick="delSub(${i})" class="text-red-500">&times;</button></div>`));
-                // Comments
-                const $cl=$('#comments-list').empty(); const cmts=d.comments||[]; 
-                if(cmts.length===0)$cl.append('<div class="text-gray-400 text-xs text-center italic">No comments.</div>'); 
-                else cmts.forEach(c=>{ const isMe=c.uid===appState.user.uid; const align=isMe?'ml-auto bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100':'mr-auto bg-white border dark:bg-gray-700 dark:border-gray-600'; $cl.append(`<div class="w-fit max-w-[80%] ${align} p-2 rounded-lg shadow-sm"><div class="text-[10px] opacity-70 mb-0.5 font-bold flex justify-between gap-4"><span>${c.user}</span></div><div>${c.text}</div></div>`); });
+                const $cl=$('#comments-list').empty(); const cmts=d.comments||[]; if(cmts.length===0)$cl.append('<div class="text-gray-400 text-xs text-center italic">No comments.</div>'); else cmts.forEach(c=>{ const isMe=c.uid===appState.user.uid; const align=isMe?'ml-auto bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100':'mr-auto bg-white border dark:bg-gray-700 dark:border-gray-600'; $cl.append(`<div class="w-fit max-w-[80%] ${align} p-2 rounded-lg shadow-sm"><div class="text-[10px] opacity-70 mb-0.5 font-bold flex justify-between gap-4"><span>${c.user}</span></div><div>${c.text}</div></div>`); });
                 openModal('modal-details'); 
             }); 
         }
@@ -357,17 +392,8 @@
         window.deleteRetro=(id)=>{ if(confirm("Delete note?")) db.collection('retro').doc(id).delete(); };
         window.addRetro=(t)=>{ const txt=$(`#input-retro-${t}`).val().trim(); const anon=$('#retro-anon').is(':checked'); if(!txt)return; db.collection('retro').add({projectId:appState.projectId, type:t, text:txt, uid:anon?'anonymous':appState.user.uid, votedBy:[], createdAt:Date.now()}); $(`#input-retro-${t}`).val(''); };
         window.promoteToTask=(t)=>{ if(confirm("Promote to Backlog?")) db.collection('items').add({title:t, type:'PBI', status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); showToast("Promoted"); };
-
         function loadProjectUsers(){ db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); s.forEach(d=>$('#detail-assignee').append(`<option value="${d.data().displayName}">${d.data().displayName}</option>`)); }); }
-        
-        window.switchTab = (id) => {
-            $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden');
-            $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600');
-            $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600');
-            if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } 
-            else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); }
-        };
-
+        window.switchTab = (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600'); $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600'); if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); } };
         $('#theme-toggle').click(()=>{$('html').toggleClass('dark');});
     </script>
 </body>
