@@ -250,22 +250,60 @@
     <div id="modal-dod" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] backdrop-blur-sm"><div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-green-500"><h3 class="text-xl font-bold mb-4 text-green-600">Definition of Done</h3><div class="space-y-4 mb-8"><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Code Reviewed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> Tests Passed</label><label class="flex items-center gap-3"><input type="checkbox" class="dod-check w-5 h-5 rounded text-green-600"> QA Verified</label></div><div class="flex justify-end gap-3"><button onclick="closeModal('modal-dod')" class="px-5 py-2 text-gray-500 dark:text-gray-400">Cancel</button><button id="btn-confirm-dod" class="px-6 py-2 bg-green-600 text-white rounded-lg opacity-50" disabled>Confirm Move</button></div></div></div>
     
     <div id="modal-sprint" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100]">
-        <div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-full max-w-3xl shadow-xl max-h-[95vh] overflow-y-auto">
             <h3 class="font-bold mb-4 text-xl dark:text-white" id="modal-sprint-title">New Sprint</h3>
             <input type="hidden" id="edit-sprint-id">
-            <div class="space-y-3">
-                <input id="new-sprint-name" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600" placeholder="Sprint Name">
-                <textarea id="new-sprint-goal" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600 h-20" placeholder="Sprint Goal..."></textarea>
-                <div class="grid grid-cols-2 gap-2"><div class="text-xs font-bold text-gray-500 dark:text-gray-400">Start Date<input type="date" id="new-sprint-start" class="w-full border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 mt-1"></div><div class="text-xs font-bold text-gray-500 dark:text-gray-400">End Date<input type="date" id="new-sprint-end" class="w-full border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 mt-1"></div></div>
-                
-                <div class="border-t dark:border-gray-700 pt-3 mt-2">
-                    <h4 class="font-bold text-sm text-gray-600 dark:text-gray-300 mb-2">Team Capacity Planning</h4>
-                    <p class="text-xs text-gray-400 mb-2">Enter available story points for each member.</p>
-                    <div id="sprint-capacity-inputs" class="grid grid-cols-2 gap-3 max-h-40 overflow-y-auto custom-scroll p-1">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <input id="new-sprint-name" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600 font-bold" placeholder="Sprint Name">
+                    <textarea id="new-sprint-goal" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-gray-600 h-24" placeholder="Sprint Goal..."></textarea>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="text-xs font-bold text-gray-500 dark:text-gray-400">Start Date<input type="date" id="new-sprint-start" class="w-full border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 mt-1" onchange="calcSprintDays()"></div>
+                        <div class="text-xs font-bold text-gray-500 dark:text-gray-400">End Date<input type="date" id="new-sprint-end" class="w-full border p-2 rounded-lg dark:bg-darkbg dark:border-gray-600 mt-1" onchange="calcSprintDays()"></div>
+                    </div>
+                    <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-xs text-indigo-700 dark:text-indigo-300 flex justify-between">
+                        <span class="font-bold">Total Working Days:</span>
+                        <span id="sprint-days-count">0 days</span>
+                    </div>
+                </div>
+
+                <div class="border-l pl-6 dark:border-gray-700">
+                    <h4 class="font-bold text-sm text-gray-600 dark:text-gray-300 mb-3 flex justify-between">
+                        <span>Capacity Calculator</span>
+                        <i class="fa-solid fa-calculator text-gray-400"></i>
+                    </h4>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
+                        <div>
+                            <label class="block text-gray-500 mb-1">Hours / Point</label>
+                            <input type="number" id="calc-hours-point" class="w-full border rounded p-1.5 dark:bg-darkbg dark:border-gray-600" value="6" onchange="recalcAllCapacity()">
                         </div>
+                        <div>
+                            <label class="block text-gray-500 mb-1">Focus Factor (%)</label>
+                            <input type="number" id="calc-focus" class="w-full border rounded p-1.5 dark:bg-darkbg dark:border-gray-600" value="75" onchange="recalcAllCapacity()">
+                        </div>
+                    </div>
+
+                    <div class="border-t dark:border-gray-700 pt-3">
+                        <div class="grid grid-cols-12 gap-2 text-[10px] uppercase font-bold text-gray-400 mb-2">
+                            <div class="col-span-5">Member</div>
+                            <div class="col-span-3 text-center">Days Off</div>
+                            <div class="col-span-4 text-right">Capacity</div>
+                        </div>
+                        <div id="sprint-capacity-inputs" class="space-y-2 max-h-48 overflow-y-auto custom-scroll pr-2">
+                            </div>
+                        <div class="mt-3 text-right font-bold text-sm text-indigo-600 dark:text-indigo-400 border-t pt-2 dark:border-gray-700">
+                            Total: <span id="total-sprint-capacity">0</span> pts
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end gap-2 mt-6"><button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500 dark:text-gray-400">Cancel</button><button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Save Sprint</button></div>
+
+            <div class="flex justify-end gap-2 mt-6 border-t pt-4 dark:border-gray-700">
+                <button onclick="closeModal('modal-sprint')" class="px-5 py-2 text-gray-500 dark:text-gray-400">Cancel</button>
+                <button id="btn-create-sprint" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-indigo-700">Save Sprint</button>
+            </div>
         </div>
     </div>
     
@@ -283,7 +321,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null, projectUsers: [], sprintDataMap: {}, currentItemData: null };
+        const appState = { user: null, projectId: null, sprintId: null, projects: [], detailId: null, pendingItem: null, pendingAssignUser: null, sprintItems: [], currentSprintData: null, projectUsers: [], sprintDataMap: {}, currentItemData: null, sprintWorkDays: 0 };
         var quill; 
 
         function showToast(msg, type='success') { const color=type==='error'?'bg-red-500':'bg-green-600'; const id=Date.now(); $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-lg shadow-lg flex gap-3"><i class="fa-solid fa-circle-info mt-1"></i> ${msg}</div>`); setTimeout(()=>$(`#t-${id}`).removeClass('toast-enter').addClass('toast-enter-active'),10); setTimeout(()=>$(`#t-${id}`).remove(),3000); }
@@ -344,8 +382,6 @@
                 $('#banner-dates').text(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
                 const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24)); $('#banner-days').text(diff > 0 ? diff : 0);
                 if(appState.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
-                
-                // UPDATE CAPACITY BAR (Will be refreshed in renderKanbanBoard with exact points)
             } else { $('#sprint-info-banner').addClass('hidden'); $('#btn-open-burndown').addClass('hidden'); }
         }
 
@@ -377,7 +413,6 @@
 
             const tasks = appState.sprintItems.filter(i => i.type !== 'PBI' && (!filter || i.title.toLowerCase().includes(filter)));
             
-            // CALCULATE TOTAL CAPACITY VS LOAD
             let totalLoad = 0;
             let totalCapacity = 0;
             if(appState.currentSprintData && appState.currentSprintData.capacity) {
@@ -406,8 +441,6 @@
                     const userTasks = tasks.filter(t => (t.assignee || "Unassigned") === user);
                     const avatar = `https://ui-avatars.com/api/?name=${user}&size=24&background=random`;
                     const uidClean = user.replace(/\s/g,'');
-                    
-                    // INDIVIDUAL CAPACITY CALC
                     const uid = appState.projectUsers.find(u => u.name === user)?.uid;
                     let capInfo = "";
                     if(uid && appState.currentSprintData.capacity && appState.currentSprintData.capacity[uid]) {
@@ -417,7 +450,6 @@
                         const colorClass = load > cap ? "text-red-500 font-bold" : "text-gray-500";
                         capInfo = `<span class="text-xs ${colorClass} ml-2 border-l pl-2 dark:border-gray-600">Load: ${load} / ${cap} pts</span>`;
                     }
-
                     const swimlaneHtml = `
                         <div class="mb-4 bg-white dark:bg-darkcard border dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
                             <div class="p-2 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 font-bold flex items-center gap-2">
@@ -499,10 +531,13 @@
         window.deleteProject = async () => { const id=$('#edit-project-id').val(); if(prompt("Type DELETE to confirm:")!=="DELETE") return; toggleLoader(true); try{ await db.collection('projects').doc(id).delete(); const users=await db.collection('users').where('projects','array-contains',id).get(); const batch=db.batch(); users.forEach(u=>{ batch.update(u.ref,{projects:firebase.firestore.FieldValue.arrayRemove(id)}); }); await batch.commit(); showToast("Project deleted"); resetProjectForm(); loadProjects(); }catch(e){showToast(e.message,'error')} toggleLoader(false); }
         function loadUsers() { if(appState.user.role==='dev') return; db.collection('users').onSnapshot(snap => { $('#user-table-body').empty(); snap.forEach(doc => { const u=doc.data(); const canManage=appState.user.role==='superadmin'; let act='-'; if(canManage) act=`<button onclick="openAssignModal('${doc.id}')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-200">Manage Access</button>`; const roleSel=`<select onchange="changeRole('${doc.id}',this.value)" class="border rounded p-1 text-xs dark:bg-darkbg dark:border-gray-600" ${appState.user.role!=='superadmin'?'disabled':''}><option value="dev" ${u.role==='dev'?'selected':''}>Dev</option><option value="master" ${u.role==='master'?'selected':''}>Master</option><option value="superadmin" ${u.role==='superadmin'?'selected':''}>Admin</option></select>`; const pNames=(u.projects||[]).map(pid=>{const p=appState.projects.find(x=>x.id===pid);return p?`<span class="bg-gray-200 dark:bg-gray-700 px-1 rounded text-xs mr-1">${p.name}</span>`:'';}).join(''); $('#user-table-body').append(`<tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"><div class="flex items-center gap-2"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=24" class="rounded-full"> ${u.displayName}</div></td><td class="p-4">${roleSel}</td><td class="p-4 overflow-hidden max-w-xs">${pNames}</td><td class="p-4 text-right">${act}</td></tr>`); }); }); }
         
-        // SPRINT & CAPACITY LOGIC
+        // --- SPRINT & CALCULATOR LOGIC ---
+        
         $('#btn-new-sprint-modal').click(() => { 
             if(!appState.projectId) return showToast('Please select a project', 'error'); 
             $('#edit-sprint-id').val(''); $('#modal-sprint-title').text('New Sprint');
+            // Set defaults
+            $('#calc-hours-point').val(6); $('#calc-focus').val(75);
             renderCapacityInputs(); 
             openModal('modal-sprint'); 
         });
@@ -513,21 +548,79 @@
             $('#edit-sprint-id').val(s.id); $('#modal-sprint-title').text('Edit Sprint');
             $('#new-sprint-name').val(s.name); $('#new-sprint-goal').val(s.goal);
             $('#new-sprint-start').val(s.startDate); $('#new-sprint-end').val(s.endDate);
-            renderCapacityInputs(s.capacity);
+            // If they saved settings before, could load them here. For now default.
+            renderCapacityInputs(s.capacity, s.daysOffMap);
+            calcSprintDays(); // Recalculate days count visual
             openModal('modal-sprint');
         };
 
-        function renderCapacityInputs(existingCap = {}) {
+        // Render Inputs with "Days Off" and "Capacity"
+        function renderCapacityInputs(savedCap = {}, savedDaysOff = {}) {
             const $container = $('#sprint-capacity-inputs').empty();
             appState.projectUsers.forEach(u => {
-                const val = existingCap[u.uid] || 0;
+                const daysOff = savedDaysOff[u.uid] || 0;
+                const capacity = savedCap[u.uid] || 0;
                 $container.append(`
-                    <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                        <span class="text-xs font-bold truncate w-24">${u.name}</span>
-                        <input type="number" class="w-16 border rounded px-1 py-0.5 text-xs text-center dark:bg-darkbg dark:border-gray-600 cap-input" data-uid="${u.uid}" value="${val}">
+                    <div class="grid grid-cols-12 gap-2 items-center bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs user-row" data-uid="${u.uid}">
+                        <div class="col-span-5 flex items-center gap-2 font-bold truncate">
+                            <img src="https://ui-avatars.com/api/?name=${u.name}&size=18" class="rounded-full"> ${u.name}
+                        </div>
+                        <div class="col-span-3 text-center">
+                            <input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-gray-600 days-off-input" value="${daysOff}" min="0" onchange="recalcAllCapacity()">
+                        </div>
+                        <div class="col-span-4 text-right">
+                            <input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-gray-600 bg-gray-100 dark:bg-gray-700 capacity-output" value="${capacity}" readonly>
+                        </div>
                     </div>
                 `);
             });
+            recalcAllCapacity(); // Run calc immediately
+        }
+
+        // Calculate Business Days
+        function getBusinessDatesCount(startDate, endDate) {
+            let count = 0;
+            const curDate = new Date(startDate.getTime());
+            while (curDate <= endDate) {
+                const dayOfWeek = curDate.getDay();
+                if(dayOfWeek !== 0 && dayOfWeek !== 6) count++; // 0=Sun, 6=Sat
+                curDate.setDate(curDate.getDate() + 1);
+            }
+            return count;
+        }
+
+        window.calcSprintDays = () => {
+            const s = $('#new-sprint-start').val();
+            const e = $('#new-sprint-end').val();
+            if(s && e) {
+                const start = new Date(s); const end = new Date(e);
+                const days = getBusinessDatesCount(start, end);
+                appState.sprintWorkDays = days;
+                $('#sprint-days-count').text(`${days} days`);
+                recalcAllCapacity();
+            } else {
+                appState.sprintWorkDays = 0;
+                $('#sprint-days-count').text('0 days');
+            }
+        }
+
+        window.recalcAllCapacity = () => {
+            if(appState.sprintWorkDays <= 0) return;
+            const hoursPerPoint = parseFloat($('#calc-hours-point').val()) || 1;
+            const focusFactor = (parseFloat($('#calc-focus').val()) || 100) / 100;
+            let totalCap = 0;
+
+            $('.user-row').each(function() {
+                const daysOff = parseFloat($(this).find('.days-off-input').val()) || 0;
+                // Formula: (TotalDays - DaysOff) * 8hours * FocusFactor / HoursPerPoint
+                const effectiveDays = Math.max(0, appState.sprintWorkDays - daysOff);
+                const effectiveHours = effectiveDays * 8 * focusFactor;
+                const points = Math.round((effectiveHours / hoursPerPoint) * 10) / 10; // Round 1 decimal
+                
+                $(this).find('.capacity-output').val(points);
+                totalCap += points;
+            });
+            $('#total-sprint-capacity').text(totalCap.toFixed(1));
         }
 
         $('#btn-create-sprint').click(async ()=>{ 
@@ -538,17 +631,20 @@
             const e=$('#new-sprint-end').val(); 
             const id=$('#edit-sprint-id').val();
             
-            // Collect Capacity
+            // Collect Data
             const capacity = {};
-            $('.cap-input').each((i, el) => {
-                capacity[$(el).data('uid')] = $(el).val();
+            const daysOffMap = {};
+            $('.user-row').each(function() {
+                const uid = $(this).data('uid');
+                daysOffMap[uid] = $(this).find('.days-off-input').val();
+                capacity[uid] = $(this).find('.capacity-output').val();
             });
 
             if(n && s && e){ 
                 try { 
-                    const data = {name:n, goal:g, startDate:s, endDate:e, projectId:appState.projectId, capacity: capacity};
+                    const data = {name:n, goal:g, startDate:s, endDate:e, projectId:appState.projectId, capacity: capacity, daysOffMap: daysOffMap};
                     if(id) {
-                        await db.collection('sprints').doc(appState.sprintId).update(data);
+                        await db.collection('sprints').doc(id).update(data);
                         showToast('Sprint Updated');
                     } else {
                         await db.collection('sprints').add({...data, status:'active', createdAt:Date.now()});
@@ -559,6 +655,7 @@
             } else { showToast('Fill all fields','error'); } 
         });
 
+        // ... (Rest of existing logic: changeRole, openAssignModal, etc.) ...
         window.changeRole = (uid,r) => db.collection('users').doc(uid).update({role:r});
         window.openAssignModal = (uid) => { appState.pendingAssignUser = uid; openModal('modal-assign-project'); }
         $('#btn-confirm-assign').click(() => { const pid=$('#assign-project-dropdown').val(); if(pid&&appState.pendingAssignUser) { db.collection('users').doc(appState.pendingAssignUser).update({projects:firebase.firestore.FieldValue.arrayUnion(pid)}).then(()=>{ showToast('User Assigned'); closeModal('modal-assign-project'); }).catch(e=>showToast(e.message,'error')); } });
