@@ -148,6 +148,7 @@
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700"><h2 class="font-bold text-lg text-gray-700 dark:text-white uppercase tracking-wider">Settings</h2></div>
                 <button onclick="showAdminSub('users')" id="admin-sub-btn-users" class="admin-nav-btn text-left px-6 py-4 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 admin-nav-active transition"><i class="fa-solid fa-users mr-3"></i> System Users</button>
                 <button onclick="showAdminSub('projects')" id="admin-sub-btn-projects" class="admin-nav-btn text-left px-6 py-4 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 transition"><i class="fa-solid fa-briefcase mr-3"></i> Project Setup</button>
+                <button onclick="showAdminSub('analytics')" id="admin-sub-btn-analytics" class="admin-nav-btn text-left px-6 py-4 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 transition"><i class="fa-solid fa-chart-bar mr-3"></i> Analytics & Velocity</button>
             </div>
             <div class="flex-grow p-8 overflow-y-auto bg-gray-50/50 dark:bg-darkbg/50">
                 <div id="admin-sub-users" class="admin-sub-view">
@@ -169,6 +170,13 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div id="admin-sub-analytics" class="admin-sub-view hidden">
+                    <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Team Velocity</h3>
+                    <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow-sm border dark:border-gray-700 h-[500px]">
+                        <canvas id="velocityChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-500 text-center">Comparing completed story points across the last 5 sprints.</p>
                 </div>
             </div>
         </div>
@@ -222,7 +230,6 @@
             switchTab('board'); await loadProjects(); 
             $('#project-select').change(function(){ appState.projectId=$(this).val(); handleProjectChange(); }); 
             $('#tab-btn-admin').click(() => { showAdminSub('users'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); });
-            // Notification Init
             listenForNotifications();
         }
         
@@ -289,7 +296,27 @@
         window.deletePBI = (id) => { if(confirm('Delete this Backlog Item?')) db.collection('items').doc(id).delete().catch(e => showToast(e.message, 'error')); }
         $('#btn-open-burndown').click(() => { openModal('modal-burndown'); const sd=appState.currentSprintData; if(!sd) return; const start=new Date(sd.startDate); const end=new Date(sd.endDate); const totalDays=Math.ceil((end-start)/(1000*60*60*24))+1; const labels=[],idealData=[],actualData=[]; let totalPoints=0; appState.sprintItems.forEach(i=>{if(i.type!=='PBI')totalPoints+=(parseInt(i.points)||0)}); const burnRate=totalPoints/(totalDays-1); for(let i=0;i<totalDays;i++){ const d=new Date(start); d.setDate(start.getDate()+i); labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'})); let ideal=totalPoints-(burnRate*i); idealData.push(ideal<0?0:ideal); let remaining=totalPoints; const checkTime=d.setHours(23,59,59,999); appState.sprintItems.forEach(item=>{if(item.status==='done'&&item.completedAt&&item.completedAt<=checkTime){remaining-=(parseInt(item.points)||0)}}); if(d<=new Date())actualData.push(remaining); } if(window.myChart)window.myChart.destroy(); const ctx=document.getElementById('burndownChart').getContext('2d'); window.myChart=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'Ideal Burn',data:idealData,borderColor:'#9ca3af',borderDash:[5,5],fill:false},{label:'Actual Remaining',data:actualData,borderColor:'#4f46e5',backgroundColor:'rgba(79,70,229,0.2)',fill:true,tension:0.1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,title:{display:true,text:'Story Points'}}}}}); });
 
-        window.showAdminSub = (sub) => { $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${sub}`).removeClass('hidden'); $('.admin-nav-btn').removeClass('admin-nav-active'); $(`#admin-sub-btn-${sub}`).addClass('admin-nav-active'); }
+        // VELOCITY CHART LOGIC
+        async function loadVelocityChart() {
+            if(!appState.projectId) return;
+            const sprintsSnap = await db.collection('sprints').where('projectId','==',appState.projectId).where('status','==','completed').orderBy('createdAt','asc').limitToLast(5).get();
+            const labels=[]; const completedPoints=[];
+            for(const doc of sprintsSnap.docs){
+                const sprint=doc.data(); labels.push(sprint.name);
+                const itemsSnap=await db.collection('items').where('sprintId','==',doc.id).where('status','==','done').get();
+                let points=0; itemsSnap.forEach(i=>{points+=(parseInt(i.data().points)||0);}); completedPoints.push(points);
+            }
+            if(window.velocityChartInst) window.velocityChartInst.destroy();
+            const ctx=document.getElementById('velocityChart').getContext('2d');
+            window.velocityChartInst = new Chart(ctx, {type:'bar',data:{labels:labels,datasets:[{label:'Completed Story Points',data:completedPoints,backgroundColor:'rgba(79,70,229,0.7)',borderColor:'#4338ca',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,title:{display:true,text:'Points'}}}}});
+        }
+
+        window.showAdminSub = (sub) => { 
+            $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${sub}`).removeClass('hidden'); 
+            $('.admin-nav-btn').removeClass('admin-nav-active'); $(`#admin-sub-btn-${sub}`).addClass('admin-nav-active');
+            if(sub==='analytics') loadVelocityChart();
+        }
+        
         function loadAdminProjectsList() { db.collection('projects').onSnapshot(snap => { $('#admin-project-list').empty(); snap.forEach(doc => { const p=doc.data(); $('#admin-project-list').append(`<div class="p-3 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-500 transition group" onclick="loadProjectIntoForm('${doc.id}', '${p.name}', '${p.description||''}', '${p.scrumMaster||''}')"><div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-indigo-600">${p.name}</div><div class="text-xs text-gray-500 truncate">${p.description || 'No description'}</div></div>`); }); }); }
         function loadMastersForDropdown() { db.collection('users').where('role','in',['master','superadmin']).get().then(s => { $('#edit-project-master').empty().append('<option value="">-- Select Master --</option>'); s.forEach(d => $('#edit-project-master').append(`<option value="${d.id}">${d.data().displayName}</option>`)); }); }
         window.loadProjectIntoForm = (id, n, d, m) => { $('#edit-project-id').val(id); $('#edit-project-name').val(n); $('#edit-project-desc').val(d); $('#edit-project-master').val(m); $('#project-actions').removeClass('hidden'); $('#form-project-header').text("Edit Project Settings"); }
@@ -306,57 +333,34 @@
         window.updateItem = (id,d) => db.collection('items').doc(id).update(d);
         window.openItemModal = (t) => { if(!appState.projectId) return showToast('No Project','error'); const tit=prompt("Title:"); if(tit) db.collection('items').add({title:tit, type:t, status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); };
         
-        // MODAL LOGIC (UPDATED FOR ASSIGNEE UID)
+        // MODAL LOGIC WITH NOTIFICATIONS
         window.openDetailModal = (id) => { 
             appState.detailId=id; 
             db.collection('items').doc(id).onSnapshot(doc => { 
                 if(!doc.exists) return; const d=doc.data(); 
                 $('#detail-title').val(d.title); $('#detail-desc').val(d.description||''); $('#detail-points').val(d.points||0); 
-                // Set Assignee if available, fallback to empty
-                const currentAssigneeUid = appState.projectUsers.find(u => u.name === d.assignee)?.uid;
-                $('#detail-assignee').val(currentAssigneeUid || ""); 
-                
+                const currentAssigneeUid = appState.projectUsers.find(u => u.name === d.assignee)?.uid; $('#detail-assignee').val(currentAssigneeUid || ""); 
                 $('#subtask-list').empty(); (d.subtasks||[]).forEach((t,i)=>$('#subtask-list').append(`<div class="flex items-center gap-2"><input type="checkbox" ${t.done?'checked':''} onchange="togSub(${i},${t.done})"> <span>${t.text}</span> <button onclick="delSub(${i})" class="text-red-500">&times;</button></div>`));
                 const $cl=$('#comments-list').empty(); const cmts=d.comments||[]; if(cmts.length===0)$cl.append('<div class="text-gray-400 text-xs text-center italic">No comments.</div>'); else cmts.forEach(c=>{ const isMe=c.uid===appState.user.uid; const align=isMe?'ml-auto bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100':'mr-auto bg-white border dark:bg-gray-700 dark:border-gray-600'; $cl.append(`<div class="w-fit max-w-[80%] ${align} p-2 rounded-lg shadow-sm"><div class="text-[10px] opacity-70 mb-0.5 font-bold flex justify-between gap-4"><span>${c.user}</span></div><div>${c.text}</div></div>`); });
                 openModal('modal-details'); 
             }); 
         }
-        
         $('#btn-save-details').click(async ()=>{ 
-            const newUid = $('#detail-assignee').val();
-            const newName = $('#detail-assignee option:selected').text();
-            
-            // Check if assignee changed for notification
-            const doc = await db.collection('items').doc(appState.detailId).get();
-            const oldAssignee = doc.data().assignee;
-            
-            const updates = { title:$('#detail-title').val(), description:$('#detail-desc').val(), points:parseInt($('#detail-points').val()), assignee: newUid ? newName : '' };
-            if(newUid) updates.assigneeUid = newUid;
-            
+            const newUid = $('#detail-assignee').val(); const newName = $('#detail-assignee option:selected').text();
+            const doc = await db.collection('items').doc(appState.detailId).get(); const oldAssignee = doc.data().assignee;
+            const updates = { title:$('#detail-title').val(), description:$('#detail-desc').val(), points:parseInt($('#detail-points').val()), assignee: newUid ? newName : '' }; if(newUid) updates.assigneeUid = newUid;
             await updateItem(appState.detailId, updates);
-            
-            // Send Notification if changed
-            if(newUid && newName !== oldAssignee && newUid !== appState.user.uid) {
-                sendNotification(newUid, `You were assigned to task: ${updates.title}`);
-            }
+            if(newUid && newName !== oldAssignee && newUid !== appState.user.uid) { sendNotification(newUid, `You were assigned to task: ${updates.title}`); }
             closeModal('modal-details'); 
         });
-
         $('#btn-delete-item').click(async () => { if(!appState.detailId) return; if(confirm('Are you sure you want to delete this item?')) { try { await db.collection('items').doc(appState.detailId).delete(); closeModal('modal-details'); showToast('Item Deleted'); } catch(e) { showToast('Permission denied', 'error'); } } });
-        
         window.addComment = async () => { 
             const t=$('#new-comment').val().trim(); if(!t) return; 
             await db.collection('items').doc(appState.detailId).update({comments:firebase.firestore.FieldValue.arrayUnion({text:t, user:appState.user.displayName, uid:appState.user.uid, at:Date.now()})}); 
             $('#new-comment').val('');
-            
-            // Notify Assignee if it's not me
-            const doc = await db.collection('items').doc(appState.detailId).get();
-            const data = doc.data();
-            if(data.assigneeUid && data.assigneeUid !== appState.user.uid) {
-                sendNotification(data.assigneeUid, `${appState.user.displayName} commented on: ${data.title}`);
-            }
+            const doc = await db.collection('items').doc(appState.detailId).get(); const data = doc.data();
+            if(data.assigneeUid && data.assigneeUid !== appState.user.uid) { sendNotification(data.assigneeUid, `${appState.user.displayName} commented on: ${data.title}`); }
         };
-
         window.addSubtask=()=>{ const t=$('#new-subtask').val(); if(t) db.collection('items').doc(appState.detailId).update({subtasks:firebase.firestore.FieldValue.arrayUnion({text:t,done:false})}); };
         window.togSub=async(i,o)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s[i].done=!o; updateItem(appState.detailId,{subtasks:s}); };
         window.delSub=async(i)=>{ const d=await db.collection('items').doc(appState.detailId).get(); const s=d.data().subtasks; s.splice(i,1); updateItem(appState.detailId,{subtasks:s}); };
@@ -365,31 +369,15 @@
         function listenForNotifications() {
             if(!appState.user) return;
             db.collection('notifications').where('recipientId','==',appState.user.uid).orderBy('createdAt','desc').limit(10).onSnapshot(snap => {
-                const $list = $('#notif-list').empty();
-                let unread = 0;
+                const $list = $('#notif-list').empty(); let unread = 0;
                 if(snap.empty) { $list.append('<div class="p-4 text-sm text-gray-500 text-center">No notifications</div>'); }
-                else {
-                    snap.forEach(d => {
-                        const n = d.data();
-                        if(!n.read) unread++;
-                        const bg = n.read ? 'bg-white dark:bg-darkcard' : 'bg-indigo-50 dark:bg-indigo-900/20';
-                        $list.append(`<div onclick="markRead('${d.id}')" class="p-3 border-b dark:border-gray-700 cursor-pointer ${bg} hover:bg-gray-50 dark:hover:bg-gray-700"><div class="text-sm">${n.message}</div><div class="text-[10px] text-gray-400 mt-1">${new Date(n.createdAt).toLocaleTimeString()}</div></div>`);
-                    });
-                }
+                else { snap.forEach(d => { const n = d.data(); if(!n.read) unread++; const bg = n.read ? 'bg-white dark:bg-darkcard' : 'bg-indigo-50 dark:bg-indigo-900/20'; $list.append(`<div onclick="markRead('${d.id}')" class="p-3 border-b dark:border-gray-700 cursor-pointer ${bg} hover:bg-gray-50 dark:hover:bg-gray-700"><div class="text-sm">${n.message}</div><div class="text-[10px] text-gray-400 mt-1">${new Date(n.createdAt).toLocaleTimeString()}</div></div>`); }); }
                 if(unread > 0) { $('#notif-dot').removeClass('hidden'); } else { $('#notif-dot').addClass('hidden'); }
             });
         }
-        
-        window.sendNotification = (uid, msg) => {
-            db.collection('notifications').add({ recipientId: uid, message: msg, read: false, createdAt: Date.now(), sender: appState.user.displayName });
-        }
-        
+        window.sendNotification = (uid, msg) => { db.collection('notifications').add({ recipientId: uid, message: msg, read: false, createdAt: Date.now(), sender: appState.user.displayName }); }
         window.markRead = (id) => db.collection('notifications').doc(id).update({read:true});
-        window.markAllRead = async () => {
-            const snap = await db.collection('notifications').where('recipientId','==',appState.user.uid).where('read','==',false).get();
-            const batch = db.batch(); snap.forEach(d => batch.update(d.ref, {read:true})); await batch.commit();
-        }
-        
+        window.markAllRead = async () => { const snap = await db.collection('notifications').where('recipientId','==',appState.user.uid).where('read','==',false).get(); const batch = db.batch(); snap.forEach(d => batch.update(d.ref, {read:true})); await batch.commit(); }
         $('#btn-notifs').click((e) => { e.stopPropagation(); $('#notif-dropdown').toggleClass('hidden'); });
         $(document).click(() => $('#notif-dropdown').addClass('hidden'));
         $('#notif-dropdown').click((e) => e.stopPropagation());
@@ -406,18 +394,7 @@
         window.addRetro=(t)=>{ const txt=$(`#input-retro-${t}`).val().trim(); const anon=$('#retro-anon').is(':checked'); if(!txt)return; db.collection('retro').add({projectId:appState.projectId, type:t, text:txt, uid:anon?'anonymous':appState.user.uid, votedBy:[], createdAt:Date.now()}); $(`#input-retro-${t}`).val(''); };
         window.promoteToTask=(t)=>{ if(confirm("Promote to Backlog?")) db.collection('items').add({title:t, type:'PBI', status:'todo', projectId:appState.projectId, sprintId:appState.sprintId, points:0, comments:[], createdAt:Date.now()}); showToast("Promoted"); };
         
-        // LOAD USERS AND CACHE FOR DROPDOWNS
-        function loadProjectUsers(){ 
-            db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ 
-                $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); 
-                appState.projectUsers = [];
-                s.forEach(d=>{ 
-                    const u = d.data();
-                    appState.projectUsers.push({uid: d.id, name: u.displayName});
-                    $('#detail-assignee').append(`<option value="${d.id}">${u.displayName}</option>`); 
-                }); 
-            }); 
-        }
+        function loadProjectUsers(){ db.collection('users').where('projects','array-contains',appState.projectId).get().then(s=>{ $('#detail-assignee').empty().append('<option value="">Unassigned</option>'); appState.projectUsers = []; s.forEach(d=>{ const u = d.data(); appState.projectUsers.push({uid: d.id, name: u.displayName}); $('#detail-assignee').append(`<option value="${d.id}">${u.displayName}</option>`); }); }); }
         
         window.switchTab = (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); $('.nav-btn').removeClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').addClass('text-gray-500 hover:text-indigo-600'); $(`#tab-btn-${id}`).addClass('bg-white dark:bg-gray-700 shadow-sm text-indigo-600').removeClass('text-gray-500 hover:text-indigo-600'); if(id==='admin') { $('#no-project-state').addClass('hidden'); loadUsers(); loadAdminProjectsList(); loadMastersForDropdown(); } else if(!appState.projectId) { $('#no-project-state').removeClass('hidden'); } };
         $('#theme-toggle').click(()=>{$('html').toggleClass('dark');});
