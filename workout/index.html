@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Obsidian Pro</title>
+    <title>Daily Burn | Titanium</title>
     
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,22 +17,19 @@
         /* --- VARIABLES --- */
         :root { 
             --bg-main: #0f172a; 
-            --glass-bg: rgba(15, 23, 42, 0.95);
+            --glass-bg: rgba(15, 23, 42, 0.92);
             --glass-border: rgba(255, 255, 255, 0.1);
-            --primary: #8b5cf6; 
-            --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            --primary: #6366f1; 
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
             --text-main: #f1f5f9;
         }
 
         /* Themes */
         body.theme-emerald { --primary: #10b981; --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        body.theme-ocean { --primary: #3b82f6; --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
         body.theme-ruby { --primary: #f43f5e; --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); }
+        body.theme-amber { --primary: #f59e0b; --primary-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
         body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; transition: background 0.5s; padding-bottom: 120px; }
-        
-        /* Zen Mode: Hides distractions */
-        body.zen-active .zen-hide { opacity: 0; pointer-events: none; transition: opacity 0.5s; }
 
         /* --- UI COMPONENTS --- */
         .glass-panel {
@@ -53,10 +50,10 @@
         .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); position: absolute; bottom: 6px; }
         .day-btn.active .status-dot { background: white; }
 
-        /* Inputs */
+        /* Inputs & Edit Fields */
         .glass-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 0.75rem; padding: 0.75rem; width: 100%; font-size: 0.875rem; outline: none; transition: 0.3s; }
-        .glass-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
         .edit-field { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 6px 8px; font-size: 11px; width: 100%; transition: 0.3s; }
+        .edit-field:focus { border-color: var(--primary); outline: none; background: rgba(0,0,0,0.8); }
 
         /* Tabs */
         .tab-btn { opacity: 0.5; border-bottom: 2px solid transparent; transition: 0.3s; }
@@ -65,9 +62,9 @@
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Breathing Circle */
-        .breath-circle { width: 60px; height: 60px; border-radius: 50%; background: var(--primary-gradient); animation: breathe 8s infinite ease-in-out; margin: 0 auto; opacity: 0.8; }
-        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.5); opacity: 1; } }
+        /* Streak Fire Animation */
+        .streak-fire { animation: flicker 1.5s infinite alternate; color: #f97316; filter: drop-shadow(0 0 5px #f97316); }
+        @keyframes flicker { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0.8; transform: scale(0.9); } }
 
         /* Sticky Footer */
         .sticky-action-bar {
@@ -108,15 +105,23 @@
                         <div class="w-10 h-10 rounded-full gradient-bg flex items-center justify-center shadow-lg group-active:scale-95 transition">
                             <i class="fas fa-bars text-white"></i>
                         </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1 zen-hide">Menu</span>
-                            <span id="difficulty-display" class="text-sm font-black text-white uppercase tracking-tight">1.0x</span>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-0.5">Menu</span>
+                            <div class="flex items-center space-x-1">
+                                <i class="fas fa-fire text-xs streak-fire"></i>
+                                <span id="streak-count" class="text-xs font-black text-white tabular-nums">0</span>
+                            </div>
                         </div>
                     </div>
                     
-                    <button id="toggle-edit" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition">
-                        <i class="fas fa-pencil-alt text-sm"></i>
-                    </button>
+                    <div class="flex items-center space-x-3">
+                         <button id="quick-mute" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition">
+                            <i class="fas fa-volume-up text-xs"></i>
+                        </button>
+                        <button id="toggle-edit" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition">
+                            <i class="fas fa-pencil-alt text-sm"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="flex justify-between space-x-2 overflow-x-auto no-scrollbar pb-1" id="day-nav-container"></div>
             </div>
@@ -130,9 +135,9 @@
                         <div id="day-focus" class="gradient-text font-black uppercase tracking-widest text-xs mb-2">...</div>
                         <div class="flex items-baseline space-x-2 mb-2">
                             <h2 id="global-timer" class="text-5xl font-mono font-black text-white tracking-tighter">00:00</h2>
-                            <span class="text-[10px] font-bold text-slate-500 uppercase zen-hide" id="timer-label">Duration</span>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase" id="timer-label">Duration</span>
                         </div>
-                        <div class="w-full max-w-[140px] zen-hide">
+                        <div class="w-full max-w-[140px]">
                             <div class="flex justify-between text-[9px] font-bold text-slate-500 uppercase mb-1">
                                 <span>Complete</span>
                                 <span id="percent-text">0%</span>
@@ -143,7 +148,7 @@
                         </div>
                     </div>
                     
-                    <div class="w-20 h-28 opacity-90 relative zen-hide">
+                    <div class="w-20 h-28 opacity-90 relative">
                          <svg viewBox="0 0 50 100" class="w-full h-full drop-shadow-xl">
                             <g transform="translate(0,0)">
                                 <rect x="10" y="22" width="30" height="28" rx="4" class="muscle-part" data-muscle="Chest"/>
@@ -158,7 +163,7 @@
                 </div>
             </div>
 
-            <div class="flex justify-between items-end mb-4 px-2 zen-hide" id="list-header">
+            <div class="flex justify-between items-end mb-4 px-2" id="list-header">
                 <h3 class="text-white font-bold text-lg">Workout Plan</h3>
                 
                 <div class="flex items-center space-x-2" id="quick-warmup-container">
@@ -191,8 +196,7 @@
 
             <div class="flex border-b border-white/10 mb-6 px-2 overflow-x-auto no-scrollbar">
                 <button class="tab-btn active px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-prefs">Prefs</button>
-                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-tools">Tools</button>
-                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-stats">Stats</button>
+                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-journal">Journal</button>
                 <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-data">Data</button>
             </div>
 
@@ -200,87 +204,44 @@
                 <div>
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Theme</span>
                     <div class="grid grid-cols-3 gap-3 mt-2">
-                        <button class="theme-btn h-10 rounded-xl bg-[#8b5cf6]" data-theme="theme-default"></button>
-                        <button class="theme-btn h-10 rounded-xl bg-[#3b82f6]" data-theme="theme-ocean"></button>
+                        <button class="theme-btn h-10 rounded-xl bg-[#6366f1]" data-theme="theme-default"></button>
                         <button class="theme-btn h-10 rounded-xl bg-[#10b981]" data-theme="theme-emerald"></button>
+                        <button class="theme-btn h-10 rounded-xl bg-[#f43f5e]" data-theme="theme-ruby"></button>
                     </div>
                 </div>
                 <div class="p-4 bg-black/20 rounded-2xl border border-white/5">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Difficulty</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Difficulty</span>
                     <div class="flex items-center justify-between mt-1 mb-3">
                         <span class="text-xl font-black text-white" id="modal-level-val">1.0x</span>
                         <button id="level-reset-btn" class="text-[9px] font-bold text-slate-500 uppercase hover:text-white">Reset</button>
                     </div>
                     <button id="level-up-btn" class="w-full py-3 gradient-bg rounded-xl font-bold text-white text-xs uppercase tracking-widest shadow-lg active:scale-95 transition">Increase (+10%)</button>
                 </div>
-                <div class="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
-                    <div>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Zen Mode</span>
-                        <span class="text-[9px] text-slate-500">Hide distractions during workout</span>
-                    </div>
-                    <div class="relative inline-block w-10 h-6 align-middle select-none">
-                        <input type="checkbox" id="zen-toggle" class="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300" style="right: 100%"/>
-                        <label for="zen-toggle" class="block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer"></label>
-                    </div>
+            </div>
+
+            <div id="tab-journal" class="tab-content space-y-4">
+                <div id="journal-list" class="space-y-3">
+                    <div class="text-center text-slate-500 text-xs py-10">No history yet.</div>
                 </div>
             </div>
 
-            <div id="tab-tools" class="tab-content space-y-6">
-                <div class="p-4 bg-black/20 rounded-2xl border border-white/5">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">1 Rep Max Est.</span>
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <input type="number" id="orm-weight" placeholder="Weight (kg)" class="glass-input">
-                        <input type="number" id="orm-reps" placeholder="Reps" class="glass-input">
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <button id="calc-orm" class="px-4 py-2 bg-slate-700 rounded-lg text-xs font-bold uppercase">Calc</button>
-                        <span class="text-xl font-black text-white" id="orm-result">-- KG</span>
-                    </div>
-                 </div>
-                 
-                 <div class="p-4 bg-black/20 rounded-2xl border border-white/5 text-center">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 block">Breath Pacer (4-7-8)</span>
-                    <div class="breath-circle"></div>
-                    <p class="text-[9px] text-slate-500 mt-4">Inhale... Hold... Exhale...</p>
-                 </div>
-            </div>
-
-            <div id="tab-stats" class="tab-content space-y-6">
-                 <div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weekly Consistency</span>
-                    <div class="flex justify-between mt-3" id="week-heatmap">
-                        </div>
-                 </div>
-                 <div class="grid grid-cols-2 gap-4">
-                     <div class="p-4 bg-black/20 rounded-2xl border border-white/5">
-                         <span class="text-[9px] text-slate-500 uppercase block">Total Burn</span>
-                         <span class="text-2xl font-black text-white" id="stat-cals">0</span>
-                         <span class="text-[9px] text-slate-500">Kcal</span>
-                     </div>
-                     <div class="p-4 bg-black/20 rounded-2xl border border-white/5">
-                         <span class="text-[9px] text-slate-500 uppercase block">Workouts</span>
-                         <span class="text-2xl font-black text-white" id="stat-count">0</span>
-                     </div>
-                 </div>
-            </div>
-
             <div id="tab-data" class="tab-content space-y-4">
-                 <div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Body Stats</span>
-                    <div class="grid grid-cols-2 gap-3 mt-2">
-                        <input type="number" id="input-weight" placeholder="Weight (kg)" class="glass-input">
-                        <input type="number" id="input-height" placeholder="Height (cm)" class="glass-input">
-                    </div>
-                    <button id="save-body-stats" class="w-full mt-3 py-2 bg-slate-800 text-white rounded-lg font-bold text-xs uppercase hover:bg-slate-700">Save</button>
-                 </div>
-                <hr class="border-white/10 my-2">
                 <button id="export-data" class="w-full py-3 glass-input text-left flex items-center"><i class="fas fa-download mr-3 text-slate-400"></i> Export Backup</button>
-                <label class="w-full py-3 glass-input text-left flex items-center cursor-pointer">
-                    <i class="fas fa-upload mr-3 text-slate-400"></i> Import Backup
-                    <input type="file" id="import-data" class="hidden" accept=".json">
-                </label>
-                <button id="hard-reset" class="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl font-bold text-xs uppercase tracking-widest transition">Factory Reset</button>
+                <button id="hard-reset" class="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl font-bold text-xs uppercase tracking-widest transition">Factory Reset App</button>
             </div>
+        </div>
+    </div>
+
+    <div id="overload-modal" class="hidden fixed inset-0 z-[400] bg-slate-950/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl">
+        <div class="w-20 h-20 rounded-full gradient-bg flex items-center justify-center text-3xl text-white mb-6 shadow-2xl animate-bounce">
+            <i class="fas fa-level-up-alt"></i>
+        </div>
+        <h2 class="text-2xl font-black text-white mb-2 text-center">Session Complete!</h2>
+        <p class="text-slate-400 text-sm text-center mb-8">Was that workout too easy for you?</p>
+        
+        <div class="w-full max-w-xs space-y-3">
+            <button id="overload-yes" class="w-full py-4 gradient-bg rounded-2xl font-bold text-white uppercase tracking-widest shadow-lg">Yes, Make it Harder</button>
+            <button id="overload-no" class="w-full py-4 glass-panel rounded-2xl font-bold text-slate-400 uppercase tracking-widest">No, Keep it same</button>
         </div>
     </div>
 
@@ -317,9 +278,19 @@
 
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             let activeDay = new Date().getDay();
-            let schedule = JSON.parse(localStorage.getItem('obp_schedule')) || defaultSchedule;
-            let completed = JSON.parse(localStorage.getItem('obp_completed')) || {};
-            let profile = JSON.parse(localStorage.getItem('obp_profile')) || { level: 1.0, theme: 'theme-default', sound: 'voice', warmup: false, zen: false, weight: '', height: '' };
+            
+            // --- STORAGE KEYS ---
+            const KEY_SCHED = 'ti_schedule';
+            const KEY_COMP = 'ti_completed';
+            const KEY_PROF = 'ti_profile';
+            const KEY_HIST = 'ti_history';
+            const KEY_STREAK = 'ti_streak';
+
+            let schedule = JSON.parse(localStorage.getItem(KEY_SCHED)) || defaultSchedule;
+            let completed = JSON.parse(localStorage.getItem(KEY_COMP)) || {};
+            let profile = JSON.parse(localStorage.getItem(KEY_PROF)) || { level: 1.0, theme: 'theme-default', sound: 'voice', warmup: false };
+            let history = JSON.parse(localStorage.getItem(KEY_HIST)) || [];
+            let streakData = JSON.parse(localStorage.getItem(KEY_STREAK)) || { count: 0, lastDate: null };
             
             let isEditing = false;
             let isSessionActive = false;
@@ -331,15 +302,41 @@
 
             // --- INIT ---
             $('body').addClass(profile.theme);
-            if(profile.zen) $('body').addClass('zen-active');
             $('#warmup-toggle').prop('checked', profile.warmup);
-            $('#zen-toggle').prop('checked', profile.zen);
+            updateAudioIcon();
+            updateStreakUI();
             renderWeekNav();
             loadDay(activeDay);
             updateSettingsUI();
-            updateStatsUI();
 
-            // --- MAIN ACTION BUTTON (START / STOP) ---
+            // --- STREAK LOGIC ---
+            function updateStreakUI() {
+                // Simple logic: if lastDate was yesterday, keep streak. If older, reset.
+                const today = new Date().toDateString();
+                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (streakData.lastDate !== today && streakData.lastDate !== yesterday.toDateString()) {
+                    // Check if they missed a day (unless it's a new user)
+                    if(streakData.lastDate) streakData.count = 0; 
+                }
+                $('#streak-count').text(streakData.count);
+                if(streakData.count > 0) $('.streak-fire').css('opacity', '1');
+                else $('.streak-fire').css('opacity', '0.3');
+                
+                localStorage.setItem(KEY_STREAK, JSON.stringify(streakData));
+            }
+
+            function incrementStreak() {
+                const today = new Date().toDateString();
+                if (streakData.lastDate !== today) {
+                    streakData.count++;
+                    streakData.lastDate = today;
+                    localStorage.setItem(KEY_STREAK, JSON.stringify(streakData));
+                    updateStreakUI();
+                }
+            }
+
+            // --- MAIN ACTION BUTTON ---
             $('#main-action-btn').click(function() {
                 if(!isSessionActive) {
                     startSession();
@@ -348,13 +345,14 @@
                 }
             });
 
-            // --- TOGGLE EDIT MODE (FIXED) ---
+            // --- EDIT LOGIC (SAFE) ---
             $('#toggle-edit').click(function() {
-                if(isSessionActive) { alert("Stop session first."); return; }
+                if(isSessionActive) { alert("Stop the session before editing."); return; }
                 isEditing = !isEditing;
+                
                 if(isEditing) {
                     $(this).html('<i class="fas fa-check text-green-400"></i>').addClass('border-green-400');
-                    $('#action-bar').addClass('hidden-bar');
+                    $('#action-bar').addClass('hidden-bar'); 
                     $('#quick-warmup-container').addClass('opacity-0 pointer-events-none');
                 } else {
                     saveEdits();
@@ -366,38 +364,43 @@
             });
 
             function saveEdits() {
-                $('.edit-name').each(function() {
-                    const id = $(this).data('id');
-                    const ex = schedule[activeDay].exercises.find(e => e.id === id);
-                    if(ex) ex.name = $(this).val();
+                // Lookup by ID to be safe
+                $('.edit-name').each(function() { 
+                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.name = $(this).val(); 
                 });
-                $('.edit-reps').each(function() {
-                    const id = $(this).data('id');
-                    const ex = schedule[activeDay].exercises.find(e => e.id === id);
-                    if(ex) ex.reps = parseInt($(this).val());
+                $('.edit-reps').each(function() { 
+                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.reps = parseInt($(this).val()); 
                 });
-                localStorage.setItem('obp_schedule', JSON.stringify(schedule));
+                $('.edit-unit').each(function() { 
+                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.unit = $(this).val(); 
+                });
+                $('.edit-rest').each(function() { 
+                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.rest = parseInt($(this).val()); 
+                });
+                localStorage.setItem(KEY_SCHED, JSON.stringify(schedule));
                 buildQueue(); 
             }
 
-            // --- WARMUP TOGGLE LOGIC ---
+            // --- WARMUP TOGGLE ---
             $('#warmup-toggle').change(function() {
                 if(isSessionActive) return;
                 profile.warmup = $(this).is(':checked');
-                localStorage.setItem('obp_profile', JSON.stringify(profile));
+                localStorage.setItem(KEY_PROF, JSON.stringify(profile));
                 buildQueue();
                 renderList(); 
             });
 
             function buildQueue() {
                 const base = schedule[activeDay].exercises;
-                if(profile.warmup) {
-                    currentSessionList = [...warmupRoutine, ...base];
-                } else {
+                // If editing, ONLY show base exercises to prevent confusing edits
+                if(isEditing) {
                     currentSessionList = [...base];
+                } else {
+                    currentSessionList = profile.warmup ? [...warmupRoutine, ...base] : [...base];
                 }
             }
 
+            // --- SESSION CONTROL ---
             function startSession() {
                 if(audioCtx.state === 'suspended') audioCtx.resume();
                 isSessionActive = true;
@@ -433,38 +436,15 @@
                 $('#global-timer').text("00:00");
                 $('#timer-label').text("Duration");
                 $('#gym-name').text("START"); $('#gym-target').text("--"); $('#gym-unit').text("--");
+                $('#overload-modal').addClass('hidden'); // Ensure modal closes
                 
                 renderList();
             }
 
-            // --- UI RENDER ---
-            function renderWeekNav() {
-                const container = $('#day-nav-container').empty();
-                dayNames.forEach((d, i) => {
-                    const activeClass = (i === activeDay) ? 'active' : 'glass-panel text-slate-400';
-                    const hasData = completed[i] && completed[i].length === schedule[i].exercises.length;
-                    container.append(`<button class="day-btn w-12 h-16 rounded-2xl flex flex-col items-center justify-center relative shrink-0 ${activeClass}" data-day="${i}"><span class="text-[9px] uppercase font-bold opacity-60">${d}</span><span class="text-lg font-black">${i === new Date().getDay() ? '★' : new Date().getDate() + (i - new Date().getDay())}</span>${hasData ? '<div class="status-dot"></div>' : ''}</button>`);
-                });
-            }
-
-            function loadDay(i) {
-                activeDay = parseInt(i);
-                $('.day-btn').removeClass('active').addClass('glass-panel text-slate-400');
-                $(`.day-btn[data-day="${activeDay}"]`).addClass('active').removeClass('glass-panel text-slate-400');
-                
-                const data = schedule[activeDay];
-                $('#day-focus').text(data.focus);
-                
-                $('.muscle-part').removeClass('muscle-active');
-                data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
-
-                buildQueue(); 
-                renderList();
-                endSession(false);
-            }
-
+            // --- RENDER LIST ---
             function renderList() {
                 const container = $('#workout-list').empty();
+                // When editing, show schedule[activeDay], otherwise currentSessionList
                 const listToRender = isEditing ? schedule[activeDay].exercises : currentSessionList;
 
                 if(listToRender.length === 0) { container.html('<div class="text-center text-slate-500 py-10">No exercises.</div>'); return; }
@@ -478,8 +458,10 @@
                     if(isEditing) {
                          container.append(`
                             <div class="glass-panel p-4 rounded-3xl grid grid-cols-12 gap-2 mb-2">
-                                <div class="col-span-8"><label class="text-[9px] text-slate-500 uppercase">Name</label><input type="text" class="edit-field edit-name" value="${ex.name}" data-id="${ex.id}"></div>
-                                <div class="col-span-4"><label class="text-[9px] text-slate-500 uppercase">Reps</label><input type="number" class="edit-field edit-reps" value="${ex.reps}" data-id="${ex.id}"></div>
+                                <div class="col-span-5"><label class="text-[9px] text-slate-500 uppercase">Name</label><input type="text" class="edit-field edit-name" value="${ex.name}" data-id="${ex.id}"></div>
+                                <div class="col-span-2"><label class="text-[9px] text-slate-500 uppercase">Reps</label><input type="number" class="edit-field edit-reps" value="${ex.reps}" data-id="${ex.id}"></div>
+                                <div class="col-span-3"><label class="text-[9px] text-slate-500 uppercase">Unit</label><input type="text" class="edit-field edit-unit" value="${ex.unit}" data-id="${ex.id}"></div>
+                                <div class="col-span-2"><label class="text-[9px] text-slate-500 uppercase">Rest</label><input type="number" class="edit-field edit-rest" value="${ex.rest||30}" data-id="${ex.id}"></div>
                             </div>
                         `);
                     } else {
@@ -500,7 +482,10 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-4">
                                         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white gradient-bg shadow-lg"><i class="fas ${ex.icon}"></i></div>
-                                        <div><div class="flex items-center"><h3 class="font-bold text-white uppercase text-sm tracking-tight">${ex.name}</h3>${badge}</div><p class="text-slate-400 font-bold text-xs uppercase dynamic-text-${ex.id}">${reps} ${ex.unit}</p></div>
+                                        <div>
+                                            <div class="flex items-center"><h3 class="font-bold text-white uppercase text-sm tracking-tight">${ex.name}</h3>${badge}</div>
+                                            <p class="text-slate-400 font-bold text-xs uppercase dynamic-text-${ex.id}">${reps} ${ex.unit}</p>
+                                        </div>
                                     </div>
                                     ${btnHtml}
                                 </div>
@@ -510,7 +495,7 @@
                 });
             }
 
-            // --- EXERCISE LOGIC ---
+            // --- EXERCISE & REST ---
             function updateGymMode() {
                 if(!isSessionActive) return;
                 const nextEx = currentSessionList.find(e => !completed[activeDay]?.includes(e.id));
@@ -540,13 +525,18 @@
 
             function completeExercise(id, btnEl) {
                 if(!completed[activeDay]) completed[activeDay] = [];
-                if(!completed[activeDay].includes(id)) { completed[activeDay].push(id); localStorage.setItem('obp_completed', JSON.stringify(completed)); }
+                if(!completed[activeDay].includes(id)) { completed[activeDay].push(id); localStorage.setItem(KEY_COMP, JSON.stringify(completed)); }
                 $(`#card-${id}`).addClass('completed');
                 btnEl.replaceWith(`<div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg"><i class="fas fa-check text-white"></i></div>`);
                 if(navigator.vibrate) navigator.vibrate(50);
                 updateGymMode();
                 const remaining = currentSessionList.filter(e => !completed[activeDay].includes(e.id));
-                if(remaining.length > 0) { triggerRest(remaining[0]); setTimeout(() => { document.getElementById('card-'+remaining[0].id).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600); } else { endSession(false); fireConfetti(); playSound("Session Complete!"); }
+                if(remaining.length > 0) { 
+                    triggerRest(remaining[0]); 
+                    setTimeout(() => { document.getElementById('card-'+remaining[0].id).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600); 
+                } else { 
+                    finishSession(); 
+                }
             }
 
             function triggerRest(nextEx) {
@@ -557,48 +547,85 @@
                 $('#add-time').click(() => { time += 15; $('#rest-timer').text(time); });
             }
 
-            // --- MENU LOGIC ---
-            $('.tab-btn').click(function() { $('.tab-btn').removeClass('active'); $(this).addClass('active'); $('.tab-content').removeClass('active'); $(`#${$(this).data('tab')}`).addClass('active'); });
-            
-            function updateSettingsUI() {
-                $('#modal-level-val').text(profile.level.toFixed(1) + "x");
-                $('#input-weight').val(profile.weight); $('#input-height').val(profile.height);
-                $('#zen-toggle').prop('checked', profile.zen);
+            function finishSession() {
+                incrementStreak();
+                
+                // Add to History
+                history.unshift({ date: new Date().toLocaleString(), focus: schedule[activeDay].focus, time: $('#global-timer').text() });
+                if(history.length > 20) history.pop(); // Keep last 20
+                localStorage.setItem(KEY_HIST, JSON.stringify(history));
+                populateJournal();
+
+                endSession(false);
+                fireConfetti();
+                playSound("Session Complete!");
+                
+                // Show Overload Modal
+                setTimeout(() => $('#overload-modal').removeClass('hidden'), 500);
             }
-            
-            $('#zen-toggle').change(function() { profile.zen = $(this).is(':checked'); localStorage.setItem('obp_profile', JSON.stringify(profile)); if(profile.zen) $('body').addClass('zen-active'); else $('body').removeClass('zen-active'); });
-            
-            $('#calc-orm').click(function() {
-                const w = parseFloat($('#orm-weight').val()), r = parseFloat($('#orm-reps').val());
-                if(w&&r) $('#orm-result').text(Math.round(w * (1 + r/30)) + " KG");
+
+            // --- OVERLOAD LOGIC ---
+            $('#overload-yes').click(function() {
+                // Increase reps for today's exercises permanently
+                schedule[activeDay].exercises.forEach(e => {
+                     // Add 2 reps if it's rep based, 5 sec if time based
+                     if(e.unit.toLowerCase().includes('sec')) e.reps += 5;
+                     else e.reps += 2;
+                });
+                localStorage.setItem(KEY_SCHED, JSON.stringify(schedule));
+                $('#overload-modal').addClass('hidden');
+                alert("Routine Updated! Harder next time.");
+                loadDay(activeDay);
             });
+            $('#overload-no').click(() => $('#overload-modal').addClass('hidden'));
 
-            function updateStatsUI() {
-                const cont = $('#week-heatmap').empty();
-                for(let i=0; i<7; i++) {
-                    const done = completed[i] && completed[i].length === schedule[i].exercises.length;
-                    cont.append(`<div class="w-8 h-8 rounded-lg ${done ? 'gradient-bg shadow-lg' : 'bg-white/5'} flex items-center justify-center text-[10px] font-bold text-slate-400">${dayNames[i][0]}</div>`);
-                }
-                let cals = 0, count = 0;
-                Object.values(completed).forEach(arr => { cals += (arr.length * 15); if(arr.length > 0) count++; });
-                $('#stat-cals').text(cals); $('#stat-count').text(count);
+            // --- QUICK MUTE ---
+            $('#quick-mute').click(function() {
+                if(profile.sound === 'silent') { profile.sound = 'voice'; } else { profile.sound = 'silent'; }
+                localStorage.setItem(KEY_PROF, JSON.stringify(profile));
+                updateAudioIcon();
+            });
+            function updateAudioIcon() {
+                if(profile.sound === 'silent') $('#quick-mute').html('<i class="fas fa-volume-mute text-red-400"></i>');
+                else $('#quick-mute').html('<i class="fas fa-volume-up text-xs"></i>');
             }
 
-            $('#save-body-stats').click(function() { profile.weight=$('#input-weight').val(); profile.height=$('#input-height').val(); localStorage.setItem('obp_profile', JSON.stringify(profile)); $(this).text('Saved'); setTimeout(()=>$(this).text('Save'), 1000); });
-            
-            // Utils
-            function playSound(text) { if(profile.sound === 'silent') return; if(text === 'beep' || profile.sound === 'beep') { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = 880; o.start(); g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1); o.stop(audioCtx.currentTime + 0.1); } else { synth.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; synth.speak(u); } }
+            // --- JOURNAL UI ---
+            function populateJournal() {
+                const el = $('#journal-list').empty();
+                if(history.length === 0) { el.html('<div class="text-center text-slate-500 text-xs py-10">No history yet.</div>'); return; }
+                history.forEach(h => {
+                    el.append(`
+                        <div class="glass-panel p-4 rounded-2xl flex justify-between items-center">
+                            <div>
+                                <div class="text-[10px] text-slate-500">${h.date}</div>
+                                <div class="font-bold text-white text-sm">${h.focus}</div>
+                            </div>
+                            <div class="text-xs font-mono text-slate-300">${h.time}</div>
+                        </div>
+                    `);
+                });
+            }
+
+            // --- UTILS & BOILERPLATE ---
+            function playSound(text) { if(profile.sound === 'silent') return; if(text === 'beep') { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = 880; o.start(); g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1); o.stop(audioCtx.currentTime + 0.1); } else { synth.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; synth.speak(u); } }
             function fireConfetti() { const c = document.getElementById('confetti-canvas'); const x = c.getContext('2d'); c.width=window.innerWidth; c.height=window.innerHeight; let p=[]; for(let i=0;i<100;i++)p.push({x:c.width/2,y:c.height/2,vx:(Math.random()-0.5)*20,vy:(Math.random()-0.5)*20,c:`hsl(${Math.random()*360},100%,50%)`,a:1}); function a(){x.clearRect(0,0,c.width,c.height);p.forEach((k,i)=>{k.x+=k.vx;k.y+=k.vy;k.vy+=0.5;k.a-=0.02;x.fillStyle=k.c;x.globalAlpha=k.a;x.fillRect(k.x,k.y,8,8);if(k.a<=0)p.splice(i,1)});if(p.length)requestAnimationFrame(a);}a(); }
+            
+            function renderWeekNav() { const container = $('#day-nav-container').empty(); dayNames.forEach((d, i) => { const activeClass = (i === activeDay) ? 'active' : 'glass-panel text-slate-400'; const hasData = completed[i] && completed[i].length === schedule[i].exercises.length; container.append(`<button class="day-btn w-12 h-16 rounded-2xl flex flex-col items-center justify-center relative shrink-0 ${activeClass}" data-day="${i}"><span class="text-[9px] uppercase font-bold opacity-60">${d}</span><span class="text-lg font-black">${i === new Date().getDay() ? '★' : new Date().getDate() + (i - new Date().getDay())}</span>${hasData ? '<div class="status-dot"></div>' : ''}</button>`); }); }
+            function loadDay(i) { activeDay = parseInt(i); $('.day-btn').removeClass('active').addClass('glass-panel text-slate-400'); $(`.day-btn[data-day="${activeDay}"]`).addClass('active').removeClass('glass-panel text-slate-400'); const data = schedule[activeDay]; $('#day-focus').text(data.focus); $('.muscle-part').removeClass('muscle-active'); data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active')); buildQueue(); renderList(); endSession(false); }
+            function updateSettingsUI() { $('#modal-level-val').text(profile.level.toFixed(1) + "x"); }
+            $('.tab-btn').click(function() { $('.tab-btn').removeClass('active'); $(this).addClass('active'); $('.tab-content').removeClass('active'); $(`#${$(this).data('tab')}`).addClass('active'); });
 
             // Bindings
             $('.day-btn').click(function() { loadDay($(this).data('day')); });
-            $('#open-profile').click(() => { updateStatsUI(); $('#profile-modal').removeClass('hidden'); });
+            $('#open-profile').click(() => { populateJournal(); $('#profile-modal').removeClass('hidden'); });
             $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
-            $('#reset-day-btn').click(() => { if(confirm("Clear day?")) { delete completed[activeDay]; localStorage.setItem('obp_completed', JSON.stringify(completed)); loadDay(activeDay); }});
-            $('.theme-btn').click(function() { const t = $(this).data('theme'); $('body').removeClass().addClass(t); profile.theme = t; localStorage.setItem('obp_profile', JSON.stringify(profile)); });
-            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem('obp_profile', JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
-            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem('obp_profile', JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
+            $('#reset-day-btn').click(() => { if(confirm("Clear day?")) { delete completed[activeDay]; localStorage.setItem(KEY_COMP, JSON.stringify(completed)); loadDay(activeDay); }});
+            $('.theme-btn').click(function() { const t = $(this).data('theme'); $('body').removeClass().addClass(t); profile.theme = t; localStorage.setItem(KEY_PROF, JSON.stringify(profile)); });
+            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem(KEY_PROF, JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
+            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem(KEY_PROF, JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
             $('#hard-reset').click(() => { if(confirm("Reset?")) { localStorage.clear(); location.reload(); }});
+            $('#export-data').click(function() { const data = { schedule, completed, profile, history, streakData }; const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `dailyburn_backup.json`; a.click(); });
         });
     </script>
 </body>
