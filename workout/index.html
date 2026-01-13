@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Life Companion</title>
+    <title>Daily Burn | Platinum</title>
     
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -17,23 +16,27 @@
         :root { --accent: #6366f1; }
         body { transition: background-color 0.5s; -webkit-tap-highlight-color: transparent; }
         
-        /* Animations */
+        /* Animation Classes */
         @keyframes heartbeat { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; } }
         .heart-pulse { animation: heartbeat 1s infinite ease-in-out; color: var(--accent); }
         .completed { opacity: 0.3; filter: grayscale(1); transform: scale(0.98); pointer-events: none; }
         
-        /* Day Navigation */
         .day-btn.active { background-color: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
         .day-btn.today { border-color: var(--accent); }
         
-        /* Heatmap */
         .muscle-part { fill: #1e293b; transition: fill 0.6s ease; }
         .muscle-active { fill: var(--accent); filter: drop-shadow(0 0 3px var(--accent)); }
 
-        /* Inputs */
         input[type=range] { accent-color: var(--accent); }
-        .edit-input { background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; padding: 4px; font-size: 12px; width: 100%; transition: border 0.3s; }
+        .edit-input { background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; padding: 4px; font-size: 11px; width: 100%; transition: border 0.3s; }
         .edit-input:focus { border-color: var(--accent); outline: none; }
+
+        /* Calendar Grid */
+        .cal-day { width: 100%; aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; background: #1e293b; color: #475569; }
+        .cal-day.active { background: var(--accent); color: white; }
+
+        /* Confetti Canvas */
+        #confetti-canvas { pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999; }
 
         /* Landscape Mode */
         #gym-mode { display: none; }
@@ -45,6 +48,8 @@
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen font-sans selection:bg-indigo-500 overflow-x-hidden">
+
+    <canvas id="confetti-canvas"></canvas>
 
     <div id="gym-mode" class="fixed inset-0 bg-slate-950 z-[200] flex-col items-center justify-center p-6 text-center">
         <h1 id="gym-name" class="text-5xl font-black text-white uppercase leading-none mb-4">Select Workout</h1>
@@ -61,24 +66,22 @@
             <div class="max-w-md mx-auto">
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center space-x-3 cursor-pointer" id="open-profile">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg relative">
                             <span class="text-xs font-black" id="user-level-badge">1</span>
+                            <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-slate-900 hidden" id="sync-dot"></div>
                         </div>
                         <div>
-                            <span class="text-xs font-bold text-slate-400 uppercase block leading-none">Level</span>
-                            <span id="difficulty-display" class="text-sm font-black text-white uppercase tracking-tight">Rookie</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase block leading-none">Profile</span>
+                            <span id="difficulty-display" class="text-sm font-black text-white uppercase tracking-tight">Level 1.0</span>
                         </div>
                     </div>
                     
                     <div class="flex space-x-4">
                         <button id="toggle-edit" class="text-slate-500 hover:text-white transition"><i class="fas fa-pencil-alt"></i></button>
-                        <button id="open-profile-btn" class="text-slate-500 hover:text-white transition"><i class="fas fa-user-circle"></i></button>
                     </div>
                 </div>
 
-                <div class="flex justify-between space-x-1 overflow-x-auto no-scrollbar pb-2">
-                    <div id="day-nav-container" class="flex w-full justify-between"></div>
-                </div>
+                <div class="flex justify-between space-x-1 overflow-x-auto no-scrollbar pb-2" id="day-nav-container"></div>
             </div>
         </header>
 
@@ -87,7 +90,7 @@
             <div class="bg-slate-900 rounded-[2.5rem] p-6 border border-white/5 mb-6 relative overflow-hidden shadow-2xl">
                 <div class="flex justify-between items-center relative z-10">
                     <div>
-                        <div id="day-focus" class="text-indigo-400 font-bold uppercase tracking-widest text-xs mb-1">Push Day</div>
+                        <div id="day-focus" class="text-indigo-400 font-bold uppercase tracking-widest text-xs mb-1">...</div>
                         <h2 id="calories-display" class="text-4xl font-black text-white">0 <span class="text-sm text-slate-500">Kcal</span></h2>
                         <div class="flex items-center space-x-2 mt-2">
                              <div class="h-1.5 w-24 bg-slate-800 rounded-full overflow-hidden">
@@ -118,34 +121,50 @@
     </div>
 
     <div id="profile-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-sm flex flex-col items-center justify-end sm:justify-center">
-        <div class="bg-slate-900 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-8 border-t sm:border border-white/10 shadow-2xl relative slide-up">
+        <div class="bg-slate-900 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-8 border-t sm:border border-white/10 shadow-2xl relative h-[90vh] sm:h-auto overflow-y-auto">
             <button id="close-profile" class="absolute top-6 right-6 text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
             
-            <h2 class="text-2xl font-black text-white mb-6">Your Profile</h2>
+            <h2 class="text-2xl font-black text-white mb-6">Profile & Settings</h2>
             
-            <div class="mb-8 p-4 bg-slate-950 rounded-2xl border border-white/5">
+            <div class="mb-6">
+                <span class="text-xs font-bold text-slate-400 uppercase">This Month's Activity</span>
+                <div class="grid grid-cols-7 gap-1 mt-2 mb-1 text-center text-[9px] text-slate-600 font-bold uppercase">
+                    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+            </div>
+
+            <div class="mb-6 p-4 bg-slate-950 rounded-2xl border border-white/5">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-slate-400 uppercase">Difficulty Level</span>
+                    <span class="text-xs font-bold text-slate-400 uppercase">Difficulty</span>
                     <span id="level-val" class="text-xl font-black text-indigo-500">1.0x</span>
                 </div>
-                <p class="text-[10px] text-slate-500 mb-4">Is the workout too easy? Level up to increase reps globally.</p>
                 <button id="level-up-btn" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold text-white text-xs uppercase tracking-widest shadow-lg active:scale-95 transition">
-                    <i class="fas fa-arrow-up mr-2"></i> Level Up
+                    Level Up
                 </button>
-                <div class="mt-2 text-center">
-                    <button id="level-reset-btn" class="text-[9px] text-red-400 hover:text-red-300 uppercase tracking-widest">Reset Level</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="p-3 bg-slate-950 rounded-xl border border-white/5">
+                    <span class="text-[10px] text-slate-500 uppercase font-bold">Audio Mode</span>
+                    <select id="sound-select" class="w-full bg-slate-800 text-white text-xs mt-1 p-2 rounded-lg border-none focus:ring-1 focus:ring-indigo-500">
+                        <option value="voice">Voice Coach</option>
+                        <option value="beep">Beeps Only</option>
+                        <option value="silent">Silent</option>
+                    </select>
+                </div>
+                <div class="p-3 bg-slate-950 rounded-xl border border-white/5">
+                    <span class="text-[10px] text-slate-500 uppercase font-bold">Progress</span>
+                    <button id="reset-level-btn" class="w-full bg-slate-800 text-red-400 hover:text-white text-xs mt-1 p-2 rounded-lg transition font-bold">Reset Level</button>
                 </div>
             </div>
 
-            <div class="mb-4">
-                <span class="text-xs font-bold text-slate-400 uppercase">Body Weight Tracker</span>
-                <div class="flex space-x-2 mt-2 mb-4">
-                    <input type="number" id="weight-input" placeholder="kg" class="bg-slate-800 text-white rounded-xl px-4 py-3 w-full font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <button id="save-weight" class="bg-slate-700 hover:bg-slate-600 text-white px-6 rounded-xl font-bold"><i class="fas fa-save"></i></button>
-                </div>
-                <div class="h-24 w-full bg-slate-950 rounded-xl border border-slate-800 relative flex items-end justify-between px-2 pb-2" id="weight-chart">
-                    <span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-mono">No Data Yet</span>
-                </div>
+            <div class="flex space-x-3">
+                <button id="export-data" class="flex-1 py-3 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-700"><i class="fas fa-download mr-2"></i>Backup</button>
+                <label class="flex-1 py-3 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-700 text-center cursor-pointer">
+                    <i class="fas fa-upload mr-2"></i>Restore
+                    <input type="file" id="import-data" class="hidden" accept=".json">
+                </label>
             </div>
         </div>
     </div>
@@ -163,46 +182,47 @@
     <script>
         $(document).ready(function() {
             
-            // --- 1. DEFAULT DATA ---
+            // --- 1. DEFAULT DATA STRUCTURE ---
+            // Added 'rest' property to every exercise
             const defaultSchedule = {
-                1: { focus: "Chest & Triceps", color: "#3b82f6", muscles: ["Chest", "Arms"], exercises: [{ id: "m1", name: "Push Ups", reps: 15, unit: "Reps", cal: 10, icon: "fa-hand-rock" }, { id: "m2", name: "Diamond Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-gem" }, { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", cal: 8, icon: "fa-chair" }] },
-                2: { focus: "Back & Biceps", color: "#10b981", muscles: ["Chest", "Arms"], exercises: [{ id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", cal: 5, icon: "fa-superpowers" }, { id: "tu2", name: "Doorframe Rows", reps: 15, unit: "Reps", cal: 10, icon: "fa-columns" }, { id: "tu3", name: "Good Mornings", reps: 20, unit: "Reps", cal: 12, icon: "fa-sun" }] },
-                3: { focus: "Legs & Glutes", color: "#f59e0b", muscles: ["Legs"], exercises: [{ id: "w1", name: "Air Squats", reps: 20, unit: "Reps", cal: 12, icon: "fa-chevron-down" }, { id: "w2", name: "Lunges", reps: 12, unit: "Per Leg", cal: 14, icon: "fa-walking" }, { id: "w3", name: "Wall Sit", reps: 45, unit: "Sec", cal: 10, icon: "fa-chair" }] },
-                4: { focus: "Shoulders & Core", color: "#8b5cf6", muscles: ["Arms", "Abs"], exercises: [{ id: "th1", name: "Pike Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-mountain" }, { id: "th2", name: "Plank", reps: 60, unit: "Sec", cal: 8, icon: "fa-stopwatch" }, { id: "th3", name: "Russian Twists", reps: 25, unit: "Reps", cal: 10, icon: "fa-sync-alt" }] },
-                5: { focus: "Full Body Intensity", color: "#ef4444", muscles: ["Chest", "Arms", "Legs", "Abs"], exercises: [{ id: "f1", name: "Burpees", reps: 10, unit: "Reps", cal: 20, icon: "fa-fire" }, { id: "f2", name: "Mountain Climbers", reps: 40, unit: "Sec", cal: 15, icon: "fa-running" }, { id: "f3", name: "Jumping Jacks", reps: 50, unit: "Reps", cal: 12, icon: "fa-star" }] },
-                6: { focus: "Active Recovery", color: "#14b8a6", muscles: ["Abs"], exercises: [{ id: "s1", name: "Bird Dog", reps: 10, unit: "Per Side", cal: 5, icon: "fa-dog" }, { id: "s2", name: "Cat Cow Stretch", reps: 60, unit: "Sec", cal: 3, icon: "fa-cat" }] },
-                0: { focus: "Rest & Mobility", color: "#64748b", muscles: [], exercises: [{ id: "su1", name: "Light Walk", reps: 15, unit: "Mins", cal: 50, icon: "fa-shoe-prints" }] }
+                1: { focus: "Chest & Triceps", color: "#3b82f6", muscles: ["Chest", "Arms"], exercises: [{ id: "m1", name: "Push Ups", reps: 15, unit: "Reps", cal: 10, icon: "fa-hand-rock", rest: 30 }, { id: "m2", name: "Diamond Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-gem", rest: 45 }, { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", cal: 8, icon: "fa-chair", rest: 30 }] },
+                2: { focus: "Back & Biceps", color: "#10b981", muscles: ["Chest", "Arms"], exercises: [{ id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", cal: 5, icon: "fa-superpowers", rest: 30 }, { id: "tu2", name: "Doorframe Rows", reps: 15, unit: "Reps", cal: 10, icon: "fa-columns", rest: 30 }, { id: "tu3", name: "Good Mornings", reps: 20, unit: "Reps", cal: 12, icon: "fa-sun", rest: 40 }] },
+                3: { focus: "Legs & Glutes", color: "#f59e0b", muscles: ["Legs"], exercises: [{ id: "w1", name: "Air Squats", reps: 20, unit: "Reps", cal: 12, icon: "fa-chevron-down", rest: 30 }, { id: "w2", name: "Lunges", reps: 12, unit: "Per Leg", cal: 14, icon: "fa-walking", rest: 45 }, { id: "w3", name: "Wall Sit", reps: 45, unit: "Sec", cal: 10, icon: "fa-chair", rest: 30 }] },
+                4: { focus: "Shoulders & Core", color: "#8b5cf6", muscles: ["Arms", "Abs"], exercises: [{ id: "th1", name: "Pike Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-mountain", rest: 45 }, { id: "th2", name: "Plank", reps: 60, unit: "Sec", cal: 8, icon: "fa-stopwatch", rest: 30 }, { id: "th3", name: "Russian Twists", reps: 25, unit: "Reps", cal: 10, icon: "fa-sync-alt", rest: 30 }] },
+                5: { focus: "Full Body Intensity", color: "#ef4444", muscles: ["Chest", "Arms", "Legs", "Abs"], exercises: [{ id: "f1", name: "Burpees", reps: 10, unit: "Reps", cal: 20, icon: "fa-fire", rest: 60 }, { id: "f2", name: "Mountain Climbers", reps: 40, unit: "Sec", cal: 15, icon: "fa-running", rest: 30 }, { id: "f3", name: "Jumping Jacks", reps: 50, unit: "Reps", cal: 12, icon: "fa-star", rest: 20 }] },
+                6: { focus: "Active Recovery", color: "#14b8a6", muscles: ["Abs"], exercises: [{ id: "s1", name: "Bird Dog", reps: 10, unit: "Per Side", cal: 5, icon: "fa-dog", rest: 20 }, { id: "s2", name: "Cat Cow Stretch", reps: 60, unit: "Sec", cal: 3, icon: "fa-cat", rest: 20 }] },
+                0: { focus: "Rest & Mobility", color: "#64748b", muscles: [], exercises: [{ id: "su1", name: "Light Walk", reps: 15, unit: "Mins", cal: 50, icon: "fa-shoe-prints", rest: 0 }] }
             };
 
             const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            const fullDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
-            // --- 2. STATE MANAGEMENT ---
-            let activeDay = new Date().getDay();
             
-            // Load from LocalStorage
+            // --- 2. STATE ---
+            let activeDay = new Date().getDay();
             let schedule = JSON.parse(localStorage.getItem('db_schedule')) || defaultSchedule;
-            let completed = JSON.parse(localStorage.getItem('db_completed')) || {};
-            let userProfile = JSON.parse(localStorage.getItem('db_profile')) || { level: 1.0, weightHistory: [] };
+            let completed = JSON.parse(localStorage.getItem('db_completed')) || {}; // { "1": ["id1", "id2"] }
+            let historyDates = JSON.parse(localStorage.getItem('db_history_dates')) || []; // ["2023-10-01", ...]
+            let userProfile = JSON.parse(localStorage.getItem('db_profile')) || { level: 1.0, sound: 'voice' };
             
             let isEditing = false;
             const synth = window.speechSynthesis;
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-            // --- 3. INIT UI ---
+            // --- 3. INIT ---
             renderWeekNav();
             loadDay(activeDay);
-            updateProfileUI();
+            renderCalendar();
+            $('#sound-select').val(userProfile.sound);
+            $('#level-val').text(userProfile.level.toFixed(1) + "x");
+            $('#user-level-badge').text(Math.floor(userProfile.level));
 
-            // --- 4. CORE FUNCTIONS ---
-
+            // --- 4. CORE ---
             function renderWeekNav() {
-                const container = $('#day-nav-container');
-                container.empty();
+                const container = $('#day-nav-container').empty();
                 dayNames.forEach((d, i) => {
                     const todayClass = (i === new Date().getDay()) ? 'today border-indigo-500' : 'border-slate-800';
                     container.append(`
                          <button class="day-btn w-10 h-14 rounded-xl border bg-slate-900 flex flex-col items-center justify-center transition-all active:scale-95 shrink-0 ${todayClass}" data-day="${i}">
-                            <span class="text-[8px] uppercase font-bold text-slate-500">${fullDayNames[i].substring(0,3)}</span>
+                            <span class="text-[8px] uppercase font-bold text-slate-500">Day</span>
                             <span class="text-sm font-black">${d}</span>
                         </button>
                     `);
@@ -213,17 +233,13 @@
                 activeDay = parseInt(dayIndex);
                 isEditing = false;
                 $('#toggle-edit').html('<i class="fas fa-pencil-alt"></i>').removeClass('text-green-400');
-
-                // Style Nav
                 $('.day-btn').removeClass('active');
                 $(`.day-btn[data-day="${activeDay}"]`).addClass('active');
 
-                // Update Header
                 const data = schedule[activeDay];
                 $('#day-focus').text(data.focus);
                 $(':root').css('--accent', data.color);
-
-                // Update Heatmap
+                
                 $('.muscle-part').removeClass('muscle-active');
                 data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
 
@@ -240,52 +256,39 @@
 
                 exList.forEach((ex, idx) => {
                     const isDone = completed[activeDay] && completed[activeDay].includes(ex.id);
-                    
-                    // Apply Level Multiplier
                     const displayReps = Math.ceil(ex.reps * userProfile.level);
 
-                    // Gym Mode Logic
                     if (!isDone && $('#gym-name').text() === "Ready") {
-                        $('#gym-name').text(ex.name);
-                        $('#gym-target').text(displayReps);
-                        $('#gym-unit').text(ex.unit);
+                        $('#gym-name').text(ex.name); $('#gym-target').text(displayReps); $('#gym-unit').text(ex.unit);
                     }
 
-                    // View vs Edit Mode
-                    let content = '';
                     if (isEditing) {
-                        content = `
-                            <div class="grid grid-cols-12 gap-2 w-full">
-                                <div class="col-span-6"><input type="text" class="edit-input ex-name" value="${ex.name}" data-idx="${idx}"></div>
-                                <div class="col-span-3"><input type="number" class="edit-input ex-reps" value="${ex.reps}" data-idx="${idx}"></div>
-                                <div class="col-span-3"><input type="text" class="edit-input ex-unit" value="${ex.unit}" data-idx="${idx}"></div>
+                        container.append(`
+                            <div class="bg-slate-900 border border-white/5 p-4 rounded-2xl grid grid-cols-12 gap-2">
+                                <div class="col-span-5"><label class="text-[9px] text-slate-500 uppercase">Name</label><input type="text" class="edit-input ex-name" value="${ex.name}" data-idx="${idx}"></div>
+                                <div class="col-span-2"><label class="text-[9px] text-slate-500 uppercase">Reps</label><input type="number" class="edit-input ex-reps" value="${ex.reps}" data-idx="${idx}"></div>
+                                <div class="col-span-3"><label class="text-[9px] text-slate-500 uppercase">Unit</label><input type="text" class="edit-input ex-unit" value="${ex.unit}" data-idx="${idx}"></div>
+                                <div class="col-span-2"><label class="text-[9px] text-slate-500 uppercase">Rest(s)</label><input type="number" class="edit-input ex-rest" value="${ex.rest || 30}" data-idx="${idx}"></div>
                             </div>
-                        `;
+                        `);
                     } else {
-                        content = `
-                            <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white" style="background-color: ${schedule[activeDay].color}20; color: ${schedule[activeDay].color}">
-                                    <i class="fas ${ex.icon}"></i>
+                        container.append(`
+                            <div class="bg-slate-900 border border-white/5 p-5 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 ${isDone ? 'completed' : ''}" id="card-${ex.id}">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white" style="background-color: ${schedule[activeDay].color}20; color: ${schedule[activeDay].color}">
+                                        <i class="fas ${ex.icon}"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-white uppercase text-xs tracking-tight">${ex.name}</h3>
+                                        <p class="text-slate-500 font-bold text-[10px] uppercase">${displayReps} ${ex.unit} <span class="text-slate-600 ml-1">(${ex.rest || 30}s rest)</span></p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 class="font-bold text-white uppercase text-xs tracking-tight">${ex.name}</h3>
-                                    <p class="text-slate-500 font-bold text-[10px] uppercase">
-                                        ${displayReps} ${ex.unit} 
-                                        ${userProfile.level > 1 ? '<span class="text-indigo-500 ml-1 font-black text-[8px] border border-indigo-500 px-1 rounded">LVL UP</span>' : ''}
-                                    </p>
-                                </div>
+                                <button class="check-btn w-12 h-12 rounded-full border-2 border-slate-800 flex items-center justify-center transition active:scale-90" data-id="${ex.id}">
+                                    <i class="fas fa-check text-white ${isDone ? '' : 'hidden'}"></i>
+                                </button>
                             </div>
-                            <button class="check-btn w-12 h-12 rounded-full border-2 border-slate-800 flex items-center justify-center transition active:scale-90" data-id="${ex.id}">
-                                <i class="fas fa-check text-white ${isDone ? '' : 'hidden'}"></i>
-                            </button>
-                        `;
+                        `);
                     }
-
-                    container.append(`
-                        <div class="bg-slate-900 border border-white/5 p-5 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 ${isDone && !isEditing ? 'completed' : ''}" id="card-${ex.id}">
-                            ${content}
-                        </div>
-                    `);
                 });
                 
                 if(exList.every(e => completed[activeDay]?.includes(e.id))) {
@@ -293,20 +296,17 @@
                 }
             }
 
-            // --- 5. INTERACTION LOGIC ---
-
-            // Check Button
+            // --- 5. LOGIC & EVENTS ---
             $(document).on('click', '.check-btn', function() {
                 if(isEditing) return;
                 const id = $(this).data('id');
-                
                 if(!completed[activeDay]) completed[activeDay] = [];
                 if(completed[activeDay].includes(id)) return;
 
                 completed[activeDay].push(id);
                 localStorage.setItem('db_completed', JSON.stringify(completed));
                 
-                // UI Update
+                // UI
                 $(this).find('i').removeClass('hidden');
                 $(this).css({borderColor: 'var(--accent)', backgroundColor: 'var(--accent)'});
                 $(`#card-${id}`).addClass('completed');
@@ -314,20 +314,24 @@
                 if(navigator.vibrate) navigator.vibrate(50);
                 updateProgress();
 
-                // Check for Rest
+                // Check Rest or Complete
                 const remaining = schedule[activeDay].exercises.filter(e => !completed[activeDay].includes(e.id));
-                if(remaining.length > 0) triggerRest(remaining[0]);
-                else speak("Day complete!");
+                if(remaining.length > 0) {
+                    triggerRest(remaining[0]);
+                } else {
+                    playSound("Workout complete!", true);
+                    fireConfetti();
+                    logHistory();
+                }
             });
 
-            // Toggle Edit
             $('#toggle-edit').click(function() {
                 if(isEditing) {
                     // Save
                     $('.ex-name').each(function() { schedule[activeDay].exercises[$(this).data('idx')].name = $(this).val(); });
                     $('.ex-reps').each(function() { schedule[activeDay].exercises[$(this).data('idx')].reps = parseInt($(this).val()); });
                     $('.ex-unit').each(function() { schedule[activeDay].exercises[$(this).data('idx')].unit = $(this).val(); });
-                    
+                    $('.ex-rest').each(function() { schedule[activeDay].exercises[$(this).data('idx')].rest = parseInt($(this).val()); });
                     localStorage.setItem('db_schedule', JSON.stringify(schedule));
                     isEditing = false;
                     $(this).html('<i class="fas fa-pencil-alt"></i>').removeClass('text-green-400');
@@ -339,76 +343,12 @@
                 }
             });
 
-            // Day Switch
-            $(document).on('click', '.day-btn', function() {
-                loadDay($(this).data('day'));
-            });
-
-            // --- 6. PROFILE & WEIGHT LOGIC ---
-
-            function updateProfileUI() {
-                $('#user-level-badge').text(Math.floor(userProfile.level));
-                $('#level-val').text(userProfile.level.toFixed(1) + "x");
-                
-                // Render Weight Chart
-                const chart = $('#weight-chart').empty();
-                if(userProfile.weightHistory.length > 0) {
-                    const weights = userProfile.weightHistory.map(w => w.val);
-                    const min = Math.min(...weights);
-                    const max = Math.max(...weights);
-                    
-                    userProfile.weightHistory.forEach(w => {
-                        // Normalize height between 20% and 100%
-                        const h = 20 + ((w.val - min) / (max - min || 1)) * 80;
-                        chart.append(`<div class="w-4 bg-indigo-500 rounded-t" style="height: ${h}%" title="${w.val}kg"></div>`);
-                    });
-                } else {
-                    chart.append('<span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-mono">No Data Yet</span>');
-                }
-            }
-
-            $('#save-weight').click(function() {
-                const val = parseFloat($('#weight-input').val());
-                if(val) {
-                    userProfile.weightHistory.push({ date: new Date().toDateString(), val: val });
-                    if(userProfile.weightHistory.length > 10) userProfile.weightHistory.shift(); // Keep last 10
-                    localStorage.setItem('db_profile', JSON.stringify(userProfile));
-                    updateProfileUI();
-                    $('#weight-input').val('');
-                }
-            });
-
-            $('#level-up-btn').click(function() {
-                userProfile.level = parseFloat((userProfile.level + 0.1).toFixed(1));
-                localStorage.setItem('db_profile', JSON.stringify(userProfile));
-                updateProfileUI();
-                renderList(); // Re-render to show new rep counts
-                speak("Level Up! Intensity increased.");
-            });
-            
-            $('#level-reset-btn').click(function() {
-                if(confirm("Reset difficulty to 1.0?")) {
-                    userProfile.level = 1.0;
-                    localStorage.setItem('db_profile', JSON.stringify(userProfile));
-                    updateProfileUI();
-                    renderList();
-                }
-            });
-
-            $('#open-profile, #open-profile-btn').click(() => $('#profile-modal').removeClass('hidden'));
-            $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
-
-            // --- 7. UTILS ---
-
+            // --- 6. UTILS & EXTRAS ---
             function updateProgress() {
-                const totalCals = schedule[activeDay].exercises.reduce((acc, ex) => {
-                    return acc + (completed[activeDay]?.includes(ex.id) ? ex.cal : 0);
-                }, 0);
                 const totalEx = schedule[activeDay].exercises.length;
                 const doneEx = completed[activeDay]?.length || 0;
                 const pct = Math.round((doneEx / totalEx) * 100);
-
-                $('#calories-display').html(`${totalCals} <span class="text-sm text-slate-500">Kcal</span>`);
+                $('#calories-display').html(`${(doneEx * 15)} <span class="text-sm text-slate-500">Kcal</span>`);
                 $('#percent-text').text(pct + '%');
                 $('#mini-progress').css('width', pct + '%');
             }
@@ -418,20 +358,126 @@
                 $('#next-ex-name').text(nextEx.name);
                 $('#gym-name').text(nextEx.name); $('#gym-target').text(Math.ceil(nextEx.reps * userProfile.level));
                 
-                speak("Rest. Next is " + nextEx.name);
-                let time = 30;
+                playSound("Rest. Next is " + nextEx.name);
+                let time = nextEx.rest || 30; // Use custom rest or default
+                
                 const timer = setInterval(() => {
                     time--;
                     $('#rest-timer').text(time);
-                    if(time <= 0) { clearInterval(timer); $('#rest-modal').addClass('hidden'); speak("Go!"); }
+                    if(time <= 3 && time > 0) { playSound("beep"); }
+                    if(time <= 0) { 
+                        clearInterval(timer); 
+                        $('#rest-modal').addClass('hidden'); 
+                        playSound("Start!"); 
+                    }
                 }, 1000);
                 $('#skip-rest').one('click', () => { clearInterval(timer); $('#rest-modal').addClass('hidden'); });
             }
 
-            function speak(text) {
-                synth.cancel();
-                synth.speak(new SpeechSynthesisUtterance(text));
+            function playSound(text, forceVoice = false) {
+                if(userProfile.sound === 'silent') return;
+                
+                if(userProfile.sound === 'beep' && !forceVoice) {
+                    // Oscillator Beep
+                    if(audioCtx.state === 'suspended') audioCtx.resume();
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = 800;
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+                    osc.stop(audioCtx.currentTime + 0.1);
+                } else {
+                    // Voice
+                    synth.cancel();
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.rate = 1.1;
+                    synth.speak(u);
+                }
             }
+
+            function logHistory() {
+                const today = new Date().toISOString().split('T')[0];
+                if(!historyDates.includes(today)) {
+                    historyDates.push(today);
+                    localStorage.setItem('db_history_dates', JSON.stringify(historyDates));
+                    renderCalendar();
+                }
+            }
+
+            function renderCalendar() {
+                const grid = $('#calendar-grid').empty();
+                const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+                const today = new Date().getDate();
+                const yearMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+                
+                for(let i=1; i<=daysInMonth; i++) {
+                    const dateStr = `${yearMonth}-${i < 10 ? '0'+i : i}`;
+                    const active = historyDates.includes(dateStr) ? 'active' : '';
+                    const border = (i === today) ? 'border border-slate-500' : '';
+                    grid.append(`<div class="cal-day ${active} ${border}">${i}</div>`);
+                }
+            }
+
+            // Confetti Engine
+            function fireConfetti() {
+                const canvas = document.getElementById('confetti-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+                let particles = [];
+                for(let i=0; i<100; i++) particles.push({ x: canvas.width/2, y: canvas.height/2, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, color: `hsl(${Math.random()*360}, 100%, 50%)` });
+                
+                function animate() {
+                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                    particles.forEach((p, i) => {
+                        p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.alpha = p.alpha || 1; p.alpha -= 0.01;
+                        ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha;
+                        ctx.fillRect(p.x, p.y, 5, 5);
+                        if(p.alpha <= 0) particles.splice(i, 1);
+                    });
+                    if(particles.length > 0) requestAnimationFrame(animate);
+                }
+                animate();
+            }
+
+            // --- 7. EXPORT / IMPORT ---
+            $('#export-data').click(function() {
+                const data = { schedule, completed, userProfile, historyDates };
+                const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `dailyburn_backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+            });
+
+            $('#import-data').change(function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        localStorage.setItem('db_schedule', JSON.stringify(data.schedule));
+                        localStorage.setItem('db_completed', JSON.stringify(data.completed));
+                        localStorage.setItem('db_profile', JSON.stringify(data.userProfile));
+                        localStorage.setItem('db_history_dates', JSON.stringify(data.historyDates));
+                        alert("Data Restored!");
+                        location.reload();
+                    } catch(err) { alert("Invalid File"); }
+                };
+                reader.readAsText(file);
+            });
+
+            // Settings Bindings
+            $('#level-up-btn').click(() => { userProfile.level = parseFloat((userProfile.level + 0.1).toFixed(1)); saveProfile(); });
+            $('#reset-level-btn').click(() => { userProfile.level = 1.0; saveProfile(); });
+            $('#sound-select').change(function() { userProfile.sound = $(this).val(); saveProfile(); });
+            function saveProfile() { localStorage.setItem('db_profile', JSON.stringify(userProfile)); location.reload(); }
+
+            $('.day-btn').click(function() { loadDay($(this).data('day')); });
+            $('#open-profile, #open-profile-btn').click(() => $('#profile-modal').removeClass('hidden'));
+            $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
         });
     </script>
 </body>
