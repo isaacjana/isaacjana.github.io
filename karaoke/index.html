@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Munch Karaoke - Final Build</title>
+    <title>Munch Karaoke - Final Refined</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .stage-bg { background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); }
         .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        #youtube-player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        #youtube-player { width: 100%; height: 100%; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-screen flex flex-col font-sans overflow-hidden">
@@ -18,20 +18,15 @@
     <div id="auth-overlay" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
         <div class="glass p-8 rounded-3xl max-w-sm w-full shadow-2xl">
             <h1 class="text-4xl font-black italic mb-2 tracking-tighter">MUNCH<span class="text-blue-500">KARAOKE</span></h1>
-            <p class="text-slate-500 text-[10px] uppercase tracking-[0.4em] mb-8">Production Version</p>
-
             <div id="login-section">
                 <button id="btn-login" class="w-full bg-white text-black font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-200 transition">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5"> Login with Google
                 </button>
             </div>
-
             <div id="party-section" class="hidden space-y-4">
                 <input id="party-code-input" type="text" placeholder="SESSION CODE" class="w-full bg-black border border-slate-700 rounded-xl p-4 text-center font-mono text-2xl uppercase tracking-widest outline-none focus:border-blue-500 text-white">
                 <button id="btn-join" class="w-full bg-blue-600 hover:bg-blue-500 font-bold py-4 rounded-xl transition">ENTER STAGE</button>
             </div>
-            
-            <p id="auth-msg" class="mt-4 text-[10px] text-slate-500 italic"></p>
         </div>
     </div>
 
@@ -48,7 +43,6 @@
     </header>
 
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
-        
         <section id="view-admin" class="hidden flex-1 p-8 overflow-y-auto">
             <h2 class="text-2xl font-bold mb-6">Library Setup</h2>
             <div class="max-w-md bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
@@ -61,7 +55,9 @@
 
         <section id="view-main" class="flex-1 flex flex-col md:flex-row overflow-hidden">
             <div class="flex-1 bg-black relative stage-bg">
-                <div id="youtube-player"></div>
+                <div id="player-container" class="w-full h-full">
+                    <div id="youtube-player"></div>
+                </div>
                 <div id="idle-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10 pointer-events-none">
                     <i class="fas fa-microphone-alt text-7xl text-slate-800 mb-4 animate-pulse"></i>
                     <p class="text-slate-600 font-black uppercase text-xs tracking-widest">Queue Empty</p>
@@ -73,7 +69,6 @@
                     <input id="song-search" type="text" placeholder="Search for a song..." class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm focus:border-blue-500 outline-none text-white">
                     <div id="search-results" class="hidden mt-3 max-h-48 overflow-y-auto space-y-2"></div>
                 </div>
-
                 <div class="flex-1 overflow-y-auto p-5">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Queue</span>
@@ -105,33 +100,20 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        let currentUser, player, sessionCode, isPlaying = false;
+        let currentUser, player, sessionCode;
+        let isPlaying = false;
+        let isPlayerReady = false; // Flag to check if YouTube player is ready
 
-        // AUTH & AUTO-ADMIN SETUP
-        $('#btn-login').click(() => signInWithPopup(auth, provider).catch(e => $('#auth-msg').text("Error: Disable AdBlocker")));
-
+        // AUTH
+        $('#btn-login').click(() => signInWithPopup(auth, provider));
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 $('#user-pfp').attr('src', user.photoURL);
                 $('#login-section').addClass('hidden');
                 $('#party-section').removeClass('hidden');
-
-                // Check Admin
                 const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().isAdmin) {
-                    $('#nav-admin').removeClass('hidden');
-                } else if (!userDoc.exists()) {
-                    // First time user logic: Make them admin if library is empty
-                    const songsCount = (await getDocs(collection(db, "songs"))).size;
-                    if(songsCount === 0) {
-                        await setDoc(doc(db, "users", user.uid), { isAdmin: true, name: user.displayName });
-                        $('#nav-admin').removeClass('hidden');
-                        alert("You are the first user. You have been granted Admin rights.");
-                    } else {
-                        await setDoc(doc(db, "users", user.uid), { isAdmin: false, name: user.displayName });
-                    }
-                }
+                if (userDoc.exists() && userDoc.data().isAdmin) $('#nav-admin').removeClass('hidden');
             }
         });
 
@@ -143,47 +125,32 @@
             startSync();
         });
 
-        // ADMIN ACTIONS
-        $('#btn-save-song').click(async () => {
-            const title = $('#setup-title').val();
-            const artist = $('#setup-artist').val();
-            const videoId = extractID($('#setup-url').val());
-            if(!title || !videoId) return alert("Invalid Input");
-
-            await addDoc(collection(db, "songs"), { title, artist, videoId, searchKey: title.toLowerCase() });
-            $('#setup-title, #setup-artist, #setup-url').val('');
-            alert("Song Saved");
-        });
-
-        // USER SEARCH
-        $('#song-search').on('input', async function() {
-            const val = $(this).val().toLowerCase();
-            if(val.length < 2) return $('#search-results').addClass('hidden');
-            const q = query(collection(db, "songs"), where("searchKey", ">=", val), where("searchKey", "<=", val + '\uf8ff'));
-            const snap = await getDocs(q);
-            const $res = $('#search-results').empty().removeClass('hidden');
-            snap.forEach(d => {
-                const s = d.data();
-                $res.append(`<div onclick="window.addToQueue('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer hover:border-blue-500 text-xs"><b>${s.title}</b><br><span class="text-slate-500 uppercase">${s.artist}</span></div>`);
-            });
-        });
-
+        // SEARCH & QUEUE
         window.addToQueue = async (videoId, name) => {
             await addDoc(collection(db, "munch_queue"), { name, videoId, sessionCode, userPhoto: currentUser.photoURL, timestamp: serverTimestamp() });
             $('#song-search').val(''); $('#search-results').addClass('hidden');
         };
 
-        // SYNC & PLAYER
+        // SYNC & PLAYER CONTROL
         function startSync() {
             const q = query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc"));
             onSnapshot(q, snap => {
                 const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderQueue(list);
-                if(list.length > 0 && !isPlaying) playNext(list[0]);
+                // Safety: Only try to play if player is initialized AND we aren't already playing
+                if(list.length > 0 && !isPlaying && isPlayerReady) {
+                    playNext(list[0]);
+                }
             });
         }
 
         async function playNext(song = null) {
+            // Check if player exists and is ready
+            if (!player || !isPlayerReady) {
+                console.warn("YouTube Player not ready yet...");
+                return;
+            }
+
             if (song) {
                 isPlaying = true;
                 player.loadVideoById(song.videoId);
@@ -196,6 +163,34 @@
         }
         window.playNext = () => playNext();
 
+        // YOUTUBE API INITIALIZATION
+        window.onYouTubeIframeAPIReady = function() {
+            player = new YT.Player('youtube-player', {
+                height: '100%',
+                width: '100%',
+                playerVars: { 'autoplay': 1, 'controls': 1, 'origin': window.location.origin },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        };
+
+        function onPlayerReady(event) {
+            isPlayerReady = true;
+            console.log("YouTube Player Ready");
+            // If there's already something in the queue when the player loads, start it
+            if (sessionCode) startSync(); 
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                isPlaying = false;
+                // The onSnapshot will naturally trigger the next song
+            }
+        }
+
+        // HELPERS
         function renderQueue(list) {
             const $l = $('#queue-list').empty();
             list.forEach(s => $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl"><img src="${s.userPhoto}" class="w-8 h-8 rounded-full"><p class="text-xs font-bold truncate text-slate-200">${s.name}</p></div>`));
@@ -209,10 +204,11 @@
         $('#nav-admin').click(() => { $('#view-main').addClass('hidden'); $('#view-admin').removeClass('hidden'); });
         $('#nav-main').click(() => { $('#view-admin').addClass('hidden'); $('#view-main').removeClass('hidden'); });
 
-        window.onYouTubeIframeAPIReady = () => {
-            player = new YT.Player('youtube-player', { height: '100%', width: '100%', playerVars: { 'autoplay': 1, 'controls': 1 } });
-        };
+        // Load YouTube Script
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     </script>
-    <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
