@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Weekly Schedule</title>
+    <title>Daily Burn | Life Companion</title>
+    
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         :root { --accent: #6366f1; }
-        
-        /* Smooth Transitions */
-        body { transition: background-color 0.5s; }
-        .transition-all-300 { transition: all 0.3s ease; }
+        body { transition: background-color 0.5s; -webkit-tap-highlight-color: transparent; }
         
         /* Animations */
         @keyframes heartbeat { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; } }
-        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
-        
         .heart-pulse { animation: heartbeat 1s infinite ease-in-out; color: var(--accent); }
-        .heart-ring { animation: pulse-ring 1s infinite ease-out; background-color: var(--accent); }
-        .progress-ring__circle { transition: stroke-dashoffset 0.6s ease, stroke 0.5s; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--accent); }
-        
-        /* Interaction States */
         .completed { opacity: 0.3; filter: grayscale(1); transform: scale(0.98); pointer-events: none; }
+        
+        /* Day Navigation */
         .day-btn.active { background-color: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
         .day-btn.today { border-color: var(--accent); }
         
-        /* Muscle Heatmap */
+        /* Heatmap */
         .muscle-part { fill: #1e293b; transition: fill 0.6s ease; }
         .muscle-active { fill: var(--accent); filter: drop-shadow(0 0 3px var(--accent)); }
 
-        /* Range Slider */
+        /* Inputs */
         input[type=range] { accent-color: var(--accent); }
+        .edit-input { background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; padding: 4px; font-size: 12px; width: 100%; transition: border 0.3s; }
+        .edit-input:focus { border-color: var(--accent); outline: none; }
 
-        /* Gym Mode (Landscape) */
+        /* Landscape Mode */
         #gym-mode { display: none; }
         @media (orientation: landscape) and (max-height: 500px) {
             body { overflow: hidden; }
@@ -47,7 +47,6 @@
 <body class="bg-slate-950 text-slate-200 min-h-screen font-sans selection:bg-indigo-500 overflow-x-hidden">
 
     <div id="gym-mode" class="fixed inset-0 bg-slate-950 z-[200] flex-col items-center justify-center p-6 text-center">
-        <div class="text-slate-500 text-xs font-black tracking-[0.5em] mb-4 uppercase">Current Set</div>
         <h1 id="gym-name" class="text-5xl font-black text-white uppercase leading-none mb-4">Select Workout</h1>
         <div class="flex items-baseline justify-center space-x-4">
             <div id="gym-target" class="text-8xl font-black text-indigo-500 tabular-nums">--</div>
@@ -61,63 +60,37 @@
         <header class="fixed top-0 w-full bg-slate-950/90 backdrop-blur-xl border-b border-white/5 z-50 pt-4 pb-2 px-4">
             <div class="max-w-md mx-auto">
                 <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center space-x-3">
-                        <div class="relative flex items-center justify-center">
-                            <div class="heart-ring absolute w-6 h-6 rounded-full opacity-30"></div>
-                            <i class="fas fa-heart heart-pulse relative z-10 text-sm"></i>
+                    <div class="flex items-center space-x-3 cursor-pointer" id="open-profile">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg">
+                            <span class="text-xs font-black" id="user-level-badge">1</span>
                         </div>
                         <div>
-                            <span id="day-title" class="text-lg font-black text-white uppercase tracking-tight">Today</span>
-                            <span class="text-[9px] font-black text-slate-500 uppercase block leading-none">Weekly Schedule</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase block leading-none">Level</span>
+                            <span id="difficulty-display" class="text-sm font-black text-white uppercase tracking-tight">Rookie</span>
                         </div>
                     </div>
-                    <button id="reset-week" class="text-slate-600 hover:text-red-500 transition text-xs font-bold uppercase tracking-widest">Reset</button>
+                    
+                    <div class="flex space-x-4">
+                        <button id="toggle-edit" class="text-slate-500 hover:text-white transition"><i class="fas fa-pencil-alt"></i></button>
+                        <button id="open-profile-btn" class="text-slate-500 hover:text-white transition"><i class="fas fa-user-circle"></i></button>
+                    </div>
                 </div>
 
                 <div class="flex justify-between space-x-1 overflow-x-auto no-scrollbar pb-2">
-                    <button class="day-btn w-10 h-14 rounded-xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center transition-all-300 active:scale-95 shrink-0" data-day="0">
-                        <span class="text-[8px] uppercase font-bold text-slate-500">Sun</span>
-                        <span class="text-sm font-black">S</span>
-                    </button>
-                    <button class="day-btn w-10 h-14 rounded-xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center transition-all-300 active:scale-95 shrink-0" data-day="1">
-                        <span class="text-[8px] uppercase font-bold text-slate-500">Mon</span>
-                        <span class="text-sm font-black">M</span>
-                    </button>
-                    <button class="day-btn w-10 h-14 rounded-xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center transition-all-300 active:scale-95 shrink-0" data-day="2">
-                        <span class="text-[8px] uppercase font-bold text-slate-500">Tue</span>
-                        <span class="text-sm font-black">T</span>
-                    </button>
-                    <button class="day-btn w-10 h-14 rounded-xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center transition-all-300 active:scale-95 shrink-0" data-day="3">
-                        <span class="text-[8px] uppercase font-bold text-slate-500">Wed</span>
-                        <span class="text-sm font-black">W</span>
-                    </button>
-                    <button class="day-btn w-10 h-14 rounded-xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center transition-all-300 active:scale-95 shrink-0" data-day="4">
-                        <span class="text-[8px] uppercase font-bold text-slate-500">Thu</span>
-                        <span class="text-sm font-black">T</span>
-                    </button>
-                    <button class="day-btn w-10 h-14 rounded-xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center transition-all-300 active:scale-95 shrink-0" data-day="5">
-                        <span class="text-[8px] uppercase font-bold text-slate-500">Fri</span>
-                        <span class="text-sm font-black">F</span>
-                    </button>
-                    <button class="day-btn w-10 h-14 rounded-xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center transition-all-300 active:scale-95 shrink-0" data-day="6">
-                        <span class="text-[8px] uppercase font-bold text-slate-500">Sat</span>
-                        <span class="text-sm font-black">S</span>
-                    </button>
+                    <div id="day-nav-container" class="flex w-full justify-between"></div>
                 </div>
             </div>
         </header>
 
-        <main class="max-w-md mx-auto mt-40 px-4">
+        <main class="max-w-md mx-auto mt-36 px-4">
             
             <div class="bg-slate-900 rounded-[2.5rem] p-6 border border-white/5 mb-6 relative overflow-hidden shadow-2xl">
-                <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                
                 <div class="flex justify-between items-center relative z-10">
                     <div>
-                        <div id="focus-label" class="text-indigo-400 font-bold uppercase tracking-widest text-xs mb-1">Push Day</div>
+                        <div id="day-focus" class="text-indigo-400 font-bold uppercase tracking-widest text-xs mb-1">Push Day</div>
                         <h2 id="calories-display" class="text-4xl font-black text-white">0 <span class="text-sm text-slate-500">Kcal</span></h2>
                         <div class="flex items-center space-x-2 mt-2">
-                             <div class="h-2 w-24 bg-slate-800 rounded-full overflow-hidden">
+                             <div class="h-1.5 w-24 bg-slate-800 rounded-full overflow-hidden">
                                  <div id="mini-progress" class="h-full bg-indigo-500 w-0 transition-all duration-500"></div>
                              </div>
                              <span id="percent-text" class="text-[10px] font-bold text-slate-400">0%</span>
@@ -127,8 +100,8 @@
                     <div class="w-16 h-24 opacity-80">
                          <svg viewBox="0 0 50 100" class="w-full h-full drop-shadow-lg">
                             <g transform="translate(0,0)">
-                                <rect x="18" y="8" width="14" height="12" rx="6" class="muscle-part" data-muscle="Neck"/>
-                                <rect x="10" y="22" width="30" height="28" rx="4" class="muscle-part" data-muscle="Chest"/> <rect x="2" y="24" width="7" height="32" rx="3" class="muscle-part" data-muscle="Arms"/>
+                                <rect x="10" y="22" width="30" height="28" rx="4" class="muscle-part" data-muscle="Chest"/>
+                                <rect x="2" y="24" width="7" height="32" rx="3" class="muscle-part" data-muscle="Arms"/>
                                 <rect x="41" y="24" width="7" height="32" rx="3" class="muscle-part" data-muscle="Arms"/>
                                 <rect x="12" y="58" width="10" height="40" rx="4" class="muscle-part" data-muscle="Legs"/>
                                 <rect x="28" y="58" width="10" height="40" rx="4" class="muscle-part" data-muscle="Legs"/>
@@ -139,311 +112,326 @@
                 </div>
             </div>
 
-            <div id="workout-list" class="space-y-3">
-                </div>
+            <div id="workout-list" class="space-y-3"></div>
 
         </main>
     </div>
 
-    <div id="rest-modal" class="hidden fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8">
+    <div id="profile-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-sm flex flex-col items-center justify-end sm:justify-center">
+        <div class="bg-slate-900 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-8 border-t sm:border border-white/10 shadow-2xl relative slide-up">
+            <button id="close-profile" class="absolute top-6 right-6 text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            
+            <h2 class="text-2xl font-black text-white mb-6">Your Profile</h2>
+            
+            <div class="mb-8 p-4 bg-slate-950 rounded-2xl border border-white/5">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Difficulty Level</span>
+                    <span id="level-val" class="text-xl font-black text-indigo-500">1.0x</span>
+                </div>
+                <p class="text-[10px] text-slate-500 mb-4">Is the workout too easy? Level up to increase reps globally.</p>
+                <button id="level-up-btn" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold text-white text-xs uppercase tracking-widest shadow-lg active:scale-95 transition">
+                    <i class="fas fa-arrow-up mr-2"></i> Level Up
+                </button>
+                <div class="mt-2 text-center">
+                    <button id="level-reset-btn" class="text-[9px] text-red-400 hover:text-red-300 uppercase tracking-widest">Reset Level</button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span class="text-xs font-bold text-slate-400 uppercase">Body Weight Tracker</span>
+                <div class="flex space-x-2 mt-2 mb-4">
+                    <input type="number" id="weight-input" placeholder="kg" class="bg-slate-800 text-white rounded-xl px-4 py-3 w-full font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="save-weight" class="bg-slate-700 hover:bg-slate-600 text-white px-6 rounded-xl font-bold"><i class="fas fa-save"></i></button>
+                </div>
+                <div class="h-24 w-full bg-slate-950 rounded-xl border border-slate-800 relative flex items-end justify-between px-2 pb-2" id="weight-chart">
+                    <span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-mono">No Data Yet</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="rest-modal" class="hidden fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-center p-8">
         <div class="text-9xl font-black text-white tabular-nums mb-4 transition-all" id="rest-timer">30</div>
         <div class="text-indigo-500 font-black uppercase tracking-widest text-sm mb-12 animate-pulse" id="next-ex-label">RECOVER</div>
-        
         <div class="bg-slate-900 border border-white/5 p-6 rounded-3xl w-full max-w-xs text-center">
             <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Up Next</p>
             <h3 id="next-ex-name" class="text-xl font-black text-white">...</h3>
         </div>
-        
         <button id="skip-rest" class="mt-8 px-8 py-4 text-slate-600 hover:text-white transition font-bold uppercase tracking-widest text-xs">Skip Rest</button>
     </div>
 
     <script>
         $(document).ready(function() {
             
-            // --- 1. WEEKLY DATA SCHEDULE (The Core Logic) ---
-            const weeklySchedule = {
-                1: { // Monday
-                    focus: "Chest & Triceps",
-                    color: "#3b82f6", // Blue
-                    muscles: ["Chest", "Arms"],
-                    exercises: [
-                        { id: "m1", name: "Push Ups", reps: 15, unit: "Reps", cal: 10, icon: "fa-hand-rock" },
-                        { id: "m2", name: "Diamond Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-gem" },
-                        { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", cal: 8, icon: "fa-chair" },
-                        { id: "m4", name: "Wide Arm Push Ups", reps: 12, unit: "Reps", cal: 10, icon: "fa-arrows-alt-h" },
-                        { id: "m5", name: "Plank to Push Up", reps: 10, unit: "Reps", cal: 15, icon: "fa-exchange-alt" }
-                    ]
-                },
-                2: { // Tuesday
-                    focus: "Back & Biceps",
-                    color: "#10b981", // Emerald
-                    muscles: ["Chest", "Arms"], // SVG simplifies Back to Torso
-                    exercises: [
-                        { id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", cal: 5, icon: "fa-superpowers" },
-                        { id: "tu2", name: "Reverse Snow Angels", reps: 15, unit: "Reps", cal: 8, icon: "fa-snowflake" },
-                        { id: "tu3", name: "Doorframe Rows", reps: 15, unit: "Reps", cal: 10, icon: "fa-columns" },
-                        { id: "tu4", name: "Prone Y-Raises", reps: 15, unit: "Reps", cal: 6, icon: "fa-text-height" },
-                        { id: "tu5", name: "Good Mornings", reps: 20, unit: "Reps", cal: 12, icon: "fa-sun" }
-                    ]
-                },
-                3: { // Wednesday
-                    focus: "Legs & Glutes",
-                    color: "#f59e0b", // Amber
-                    muscles: ["Legs"],
-                    exercises: [
-                        { id: "w1", name: "Air Squats", reps: 20, unit: "Reps", cal: 12, icon: "fa-chevron-down" },
-                        { id: "w2", name: "Lunges", reps: 12, unit: "Per Leg", cal: 14, icon: "fa-walking" },
-                        { id: "w3", name: "Glute Bridges", reps: 20, unit: "Reps", cal: 8, icon: "fa-archway" },
-                        { id: "w4", name: "Calf Raises", reps: 30, unit: "Reps", cal: 6, icon: "fa-arrow-up" },
-                        { id: "w5", name: "Wall Sit", reps: 45, unit: "Sec", cal: 10, icon: "fa-chair" }
-                    ]
-                },
-                4: { // Thursday
-                    focus: "Shoulders & Core",
-                    color: "#8b5cf6", // Violet
-                    muscles: ["Arms", "Abs"],
-                    exercises: [
-                        { id: "th1", name: "Pike Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-mountain" },
-                        { id: "th2", name: "Shoulder Taps", reps: 30, unit: "Sec", cal: 10, icon: "fa-hand-point-down" },
-                        { id: "th3", name: "Plank", reps: 60, unit: "Sec", cal: 8, icon: "fa-stopwatch" },
-                        { id: "th4", name: "Russian Twists", reps: 25, unit: "Reps", cal: 10, icon: "fa-sync-alt" },
-                        { id: "th5", name: "Arm Circles", reps: 45, unit: "Sec", cal: 5, icon: "fa-circle-notch" }
-                    ]
-                },
-                5: { // Friday
-                    focus: "Full Body Intensity",
-                    color: "#ef4444", // Red
-                    muscles: ["Chest", "Arms", "Legs", "Abs"],
-                    exercises: [
-                        { id: "f1", name: "Burpees", reps: 10, unit: "Reps", cal: 20, icon: "fa-fire" },
-                        { id: "f2", name: "Mountain Climbers", reps: 40, unit: "Sec", cal: 15, icon: "fa-running" },
-                        { id: "f3", name: "Jump Squats", reps: 15, unit: "Reps", cal: 15, icon: "fa-frog" },
-                        { id: "f4", name: "Push Ups", reps: 15, unit: "Reps", cal: 10, icon: "fa-hand-rock" },
-                        { id: "f5", name: "Jumping Jacks", reps: 50, unit: "Reps", cal: 12, icon: "fa-star" }
-                    ]
-                },
-                6: { // Saturday
-                    focus: "Active Recovery",
-                    color: "#14b8a6", // Teal
-                    muscles: ["Abs"],
-                    exercises: [
-                        { id: "s1", name: "Bird Dog", reps: 10, unit: "Per Side", cal: 5, icon: "fa-dog" },
-                        { id: "s2", name: "Cat Cow Stretch", reps: 60, unit: "Sec", cal: 3, icon: "fa-cat" },
-                        { id: "s3", name: "Dead Bug", reps: 15, unit: "Reps", cal: 6, icon: "fa-bug" },
-                        { id: "s4", name: "Side Plank", reps: 30, unit: "Sec/Side", cal: 8, icon: "fa-slash" }
-                    ]
-                },
-                0: { // Sunday
-                    focus: "Rest & Mobility",
-                    color: "#64748b", // Slate
-                    muscles: [],
-                    exercises: [
-                        { id: "su1", name: "Light Walk", reps: 15, unit: "Mins", cal: 50, icon: "fa-shoe-prints" },
-                        { id: "su2", name: "Deep Breathing", reps: 5, unit: "Mins", cal: 5, icon: "fa-wind" }
-                    ]
-                }
+            // --- 1. DEFAULT DATA ---
+            const defaultSchedule = {
+                1: { focus: "Chest & Triceps", color: "#3b82f6", muscles: ["Chest", "Arms"], exercises: [{ id: "m1", name: "Push Ups", reps: 15, unit: "Reps", cal: 10, icon: "fa-hand-rock" }, { id: "m2", name: "Diamond Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-gem" }, { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", cal: 8, icon: "fa-chair" }] },
+                2: { focus: "Back & Biceps", color: "#10b981", muscles: ["Chest", "Arms"], exercises: [{ id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", cal: 5, icon: "fa-superpowers" }, { id: "tu2", name: "Doorframe Rows", reps: 15, unit: "Reps", cal: 10, icon: "fa-columns" }, { id: "tu3", name: "Good Mornings", reps: 20, unit: "Reps", cal: 12, icon: "fa-sun" }] },
+                3: { focus: "Legs & Glutes", color: "#f59e0b", muscles: ["Legs"], exercises: [{ id: "w1", name: "Air Squats", reps: 20, unit: "Reps", cal: 12, icon: "fa-chevron-down" }, { id: "w2", name: "Lunges", reps: 12, unit: "Per Leg", cal: 14, icon: "fa-walking" }, { id: "w3", name: "Wall Sit", reps: 45, unit: "Sec", cal: 10, icon: "fa-chair" }] },
+                4: { focus: "Shoulders & Core", color: "#8b5cf6", muscles: ["Arms", "Abs"], exercises: [{ id: "th1", name: "Pike Push Ups", reps: 10, unit: "Reps", cal: 12, icon: "fa-mountain" }, { id: "th2", name: "Plank", reps: 60, unit: "Sec", cal: 8, icon: "fa-stopwatch" }, { id: "th3", name: "Russian Twists", reps: 25, unit: "Reps", cal: 10, icon: "fa-sync-alt" }] },
+                5: { focus: "Full Body Intensity", color: "#ef4444", muscles: ["Chest", "Arms", "Legs", "Abs"], exercises: [{ id: "f1", name: "Burpees", reps: 10, unit: "Reps", cal: 20, icon: "fa-fire" }, { id: "f2", name: "Mountain Climbers", reps: 40, unit: "Sec", cal: 15, icon: "fa-running" }, { id: "f3", name: "Jumping Jacks", reps: 50, unit: "Reps", cal: 12, icon: "fa-star" }] },
+                6: { focus: "Active Recovery", color: "#14b8a6", muscles: ["Abs"], exercises: [{ id: "s1", name: "Bird Dog", reps: 10, unit: "Per Side", cal: 5, icon: "fa-dog" }, { id: "s2", name: "Cat Cow Stretch", reps: 60, unit: "Sec", cal: 3, icon: "fa-cat" }] },
+                0: { focus: "Rest & Mobility", color: "#64748b", muscles: [], exercises: [{ id: "su1", name: "Light Walk", reps: 15, unit: "Mins", cal: 50, icon: "fa-shoe-prints" }] }
             };
 
+            const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+            const fullDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
             // --- 2. STATE MANAGEMENT ---
-            let activeDay = new Date().getDay(); // 0-6
-            let completedMap = JSON.parse(localStorage.getItem('dailyBurn_completed')) || {};
+            let activeDay = new Date().getDay();
+            
+            // Load from LocalStorage
+            let schedule = JSON.parse(localStorage.getItem('db_schedule')) || defaultSchedule;
+            let completed = JSON.parse(localStorage.getItem('db_completed')) || {};
+            let userProfile = JSON.parse(localStorage.getItem('db_profile')) || { level: 1.0, weightHistory: [] };
+            
+            let isEditing = false;
             const synth = window.speechSynthesis;
 
-            // --- 3. CORE LOGIC ---
+            // --- 3. INIT UI ---
+            renderWeekNav();
+            loadDay(activeDay);
+            updateProfileUI();
+
+            // --- 4. CORE FUNCTIONS ---
+
+            function renderWeekNav() {
+                const container = $('#day-nav-container');
+                container.empty();
+                dayNames.forEach((d, i) => {
+                    const todayClass = (i === new Date().getDay()) ? 'today border-indigo-500' : 'border-slate-800';
+                    container.append(`
+                         <button class="day-btn w-10 h-14 rounded-xl border bg-slate-900 flex flex-col items-center justify-center transition-all active:scale-95 shrink-0 ${todayClass}" data-day="${i}">
+                            <span class="text-[8px] uppercase font-bold text-slate-500">${fullDayNames[i].substring(0,3)}</span>
+                            <span class="text-sm font-black">${d}</span>
+                        </button>
+                    `);
+                });
+            }
+
             function loadDay(dayIndex) {
                 activeDay = parseInt(dayIndex);
-                
-                // Update Buttons
+                isEditing = false;
+                $('#toggle-edit').html('<i class="fas fa-pencil-alt"></i>').removeClass('text-green-400');
+
+                // Style Nav
                 $('.day-btn').removeClass('active');
                 $(`.day-btn[data-day="${activeDay}"]`).addClass('active');
 
-                // Update Header Info
-                const dayData = weeklySchedule[activeDay];
-                $('#day-title').text(getDayName(activeDay));
-                $('#focus-label').text(dayData.focus);
-                
-                // Update Theme Colors
-                $(':root').css('--accent', dayData.color);
-                
+                // Update Header
+                const data = schedule[activeDay];
+                $('#day-focus').text(data.focus);
+                $(':root').css('--accent', data.color);
+
                 // Update Heatmap
                 $('.muscle-part').removeClass('muscle-active');
-                dayData.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
+                data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
 
-                // Render List
-                renderList(dayData.exercises);
+                renderList();
                 updateProgress();
             }
 
-            function renderList(exercises) {
+            function renderList() {
                 const container = $('#workout-list').empty();
-                
-                // Gym Mode Preview reset
-                $('#gym-name').text("Ready");
-                $('#gym-target').text("--");
+                const exList = schedule[activeDay].exercises;
 
-                exercises.forEach((ex) => {
-                    const isDone = isCompleted(activeDay, ex.id);
+                // Reset Gym Mode
+                $('#gym-name').text("Ready"); $('#gym-target').text("--"); $('#gym-unit').text("");
+
+                exList.forEach((ex, idx) => {
+                    const isDone = completed[activeDay] && completed[activeDay].includes(ex.id);
                     
-                    // Update Gym Mode to first incomplete item
-                    if(!isDone && $('#gym-name').text() === "Ready") {
+                    // Apply Level Multiplier
+                    const displayReps = Math.ceil(ex.reps * userProfile.level);
+
+                    // Gym Mode Logic
+                    if (!isDone && $('#gym-name').text() === "Ready") {
                         $('#gym-name').text(ex.name);
-                        $('#gym-target').text(ex.reps);
+                        $('#gym-target').text(displayReps);
                         $('#gym-unit').text(ex.unit);
                     }
 
-                    container.append(`
-                        <div class="bg-slate-900 border border-white/5 p-5 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 ${isDone ? 'completed' : ''}" id="card-${ex.id}">
+                    // View vs Edit Mode
+                    let content = '';
+                    if (isEditing) {
+                        content = `
+                            <div class="grid grid-cols-12 gap-2 w-full">
+                                <div class="col-span-6"><input type="text" class="edit-input ex-name" value="${ex.name}" data-idx="${idx}"></div>
+                                <div class="col-span-3"><input type="number" class="edit-input ex-reps" value="${ex.reps}" data-idx="${idx}"></div>
+                                <div class="col-span-3"><input type="text" class="edit-input ex-unit" value="${ex.unit}" data-idx="${idx}"></div>
+                            </div>
+                        `;
+                    } else {
+                        content = `
                             <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center text-white" style="background-color: ${weeklySchedule[activeDay].color}20; color: ${weeklySchedule[activeDay].color}">
+                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white" style="background-color: ${schedule[activeDay].color}20; color: ${schedule[activeDay].color}">
                                     <i class="fas ${ex.icon}"></i>
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-white uppercase text-xs tracking-tight">${ex.name}</h3>
-                                    <p class="text-slate-500 font-bold text-[10px] uppercase">${ex.reps} ${ex.unit}</p>
+                                    <p class="text-slate-500 font-bold text-[10px] uppercase">
+                                        ${displayReps} ${ex.unit} 
+                                        ${userProfile.level > 1 ? '<span class="text-indigo-500 ml-1 font-black text-[8px] border border-indigo-500 px-1 rounded">LVL UP</span>' : ''}
+                                    </p>
                                 </div>
                             </div>
-                            <button class="check-btn w-12 h-12 rounded-full border-2 border-slate-800 flex items-center justify-center transition active:scale-90" 
-                                data-id="${ex.id}" data-cal="${ex.cal}">
+                            <button class="check-btn w-12 h-12 rounded-full border-2 border-slate-800 flex items-center justify-center transition active:scale-90" data-id="${ex.id}">
                                 <i class="fas fa-check text-white ${isDone ? '' : 'hidden'}"></i>
                             </button>
+                        `;
+                    }
+
+                    container.append(`
+                        <div class="bg-slate-900 border border-white/5 p-5 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 ${isDone && !isEditing ? 'completed' : ''}" id="card-${ex.id}">
+                            ${content}
                         </div>
                     `);
                 });
-
-                if(exercises.every(e => isCompleted(activeDay, e.id))) {
-                    $('#gym-name').text("DONE!");
-                    $('#gym-target').text("✔");
-                    $('#gym-unit').text("");
+                
+                if(exList.every(e => completed[activeDay]?.includes(e.id))) {
+                    $('#gym-name').text("DONE"); $('#gym-target').text("✔");
                 }
             }
 
-            function handleCheck(btn) {
-                const exId = btn.data('id');
-                const dayKey = activeDay.toString();
+            // --- 5. INTERACTION LOGIC ---
+
+            // Check Button
+            $(document).on('click', '.check-btn', function() {
+                if(isEditing) return;
+                const id = $(this).data('id');
                 
-                // Initialize array if empty
-                if (!completedMap[dayKey]) completedMap[dayKey] = [];
+                if(!completed[activeDay]) completed[activeDay] = [];
+                if(completed[activeDay].includes(id)) return;
 
-                // Toggle logic (prevent unchecking for simplicity in pro mode, or allow it?)
-                // Let's allow one-way checking for the "Burn" effect
-                if (completedMap[dayKey].includes(exId)) return;
-
-                // Add to done list
-                completedMap[dayKey].push(exId);
-                localStorage.setItem('dailyBurn_completed', JSON.stringify(completedMap));
+                completed[activeDay].push(id);
+                localStorage.setItem('db_completed', JSON.stringify(completed));
                 
-                // Visuals
-                btn.find('i').removeClass('hidden');
-                btn.css('background-color', 'var(--accent)').css('border-color', 'var(--accent)');
-                $(`#card-${exId}`).addClass('completed');
-
-                // Haptics & Sound
+                // UI Update
+                $(this).find('i').removeClass('hidden');
+                $(this).css({borderColor: 'var(--accent)', backgroundColor: 'var(--accent)'});
+                $(`#card-${id}`).addClass('completed');
+                
                 if(navigator.vibrate) navigator.vibrate(50);
-                
-                // Logic for Next Step
                 updateProgress();
-                
-                // Find next exercise for Rest Modal
-                const dayData = weeklySchedule[activeDay];
-                const remaining = dayData.exercises.filter(e => !completedMap[dayKey].includes(e.id));
-                
-                if (remaining.length > 0) {
-                    triggerRest(remaining[0]);
+
+                // Check for Rest
+                const remaining = schedule[activeDay].exercises.filter(e => !completed[activeDay].includes(e.id));
+                if(remaining.length > 0) triggerRest(remaining[0]);
+                else speak("Day complete!");
+            });
+
+            // Toggle Edit
+            $('#toggle-edit').click(function() {
+                if(isEditing) {
+                    // Save
+                    $('.ex-name').each(function() { schedule[activeDay].exercises[$(this).data('idx')].name = $(this).val(); });
+                    $('.ex-reps').each(function() { schedule[activeDay].exercises[$(this).data('idx')].reps = parseInt($(this).val()); });
+                    $('.ex-unit').each(function() { schedule[activeDay].exercises[$(this).data('idx')].unit = $(this).val(); });
+                    
+                    localStorage.setItem('db_schedule', JSON.stringify(schedule));
+                    isEditing = false;
+                    $(this).html('<i class="fas fa-pencil-alt"></i>').removeClass('text-green-400');
+                    renderList();
                 } else {
-                    speak("Daily workout complete. Excellent work.");
-                    if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+                    isEditing = true;
+                    $(this).html('<i class="fas fa-save"></i>').addClass('text-green-400');
+                    renderList();
                 }
+            });
+
+            // Day Switch
+            $(document).on('click', '.day-btn', function() {
+                loadDay($(this).data('day'));
+            });
+
+            // --- 6. PROFILE & WEIGHT LOGIC ---
+
+            function updateProfileUI() {
+                $('#user-level-badge').text(Math.floor(userProfile.level));
+                $('#level-val').text(userProfile.level.toFixed(1) + "x");
+                
+                // Render Weight Chart
+                const chart = $('#weight-chart').empty();
+                if(userProfile.weightHistory.length > 0) {
+                    const weights = userProfile.weightHistory.map(w => w.val);
+                    const min = Math.min(...weights);
+                    const max = Math.max(...weights);
+                    
+                    userProfile.weightHistory.forEach(w => {
+                        // Normalize height between 20% and 100%
+                        const h = 20 + ((w.val - min) / (max - min || 1)) * 80;
+                        chart.append(`<div class="w-4 bg-indigo-500 rounded-t" style="height: ${h}%" title="${w.val}kg"></div>`);
+                    });
+                } else {
+                    chart.append('<span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-mono">No Data Yet</span>');
+                }
+            }
+
+            $('#save-weight').click(function() {
+                const val = parseFloat($('#weight-input').val());
+                if(val) {
+                    userProfile.weightHistory.push({ date: new Date().toDateString(), val: val });
+                    if(userProfile.weightHistory.length > 10) userProfile.weightHistory.shift(); // Keep last 10
+                    localStorage.setItem('db_profile', JSON.stringify(userProfile));
+                    updateProfileUI();
+                    $('#weight-input').val('');
+                }
+            });
+
+            $('#level-up-btn').click(function() {
+                userProfile.level = parseFloat((userProfile.level + 0.1).toFixed(1));
+                localStorage.setItem('db_profile', JSON.stringify(userProfile));
+                updateProfileUI();
+                renderList(); // Re-render to show new rep counts
+                speak("Level Up! Intensity increased.");
+            });
+            
+            $('#level-reset-btn').click(function() {
+                if(confirm("Reset difficulty to 1.0?")) {
+                    userProfile.level = 1.0;
+                    localStorage.setItem('db_profile', JSON.stringify(userProfile));
+                    updateProfileUI();
+                    renderList();
+                }
+            });
+
+            $('#open-profile, #open-profile-btn').click(() => $('#profile-modal').removeClass('hidden'));
+            $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
+
+            // --- 7. UTILS ---
+
+            function updateProgress() {
+                const totalCals = schedule[activeDay].exercises.reduce((acc, ex) => {
+                    return acc + (completed[activeDay]?.includes(ex.id) ? ex.cal : 0);
+                }, 0);
+                const totalEx = schedule[activeDay].exercises.length;
+                const doneEx = completed[activeDay]?.length || 0;
+                const pct = Math.round((doneEx / totalEx) * 100);
+
+                $('#calories-display').html(`${totalCals} <span class="text-sm text-slate-500">Kcal</span>`);
+                $('#percent-text').text(pct + '%');
+                $('#mini-progress').css('width', pct + '%');
             }
 
             function triggerRest(nextEx) {
                 $('#rest-modal').removeClass('hidden');
                 $('#next-ex-name').text(nextEx.name);
-                $('#gym-name').text(nextEx.name); // Update Gym Mode early
-                $('#gym-target').text(nextEx.reps);
-                $('#gym-unit').text(nextEx.unit);
-
-                speak("Rest. Next up: " + nextEx.name);
+                $('#gym-name').text(nextEx.name); $('#gym-target').text(Math.ceil(nextEx.reps * userProfile.level));
                 
+                speak("Rest. Next is " + nextEx.name);
                 let time = 30;
                 const timer = setInterval(() => {
                     time--;
                     $('#rest-timer').text(time);
-                    
-                    if(time <= 3 && time > 0) {
-                        speak(time.toString());
-                        if(navigator.vibrate) navigator.vibrate(20);
-                    }
-                    
-                    if(time <= 0) {
-                        clearInterval(timer);
-                        $('#rest-modal').addClass('hidden');
-                        speak("Go!");
-                        if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                    }
+                    if(time <= 0) { clearInterval(timer); $('#rest-modal').addClass('hidden'); speak("Go!"); }
                 }, 1000);
-                
-                $('#skip-rest').one('click', () => { 
-                    clearInterval(timer); 
-                    $('#rest-modal').addClass('hidden'); 
-                });
-            }
-
-            function updateProgress() {
-                const dayData = weeklySchedule[activeDay];
-                const dayKey = activeDay.toString();
-                const doneIds = completedMap[dayKey] || [];
-                
-                let totalCals = 0;
-                dayData.exercises.forEach(ex => {
-                    if(doneIds.includes(ex.id)) totalCals += ex.cal;
-                });
-
-                const percent = Math.round((doneIds.length / dayData.exercises.length) * 100);
-                
-                // Update UI numbers
-                $('#calories-display').html(`${totalCals} <span class="text-sm text-slate-500">Kcal</span>`);
-                $('#percent-text').text(percent + '%');
-                $('#mini-progress').css('width', percent + '%');
+                $('#skip-rest').one('click', () => { clearInterval(timer); $('#rest-modal').addClass('hidden'); });
             }
 
             function speak(text) {
                 synth.cancel();
-                const u = new SpeechSynthesisUtterance(text);
-                u.rate = 1.1;
-                synth.speak(u);
+                synth.speak(new SpeechSynthesisUtterance(text));
             }
-
-            function getDayName(i) {
-                return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][i];
-            }
-
-            // --- 4. EVENT LISTENERS ---
-            
-            // Day Navigation
-            $('.day-btn').click(function() {
-                loadDay($(this).data('day'));
-            });
-
-            // Mark Complete
-            $(document).on('click', '.check-btn', function() {
-                handleCheck($(this));
-            });
-
-            // Reset Week
-            $('#reset-week').click(function() {
-                if(confirm("Reset all weekly progress?")) {
-                    localStorage.removeItem('dailyBurn_completed');
-                    completedMap = {};
-                    loadDay(activeDay);
-                }
-            });
-
-            // Highlight Today button on init
-            const todayIndex = new Date().getDay();
-            $(`.day-btn[data-day="${todayIndex}"]`).addClass('today border-indigo-500');
-
-            // --- INIT ---
-            loadDay(todayIndex);
         });
     </script>
 </body>
