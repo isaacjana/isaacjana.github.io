@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Budget Analyzer</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for table */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { 
+            PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+            Tooltip, Legend, ResponsiveContainer, ReferenceLine 
+        } = Recharts;
+
+        // --- Icons (SVG Components for single-file portability) ---
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const icons = {
+                activity: <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>,
+                alert: <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/>,
+                check: <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>,
+                download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>,
+                database: <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>,
+                monitor: <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>,
+                zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
+                trash: <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>,
+                plus: <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>,
+                settings: <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            };
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width={size} height={size} viewBox="0 0 24 24" 
+                    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    className={className}
+                >
+                    {icons[name] || icons.activity}
+                </svg>
+            );
+        };
+
+        // --- Configuration ---
+        const NETWORK_PROFILES = [
+            { name: 'fast3g', speedLabel: 'Fast 3G', downloadSpeed: 1.6, rtt: 150 },
+            { name: '4g', speedLabel: 'Regular 4G', downloadSpeed: 9, rtt: 50 },
+            { name: 'wifi', speedLabel: 'Broadband/WiFi', downloadSpeed: 30, rtt: 10 },
+        ];
+
+        const ASSET_CONFIG = {
+            js: { color: '#3b82f6', label: 'JavaScript', penaltyWeight: 1.5 },
+            css: { color: '#a855f7', label: 'CSS', penaltyWeight: 1.0 },
+            image: { color: '#10b981', label: 'Images', penaltyWeight: 0.8 },
+            font: { color: '#f59e0b', label: 'Fonts', penaltyWeight: 0.9 },
+            html: { color: '#ef4444', label: 'HTML', penaltyWeight: 1.0 },
+            other: { color: '#64748b', label: 'Other', penaltyWeight: 0.5 },
+        };
+
+        const PRESETS = {
+            'blog': {
+                label: 'Minimalist Blog',
+                desc: 'Strict JS limits, prioritizes text',
+                items: [
+                    { id: 'p1', name: 'Main Bundle', type: 'js', sizeKB: 80, budgetKB: 100 },
+                    { id: 'p2', name: 'Core Styles', type: 'css', sizeKB: 20, budgetKB: 30 },
+                    { id: 'p3', name: 'Logo/Icons', type: 'image', sizeKB: 40, budgetKB: 50 },
+                    { id: 'p4', name: 'Web Fonts', type: 'font', sizeKB: 60, budgetKB: 80 }
+                ]
+            },
+            'ecomm': {
+                label: 'E-Commerce Store',
+                desc: 'Higher image budget, moderate JS',
+                items: [
+                    { id: 'p1', name: 'App Bundle', type: 'js', sizeKB: 250, budgetKB: 200 },
+                    { id: 'p2', name: 'Vendor Libs', type: 'js', sizeKB: 180, budgetKB: 150 },
+                    { id: 'p3', name: 'Product Grid', type: 'image', sizeKB: 800, budgetKB: 600 },
+                    { id: 'p4', name: 'Marketing Banner', type: 'image', sizeKB: 300, budgetKB: 250 }
+                ]
+            },
+            'webapp': {
+                label: 'SaaS Dashboard',
+                desc: 'High JS allowance for interactivity',
+                items: [
+                    { id: 'p1', name: 'App Logic', type: 'js', sizeKB: 450, budgetKB: 500 },
+                    { id: 'p2', name: 'Chart Library', type: 'js', sizeKB: 120, budgetKB: 100 },
+                    { id: 'p3', name: 'Global Styles', type: 'css', sizeKB: 80, budgetKB: 100 },
+                    { id: 'p4', name: 'JSON Data', type: 'other', sizeKB: 50, budgetKB: 100 }
+                ]
+            }
+        };
+
+        // --- Logic ---
+        const calculateLoadTime = (totalSizeKB, profile) => {
+            const sizeMb = (totalSizeKB * 8) / 1000; 
+            const downloadTime = sizeMb / profile.downloadSpeed;
+            return (downloadTime + (profile.rtt / 1000)).toFixed(2);
+        };
+
+        const calculateScore = (assets) => {
+            if (assets.length === 0) return 100;
+            let totalWeight = 0;
+            let weightedScore = 0;
+
+            assets.forEach(asset => {
+                const config = ASSET_CONFIG[asset.type];
+                const diff = asset.budgetKB - asset.sizeKB;
+                let itemScore = 100;
+                if (diff < 0) {
+                    const percentOver = Math.abs(diff) / (asset.budgetKB || 1);
+                    itemScore = Math.max(0, 100 - (percentOver * 100 * config.penaltyWeight));
+                }
+                weightedScore += itemScore * config.penaltyWeight;
+                totalWeight += config.penaltyWeight;
+            });
+
+            return Math.round(weightedScore / totalWeight);
+        };
+
+        // --- Components ---
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Badge = ({ type }) => (
+            <span 
+                className="px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider"
+                style={{ backgroundColor: `${ASSET_CONFIG[type].color}20`, color: ASSET_CONFIG[type].color }}
+            >
+                {ASSET_CONFIG[type].label}
+            </span>
+        );
+
+        const ScoreGauge = ({ score }) => {
+            let color = '#ef4444'; 
+            if (score >= 90) color = '#10b981';
+            else if (score >= 50) color = '#f59e0b';
+
+            const radius = 35;
+            const stroke = 8;
+            const normalizedRadius = radius - stroke * 2;
+            const circumference = normalizedRadius * 2 * Math.PI;
+            const strokeDashoffset = circumference - (score / 100) * circumference;
+
+            return (
+                <div className="relative flex items-center justify-center w-32 h-32 mx-auto">
+                    <svg height={radius * 2} width={radius * 2} className="transform -rotate-90">
+                        <circle stroke="#e2e8f0" strokeWidth={stroke} fill="transparent" r={normalizedRadius} cx={radius} cy={radius} />
+                        <circle stroke={color} strokeWidth={stroke} strokeDasharray={circumference + ' ' + circumference} 
+                            style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.5s ease-in-out' }} 
+                            strokeLinecap="round" fill="transparent" r={normalizedRadius} cx={radius} cy={radius} 
+                        />
+                    </svg>
+                    <div className="absolute text-center">
+                        <span className="text-3xl font-bold text-slate-800">{score}</span>
+                        <div className="text-xs text-slate-500 uppercase font-semibold">Score</div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App ---
+        function App() {
+            const [assets, setAssets] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('perfBudget_assets');
+                    return saved ? JSON.parse(saved) : PRESETS['blog'].items;
+                } catch { return []; }
+            });
+
+            const [newItem, setNewItem] = useState({ name: '', type: 'js', sizeKB: 0, budgetKB: 0 });
+            const [activeNetwork, setActiveNetwork] = useState('fast3g');
+            const [showPresets, setShowPresets] = useState(false);
+
+            useEffect(() => {
+                localStorage.setItem('perfBudget_assets', JSON.stringify(assets));
+            }, [assets]);
+
+            const totalSize = useMemo(() => assets.reduce((acc, cur) => acc + cur.sizeKB, 0), [assets]);
+            const totalBudget = useMemo(() => assets.reduce((acc, cur) => acc + cur.budgetKB, 0), [assets]);
+            const performanceScore = useMemo(() => calculateScore(assets), [assets]);
+            const currentNetwork = NETWORK_PROFILES.find(p => p.name === activeNetwork) || NETWORK_PROFILES[0];
+            const estimatedLoadTime = calculateLoadTime(totalSize, currentNetwork);
+
+            const handleAdd = (e) => {
+                e.preventDefault();
+                if (!newItem.name || !newItem.sizeKB || !newItem.budgetKB) return;
+                const item = { ...newItem, id: Date.now().toString(), sizeKB: Number(newItem.sizeKB), budgetKB: Number(newItem.budgetKB) };
+                setAssets([...assets, item]);
+                setNewItem({ name: '', type: 'js', sizeKB: 0, budgetKB: 0 });
+            };
+
+            const applyPreset = (key) => {
+                if(window.confirm(`This will replace your current list with the ${PRESETS[key].label} template. Continue?`)) {
+                    // Create new IDs to avoid conflicts
+                    const newItems = PRESETS[key].items.map(i => ({...i, id: Date.now() + Math.random().toString() }));
+                    setAssets(newItems);
+                    setShowPresets(false);
+                }
+            };
+
+            const recommendations = useMemo(() => {
+                const recs = [];
+                const totalJS = assets.filter(a => a.type === 'js').reduce((acc, cur) => acc + cur.sizeKB, 0);
+                if (totalJS > 200) {
+                    recs.push({ type: 'critical', title: 'JS Bloat Detected', desc: `Total JS is ${totalJS}KB. Consider code-splitting or removing heavy libraries.` });
+                }
+                assets.forEach(asset => {
+                    if (asset.sizeKB > asset.budgetKB) {
+                        const diff = asset.sizeKB - asset.budgetKB;
+                        if (asset.type === 'image' && diff > 50) {
+                            recs.push({ type: 'warn', title: `Optimize ${asset.name}`, desc: `Over budget by ${diff}KB. Convert to WebP/AVIF.` });
+                        } else if (asset.type === 'js' && diff > 20) {
+                            recs.push({ type: 'warn', title: `Trim ${asset.name}`, desc: `Over budget by ${diff}KB. Check for unused exports.` });
+                        }
+                    }
+                });
+                if (recs.length === 0) recs.push({ type: 'info', title: 'All Green!', desc: 'Assets are within defined budgets.' });
+                return recs;
+            }, [assets]);
+
+            return (
+                <div className="min-h-screen bg-slate-50 p-6 md:p-12">
+                    <div className="max-w-7xl mx-auto space-y-8">
+                        
+                        {/* Header */}
+                        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold flex items-center gap-2 text-slate-900">
+                                    <Icon name="activity" className="text-blue-600" /> Performance Budget Analyzer
+                                </h1>
+                                <p className="text-slate-500 mt-1">Visualize impact and optimize your Time to Interactive.</p>
+                            </div>
+                            <div className="flex gap-2 relative">
+                                <button 
+                                    onClick={() => setShowPresets(!showPresets)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition-colors shadow-sm"
+                                >
+                                    <Icon name="settings" size={16} /> Load Preset
+                                </button>
+                                
+                                {showPresets && (
+                                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-100 z-50 p-2">
+                                        <p className="text-xs font-bold text-slate-400 uppercase p-2">Select a Template</p>
+                                        {Object.keys(PRESETS).map(key => (
+                                            <button 
+                                                key={key}
+                                                onClick={() => applyPreset(key)}
+                                                className="w-full text-left p-3 hover:bg-slate-50 rounded-lg group transition-colors"
+                                            >
+                                                <div className="font-semibold text-slate-800 group-hover:text-blue-600">{PRESETS[key].label}</div>
+                                                <div className="text-xs text-slate-500">{PRESETS[key].desc}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={() => {
+                                        const csv = "data:text/csv;charset=utf-8," + ["Name,Type,Size(KB),Budget(KB)"].concat(assets.map(a => `${a.name},${a.type},${a.sizeKB},${a.budgetKB}`)).join("\n");
+                                        const link = document.createElement("a");
+                                        link.setAttribute("href", encodeURI(csv));
+                                        link.setAttribute("download", "budget.csv");
+                                        document.body.appendChild(link);
+                                        link.click();
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
+                                >
+                                    <Icon name="download" size={16} /> Export
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Top Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <Card className="p-6 flex items-center justify-between">
+                                <div>
+                                    <p className="text-slate-500 text-sm font-medium uppercase">Performance Score</p>
+                                    <div className="mt-2"><ScoreGauge score={performanceScore} /></div>
+                                </div>
+                            </Card>
+
+                            <Card className="p-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Icon name="database" size={18} className="text-slate-400" />
+                                    <p className="text-slate-500 text-sm font-medium uppercase">Total Bundle</p>
+                                </div>
+                                <p className="text-4xl font-bold text-slate-900">{totalSize} <span className="text-lg text-slate-400 font-normal">KB</span></p>
+                                <div className="mt-4 w-full bg-slate-100 rounded-full h-2">
+                                    <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min((totalSize / (totalBudget || 1)) * 100, 100)}%` }} />
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2 flex justify-between"><span>Used</span><span>Budget: {totalBudget} KB</span></p>
+                            </Card>
+
+                            <Card className="p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Icon name="zap" size={18} className="text-slate-400" />
+                                    <p className="text-slate-500 text-sm font-medium uppercase">Load Time</p>
+                                </div>
+                                <p className="text-4xl font-bold text-slate-900">{estimatedLoadTime}s</p>
+                                <div className="mt-6 flex gap-1 bg-slate-100 p-1 rounded-lg">
+                                    {NETWORK_PROFILES.map((p) => (
+                                        <button key={p.name} onClick={() => setActiveNetwork(p.name)} className={`flex-1 py-1 px-2 text-xs font-medium rounded-md transition-all ${activeNetwork === p.name ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>
+                                            {p.speedLabel.split(' ')[0]}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-slate-400 mt-2 text-center">Simulated on {currentNetwork.speedLabel}</p>
+                            </Card>
+
+                            <Card className="p-6 overflow-y-auto max-h-[280px]">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Icon name="check" size={18} className="text-slate-400" />
+                                    <p className="text-slate-500 text-sm font-medium uppercase">Recommendations</p>
+                                </div>
+                                <div className="space-y-3">
+                                    {recommendations.map((rec, i) => (
+                                        <div key={i} className={`p-3 rounded-lg border text-sm ${rec.type === 'critical' ? 'bg-red-50 border-red-100 text-red-800' : rec.type === 'warn' ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
+                                            <p className="font-bold mb-1">{rec.title}</p>
+                                            <p className="text-xs opacity-90">{rec.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 space-y-6">
+                                {/* Input & Table */}
+                                <Card className="p-0">
+                                    <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                                        <h3 className="font-semibold text-slate-700">Asset Inventory</h3>
+                                        <span className="text-xs font-mono text-slate-400">{assets.length} items</span>
+                                    </div>
+                                    <form onSubmit={handleAdd} className="p-4 grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50/30">
+                                        <div className="col-span-12 md:col-span-4">
+                                            <input type="text" placeholder="Asset Name" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                                        </div>
+                                        <div className="col-span-6 md:col-span-2">
+                                            <select className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" value={newItem.type} onChange={e => setNewItem({...newItem, type: e.target.value})}>
+                                                {Object.keys(ASSET_CONFIG).map(k => <option key={k} value={k}>{ASSET_CONFIG[k].label}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="col-span-6 md:col-span-2"><input type="number" placeholder="Size (KB)" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" value={newItem.sizeKB || ''} onChange={e => setNewItem({...newItem, sizeKB: Number(e.target.value)})} /></div>
+                                        <div className="col-span-6 md:col-span-2"><input type="number" placeholder="Limit (KB)" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" value={newItem.budgetKB || ''} onChange={e => setNewItem({...newItem, budgetKB: Number(e.target.value)})} /></div>
+                                        <div className="col-span-12 md:col-span-2">
+                                            <button type="submit" className="w-full h-full bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 flex items-center justify-center gap-1"><Icon name="plus" size={16} /> Add</button>
+                                        </div>
+                                    </form>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
+                                                <tr><th className="px-6 py-3">Asset</th><th className="px-6 py-3">Type</th><th className="px-6 py-3 text-right">Actual</th><th className="px-6 py-3 text-right">Budget</th><th className="px-6 py-3 text-center">Status</th><th className="px-6 py-3"></th></tr>
+                                            </thead>
+                                            <tbody>
+                                                {assets.map(asset => {
+                                                    const isOver = asset.sizeKB > asset.budgetKB;
+                                                    return (
+                                                        <tr key={asset.id} className="bg-white border-b hover:bg-slate-50">
+                                                            <td className="px-6 py-4 font-medium text-slate-900">{asset.name}</td>
+                                                            <td className="px-6 py-4"><Badge type={asset.type} /></td>
+                                                            <td className="px-6 py-4 text-right font-mono">{asset.sizeKB} KB</td>
+                                                            <td className="px-6 py-4 text-right font-mono text-slate-500">{asset.budgetKB} KB</td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                {isOver ? <span className="text-red-600 font-bold flex justify-center items-center gap-1"><Icon name="alert" size={14} /> +{asset.sizeKB - asset.budgetKB}KB</span> : <span className="text-green-600 font-bold flex justify-center items-center gap-1"><Icon name="check" size={14} /> OK</span>}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <button onClick={() => setAssets(assets.filter(a => a.id !== asset.id))} className="text-slate-400 hover:text-red-500 transition-colors"><Icon name="trash" size={16} /></button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {assets.length === 0 && <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400">No assets. Add one or load a preset.</td></tr>}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </Card>
+
+                                {/* Bar Chart */}
+                                <Card className="p-6">
+                                    <h3 className="font-semibold text-slate-700 mb-6">Budget Impact Analysis</h3>
+                                    <div className="h-[300px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={assets} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                                <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                                <Legend />
+                                                <Bar dataKey="sizeKB" name="Current Size" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={30} />
+                                                <Bar dataKey="budgetKB" name="Budget Limit" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={30} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </Card>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Pie Chart */}
+                                <Card className="p-6">
+                                    <h3 className="font-semibold text-slate-700 mb-2">Size Breakdown</h3>
+                                    <div className="h-[250px] w-full relative">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie data={assets} dataKey="sizeKB" nameKey="type" cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}>
+                                                    {assets.map((entry, index) => <Cell key={`cell-${index}`} fill={ASSET_CONFIG[entry.type].color} />)}
+                                                </Pie>
+                                                <Tooltip />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div className="text-center">
+                                                <span className="text-xs text-slate-400 font-bold uppercase block">Total</span>
+                                                <span className="text-xl font-bold text-slate-800">{totalSize} KB</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 space-y-2">
+                                        {Object.keys(ASSET_CONFIG).map(type => {
+                                            const typeTotal = assets.filter(a => a.type === type).reduce((a, b) => a + b.sizeKB, 0);
+                                            if (typeTotal === 0) return null;
+                                            return (
+                                                <div key={type} className="flex items-center justify-between text-sm">
+                                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: ASSET_CONFIG[type].color }}></div><span className="text-slate-600">{ASSET_CONFIG[type].label}</span></div>
+                                                    <span className="font-medium text-slate-900">{typeTotal} KB</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </Card>
+                                <div className="bg-indigo-900 text-white rounded-xl p-6 shadow-lg">
+                                    <div className="flex items-start gap-4">
+                                        <div className="bg-indigo-800 p-3 rounded-lg"><Icon name="monitor" size={24} className="text-indigo-300" /></div>
+                                        <div>
+                                            <h4 className="font-bold text-lg">Pro Tip</h4>
+                                            <p className="text-indigo-200 text-sm mt-1 leading-relaxed">Automate this check in your CI/CD pipeline using tools like <code>bundlesize</code> or LightHouse CI.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
