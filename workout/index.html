@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Titanium</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Daily Burn | Platinum</title>
     
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,11 +17,14 @@
         /* --- VARIABLES --- */
         :root { 
             --bg-main: #0f172a; 
-            --glass-bg: rgba(15, 23, 42, 0.92);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(15, 23, 42, 0.94);
+            --glass-border: rgba(255, 255, 255, 0.08);
             --primary: #6366f1; 
             --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            --success: #10b981;
             --text-main: #f1f5f9;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
         }
 
         /* Themes */
@@ -29,7 +32,14 @@
         body.theme-ruby { --primary: #f43f5e; --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); }
         body.theme-amber { --primary: #f59e0b; --primary-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
-        body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; transition: background 0.5s; padding-bottom: 120px; }
+        body { 
+            background-color: var(--bg-main); 
+            color: var(--text-main); 
+            font-family: 'Inter', system-ui, sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            overflow-x: hidden; 
+            padding-bottom: calc(100px + var(--safe-bottom));
+        }
 
         /* --- UI COMPONENTS --- */
         .glass-panel {
@@ -42,40 +52,40 @@
 
         .gradient-text { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .gradient-bg { background: var(--primary-gradient); }
-        .completed { opacity: 0.5; filter: grayscale(1); pointer-events: none; transition: 0.4s; }
+        .completed { opacity: 0.4; filter: grayscale(1); pointer-events: none; transition: 0.4s; }
 
         /* Day Nav */
-        .day-btn { transition: all 0.3s; }
-        .day-btn.active { background: var(--primary-gradient); color: white; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transform: translateY(-2px); }
+        .day-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .day-btn.active { background: var(--primary-gradient); color: white; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transform: translateY(-3px); }
         .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); position: absolute; bottom: 6px; }
         .day-btn.active .status-dot { background: white; }
 
-        /* Inputs & Edit Fields */
+        /* Inputs */
         .glass-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 0.75rem; padding: 0.75rem; width: 100%; font-size: 0.875rem; outline: none; transition: 0.3s; }
-        .edit-field { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 6px 8px; font-size: 11px; width: 100%; transition: 0.3s; }
-        .edit-field:focus { border-color: var(--primary); outline: none; background: rgba(0,0,0,0.8); }
+        .glass-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
+        
+        .edit-input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 8px; border-radius: 6px; width: 100%; font-size: 11px; font-family: monospace; }
+        .edit-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); outline: none; }
 
-        /* Tabs */
-        .tab-btn { opacity: 0.5; border-bottom: 2px solid transparent; transition: 0.3s; }
-        .tab-btn.active { opacity: 1; border-color: var(--primary); color: white; }
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Streak Fire Animation */
-        .streak-fire { animation: flicker 1.5s infinite alternate; color: #f97316; filter: drop-shadow(0 0 5px #f97316); }
-        @keyframes flicker { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0.8; transform: scale(0.9); } }
+        /* Animations */
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .anim-enter { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Toast Notification */
+        #toast-container { position: fixed; top: calc(20px + var(--safe-top)); left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-col; gap: 10px; pointer-events: none; width: 90%; max-width: 350px; }
+        .toast { background: rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px 20px; border-radius: 50px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: toastPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        @keyframes toastPop { 0% { transform: scale(0.8) translateY(-20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
 
         /* Sticky Footer */
         .sticky-action-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            padding: 1rem 1.5rem 2rem 1.5rem;
+            padding: 1rem 1.5rem calc(1.5rem + var(--safe-bottom)) 1.5rem;
             background: linear-gradient(to top, var(--bg-main) 90%, transparent);
             z-index: 50;
             display: flex; gap: 1rem; align-items: center; justify-content: space-between;
             transition: transform 0.3s;
         }
-        .sticky-action-bar.hidden-bar { transform: translateY(100%); }
+        .sticky-action-bar.hidden-bar { transform: translateY(150%); }
 
         /* Landscape Mode */
         #gym-mode { display: none; }
@@ -85,6 +95,7 @@
 <body class="theme-default">
 
     <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;pointer-events:none;z-index:999;"></canvas>
+    <div id="toast-container"></div>
 
     <div id="gym-mode" class="fixed inset-0 z-[300] flex-col items-center justify-center p-6 text-center bg-slate-950">
         <div class="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mb-2">NOW ACTIVE</div>
@@ -98,7 +109,7 @@
 
     <div id="main-ui">
         
-        <header class="fixed top-0 w-full glass-panel z-[60] pt-4 pb-3 px-4 border-b-0 rounded-b-3xl">
+        <header class="fixed top-0 w-full glass-panel z-[60] pt-safe-top pb-3 px-4 border-b-0 rounded-b-3xl" style="padding-top: max(1rem, var(--safe-top));">
             <div class="max-w-md mx-auto">
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center space-x-3 cursor-pointer group" id="open-profile">
@@ -108,17 +119,17 @@
                         <div class="flex flex-col">
                             <span class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-0.5">Menu</span>
                             <div class="flex items-center space-x-1">
-                                <i class="fas fa-fire text-xs streak-fire"></i>
+                                <i class="fas fa-fire text-xs text-orange-500" id="streak-icon"></i>
                                 <span id="streak-count" class="text-xs font-black text-white tabular-nums">0</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="flex items-center space-x-3">
-                         <button id="quick-mute" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition">
+                         <button id="quick-mute" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition active:scale-90">
                             <i class="fas fa-volume-up text-xs"></i>
                         </button>
-                        <button id="toggle-edit" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition">
+                        <button id="toggle-edit" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition active:scale-90">
                             <i class="fas fa-pencil-alt text-sm"></i>
                         </button>
                     </div>
@@ -166,7 +177,7 @@
             <div class="flex justify-between items-end mb-4 px-2" id="list-header">
                 <h3 class="text-white font-bold text-lg">Workout Plan</h3>
                 
-                <div class="flex items-center space-x-2" id="quick-warmup-container">
+                <div class="flex items-center space-x-2 transition-opacity duration-300" id="quick-warmup-container">
                     <span class="text-[10px] font-bold text-slate-400 uppercase">Warm Up</span>
                     <div class="relative inline-block w-8 h-4 align-middle select-none">
                         <input type="checkbox" id="warmup-toggle" class="absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300" style="right: 100%"/>
@@ -175,12 +186,12 @@
                 </div>
             </div>
 
-            <div id="workout-list" class="space-y-3 pb-8"></div>
+            <div id="workout-list" class="space-y-3 pb-8 min-h-[200px]"></div>
 
         </main>
 
         <div id="action-bar" class="sticky-action-bar max-w-md mx-auto left-0 right-0">
-            <button id="reset-day-btn" class="w-12 h-12 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition">
+            <button id="reset-day-btn" class="w-12 h-12 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
                 <i class="fas fa-redo-alt"></i>
             </button>
             <button id="main-action-btn" class="flex-1 h-14 gradient-bg rounded-2xl font-black text-white text-lg uppercase tracking-widest shadow-xl shadow-indigo-500/20 active:scale-95 transition flex items-center justify-center">
@@ -195,9 +206,9 @@
             <h2 class="text-2xl font-black text-white mb-6 tracking-tight pl-2">Menu</h2>
 
             <div class="flex border-b border-white/10 mb-6 px-2 overflow-x-auto no-scrollbar">
-                <button class="tab-btn active px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-prefs">Prefs</button>
-                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-journal">Journal</button>
-                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-tab="tab-data">Data</button>
+                <button class="tab-btn active px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-slate-400" data-tab="tab-prefs">Prefs</button>
+                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-slate-400" data-tab="tab-journal">Journal</button>
+                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-slate-400" data-tab="tab-data">Data</button>
             </div>
 
             <div id="tab-prefs" class="tab-content active space-y-6">
@@ -220,13 +231,15 @@
             </div>
 
             <div id="tab-journal" class="tab-content space-y-4">
-                <div id="journal-list" class="space-y-3">
-                    <div class="text-center text-slate-500 text-xs py-10">No history yet.</div>
-                </div>
+                <div id="journal-list" class="space-y-3 pb-6"></div>
             </div>
 
             <div id="tab-data" class="tab-content space-y-4">
                 <button id="export-data" class="w-full py-3 glass-input text-left flex items-center"><i class="fas fa-download mr-3 text-slate-400"></i> Export Backup</button>
+                 <label class="w-full py-3 glass-input text-left flex items-center cursor-pointer">
+                    <i class="fas fa-upload mr-3 text-slate-400"></i> Import Backup
+                    <input type="file" id="import-data" class="hidden" accept=".json">
+                </label>
                 <button id="hard-reset" class="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl font-bold text-xs uppercase tracking-widest transition">Factory Reset App</button>
             </div>
         </div>
@@ -238,7 +251,6 @@
         </div>
         <h2 class="text-2xl font-black text-white mb-2 text-center">Session Complete!</h2>
         <p class="text-slate-400 text-sm text-center mb-8">Was that workout too easy for you?</p>
-        
         <div class="w-full max-w-xs space-y-3">
             <button id="overload-yes" class="w-full py-4 gradient-bg rounded-2xl font-bold text-white uppercase tracking-widest shadow-lg">Yes, Make it Harder</button>
             <button id="overload-no" class="w-full py-4 glass-panel rounded-2xl font-bold text-slate-400 uppercase tracking-widest">No, Keep it same</button>
@@ -260,7 +272,12 @@
     <script>
         $(document).ready(function() {
             
-            // --- DATA ---
+            // --- CONSTANTS ---
+            const KEYS = { SCHED: 'plt_sched', COMP: 'plt_comp', PROF: 'plt_prof', HIST: 'plt_hist', STREAK: 'plt_str' };
+            const AUDIO_CTX = new (window.AudioContext || window.webkitAudioContext)();
+            const SYNTH = window.speechSynthesis;
+
+            // --- DATA STORE ---
             const defaultSchedule = {
                 1: { focus: "Chest & Triceps", color: "#10b981", muscles: ["Chest", "Arms"], exercises: [{ id: "m1", name: "Push Ups", reps: 15, unit: "Reps", icon: "fa-hand-rock", rest: 30 }, { id: "m2", name: "Plank", reps: 45, unit: "Sec", icon: "fa-stopwatch", rest: 30 }, { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", icon: "fa-chair", rest: 30 }] },
                 2: { focus: "Back & Biceps", color: "#3b82f6", muscles: ["Chest", "Arms"], exercises: [{ id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", icon: "fa-superpowers", rest: 30 }, { id: "tu2", name: "Doorframe Rows", reps: 15, unit: "Reps", icon: "fa-columns", rest: 30 }, { id: "tu3", name: "Good Mornings", reps: 20, unit: "Reps", icon: "fa-sun", rest: 40 }] },
@@ -276,142 +293,135 @@
                 { id: "wm2", name: "Jumping Jacks", reps: 20, unit: "Reps", icon: "fa-star", rest: 15 }
             ];
 
-            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            let activeDay = new Date().getDay();
+            const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
             
-            // --- STORAGE KEYS ---
-            const KEY_SCHED = 'ti_schedule';
-            const KEY_COMP = 'ti_completed';
-            const KEY_PROF = 'ti_profile';
-            const KEY_HIST = 'ti_history';
-            const KEY_STREAK = 'ti_streak';
-
-            let schedule = JSON.parse(localStorage.getItem(KEY_SCHED)) || defaultSchedule;
-            let completed = JSON.parse(localStorage.getItem(KEY_COMP)) || {};
-            let profile = JSON.parse(localStorage.getItem(KEY_PROF)) || { level: 1.0, theme: 'theme-default', sound: 'voice', warmup: false };
-            let history = JSON.parse(localStorage.getItem(KEY_HIST)) || [];
-            let streakData = JSON.parse(localStorage.getItem(KEY_STREAK)) || { count: 0, lastDate: null };
+            // --- STATE ---
+            let activeDay = new Date().getDay();
+            let schedule = JSON.parse(localStorage.getItem(KEYS.SCHED)) || defaultSchedule;
+            let completed = JSON.parse(localStorage.getItem(KEYS.COMP)) || {};
+            let profile = JSON.parse(localStorage.getItem(KEYS.PROF)) || { level: 1.0, theme: 'theme-default', sound: 'voice', warmup: false };
+            let history = JSON.parse(localStorage.getItem(KEYS.HIST)) || [];
+            let streak = JSON.parse(localStorage.getItem(KEYS.STREAK)) || { count: 0, last: null };
             
             let isEditing = false;
             let isSessionActive = false;
             let sessionTimerIntv = null;
             let sessionSeconds = 0;
-            let currentSessionList = []; 
-            let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const synth = window.speechSynthesis;
+            let currentSessionList = [];
 
             // --- INIT ---
-            $('body').addClass(profile.theme);
-            $('#warmup-toggle').prop('checked', profile.warmup);
-            updateAudioIcon();
-            updateStreakUI();
-            renderWeekNav();
-            loadDay(activeDay);
-            updateSettingsUI();
+            initApp();
 
-            // --- STREAK LOGIC ---
-            function updateStreakUI() {
-                // Simple logic: if lastDate was yesterday, keep streak. If older, reset.
-                const today = new Date().toDateString();
-                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                
-                if (streakData.lastDate !== today && streakData.lastDate !== yesterday.toDateString()) {
-                    // Check if they missed a day (unless it's a new user)
-                    if(streakData.lastDate) streakData.count = 0; 
-                }
-                $('#streak-count').text(streakData.count);
-                if(streakData.count > 0) $('.streak-fire').css('opacity', '1');
-                else $('.streak-fire').css('opacity', '0.3');
-                
-                localStorage.setItem(KEY_STREAK, JSON.stringify(streakData));
+            function initApp() {
+                $('body').addClass(profile.theme);
+                $('#warmup-toggle').prop('checked', profile.warmup);
+                updateAudioIcon();
+                checkStreak();
+                renderWeekNav();
+                loadDay(activeDay);
+                updateSettingsUI();
             }
 
-            function incrementStreak() {
-                const today = new Date().toDateString();
-                if (streakData.lastDate !== today) {
-                    streakData.count++;
-                    streakData.lastDate = today;
-                    localStorage.setItem(KEY_STREAK, JSON.stringify(streakData));
-                    updateStreakUI();
-                }
+            // --- UI RENDERERS ---
+            function renderWeekNav() {
+                const container = $('#day-nav-container').empty();
+                dayNames.forEach((d, i) => {
+                    const activeClass = (i === activeDay) ? 'active' : 'glass-panel text-slate-400';
+                    const hasData = completed[i] && completed[i].length === schedule[i].exercises.length;
+                    container.append(`<button class="day-btn w-10 h-14 rounded-xl flex flex-col items-center justify-center relative shrink-0 ${activeClass}" data-day="${i}"><span class="text-[9px] uppercase font-bold opacity-60">${d}</span><span class="text-lg font-black">${i === new Date().getDay() ? '★' : new Date().getDate() + (i - new Date().getDay())}</span>${hasData ? '<div class="status-dot"></div>' : ''}</button>`);
+                });
             }
 
-            // --- MAIN ACTION BUTTON ---
-            $('#main-action-btn').click(function() {
-                if(!isSessionActive) {
-                    startSession();
-                } else {
-                    if(confirm("End current session?")) endSession(true);
-                }
-            });
-
-            // --- EDIT LOGIC (SAFE) ---
-            $('#toggle-edit').click(function() {
-                if(isSessionActive) { alert("Stop the session before editing."); return; }
-                isEditing = !isEditing;
+            function loadDay(i) {
+                activeDay = parseInt(i);
+                $('.day-btn').removeClass('active').addClass('glass-panel text-slate-400');
+                $(`.day-btn[data-day="${activeDay}"]`).addClass('active').removeClass('glass-panel text-slate-400');
                 
-                if(isEditing) {
-                    $(this).html('<i class="fas fa-check text-green-400"></i>').addClass('border-green-400');
-                    $('#action-bar').addClass('hidden-bar'); 
-                    $('#quick-warmup-container').addClass('opacity-0 pointer-events-none');
-                } else {
-                    saveEdits();
-                    $(this).html('<i class="fas fa-pencil-alt"></i>').removeClass('border-green-400');
-                    $('#action-bar').removeClass('hidden-bar');
-                    $('#quick-warmup-container').removeClass('opacity-0 pointer-events-none');
-                }
-                renderList();
-            });
+                const data = schedule[activeDay];
+                $('#day-focus').text(data.focus);
+                
+                // Heatmap Update
+                $('.muscle-part').removeClass('muscle-active');
+                data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
 
-            function saveEdits() {
-                // Lookup by ID to be safe
-                $('.edit-name').each(function() { 
-                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.name = $(this).val(); 
-                });
-                $('.edit-reps').each(function() { 
-                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.reps = parseInt($(this).val()); 
-                });
-                $('.edit-unit').each(function() { 
-                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.unit = $(this).val(); 
-                });
-                $('.edit-rest').each(function() { 
-                    const id = $(this).data('id'); const ex = schedule[activeDay].exercises.find(e => e.id === id); if(ex) ex.rest = parseInt($(this).val()); 
-                });
-                localStorage.setItem(KEY_SCHED, JSON.stringify(schedule));
-                buildQueue(); 
-            }
-
-            // --- WARMUP TOGGLE ---
-            $('#warmup-toggle').change(function() {
-                if(isSessionActive) return;
-                profile.warmup = $(this).is(':checked');
-                localStorage.setItem(KEY_PROF, JSON.stringify(profile));
                 buildQueue();
-                renderList(); 
-            });
+                renderList();
+                updateProgress();
+                
+                // Reset State
+                if(isSessionActive) endSession(false);
+            }
 
             function buildQueue() {
                 const base = schedule[activeDay].exercises;
-                // If editing, ONLY show base exercises to prevent confusing edits
-                if(isEditing) {
-                    currentSessionList = [...base];
+                if(profile.warmup && !isEditing) {
+                    currentSessionList = [...warmupRoutine, ...base];
                 } else {
-                    currentSessionList = profile.warmup ? [...warmupRoutine, ...base] : [...base];
+                    currentSessionList = [...base];
                 }
             }
 
-            // --- SESSION CONTROL ---
+            function renderList() {
+                const container = $('#workout-list').empty();
+                // If editing, use schedule source directly to enable editing. If running, use session list.
+                const source = isEditing ? schedule[activeDay].exercises : currentSessionList;
+
+                if(source.length === 0) { container.html('<div class="text-center text-slate-500 py-10">No exercises.</div>'); return; }
+
+                source.forEach((ex, idx) => {
+                    const isDone = completed[activeDay] && completed[activeDay].includes(ex.id);
+                    const reps = Math.ceil(ex.reps * profile.level);
+                    const isTimed = (ex.unit.toLowerCase().includes('sec'));
+                    const isWarmup = ex.id.startsWith('wm');
+
+                    if(isEditing) {
+                        // EDIT MODE CARD
+                        container.append(`
+                            <div class="glass-panel p-4 rounded-3xl grid grid-cols-12 gap-2 anim-enter" style="animation-delay: ${idx*0.05}s">
+                                <div class="col-span-8"><label class="text-[9px] text-slate-500 uppercase">Name</label><input type="text" class="edit-input edit-name" value="${ex.name}" data-id="${ex.id}"></div>
+                                <div class="col-span-4"><label class="text-[9px] text-slate-500 uppercase">Reps</label><input type="number" class="edit-input edit-reps" value="${ex.reps}" data-id="${ex.id}"></div>
+                            </div>
+                        `);
+                    } else {
+                        // VIEW/ACTIVE CARD
+                        let btnHtml = '';
+                        if (!isSessionActive) btnHtml = `<div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-500"><i class="fas fa-lock text-xs"></i></div>`;
+                        else if (isDone) btnHtml = `<div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg"><i class="fas fa-check text-white"></i></div>`;
+                        else if (isTimed) btnHtml = `<button class="timer-btn w-12 h-12 rounded-full glass-panel flex items-center justify-center text-white active:scale-90 transition" data-id="${ex.id}" data-duration="${reps}"><i class="fas fa-play text-xs"></i></button>`;
+                        else btnHtml = `<button class="check-btn w-12 h-12 rounded-full glass-panel flex items-center justify-center text-slate-500 hover:text-white active:scale-90 transition" data-id="${ex.id}"><i class="fas fa-check"></i></button>`;
+
+                        const badge = isWarmup ? `<span class="text-[9px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded ml-2 uppercase font-bold">Warmup</span>` : '';
+
+                        container.append(`
+                            <div class="glass-panel p-5 rounded-[1.8rem] transition-all duration-300 ${isDone ? 'completed' : ''} anim-enter" id="card-${ex.id}" style="animation-delay: ${idx*0.05}s">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white gradient-bg shadow-lg"><i class="fas ${ex.icon}"></i></div>
+                                        <div><div class="flex items-center"><h3 class="font-bold text-white uppercase text-sm tracking-tight">${ex.name}</h3>${badge}</div><p class="text-slate-400 font-bold text-xs uppercase dynamic-text-${ex.id}">${reps} ${ex.unit}</p></div>
+                                    </div>
+                                    ${btnHtml}
+                                </div>
+                            </div>
+                        `);
+                    }
+                });
+            }
+
+            // --- SESSION LOGIC ---
             function startSession() {
-                if(audioCtx.state === 'suspended') audioCtx.resume();
+                if(AUDIO_CTX.state === 'suspended') AUDIO_CTX.resume();
                 isSessionActive = true;
                 
+                // UI
                 $('#main-action-btn').html('<i class="fas fa-stop mr-2"></i> End Session').addClass('bg-red-500').removeClass('gradient-bg');
                 $('#reset-day-btn').addClass('opacity-0 pointer-events-none');
                 $('#quick-warmup-container').fadeOut();
                 $('#timer-label').text("Active");
 
-                if(isEditing) { isEditing = false; $('#toggle-edit').html('<i class="fas fa-pencil-alt"></i>').removeClass('border-green-400'); $('#action-bar').removeClass('hidden-bar'); }
+                // Disable Editing
+                if(isEditing) { isEditing=false; $('#toggle-edit').html('<i class="fas fa-pencil-alt text-sm"></i>').removeClass('border-green-400'); $('#action-bar').removeClass('hidden-bar'); }
 
+                // Timer
                 sessionSeconds = 0;
                 clearInterval(sessionTimerIntv);
                 sessionTimerIntv = setInterval(() => {
@@ -421,8 +431,9 @@
                     $('#global-timer, #gym-timer').text(`${m}:${s}`);
                 }, 1000);
 
+                showToast("Session Started");
                 playSound("Session started.");
-                renderList(); 
+                renderList();
                 updateGymMode();
             }
 
@@ -436,76 +447,53 @@
                 $('#global-timer').text("00:00");
                 $('#timer-label').text("Duration");
                 $('#gym-name').text("START"); $('#gym-target').text("--"); $('#gym-unit').text("--");
-                $('#overload-modal').addClass('hidden'); // Ensure modal closes
-                
+                $('#overload-modal').addClass('hidden');
+
+                if(userAction) showToast("Session Stopped");
                 renderList();
             }
 
-            // --- RENDER LIST ---
-            function renderList() {
-                const container = $('#workout-list').empty();
-                // When editing, show schedule[activeDay], otherwise currentSessionList
-                const listToRender = isEditing ? schedule[activeDay].exercises : currentSessionList;
+            // --- INTERACTION ---
+            $('#main-action-btn').click(function() {
+                if(!isSessionActive) startSession();
+                else if(confirm("End current session?")) endSession(true);
+            });
 
-                if(listToRender.length === 0) { container.html('<div class="text-center text-slate-500 py-10">No exercises.</div>'); return; }
-
-                listToRender.forEach((ex, idx) => {
-                    const isDone = completed[activeDay] && completed[activeDay].includes(ex.id);
-                    const reps = Math.ceil(ex.reps * profile.level);
-                    const isTimed = (ex.unit.toLowerCase().includes('sec'));
-                    const isWarmup = ex.id.startsWith('wm');
-
-                    if(isEditing) {
-                         container.append(`
-                            <div class="glass-panel p-4 rounded-3xl grid grid-cols-12 gap-2 mb-2">
-                                <div class="col-span-5"><label class="text-[9px] text-slate-500 uppercase">Name</label><input type="text" class="edit-field edit-name" value="${ex.name}" data-id="${ex.id}"></div>
-                                <div class="col-span-2"><label class="text-[9px] text-slate-500 uppercase">Reps</label><input type="number" class="edit-field edit-reps" value="${ex.reps}" data-id="${ex.id}"></div>
-                                <div class="col-span-3"><label class="text-[9px] text-slate-500 uppercase">Unit</label><input type="text" class="edit-field edit-unit" value="${ex.unit}" data-id="${ex.id}"></div>
-                                <div class="col-span-2"><label class="text-[9px] text-slate-500 uppercase">Rest</label><input type="number" class="edit-field edit-rest" value="${ex.rest||30}" data-id="${ex.id}"></div>
-                            </div>
-                        `);
-                    } else {
-                        let btnHtml = '';
-                        if (!isSessionActive) {
-                            btnHtml = `<div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-500"><i class="fas fa-lock text-xs"></i></div>`;
-                        } else if (isDone) {
-                            btnHtml = `<div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg"><i class="fas fa-check text-white"></i></div>`;
-                        } else if (isTimed) {
-                            btnHtml = `<button class="timer-btn w-12 h-12 rounded-full glass-panel flex items-center justify-center text-white active:scale-90 transition" data-id="${ex.id}" data-duration="${reps}"><i class="fas fa-play text-xs"></i></button>`;
-                        } else {
-                            btnHtml = `<button class="check-btn w-12 h-12 rounded-full glass-panel flex items-center justify-center text-slate-500 hover:text-white active:scale-90 transition" data-id="${ex.id}"><i class="fas fa-check"></i></button>`;
-                        }
-                        const badge = isWarmup ? `<span class="text-[9px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded ml-2 uppercase font-bold">Warmup</span>` : '';
-                        
-                        container.append(`
-                            <div class="glass-panel p-5 rounded-[1.8rem] transition-all duration-300 ${isDone ? 'completed' : ''} mb-2" id="card-${ex.id}">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white gradient-bg shadow-lg"><i class="fas ${ex.icon}"></i></div>
-                                        <div>
-                                            <div class="flex items-center"><h3 class="font-bold text-white uppercase text-sm tracking-tight">${ex.name}</h3>${badge}</div>
-                                            <p class="text-slate-400 font-bold text-xs uppercase dynamic-text-${ex.id}">${reps} ${ex.unit}</p>
-                                        </div>
-                                    </div>
-                                    ${btnHtml}
-                                </div>
-                            </div>
-                        `);
-                    }
-                });
-            }
-
-            // --- EXERCISE & REST ---
-            function updateGymMode() {
-                if(!isSessionActive) return;
-                const nextEx = currentSessionList.find(e => !completed[activeDay]?.includes(e.id));
-                if (nextEx) {
-                    $('#gym-name').text(nextEx.name); $('#gym-target').text(Math.ceil(nextEx.reps * profile.level)); $('#gym-unit').text(nextEx.unit);
+            $('#toggle-edit').click(function() {
+                if(isSessionActive) { showToast("Stop session to edit!"); return; }
+                isEditing = !isEditing;
+                
+                if(isEditing) {
+                    $(this).html('<i class="fas fa-check text-green-400"></i>').addClass('border-green-400');
+                    $('#action-bar').addClass('hidden-bar');
+                    $('#quick-warmup-container').addClass('opacity-0 pointer-events-none');
+                    showToast("Edit Mode Active");
                 } else {
-                    $('#gym-name').text("DONE"); $('#gym-target').text("✔"); $('#gym-unit').text("");
+                    saveEdits();
+                    $(this).html('<i class="fas fa-pencil-alt text-sm"></i>').removeClass('border-green-400');
+                    $('#action-bar').removeClass('hidden-bar');
+                    $('#quick-warmup-container').removeClass('opacity-0 pointer-events-none');
+                    showToast("Changes Saved");
                 }
+                renderList();
+            });
+
+            function saveEdits() {
+                $('.edit-name').each(function() { const id=$(this).data('id'); const ex=schedule[activeDay].exercises.find(e=>e.id===id); if(ex) ex.name=$(this).val(); });
+                $('.edit-reps').each(function() { const id=$(this).data('id'); const ex=schedule[activeDay].exercises.find(e=>e.id===id); if(ex) ex.reps=parseInt($(this).val()); });
+                localStorage.setItem(KEYS.SCHED, JSON.stringify(schedule));
+                buildQueue();
             }
 
+            $('#warmup-toggle').change(function() {
+                if(isSessionActive) return;
+                profile.warmup = $(this).is(':checked');
+                localStorage.setItem(KEYS.PROF, JSON.stringify(profile));
+                buildQueue();
+                renderList();
+            });
+
+            // --- TIMER & COMPLETION ---
             $(document).on('click', '.check-btn', function() { completeExercise($(this).data('id'), $(this)); });
             $(document).on('click', '.timer-btn', function() {
                 const btn = $(this);
@@ -514,118 +502,162 @@
                 let timeLeft = btn.data('duration');
                 const label = $(`.dynamic-text-${btn.data('id')}`);
                 playSound("Go");
+                
                 const intv = setInterval(() => {
                     timeLeft--;
                     btn.html(`<span class="text-xs font-black text-white">${timeLeft}</span>`);
                     label.text(timeLeft + " Sec").addClass('gradient-text');
                     if(timeLeft <= 3 && timeLeft > 0) playSound("beep");
-                    if(timeLeft <= 0) { clearInterval(intv); completeExercise(btn.data('id'), btn); }
+                    if(timeLeft <= 0) { 
+                        clearInterval(intv); 
+                        completeExercise(btn.data('id'), btn); 
+                    }
                 }, 1000);
             });
 
             function completeExercise(id, btnEl) {
                 if(!completed[activeDay]) completed[activeDay] = [];
-                if(!completed[activeDay].includes(id)) { completed[activeDay].push(id); localStorage.setItem(KEY_COMP, JSON.stringify(completed)); }
+                if(!completed[activeDay].includes(id)) { completed[activeDay].push(id); localStorage.setItem(KEYS.COMP, JSON.stringify(completed)); }
+                
                 $(`#card-${id}`).addClass('completed');
                 btnEl.replaceWith(`<div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg"><i class="fas fa-check text-white"></i></div>`);
                 if(navigator.vibrate) navigator.vibrate(50);
+                
+                updateProgress();
                 updateGymMode();
+                
                 const remaining = currentSessionList.filter(e => !completed[activeDay].includes(e.id));
-                if(remaining.length > 0) { 
-                    triggerRest(remaining[0]); 
-                    setTimeout(() => { document.getElementById('card-'+remaining[0].id).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600); 
-                } else { 
-                    finishSession(); 
+                if(remaining.length > 0) {
+                    triggerRest(remaining[0]);
+                    setTimeout(() => { document.getElementById('card-'+remaining[0].id).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600);
+                } else {
+                    finishSession();
                 }
             }
 
             function triggerRest(nextEx) {
                 $('#rest-modal').removeClass('hidden'); $('#next-ex-name').text(nextEx.name); playSound("Rest.");
                 let time = nextEx.rest || 30; $('#rest-timer').text(time);
-                const intv = setInterval(() => { time--; $('#rest-timer').text(time); if(time <= 3 && time > 0) playSound("beep"); if(time <= 0) { clearInterval(intv); $('#rest-modal').addClass('hidden'); playSound("Start!"); } }, 1000);
+                
+                const intv = setInterval(() => {
+                    time--;
+                    $('#rest-timer').text(time);
+                    if(time <= 3 && time > 0) playSound("beep");
+                    if(time <= 0) { clearInterval(intv); $('#rest-modal').addClass('hidden'); playSound("Start!"); }
+                }, 1000);
+                
                 $('#skip-rest').one('click', () => { clearInterval(intv); $('#rest-modal').addClass('hidden'); });
                 $('#add-time').click(() => { time += 15; $('#rest-timer').text(time); });
             }
 
             function finishSession() {
-                incrementStreak();
-                
-                // Add to History
+                updateStreak();
                 history.unshift({ date: new Date().toLocaleString(), focus: schedule[activeDay].focus, time: $('#global-timer').text() });
-                if(history.length > 20) history.pop(); // Keep last 20
-                localStorage.setItem(KEY_HIST, JSON.stringify(history));
-                populateJournal();
-
+                if(history.length>20) history.pop();
+                localStorage.setItem(KEYS.HIST, JSON.stringify(history));
+                
                 endSession(false);
                 fireConfetti();
                 playSound("Session Complete!");
-                
-                // Show Overload Modal
                 setTimeout(() => $('#overload-modal').removeClass('hidden'), 500);
             }
 
-            // --- OVERLOAD LOGIC ---
-            $('#overload-yes').click(function() {
-                // Increase reps for today's exercises permanently
-                schedule[activeDay].exercises.forEach(e => {
-                     // Add 2 reps if it's rep based, 5 sec if time based
-                     if(e.unit.toLowerCase().includes('sec')) e.reps += 5;
-                     else e.reps += 2;
-                });
-                localStorage.setItem(KEY_SCHED, JSON.stringify(schedule));
-                $('#overload-modal').addClass('hidden');
-                alert("Routine Updated! Harder next time.");
-                loadDay(activeDay);
-            });
-            $('#overload-no').click(() => $('#overload-modal').addClass('hidden'));
+            // --- STREAK ---
+            function checkStreak() {
+                const today = new Date().toDateString();
+                const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+                if(streak.last !== today && streak.last !== yesterday.toDateString()) { if(streak.last) streak.count = 0; }
+                $('#streak-count').text(streak.count);
+                if(streak.count > 0) $('#streak-icon').removeClass('text-slate-600').addClass('text-orange-500 streak-fire');
+                else $('#streak-icon').addClass('text-slate-600').removeClass('text-orange-500 streak-fire');
+            }
+            function updateStreak() {
+                const today = new Date().toDateString();
+                if(streak.last !== today) { streak.count++; streak.last = today; localStorage.setItem(KEYS.STREAK, JSON.stringify(streak)); checkStreak(); }
+            }
 
-            // --- QUICK MUTE ---
-            $('#quick-mute').click(function() {
-                if(profile.sound === 'silent') { profile.sound = 'voice'; } else { profile.sound = 'silent'; }
-                localStorage.setItem(KEY_PROF, JSON.stringify(profile));
+            // --- MENU & SETTINGS ---
+            $('#quick-mute').click(() => {
+                profile.sound = (profile.sound === 'silent') ? 'voice' : 'silent';
+                localStorage.setItem(KEYS.PROF, JSON.stringify(profile));
                 updateAudioIcon();
+                showToast(profile.sound === 'silent' ? "Muted" : "Voice On");
             });
+
             function updateAudioIcon() {
                 if(profile.sound === 'silent') $('#quick-mute').html('<i class="fas fa-volume-mute text-red-400"></i>');
                 else $('#quick-mute').html('<i class="fas fa-volume-up text-xs"></i>');
             }
 
-            // --- JOURNAL UI ---
-            function populateJournal() {
-                const el = $('#journal-list').empty();
-                if(history.length === 0) { el.html('<div class="text-center text-slate-500 text-xs py-10">No history yet.</div>'); return; }
-                history.forEach(h => {
-                    el.append(`
-                        <div class="glass-panel p-4 rounded-2xl flex justify-between items-center">
-                            <div>
-                                <div class="text-[10px] text-slate-500">${h.date}</div>
-                                <div class="font-bold text-white text-sm">${h.focus}</div>
-                            </div>
-                            <div class="text-xs font-mono text-slate-300">${h.time}</div>
-                        </div>
-                    `);
-                });
-            }
+            $('.tab-btn').click(function() { $('.tab-btn').removeClass('active text-white').addClass('text-slate-400'); $(this).addClass('active text-white').removeClass('text-slate-400'); $('.tab-content').removeClass('active'); $(`#${$(this).data('tab')}`).addClass('active'); });
 
-            // --- UTILS & BOILERPLATE ---
-            function playSound(text) { if(profile.sound === 'silent') return; if(text === 'beep') { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = 880; o.start(); g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1); o.stop(audioCtx.currentTime + 0.1); } else { synth.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; synth.speak(u); } }
-            function fireConfetti() { const c = document.getElementById('confetti-canvas'); const x = c.getContext('2d'); c.width=window.innerWidth; c.height=window.innerHeight; let p=[]; for(let i=0;i<100;i++)p.push({x:c.width/2,y:c.height/2,vx:(Math.random()-0.5)*20,vy:(Math.random()-0.5)*20,c:`hsl(${Math.random()*360},100%,50%)`,a:1}); function a(){x.clearRect(0,0,c.width,c.height);p.forEach((k,i)=>{k.x+=k.vx;k.y+=k.vy;k.vy+=0.5;k.a-=0.02;x.fillStyle=k.c;x.globalAlpha=k.a;x.fillRect(k.x,k.y,8,8);if(k.a<=0)p.splice(i,1)});if(p.length)requestAnimationFrame(a);}a(); }
-            
-            function renderWeekNav() { const container = $('#day-nav-container').empty(); dayNames.forEach((d, i) => { const activeClass = (i === activeDay) ? 'active' : 'glass-panel text-slate-400'; const hasData = completed[i] && completed[i].length === schedule[i].exercises.length; container.append(`<button class="day-btn w-12 h-16 rounded-2xl flex flex-col items-center justify-center relative shrink-0 ${activeClass}" data-day="${i}"><span class="text-[9px] uppercase font-bold opacity-60">${d}</span><span class="text-lg font-black">${i === new Date().getDay() ? '★' : new Date().getDate() + (i - new Date().getDay())}</span>${hasData ? '<div class="status-dot"></div>' : ''}</button>`); }); }
-            function loadDay(i) { activeDay = parseInt(i); $('.day-btn').removeClass('active').addClass('glass-panel text-slate-400'); $(`.day-btn[data-day="${activeDay}"]`).addClass('active').removeClass('glass-panel text-slate-400'); const data = schedule[activeDay]; $('#day-focus').text(data.focus); $('.muscle-part').removeClass('muscle-active'); data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active')); buildQueue(); renderList(); endSession(false); }
-            function updateSettingsUI() { $('#modal-level-val').text(profile.level.toFixed(1) + "x"); }
-            $('.tab-btn').click(function() { $('.tab-btn').removeClass('active'); $(this).addClass('active'); $('.tab-content').removeClass('active'); $(`#${$(this).data('tab')}`).addClass('active'); });
-
-            // Bindings
-            $('.day-btn').click(function() { loadDay($(this).data('day')); });
             $('#open-profile').click(() => { populateJournal(); $('#profile-modal').removeClass('hidden'); });
             $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
-            $('#reset-day-btn').click(() => { if(confirm("Clear day?")) { delete completed[activeDay]; localStorage.setItem(KEY_COMP, JSON.stringify(completed)); loadDay(activeDay); }});
-            $('.theme-btn').click(function() { const t = $(this).data('theme'); $('body').removeClass().addClass(t); profile.theme = t; localStorage.setItem(KEY_PROF, JSON.stringify(profile)); });
-            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem(KEY_PROF, JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
-            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem(KEY_PROF, JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
-            $('#hard-reset').click(() => { if(confirm("Reset?")) { localStorage.clear(); location.reload(); }});
-            $('#export-data').click(function() { const data = { schedule, completed, profile, history, streakData }; const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `dailyburn_backup.json`; a.click(); });
+
+            function populateJournal() {
+                const el = $('#journal-list').empty();
+                if(history.length === 0) el.html('<div class="text-center text-slate-500 text-xs py-10">No history yet.</div>');
+                else history.forEach(h => el.append(`<div class="glass-panel p-4 rounded-2xl flex justify-between items-center mb-2"><div><div class="text-[10px] text-slate-500">${h.date}</div><div class="font-bold text-white text-sm">${h.focus}</div></div><div class="text-xs font-mono text-slate-300">${h.time}</div></div>`));
+            }
+
+            // --- OVERLOAD ---
+            $('#overload-yes').click(() => {
+                schedule[activeDay].exercises.forEach(e => { if(e.unit.toLowerCase().includes('sec')) e.reps+=5; else e.reps+=2; });
+                localStorage.setItem(KEYS.SCHED, JSON.stringify(schedule));
+                $('#overload-modal').addClass('hidden');
+                showToast("Difficulty Increased!");
+                loadDay(activeDay);
+            });
+            $('#overload-no').click(() => $('#overload-modal').addClass('hidden'));
+
+            // --- UTILS ---
+            function showToast(msg) {
+                const t = $(`<div class="toast">${msg}</div>`);
+                $('#toast-container').append(t);
+                setTimeout(() => { t.fadeOut(300, () => t.remove()); }, 2000);
+            }
+
+            function playSound(text) {
+                if(profile.sound === 'silent') return;
+                if(text === 'beep' || profile.sound === 'beep') {
+                    const o = AUDIO_CTX.createOscillator(); const g = AUDIO_CTX.createGain();
+                    o.connect(g); g.connect(AUDIO_CTX.destination);
+                    o.type = 'triangle'; o.frequency.value = 600; o.start();
+                    g.gain.exponentialRampToValueAtTime(0.00001, AUDIO_CTX.currentTime + 0.15);
+                    o.stop(AUDIO_CTX.currentTime + 0.15);
+                } else {
+                    SYNTH.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; SYNTH.speak(u);
+                }
+            }
+
+            function updateProgress() {
+                const total = currentSessionList.length;
+                const done = currentSessionList.filter(e => completed[activeDay]?.includes(e.id)).length;
+                const pct = Math.round((done / total) * 100) || 0;
+                $('#percent-text').text(pct + '%'); $('#mini-progress').css('width', pct + '%');
+                if(done === total && total > 0) renderWeekNav();
+            }
+
+            function updateGymMode() {
+                if(!isSessionActive) return;
+                const nextEx = currentSessionList.find(e => !completed[activeDay]?.includes(e.id));
+                if (nextEx) { $('#gym-name').text(nextEx.name); $('#gym-target').text(Math.ceil(nextEx.reps * profile.level)); $('#gym-unit').text(nextEx.unit); }
+                else { $('#gym-name').text("DONE"); $('#gym-target').text("✔"); $('#gym-unit').text(""); }
+            }
+
+            function updateSettingsUI() { $('#modal-level-val').text(profile.level.toFixed(1) + "x"); }
+
+            function fireConfetti() { const c = document.getElementById('confetti-canvas'); const x = c.getContext('2d'); c.width=window.innerWidth; c.height=window.innerHeight; let p=[]; for(let i=0;i<100;i++)p.push({x:c.width/2,y:c.height/2,vx:(Math.random()-0.5)*20,vy:(Math.random()-0.5)*20,c:`hsl(${Math.random()*360},100%,50%)`,a:1}); function a(){x.clearRect(0,0,c.width,c.height);p.forEach((k,i)=>{k.x+=k.vx;k.y+=k.vy;k.vy+=0.5;k.a-=0.02;x.fillStyle=k.c;x.globalAlpha=k.a;x.fillRect(k.x,k.y,8,8);if(k.a<=0)p.splice(i,1)});if(p.length)requestAnimationFrame(a);}a(); }
+
+            // --- BINDINGS ---
+            $('.day-btn').click(function() { loadDay($(this).data('day')); });
+            $('#reset-day-btn').click(() => { if(confirm("Clear day?")) { delete completed[activeDay]; localStorage.setItem(KEYS.COMP, JSON.stringify(completed)); loadDay(activeDay); }});
+            $('.theme-btn').click(function() { const t = $(this).data('theme'); $('body').removeClass().addClass(t); profile.theme = t; localStorage.setItem(KEYS.PROF, JSON.stringify(profile)); });
+            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem(KEYS.PROF, JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
+            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem(KEYS.PROF, JSON.stringify(profile)); updateSettingsUI(); loadDay(activeDay); });
+            $('#hard-reset').click(() => { if(confirm("Factory Reset?")) { localStorage.clear(); location.reload(); }});
+            $('#export-data').click(function() { const data = { schedule, completed, profile, history, streak }; const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `dailyburn_backup.json`; a.click(); });
+            $('#import-data').change(function(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(e) { try { const d = JSON.parse(e.target.result); if(d.schedule) localStorage.setItem(KEYS.SCHED, JSON.stringify(d.schedule)); if(d.history) localStorage.setItem(KEYS.HIST, JSON.stringify(d.history)); location.reload(); } catch(err){ showToast("Error Importing"); } }; r.readAsText(f); });
         });
     </script>
 </body>
