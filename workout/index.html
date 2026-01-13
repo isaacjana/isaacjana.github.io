@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Onyx</title>
+    <title>Daily Burn | Timer Fixed</title>
     
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,7 +20,6 @@
         body.theme-midnight { --bg-main: #0f172a; --bg-card: #1e293b; --accent: #6366f1; }
         body.theme-obsidian { --bg-main: #000000; --bg-card: #111111; --accent: #ffffff; }
         body.theme-cyberpunk { --bg-main: #09090b; --bg-card: #18181b; --accent: #ec4899; }
-        body.theme-forest { --bg-main: #052e16; --bg-card: #064e3b; --accent: #34d399; }
         
         body { background-color: var(--bg-main); color: var(--text-main); transition: background-color 0.5s; -webkit-tap-highlight-color: transparent; }
         .card-style { background-color: var(--bg-card); border: 1px solid rgba(255,255,255,0.08); }
@@ -29,18 +28,16 @@
         
         /* Elements */
         .completed { opacity: 0.3; filter: grayscale(1); transform: scale(0.98); pointer-events: none; transition: 0.3s; }
-        .day-btn { position: relative; }
         .day-btn.active { background-color: var(--accent); color: var(--bg-main); font-weight: 900; border-color: var(--accent); box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
-        
-        /* Status Dot */
         .status-dot { position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%; background-color: var(--accent); }
         .day-btn.active .status-dot { background-color: var(--bg-main); }
         
         .muscle-part { fill: var(--bg-card); transition: fill 0.6s ease; }
         .muscle-active { fill: var(--accent); filter: drop-shadow(0 0 5px var(--accent)); }
         
-        .noise-btn.active { color: var(--accent); animation: pulse-slow 2s infinite; }
-        @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        /* Timer Animation */
+        .timer-btn.running { width: 60px; border-radius: 20px; transition: all 0.3s; animation: pulse-border 1s infinite; }
+        @keyframes pulse-border { 0% { box-shadow: 0 0 0 0px var(--accent); } 100% { box-shadow: 0 0 0 10px rgba(0,0,0,0); } }
 
         /* Landscape */
         #gym-mode { display: none; }
@@ -51,13 +48,14 @@
 
     <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;pointer-events:none;z-index:999;"></canvas>
 
-    <div id="gym-mode" class="fixed inset-0 z-[200] flex-col items-center justify-center p-6 text-center" style="background-color: var(--bg-main)">
+    <div id="gym-mode" class="fixed inset-0 z-[300] flex-col items-center justify-center p-6 text-center" style="background-color: var(--bg-main)">
         <div class="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mb-2">Current Active</div>
         <h1 id="gym-name" class="text-6xl font-black text-white uppercase leading-none mb-4">Start</h1>
         <div class="flex items-baseline justify-center space-x-4">
             <div id="gym-target" class="text-9xl font-black accent-text tabular-nums">--</div>
             <div id="gym-unit" class="text-3xl font-bold text-slate-500 uppercase">--</div>
         </div>
+        <div id="gym-timer" class="absolute top-4 right-4 text-2xl font-mono text-white opacity-50">00:00</div>
         <div class="mt-8 text-slate-600 font-bold uppercase tracking-widest text-[10px] animate-pulse">Rotate Phone to Exit</div>
     </div>
 
@@ -76,7 +74,6 @@
                         </div>
                     </div>
                     <div class="flex space-x-4">
-                        <button id="toggle-noise" class="noise-btn text-slate-500 hover:text-white transition"><i class="fas fa-wave-square"></i></button>
                         <button id="toggle-edit" class="text-slate-500 hover:text-white transition"><i class="fas fa-pencil-alt"></i></button>
                     </div>
                 </div>
@@ -88,18 +85,23 @@
             <div class="card-style rounded-[2.5rem] p-6 mb-6 relative overflow-hidden shadow-2xl">
                 
                 <button id="reset-day-btn" class="absolute top-6 right-6 text-xs font-bold text-red-500/50 hover:text-red-500 uppercase tracking-widest transition z-20">
-                    <i class="fas fa-redo-alt mr-1"></i> Restart
+                    <i class="fas fa-redo-alt mr-1"></i>
                 </button>
 
                 <div class="flex justify-between items-center relative z-10">
                     <div>
                         <div id="day-focus" class="accent-text font-bold uppercase tracking-widest text-xs mb-1">...</div>
-                        <h2 id="calories-display" class="text-4xl font-black text-white">0 <span class="text-sm text-slate-500">Kcal</span></h2>
+                        
+                        <div class="flex items-baseline space-x-3 mb-1">
+                            <h2 id="global-timer" class="text-4xl font-mono font-black text-white tracking-tighter">00:00</h2>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse" id="timer-status">Ready</span>
+                        </div>
+
                         <div class="flex items-center space-x-2 mt-2">
                              <div class="h-1.5 w-24 bg-slate-800 rounded-full overflow-hidden">
                                  <div id="mini-progress" class="h-full accent-bg w-0 transition-all duration-500"></div>
                              </div>
-                             <span id="percent-text" class="text-[10px] font-bold text-slate-400">0%</span>
+                             <span id="calories-display" class="text-[10px] font-bold text-slate-400">0 Kcal</span>
                         </div>
                     </div>
                     <div class="w-16 h-24 opacity-80">
@@ -130,6 +132,7 @@
                 <div class="w-20 h-20 rounded-full accent-bg flex items-center justify-center text-3xl text-white mb-6 shadow-2xl shadow-indigo-500/50">
                     <i class="fas fa-flag-checkered"></i>
                 </div>
+                <div class="text-slate-400 text-sm mb-6">Time: <span id="final-time" class="text-white font-bold">00:00</span></div>
                 <button onclick="location.reload()" class="w-full max-w-sm py-4 bg-white text-black font-bold rounded-xl uppercase tracking-widest text-xs">Finish</button>
             </div>
 
@@ -143,11 +146,10 @@
             
             <div class="mb-6">
                 <span class="text-xs font-bold text-slate-400 uppercase">Theme</span>
-                <div class="grid grid-cols-4 gap-2 mt-2">
+                <div class="grid grid-cols-3 gap-2 mt-2">
                     <button class="theme-btn h-8 rounded-full bg-[#0f172a] border border-white/20" data-theme="theme-midnight"></button>
                     <button class="theme-btn h-8 rounded-full bg-black border border-white" data-theme="theme-obsidian"></button>
                     <button class="theme-btn h-8 rounded-full bg-[#09090b] border border-pink-500" data-theme="theme-cyberpunk"></button>
-                    <button class="theme-btn h-8 rounded-full bg-[#052e16] border border-green-500" data-theme="theme-forest"></button>
                 </div>
             </div>
 
@@ -161,7 +163,7 @@
         </div>
     </div>
 
-    <div id="rest-modal" class="hidden fixed inset-0 z-[150] bg-black/95 flex flex-col items-center justify-center p-8">
+    <div id="rest-modal" class="hidden fixed inset-0 z-[400] bg-black/95 flex flex-col items-center justify-center p-8">
         <div class="text-9xl font-black text-white tabular-nums mb-4" id="rest-timer">30</div>
         <div class="accent-text font-black uppercase tracking-widest text-sm mb-12 animate-pulse" id="next-ex-label">RECOVER</div>
         <div class="card-style p-6 rounded-3xl w-full max-w-xs text-center mb-8">
@@ -189,8 +191,6 @@
             };
 
             const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            
-            // --- STATE ---
             let activeDay = new Date().getDay();
             let schedule = JSON.parse(localStorage.getItem('db_schedule')) || defaultSchedule;
             let completed = JSON.parse(localStorage.getItem('db_completed')) || {}; 
@@ -199,7 +199,8 @@
             let isEditing = false;
             let activeRestTime = 0; 
             let restInterval = null;
-            let noiseNode = null;
+            let sessionTimerIntv = null;
+            let sessionSeconds = 0;
             
             const synth = window.speechSynthesis;
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -216,8 +217,19 @@
                 if(audioCtx.state === 'suspended') audioCtx.resume();
                 $('#start-overlay').fadeOut();
                 $('#workout-list').removeClass('blur-sm pointer-events-none');
+                $('#timer-status').text("ACTIVE").addClass('text-green-500').removeClass('text-slate-500');
+                
+                // START GLOBAL TIMER
+                sessionSeconds = 0;
+                sessionTimerIntv = setInterval(() => {
+                    sessionSeconds++;
+                    const m = Math.floor(sessionSeconds / 60).toString().padStart(2, '0');
+                    const s = (sessionSeconds % 60).toString().padStart(2, '0');
+                    $('#global-timer, #gym-timer').text(`${m}:${s}`);
+                }, 1000);
+
                 playSound("Session started.");
-                updateGymMode(); // Sync Gym Mode
+                updateGymMode();
             });
 
             // --- RENDERERS ---
@@ -250,6 +262,9 @@
                 updateProgress();
                 $('#workout-list').addClass('blur-sm pointer-events-none');
                 $('#start-overlay').fadeIn(0);
+                $('#timer-status').text("Ready").removeClass('text-green-500').addClass('text-slate-500');
+                clearInterval(sessionTimerIntv);
+                $('#global-timer').text("00:00");
                 updateGymMode();
             }
 
@@ -351,8 +366,6 @@
                 const remaining = schedule[activeDay].exercises.filter(e => !completed[activeDay].includes(e.id));
                 if(remaining.length > 0) {
                     triggerRest(remaining[0]);
-                    
-                    // AUTO SCROLL
                     setTimeout(() => {
                         const nextId = remaining[0].id;
                         document.getElementById('card-'+nextId).scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -386,28 +399,11 @@
                     delete completed[activeDay];
                     localStorage.setItem('db_completed', JSON.stringify(completed));
                     loadDay(activeDay);
-                    renderWeekNav(); // Update dots
+                    renderWeekNav();
                 }
             });
             $('#hard-reset').click(function() {
                 if(confirm("Factory Reset entire app?")) { localStorage.clear(); location.reload(); }
-            });
-
-            // --- AUDIO TOOLS ---
-            $('#toggle-noise').click(function() {
-                if (noiseNode) {
-                    noiseNode.disconnect(); noiseNode = null; $(this).removeClass('active');
-                } else {
-                    if(audioCtx.state === 'suspended') audioCtx.resume();
-                    const bSize = audioCtx.sampleRate * 2; 
-                    const b = audioCtx.createBuffer(1, bSize, audioCtx.sampleRate);
-                    const d = b.getChannelData(0);
-                    for (let i=0; i<bSize; i++) { d[i] = (Math.random() * 2 - 1) * 0.5; }
-                    const n = audioCtx.createBufferSource(); n.buffer = b; n.loop = true;
-                    const f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400;
-                    n.connect(f); f.connect(audioCtx.destination); n.start(); noiseNode = n;
-                    $(this).addClass('active');
-                }
             });
 
             function playSound(text) {
@@ -429,11 +425,14 @@
                 const pct = Math.round((done / total) * 100) || 0;
                 $('#percent-text').text(pct + '%'); $('#mini-progress').css('width', pct + '%');
                 $('#calories-display').html(`${(done * 15)} <span class="text-sm text-slate-500">Kcal</span>`);
-                if(done === total) renderWeekNav(); // Add dot if done
+                if(done === total) renderWeekNav(); 
             }
 
             function finishSession() {
-                fireConfetti(); $('#victory-modal').removeClass('hidden');
+                clearInterval(sessionTimerIntv);
+                $('#final-time').text($('#global-timer').text());
+                $('#victory-modal').removeClass('hidden');
+                fireConfetti();
             }
 
             function fireConfetti() {
