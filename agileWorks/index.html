@@ -496,13 +496,35 @@
     </div>
 
     <div id="modal-assign-project" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[120] backdrop-blur-sm">
-        <div class="bg-white dark:bg-darkcard p-8 rounded-2xl w-96 shadow-xl border border-slate-200 dark:border-slate-700">
-            <h3 class="font-bold mb-2 text-xl dark:text-white">Assign Project</h3>
-            <p class="mb-6 text-sm text-slate-500">Select which project this user can access.</p>
-            <select id="assign-project-dropdown" class="w-full border p-3 mb-6 rounded-xl dark:bg-darkbg dark:border-slate-600 focus:ring-2 focus:ring-brand-500 font-medium"></select>
-            <div class="flex justify-end gap-2">
-                <button onclick="App.closeModal('modal-assign-project')" class="px-5 py-2 text-slate-500 font-semibold">Cancel</button>
-                <button id="btn-confirm-assign" class="bg-brand-600 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-brand-700">Assign</button>
+        <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-lg shadow-xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-3">
+                <div>
+                    <h3 class="font-bold text-xl dark:text-white">User Access Control</h3>
+                    <p id="assign-modal-user" class="text-sm text-brand-600 font-bold">...</p>
+                </div>
+                <button onclick="App.closeModal('modal-assign-project')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-xs font-bold uppercase text-slate-500 mb-2">System Role</label>
+                <select id="assign-role-select" class="w-full border p-2.5 rounded-lg dark:bg-darkbg dark:border-slate-600 focus:ring-2 focus:ring-brand-500 font-bold">
+                    <option value="dev">Developer</option>
+                    <option value="master">Scrum Master</option>
+                    <option value="superadmin">Super Admin</option>
+                </select>
+            </div>
+
+            <div class="flex-grow overflow-hidden flex flex-col">
+                <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Project Access</label>
+                <div class="bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700 flex-grow overflow-y-auto p-2 custom-scroll">
+                    <div id="project-access-list" class="space-y-1">
+                        </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6 pt-3 border-t dark:border-slate-700">
+                <button onclick="App.closeModal('modal-assign-project')" class="px-5 py-2 text-slate-500 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">Cancel</button>
+                <button id="btn-save-access" class="bg-brand-600 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-brand-700 transition">Save Access</button>
             </div>
         </div>
     </div>
@@ -519,7 +541,7 @@
         </div>
     </div>
 
-<script>
+    <script>
         // --- CONFIGURATION ---
         const firebaseConfig = { 
             apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k", 
@@ -552,7 +574,7 @@
             sprintMap: {}, 
             items: [],
             detailId: null,
-            pendingAssignUser: null,
+            pendingAssignUser: null, // Used for User Access Modal
             pendingItem: null
         };
 
@@ -560,8 +582,9 @@
         const UI = {
             toast: (msg, type='success') => {
                 const color = type === 'error' ? 'bg-red-500' : 'bg-emerald-600';
+                const icon = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check';
                 const id = Date.now();
-                $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[300px]"><span class="font-medium text-sm">${msg}</span></div>`);
+                $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[300px] z-[9999]"><i class="fa-solid ${icon}"></i> <span class="font-medium text-sm">${msg}</span></div>`);
                 setTimeout(() => $(`#t-${id}`).removeClass('toast-enter').addClass('toast-active'), 10);
                 setTimeout(() => { $(`#t-${id}`).removeClass('toast-active').addClass('toast-enter'); setTimeout(() => $(`#t-${id}`).remove(), 300) }, 3000);
             },
@@ -602,12 +625,12 @@
                 App.loadProjects();
             },
 
+            // --- DATA LOADING ---
             loadProjects: async () => {
                 try {
                     const snap = await db.collection('projects').get();
                     State.projects = [];
                     const $sel = $('#project-select').empty();
-                    const $admSel = $('#assign-project-dropdown').empty();
 
                     snap.forEach(doc => {
                         const p = doc.data();
@@ -616,7 +639,6 @@
                             State.projects.push({ id: doc.id, ...p });
                             $sel.append(`<option value="${doc.id}">${p.name}</option>`);
                         }
-                        $admSel.append(`<option value="${doc.id}">${p.name}</option>`);
                     });
 
                     if (State.projects.length > 0) {
@@ -633,7 +655,7 @@
                 if (!State.projectId) return;
                 $('#no-project-state').addClass('hidden');
                 
-                // Load Users
+                // Load Users for Dropdown
                 const uSnap = await db.collection('users').where('projects', 'array-contains', State.projectId).get();
                 State.projectUsers = [];
                 const $uSel = $('#detail-assignee').empty().append('<option value="">Unassigned</option>');
@@ -648,14 +670,12 @@
                     .onSnapshot(snap => {
                         const $sel = $('#sprint-select').empty();
                         State.sprintMap = {};
-
                         if (snap.empty) {
                             $sel.append('<option value="">No Sprints</option>');
                             $('#sprint-info-banner').addClass('hidden');
                             $('#kanban-area, #pbi-list').empty();
                             return;
                         }
-
                         let activeId = null;
                         snap.forEach(doc => {
                             const s = doc.data();
@@ -665,14 +685,9 @@
                             }
                             State.sprintMap[doc.id] = { id: doc.id, ...s };
                         });
-
                         const currentVal = State.sprintId;
                         if (!currentVal || !State.sprintMap[currentVal]) State.sprintId = activeId;
-
-                        if (State.sprintId) {
-                            $sel.val(State.sprintId);
-                            App.loadSprintData(State.sprintId);
-                        }
+                        if (State.sprintId) { $sel.val(State.sprintId); App.loadSprintData(State.sprintId); }
                     })
                 );
                 App.loadRetro();
@@ -686,34 +701,27 @@
                 App.loadSprintItems();
             },
 
+            // --- UI RENDERING ---
             updateSprintUI: () => {
                 const s = State.sprintData;
                 if (!s) return;
-                
                 $('#sprint-info-banner').removeClass('hidden');
                 $('#banner-goal').text(s.goal || 'No Goal Set');
-                
                 const start = new Date(s.startDate);
                 const end = new Date(s.endDate);
                 $('#banner-dates').text(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
-                
                 const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
                 $('#banner-days').text(diff > 0 ? diff : 0);
-
                 if (State.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
             },
 
             loadSprintItems: () => {
                 if (!State.sprintId) return;
-                setListener('items', db.collection('items')
-                    .where('projectId', '==', State.projectId)
-                    .where('sprintId', '==', State.sprintId)
-                    .onSnapshot(snap => {
-                        State.items = [];
-                        snap.forEach(doc => State.items.push({ id: doc.id, ...doc.data() }));
-                        App.renderBoard();
-                    })
-                );
+                setListener('items', db.collection('items').where('projectId', '==', State.projectId).where('sprintId', '==', State.sprintId).onSnapshot(snap => {
+                    State.items = [];
+                    snap.forEach(doc => State.items.push({ id: doc.id, ...doc.data() }));
+                    App.renderBoard();
+                }));
             },
 
             renderBoard: () => {
@@ -722,14 +730,10 @@
                 const $area = $('#kanban-area').empty();
                 $('#pbi-list').empty();
 
-                let totalLoad = 0;
-                let totalCap = 0;
-                if (State.sprintData && State.sprintData.capacity) {
-                    Object.values(State.sprintData.capacity).forEach(v => totalCap += parseInt(v||0));
-                }
+                let totalLoad = 0, totalCap = 0;
+                if (State.sprintData && State.sprintData.capacity) Object.values(State.sprintData.capacity).forEach(v => totalCap += parseInt(v||0));
 
                 const visibleItems = State.items.filter(i => !filter || (i.title+(i.assignee||'')).toLowerCase().includes(filter));
-
                 visibleItems.filter(i => i.type === 'PBI').forEach(i => $('#pbi-list').append(App.createCard(i)));
 
                 const tasks = visibleItems.filter(i => i.type !== 'PBI');
@@ -737,62 +741,25 @@
 
                 $('#capacity-text').text(`${totalLoad} / ${totalCap} pts`);
                 const pct = totalCap > 0 ? (totalLoad/totalCap)*100 : 0;
-                $('#capacity-bar').css('width', `${Math.min(pct,100)}%`)
-                    .removeClass('bg-emerald-400 bg-amber-400 bg-red-500')
-                    .addClass(pct > 100 ? 'bg-red-500' : pct > 85 ? 'bg-amber-400' : 'bg-emerald-400');
+                $('#capacity-bar').css('width', `${Math.min(pct,100)}%`).removeClass('bg-emerald-400 bg-amber-400 bg-red-500').addClass(pct > 100 ? 'bg-red-500' : pct > 85 ? 'bg-amber-400' : 'bg-emerald-400');
 
                 if (view === 'standard') {
                     const cols = { todo: [], doing: [], done: [] };
                     tasks.forEach(t => { if(cols[t.status]) cols[t.status].push(t); });
-
                     ['todo','doing','done'].forEach(k => {
                         const title = k==='todo'?'To Do':k==='doing'?'Doing':'Done';
-                        $area.append(`
-                            <div class="flex flex-col h-full bg-slate-100 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                                <div class="p-3 border-b dark:border-slate-700 font-bold text-xs uppercase text-slate-500 bg-slate-50 dark:bg-slate-800 flex justify-between">
-                                    <span>${title}</span><span class="bg-slate-200 dark:bg-slate-700 px-2 rounded text-[10px]">${cols[k].length}</span>
-                                </div>
-                                <div class="kanban-col flex-grow overflow-y-auto p-2 space-y-2 custom-scroll" id="col-${k}" data-status="${k}">
-                                    ${cols[k].map(i => App.createCard(i)).join('')}
-                                </div>
-                            </div>`);
-                        
-                        new Sortable(document.getElementById(`col-${k}`), { 
-                            group: 'kanban', animation: 150, ghostClass: 'sortable-ghost',
-                            onEnd: (evt) => App.updateStatus(evt.item.dataset.id, evt.to.dataset.status)
-                        });
+                        $area.append(`<div class="flex flex-col h-full bg-slate-100 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"><div class="p-3 border-b dark:border-slate-700 font-bold text-xs uppercase text-slate-500 bg-slate-50 dark:bg-slate-800 flex justify-between"><span>${title}</span><span class="bg-slate-200 dark:bg-slate-700 px-2 rounded text-[10px]">${cols[k].length}</span></div><div class="kanban-col flex-grow overflow-y-auto p-2 space-y-2 custom-scroll" id="col-${k}" data-status="${k}">${cols[k].map(i => App.createCard(i)).join('')}</div></div>`);
+                        new Sortable(document.getElementById(`col-${k}`), { group: 'kanban', animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => App.updateStatus(evt.item.dataset.id, evt.to.dataset.status) });
                     });
                     $area.addClass('grid grid-cols-1 md:grid-cols-3 gap-4');
                 } else {
                     $area.removeClass('grid grid-cols-1 md:grid-cols-3 gap-4').addClass('overflow-y-auto custom-scroll pr-2 space-y-4');
                     const assignees = [...new Set(tasks.map(t => t.assignee || "Unassigned"))].sort();
-                    
                     assignees.forEach(user => {
                         const uTasks = tasks.filter(t => (t.assignee || "Unassigned") === user);
                         const uidRaw = user.replace(/[^a-zA-Z0-9]/g,'');
-                        const uObj = State.projectUsers.find(u => u.name === user);
-                        let capHtml = '';
-                        if (uObj && State.sprintData.capacity && State.sprintData.capacity[uObj.uid]) {
-                            const cap = parseInt(State.sprintData.capacity[uObj.uid]);
-                            let load = 0; uTasks.forEach(t => load += (parseInt(t.points)||0));
-                            capHtml = `<span class="ml-auto text-xs ${load>cap?'text-red-500 font-bold':'text-slate-400'}">Load: ${load}/${cap}</span>`;
-                        }
-
-                        $area.append(`
-                            <div class="bg-white dark:bg-darkcard border dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
-                                <div class="p-2 bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700 flex items-center gap-3">
-                                    <span class="font-bold text-sm">${user}</span> <span class="text-xs text-slate-400">(${uTasks.length})</span> ${capHtml}
-                                </div>
-                                <div class="grid grid-cols-3 divide-x dark:divide-slate-700 min-h-[100px]">
-                                    <div class="p-2 space-y-2 bg-slate-50/20 kanban-col" id="sl-${uidRaw}-todo" data-status="todo">${uTasks.filter(t=>t.status==='todo').map(i=>App.createCard(i)).join('')}</div>
-                                    <div class="p-2 space-y-2 bg-blue-50/10 kanban-col" id="sl-${uidRaw}-doing" data-status="doing">${uTasks.filter(t=>t.status==='doing').map(i=>App.createCard(i)).join('')}</div>
-                                    <div class="p-2 space-y-2 bg-emerald-50/10 kanban-col" id="sl-${uidRaw}-done" data-status="done">${uTasks.filter(t=>t.status==='done').map(i=>App.createCard(i)).join('')}</div>
-                                </div>
-                            </div>`);
-                        
-                        ['todo','doing','done'].forEach(s => {
-                            new Sortable(document.getElementById(`sl-${uidRaw}-${s}`), { group: 'kanban', animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => App.updateStatus(evt.item.dataset.id, evt.to.dataset.status) });
-                        });
+                        $area.append(`<div class="bg-white dark:bg-darkcard border dark:border-slate-700 rounded-xl shadow-sm overflow-hidden"><div class="p-2 bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700 flex items-center gap-3"><span class="font-bold text-sm">${user}</span> <span class="text-xs text-slate-400">(${uTasks.length})</span></div><div class="grid grid-cols-3 divide-x dark:divide-slate-700 min-h-[100px]"><div class="p-2 space-y-2 bg-slate-50/20 kanban-col" id="sl-${uidRaw}-todo" data-status="todo">${uTasks.filter(t=>t.status==='todo').map(i=>App.createCard(i)).join('')}</div><div class="p-2 space-y-2 bg-blue-50/10 kanban-col" id="sl-${uidRaw}-doing" data-status="doing">${uTasks.filter(t=>t.status==='doing').map(i=>App.createCard(i)).join('')}</div><div class="p-2 space-y-2 bg-emerald-50/10 kanban-col" id="sl-${uidRaw}-done" data-status="done">${uTasks.filter(t=>t.status==='done').map(i=>App.createCard(i)).join('')}</div></div></div>`);
+                        ['todo','doing','done'].forEach(s => { new Sortable(document.getElementById(`sl-${uidRaw}-${s}`), { group: 'kanban', animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => App.updateStatus(evt.item.dataset.id, evt.to.dataset.status) }); });
                     });
                 }
             },
@@ -804,105 +771,75 @@
                 let btns = i.type==='PBI' ? `<button onclick="App.promotePBI('${i.id}');event.stopPropagation()" class="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded font-bold hover:bg-brand-100">Add</button>` : 
                            i.status==='todo' ? `<button onclick="App.updateStatus('${i.id}','doing');event.stopPropagation()" class="text-slate-400 hover:text-blue-600"><i class="fa-solid fa-play"></i></button>` :
                            i.status==='doing' ? `<button onclick="App.checkDoD('${i.id}');event.stopPropagation()" class="text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-check"></i></button>` : '';
-
-                return `<div data-id="${i.id}" onclick="App.openDetailModal('${i.id}')" class="bg-white dark:bg-darkcard p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 border-l-4 ${border} group hover:shadow-md transition cursor-pointer">
-                    <div class="flex justify-between items-start mb-2 gap-2"><span class="font-semibold text-sm text-slate-800 dark:text-slate-200 line-clamp-2">${i.title}</span></div>
-                    <div class="flex justify-between items-center mt-2"><div class="flex items-center gap-2"><img src="${avatar}" class="w-5 h-5 rounded-full"><span class="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${i.points||'-'}</span></div><div class="flex gap-2">${btns}</div></div>
-                </div>`;
+                return `<div data-id="${i.id}" onclick="App.openDetailModal('${i.id}')" class="bg-white dark:bg-darkcard p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 border-l-4 ${border} group hover:shadow-md transition cursor-pointer"><div class="flex justify-between items-start mb-2 gap-2"><span class="font-semibold text-sm text-slate-800 dark:text-slate-200 line-clamp-2">${i.title}</span></div><div class="flex justify-between items-center mt-2"><div class="flex items-center gap-2"><img src="${avatar}" class="w-5 h-5 rounded-full"><span class="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${i.points||'-'}</span></div><div class="flex gap-2">${btns}</div></div></div>`;
             },
 
             updateStatus: async (id, status) => {
                 if (status === 'done') return App.checkDoD(id);
-                try {
-                    const curr = State.items.find(i => i.id === id);
-                    if (curr && curr.status === status) return;
-                    await db.collection('items').doc(id).update({ status: status, completedAt: null, history: firebase.firestore.FieldValue.arrayUnion({ user: State.user.displayName, action: `Moved to ${status}`, at: Date.now() }) });
-                } catch(e) { UI.toast('Update failed', 'error'); App.renderBoard(); }
+                try { await db.collection('items').doc(id).update({ status: status, completedAt: null, history: firebase.firestore.FieldValue.arrayUnion({ user: State.user.displayName, action: `Moved to ${status}`, at: Date.now() }) }); } catch(e) { UI.toast('Update failed', 'error'); App.renderBoard(); }
             },
             promotePBI: async (id) => { await db.collection('items').doc(id).update({ type: 'SBI', status: 'todo' }); UI.toast("Added to Sprint"); },
             checkDoD: (id) => { State.pendingItem = id; $('.dod-check').prop('checked', false); $('#btn-confirm-dod').prop('disabled', true).addClass('opacity-50 cursor-not-allowed'); App.openModal('modal-dod'); },
             
-            // --- SPRINT LOGIC ---
-            editSprint: () => {
-                const s = State.sprintData;
-                $('#edit-sprint-id').val(s.id); $('#modal-sprint-title').text('Edit Sprint');
-                $('#new-sprint-name').val(s.name); $('#new-sprint-goal').val(s.goal);
-                $('#new-sprint-start').val(s.startDate); $('#new-sprint-end').val(s.endDate);
-                App.renderCapacityInputs(s.capacity, s.daysOffMap);
-                App.calcSprintDays();
-                App.openModal('modal-sprint');
-            },
-            
-            renderCapacityInputs: (savedCap={}, savedDaysOff={}) => {
-                const $c = $('#sprint-capacity-inputs').empty();
-                State.projectUsers.forEach(u => {
-                    const dOff = savedDaysOff[u.uid] || 0;
-                    const cap = savedCap[u.uid] || 0;
-                    $c.append(`<div class="grid grid-cols-12 gap-2 items-center bg-slate-50 dark:bg-slate-800 p-2 rounded text-xs user-row" data-uid="${u.uid}">
-                        <div class="col-span-5 font-bold truncate">${u.name}</div>
-                        <div class="col-span-3"><input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-slate-600 days-off-input" value="${dOff}" min="0" onchange="App.recalcAllCapacity()"></div>
-                        <div class="col-span-4"><input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-slate-600 bg-slate-100 dark:bg-slate-700 capacity-output" value="${cap}" readonly></div>
-                    </div>`);
-                });
-                App.recalcAllCapacity();
-            },
-            calcSprintDays: () => {
-                const s = new Date($('#new-sprint-start').val());
-                const e = new Date($('#new-sprint-end').val());
-                let count = 0;
-                if(s && e && s <= e) {
-                    let d = new Date(s);
-                    while (d <= e) { const day = d.getDay(); if(day!==0 && day!==6) count++; d.setDate(d.getDate()+1); }
+            // --- ADMIN: USERS & PROJECTS ---
+            showAdminSub: (s) => { 
+                $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${s}`).removeClass('hidden'); 
+                if(s==='users') App.loadAdminUsers();
+                if(s==='analytics') App.loadVelocityChart(); 
+                if(s==='projects') {
+                    App.loadMastersForForm(); // LOAD MASTERS HERE
+                    db.collection('projects').get().then(s => {
+                        $('#admin-project-list').empty();
+                        s.forEach(d => { const p=d.data(); $('#admin-project-list').append(`<div onclick="App.editProject('${d.id}','${p.name}','${p.description||''}','${p.scrumMaster||''}')" class="p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg cursor-pointer hover:border-brand-500 transition"><div class="font-bold text-sm">${p.name}</div></div>`); });
+                    });
                 }
-                $('#sprint-days-count').text(count);
-                App.sprintWorkDays = count;
-                App.recalcAllCapacity();
-            },
-            recalcAllCapacity: () => {
-                const hpp = parseFloat($('#calc-hours-point').val()) || 1;
-                const focus = (parseFloat($('#calc-focus').val()) || 100) / 100;
-                let total = 0;
-                $('.user-row').each(function() {
-                    const daysOff = parseFloat($(this).find('.days-off-input').val()) || 0;
-                    const effective = Math.max(0, App.sprintWorkDays - daysOff);
-                    const pts = Math.round((effective * 8 * focus / hpp) * 10) / 10;
-                    $(this).find('.capacity-output').val(pts);
-                    total += pts;
-                });
-                $('#total-sprint-capacity').text(total.toFixed(1));
             },
 
-            // --- PROJECT MANAGEMENT (Restored) ---
+            // Fetch Masters for Dropdown
+            loadMastersForForm: async () => {
+                const snap = await db.collection('users').where('role', 'in', ['master', 'superadmin']).get();
+                const $s = $('#edit-project-master').empty().append('<option value="">-- Select Master --</option>');
+                snap.forEach(d => $s.append(`<option value="${d.id}">${d.data().displayName}</option>`));
+            },
+
             saveProjectConfig: async () => {
                 const id = $('#edit-project-id').val();
                 const n = $('#edit-project-name').val();
+                const masterId = $('#edit-project-master').val();
+                
                 if (!n) return UI.toast("Name Required", "error");
                 UI.toggleLoader(true);
                 try {
                     const data = { 
                         name: n, 
                         description: $('#edit-project-desc').val(), 
-                        scrumMaster: $('#edit-project-master').val() 
+                        scrumMaster: masterId
                     };
+                    
+                    let projectId = id;
+
                     if (id) {
                         await db.collection('projects').doc(id).update(data);
                         UI.toast("Project Updated");
                     } else {
                         const ref = await db.collection('projects').add({...data, createdBy: State.user.uid});
-                        await db.collection('users').doc(State.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)});
+                        projectId = ref.id;
+                        // Auto-assign creator
+                        await db.collection('users').doc(State.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(projectId)});
                         UI.toast("Project Created");
                     }
-                    App.resetProjectForm();
-                    // Refresh if in admin view
-                    if($('#admin-project-list').is(':visible')) {
-                        db.collection('projects').get().then(s => {
-                            $('#admin-project-list').empty();
-                            s.forEach(d => {
-                                const p = d.data();
-                                $('#admin-project-list').append(`<div onclick="App.editProject('${d.id}','${p.name}','${p.description||''}','${p.scrumMaster||''}')" class="p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg cursor-pointer hover:border-brand-500 transition"><div class="font-bold text-sm">${p.name}</div></div>`);
-                            });
-                        });
+
+                    // Auto-Assign the selected Scrum Master to the project
+                    if (masterId) {
+                        await db.collection('users').doc(masterId).update({projects: firebase.firestore.FieldValue.arrayUnion(projectId)});
                     }
+
+                    App.resetProjectForm();
+                    // Refresh list
+                    db.collection('projects').get().then(s => {
+                        $('#admin-project-list').empty();
+                        s.forEach(d => { const p=d.data(); $('#admin-project-list').append(`<div onclick="App.editProject('${d.id}','${p.name}','${p.description||''}','${p.scrumMaster||''}')" class="p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg cursor-pointer hover:border-brand-500 transition"><div class="font-bold text-sm">${p.name}</div></div>`); });
+                    });
                 } catch(e) { UI.toast(e.message, 'error'); }
                 UI.toggleLoader(false);
             },
@@ -920,40 +857,132 @@
                     await db.collection('projects').doc(id).delete();
                     App.resetProjectForm();
                     UI.toast("Project Deleted");
+                    App.showAdminSub('projects'); // Refresh
                 }
             },
 
-            // --- ANALYTICS (Restored) ---
+            // --- NEW USER ACCESS MANAGEMENT ---
+            loadAdminUsers: () => setListener('users', db.collection('users').onSnapshot(s => {
+                $('#user-table-body').empty();
+                s.forEach(d => { 
+                    const u=d.data(); 
+                    const roleBadge = u.role==='dev'?'bg-slate-200 text-slate-700':u.role==='master'?'bg-brand-100 text-brand-700':'bg-purple-100 text-purple-700';
+                    $('#user-table-body').append(`
+                    <tr class="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="p-4 flex gap-3 items-center"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=32" class="rounded-full font-bold"> <span>${u.displayName}</span></td>
+                        <td class="p-4"><span class="text-xs uppercase font-bold px-2 py-1 rounded ${roleBadge}">${u.role}</span></td>
+                        <td class="p-4"><div class="flex flex-wrap gap-1">${(u.projects||[]).map(pid=>{const p=State.projects.find(x=>x.id===pid); return p?`<span class="bg-white border dark:bg-slate-700 dark:border-slate-600 px-1.5 rounded text-[10px]">${p.name}</span>`:'';}).join('')}</div></td>
+                        <td class="p-4 text-right"><button onclick="App.openAssignModal('${d.id}', '${u.displayName}', '${u.role}')" class="bg-white border hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:hover:bg-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">Manage</button></td>
+                    </tr>`); 
+                });
+            })),
+
+            openAssignModal: async (uid, name, role) => {
+                State.pendingAssignUser = uid;
+                $('#assign-modal-user').text(name);
+                $('#assign-role-select').val(role);
+                
+                // Fetch fresh user data to get current projects
+                const uDoc = await db.collection('users').doc(uid).get();
+                const uData = uDoc.data();
+                const userProjects = uData.projects || [];
+
+                // Load Projects with Checkboxes
+                const allProjects = await db.collection('projects').get();
+                const $list = $('#project-access-list').empty();
+                
+                allProjects.forEach(doc => {
+                    const p = doc.data();
+                    const isChecked = userProjects.includes(doc.id);
+                    $list.append(`
+                        <label class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
+                            <span class="font-medium text-sm text-slate-700 dark:text-slate-200">${p.name}</span>
+                            <input type="checkbox" class="w-5 h-5 rounded text-brand-600 focus:ring-brand-500 project-access-chk" value="${doc.id}" ${isChecked ? 'checked' : ''}>
+                        </label>
+                    `);
+                });
+                App.openModal('modal-assign-project');
+            },
+
+            saveUserAccess: async () => {
+                const uid = State.pendingAssignUser;
+                if(!uid) return;
+                
+                const newRole = $('#assign-role-select').val();
+                const selectedProjects = [];
+                $('.project-access-chk:checked').each(function() { selectedProjects.push($(this).val()); });
+
+                UI.toggleLoader(true);
+                try {
+                    await db.collection('users').doc(uid).update({
+                        role: newRole,
+                        projects: selectedProjects
+                    });
+                    UI.toast("Access Rights Updated");
+                    App.closeModal('modal-assign-project');
+                } catch(e) { UI.toast(e.message, 'error'); }
+                UI.toggleLoader(false);
+            },
+
+            // --- SPRINT & UTILS ---
+            editSprint: () => {
+                const s = State.sprintData;
+                $('#edit-sprint-id').val(s.id); $('#modal-sprint-title').text('Edit Sprint');
+                $('#new-sprint-name').val(s.name); $('#new-sprint-goal').val(s.goal);
+                $('#new-sprint-start').val(s.startDate); $('#new-sprint-end').val(s.endDate);
+                App.renderCapacityInputs(s.capacity, s.daysOffMap);
+                App.calcSprintDays();
+                App.openModal('modal-sprint');
+            },
+            renderCapacityInputs: (savedCap={}, savedDaysOff={}) => {
+                const $c = $('#sprint-capacity-inputs').empty();
+                State.projectUsers.forEach(u => {
+                    const dOff = savedDaysOff[u.uid] || 0;
+                    const cap = savedCap[u.uid] || 0;
+                    $c.append(`<div class="grid grid-cols-12 gap-2 items-center bg-slate-50 dark:bg-slate-800 p-2 rounded text-xs user-row" data-uid="${u.uid}"><div class="col-span-5 font-bold truncate">${u.name}</div><div class="col-span-3"><input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-slate-600 days-off-input" value="${dOff}" min="0" onchange="App.recalcAllCapacity()"></div><div class="col-span-4"><input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-slate-600 bg-slate-100 dark:bg-slate-700 capacity-output" value="${cap}" readonly></div></div>`);
+                });
+                App.recalcAllCapacity();
+            },
+            calcSprintDays: () => {
+                const s = new Date($('#new-sprint-start').val());
+                const e = new Date($('#new-sprint-end').val());
+                let count = 0;
+                if(s && e && s <= e) { let d = new Date(s); while (d <= e) { const day = d.getDay(); if(day!==0 && day!==6) count++; d.setDate(d.getDate()+1); } }
+                $('#sprint-days-count').text(count); App.sprintWorkDays = count; App.recalcAllCapacity();
+            },
+            recalcAllCapacity: () => {
+                const hpp = parseFloat($('#calc-hours-point').val()) || 1;
+                const focus = (parseFloat($('#calc-focus').val()) || 100) / 100;
+                let total = 0;
+                $('.user-row').each(function() {
+                    const daysOff = parseFloat($(this).find('.days-off-input').val()) || 0;
+                    const effective = Math.max(0, App.sprintWorkDays - daysOff);
+                    const pts = Math.round((effective * 8 * focus / hpp) * 10) / 10;
+                    $(this).find('.capacity-output').val(pts); total += pts;
+                });
+                $('#total-sprint-capacity').text(total.toFixed(1));
+            },
             openBurndown: () => {
                 App.openModal('modal-burndown');
-                const sd = State.sprintData;
-                if(!sd) return;
+                const sd = State.sprintData; if(!sd) return;
                 const start=new Date(sd.startDate); const end=new Date(sd.endDate);
                 const totalDays=Math.ceil((end-start)/(1000*60*60*24))+1;
                 const labels=[], idealData=[], actualData=[];
-                let totalPoints=0;
-                State.items.forEach(i=>{if(i.type!=='PBI')totalPoints+=(parseInt(i.points)||0)});
+                let totalPoints=0; State.items.forEach(i=>{if(i.type!=='PBI')totalPoints+=(parseInt(i.points)||0)});
                 const burnRate=totalPoints/(totalDays-1);
-                
                 for(let i=0;i<totalDays;i++){
-                    const d=new Date(start); d.setDate(start.getDate()+i);
-                    labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'}));
-                    let ideal=totalPoints-(burnRate*i);
-                    idealData.push(ideal<0?0:ideal);
-                    
+                    const d=new Date(start); d.setDate(start.getDate()+i); labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'}));
+                    let ideal=totalPoints-(burnRate*i); idealData.push(ideal<0?0:ideal);
                     if(d <= new Date() || i===0) {
-                         let remaining=totalPoints;
-                         const checkTime=d.setHours(23,59,59,999);
+                         let remaining=totalPoints; const checkTime=d.setHours(23,59,59,999);
                          State.items.forEach(item=>{if(item.status==='done'&&item.completedAt&&item.completedAt<=checkTime){remaining-=(parseInt(item.points)||0)}});
                          actualData.push(remaining);
                     }
                 }
-                
                 if(window.myChart)window.myChart.destroy();
                 const ctx=document.getElementById('burndownChart').getContext('2d');
                 window.myChart=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'Ideal',data:idealData,borderColor:'#94a3b8',borderDash:[5,5],fill:false},{label:'Actual',data:actualData,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.2)',fill:true,tension:0.1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}});
             },
-            
             loadVelocityChart: async () => {
                 if(!State.projectId) return;
                 const sprints = await db.collection('sprints').where('projectId','==',State.projectId).where('status','==','completed').orderBy('createdAt','asc').limitToLast(5).get();
@@ -961,57 +990,32 @@
                 for(const doc of sprints.docs){
                     const s=doc.data(); labels.push(s.name);
                     const items=await db.collection('items').where('sprintId','==',doc.id).where('status','==','done').get();
-                    let pts=0; items.forEach(i=>pts+=(parseInt(i.data().points)||0));
-                    data.push(pts);
+                    let pts=0; items.forEach(i=>pts+=(parseInt(i.data().points)||0)); data.push(pts);
                 }
                 if(window.velChart) window.velChart.destroy();
                 const ctx=document.getElementById('velocityChart').getContext('2d');
                 window.velChart=new Chart(ctx, {type:'bar',data:{labels:labels,datasets:[{label:'Points Completed',data:data,backgroundColor:'rgba(99,102,241,0.8)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}});
             },
-
-            // --- DETAILS & COMMENTS ---
             openDetailModal: (id) => {
-                State.detailId = id;
-                App.switchModalTab('details');
+                State.detailId = id; App.switchModalTab('details');
                 db.collection('items').doc(id).onSnapshot(doc => {
                     if(!doc.exists) return App.closeModal('modal-details');
-                    const d = doc.data();
-                    $('#detail-title').val(d.title);
-                    window.quill.root.innerHTML = d.description || '';
-                    $('#detail-points').val(d.points||0);
-                    $('#detail-priority').val(d.priority||'low');
-                    $('#detail-assignee').val((State.projectUsers.find(u=>u.name===d.assignee)||{}).uid || "");
-                    
-                    $('#subtask-list').empty();
-                    (d.subtasks||[]).forEach((t,i) => $('#subtask-list').append(`<div class="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/50 rounded"><input type="checkbox" ${t.done?'checked':''} onchange="App.togSub(${i},${t.done})" class="text-brand-600"> <span class="${t.done?'line-through text-slate-400':''} flex-grow text-sm">${t.text}</span> <button onclick="App.delSub(${i})" class="text-slate-400 hover:text-red-500">&times;</button></div>`));
-
-                    $('#comments-list').empty();
-                    (d.comments||[]).forEach(c => $('#comments-list').append(`<div class="w-fit max-w-[85%] ${c.uid===State.user.uid?'ml-auto bg-brand-50 dark:bg-brand-900/20 text-brand-900 dark:text-brand-100':'mr-auto bg-white border dark:bg-slate-700'} p-3 rounded-lg shadow-sm"><div class="text-[10px] font-bold opacity-70 mb-1 flex justify-between gap-4"><span>${c.user}</span><span>${new Date(c.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><div>${c.text}</div></div>`));
-                    
-                    $('#tab-content-activity').empty();
-                    (d.history||[]).reverse().forEach(h => $('#tab-content-activity').append(`<div class="flex gap-3 text-sm text-slate-600 dark:text-slate-300"><div class="mt-1 text-slate-400"><i class="fa-solid fa-clock-rotate-left"></i></div><div><span class="font-bold">${h.user}</span> <span class="text-slate-500 text-xs">${new Date(h.at).toLocaleString()}</span><div class="text-sm">${h.action}</div></div></div>`));
+                    const d = doc.data(); $('#detail-title').val(d.title); window.quill.root.innerHTML = d.description || ''; $('#detail-points').val(d.points||0); $('#detail-priority').val(d.priority||'low'); $('#detail-assignee').val((State.projectUsers.find(u=>u.name===d.assignee)||{}).uid || "");
+                    $('#subtask-list').empty(); (d.subtasks||[]).forEach((t,i) => $('#subtask-list').append(`<div class="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/50 rounded"><input type="checkbox" ${t.done?'checked':''} onchange="App.togSub(${i},${t.done})" class="text-brand-600"> <span class="${t.done?'line-through text-slate-400':''} flex-grow text-sm">${t.text}</span> <button onclick="App.delSub(${i})" class="text-slate-400 hover:text-red-500">&times;</button></div>`));
+                    $('#comments-list').empty(); (d.comments||[]).forEach(c => $('#comments-list').append(`<div class="w-fit max-w-[85%] ${c.uid===State.user.uid?'ml-auto bg-brand-50 dark:bg-brand-900/20 text-brand-900 dark:text-brand-100':'mr-auto bg-white border dark:bg-slate-700'} p-3 rounded-lg shadow-sm"><div class="text-[10px] font-bold opacity-70 mb-1 flex justify-between gap-4"><span>${c.user}</span><span>${new Date(c.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><div>${c.text}</div></div>`));
+                    $('#tab-content-activity').empty(); (d.history||[]).reverse().forEach(h => $('#tab-content-activity').append(`<div class="flex gap-3 text-sm text-slate-600 dark:text-slate-300"><div class="mt-1 text-slate-400"><i class="fa-solid fa-clock-rotate-left"></i></div><div><span class="font-bold">${h.user}</span> <span class="text-slate-500 text-xs">${new Date(h.at).toLocaleString()}</span><div class="text-sm">${h.action}</div></div></div>`));
                     App.openModal('modal-details');
                 });
             },
             saveDetails: async () => {
                 const uid = $('#detail-assignee').val();
-                const updates = { 
-                    title: $('#detail-title').val(), description: window.quill.root.innerHTML, 
-                    points: parseInt($('#detail-points').val())||0, priority: $('#detail-priority').val(),
-                    assignee: uid ? $('#detail-assignee option:selected').text() : '', assigneeUid: uid
-                };
-                await db.collection('items').doc(State.detailId).update(updates);
-                App.closeModal('modal-details'); UI.toast("Saved");
+                const updates = { title: $('#detail-title').val(), description: window.quill.root.innerHTML, points: parseInt($('#detail-points').val())||0, priority: $('#detail-priority').val(), assignee: uid ? $('#detail-assignee option:selected').text() : '', assigneeUid: uid };
+                await db.collection('items').doc(State.detailId).update(updates); App.closeModal('modal-details'); UI.toast("Saved");
             },
-            addComment: async () => {
-                const t = $('#new-comment').val().trim();
-                if(t) { await db.collection('items').doc(State.detailId).update({ comments: firebase.firestore.FieldValue.arrayUnion({text:t, user:State.user.displayName, uid:State.user.uid, at: Date.now()}) }); $('#new-comment').val(''); }
-            },
+            addComment: async () => { const t = $('#new-comment').val().trim(); if(t) { await db.collection('items').doc(State.detailId).update({ comments: firebase.firestore.FieldValue.arrayUnion({text:t, user:State.user.displayName, uid:State.user.uid, at: Date.now()}) }); $('#new-comment').val(''); } },
             addSubtask: async () => { const t=$('#new-subtask').val().trim(); if(t){ await db.collection('items').doc(State.detailId).update({subtasks:firebase.firestore.FieldValue.arrayUnion({text:t,done:false})}); $('#new-subtask').val(''); } },
             togSub: async (i,o) => { const r=db.collection('items').doc(State.detailId); const d=(await r.get()).data(); d.subtasks[i].done=!o; r.update({subtasks:d.subtasks}); },
             delSub: async (i) => { const r=db.collection('items').doc(State.detailId); const d=(await r.get()).data(); d.subtasks.splice(i,1); r.update({subtasks:d.subtasks}); },
-            
-            // --- MISC ---
             loadRetro: () => setListener('retro', db.collection('retro').where('projectId','==',State.projectId).onSnapshot(s => {
                 $('#retro-start, #retro-stop, #retro-continue').empty();
                 s.forEach(d => { const dt=d.data(); const v=dt.votedBy||[]; const iv=v.includes(State.user.uid); $(`#retro-${dt.type}`).append(`<div class="bg-white dark:bg-darkcard p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm mb-3"><p class="text-sm mb-3">${dt.text}</p><div class="flex justify-between items-center border-t border-slate-50 dark:border-slate-800 pt-2"><button onclick="App.voteRetro('${d.id}',${iv})" class="text-xs px-2 py-1 rounded transition ${iv?'text-brand-600 bg-brand-50 font-bold':'text-slate-400'}"><i class="${iv?'fa-solid':'fa-regular'} fa-thumbs-up"></i> ${v.length||''}</button>${(dt.uid===State.user.uid)?`<button onclick="App.delRetro('${d.id}')" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>`:''}</div></div>`); });
@@ -1019,44 +1023,19 @@
             voteRetro: (id,u) => db.collection('retro').doc(id).update({votedBy: u?firebase.firestore.FieldValue.arrayRemove(State.user.uid):firebase.firestore.FieldValue.arrayUnion(State.user.uid)}),
             delRetro: (id) => confirm("Delete note?") && db.collection('retro').doc(id).delete(),
             addRetro: (t) => { const tx=$(`#input-retro-${t}`).val().trim(); if(tx){ db.collection('retro').add({projectId:State.projectId, type:t, text:tx, uid:$('#retro-anon').is(':checked')?'anon':State.user.uid, votedBy:[], createdAt:Date.now()}); $(`#input-retro-${t}`).val(''); } },
-            
             listenNotifications: () => {
                 if(!State.user) return;
                 setListener('notifs', db.collection('notifications').where('recipientId','==',State.user.uid).orderBy('createdAt','desc').limit(10).onSnapshot(s => {
-                    const $l = $('#notif-list').empty();
-                    let u = 0;
-                    if(s.empty) $l.append('<div class="p-4 text-center text-slate-400 text-sm">No notifications</div>');
+                    const $l = $('#notif-list').empty(); let u = 0; if(s.empty) $l.append('<div class="p-4 text-center text-slate-400 text-sm">No notifications</div>');
                     s.forEach(d => { const n=d.data(); if(!n.read) u++; $l.append(`<div onclick="db.collection('notifications').doc('${d.id}').update({read:true})" class="p-3 border-b dark:border-slate-700 cursor-pointer ${n.read?'bg-white dark:bg-darkcard opacity-70':'bg-brand-50 dark:bg-brand-900/20'}"><div class="text-sm">${n.message}</div></div>`); });
                     u>0 ? $('#notif-dot').removeClass('hidden') : $('#notif-dot').addClass('hidden');
                 }));
             },
-            
-            // Auth / Init
             login: () => { UI.toggleLoader(true); auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => { UI.toggleLoader(false); UI.toast(e.message, 'error'); }); },
             logout: () => auth.signOut().then(() => location.reload()),
-            
-            // Required placeholders for modal calls from HTML
             openItemModal: async (t) => { if(!State.projectId) return; const tx=prompt("Title:"); if(tx) db.collection('items').add({title:tx, type:t, status:'todo', projectId:State.projectId, sprintId:State.sprintId, points:0, createdAt:Date.now(), assignee:''}); },
-            showAdminSub: (s) => { 
-                $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${s}`).removeClass('hidden'); 
-                if(s==='users') App.loadAdminUsers();
-                if(s==='analytics') App.loadVelocityChart(); 
-                if(s==='projects') {
-                    db.collection('projects').get().then(s => {
-                        $('#admin-project-list').empty();
-                        s.forEach(d => { const p=d.data(); $('#admin-project-list').append(`<div onclick="App.editProject('${d.id}','${p.name}','${p.description||''}','${p.scrumMaster||''}')" class="p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg cursor-pointer hover:border-brand-500 transition"><div class="font-bold text-sm">${p.name}</div></div>`); });
-                    });
-                }
-            },
-            loadAdminUsers: () => setListener('users', db.collection('users').onSnapshot(s => {
-                $('#user-table-body').empty();
-                s.forEach(d => { const u=d.data(); $('#user-table-body').append(`<tr class="border-b dark:border-slate-700"><td class="p-4 flex gap-2 items-center"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=24" class="rounded-full">${u.displayName}</td><td class="p-4">${u.role}</td><td class="p-4 text-right"><button onclick="App.changeUserRole('${d.id}', 'dev')" class="text-xs text-blue-500">Make Dev</button> <button onclick="App.changeUserRole('${d.id}', 'master')" class="text-xs text-green-500">Make Master</button></td></tr>`); });
-            })),
-            changeUserRole: (id,r) => db.collection('users').doc(id).update({role:r}),
-            switchTab: (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); if(id==='admin') App.loadAdminUsers(); },
+            switchTab: (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); if(id==='admin') App.showAdminSub('users'); },
             markAllRead: async () => { const s=await db.collection('notifications').where('recipientId','==',State.user.uid).where('read','==',false).get(); const b=db.batch(); s.forEach(d=>b.update(d.ref,{read:true})); await b.commit(); },
-            
-            // --- MODAL UTILS ---
             openModal: (id) => $(`#${id}`).removeClass('hidden'),
             closeModal: (id) => $(`#${id}`).addClass('hidden'),
             switchModalTab: (t) => { $('.modal-tab').removeClass('active'); $(`#tab-btn-${t}`).addClass('active'); $('#tab-content-details, #tab-content-activity').addClass('hidden'); $(`#tab-content-${t}`).removeClass('hidden'); }
@@ -1064,31 +1043,22 @@
 
         window.App = App;
 
-        // Auth Listener
+        // AUTH & INIT
         auth.onAuthStateChanged(async u => {
             if (u) {
                 const doc = await db.collection('users').doc(u.uid).get();
                 if (!doc.exists) { await db.collection('users').doc(u.uid).set({ displayName:u.displayName, email:u.email, role:'dev', projects:[], createdAt:Date.now() }); State.user={uid:u.uid, role:'dev', displayName:u.displayName}; }
                 else { State.user = { uid: u.uid, ...doc.data() }; }
-                
-                $('#login-screen').fadeOut();
-                $('#user-display').text(State.user.displayName);
-                UI.updateRoleUI();
-                App.init();
-                UI.toggleLoader(false);
-            } else {
-                $('#login-screen').fadeIn();
-                UI.toggleLoader(false);
-            }
+                $('#login-screen').fadeOut(); $('#user-display').text(State.user.displayName); UI.updateRoleUI(); App.init(); UI.toggleLoader(false);
+            } else { $('#login-screen').fadeIn(); UI.toggleLoader(false); }
         });
 
-        // Event bindings
+        // BINDINGS
         $('#btn-login').click(App.login);
         $('#btn-logout').click(App.logout);
         $('#btn-notifs').click((e) => { e.stopPropagation(); $('#notif-dropdown').toggleClass('hidden'); });
         $(document).click(() => $('#notif-dropdown').addClass('hidden'));
         $('#notif-dropdown').click(e => e.stopPropagation());
-        
         $('#btn-save-details').click(App.saveDetails);
         $('#btn-create-sprint').click(async () => {
             const n=$('#new-sprint-name').val(), g=$('#new-sprint-goal').val(), s=$('#new-sprint-start').val(), e=$('#new-sprint-end').val(), id=$('#edit-sprint-id').val();
@@ -1096,21 +1066,13 @@
             const d = {name:n, goal:g, startDate:s, endDate:e, projectId:State.projectId, capacity:cap, daysOffMap:off};
             try { id ? await db.collection('sprints').doc(id).update(d) : await db.collection('sprints').add({...d, status:'active', createdAt:Date.now()}); App.closeModal('modal-sprint'); UI.toast("Sprint Saved"); } catch(e){ UI.toast(e.message,'error'); }
         });
-
-        $('#btn-new-sprint-modal').click(() => { 
-            if(!State.projectId) return; 
-            $('#edit-sprint-id').val(''); $('#modal-sprint-title').text('New Sprint'); 
-            App.renderCapacityInputs(); App.openModal('modal-sprint'); 
-        });
-        
+        $('#btn-new-sprint-modal').click(() => { if(!State.projectId) return; $('#edit-sprint-id').val(''); $('#modal-sprint-title').text('New Sprint'); App.renderCapacityInputs(); App.openModal('modal-sprint'); });
         $('#btn-open-burndown').click(App.openBurndown);
-        
         $('#btn-confirm-dod').click(() => { App.updateStatus(State.pendingItem, 'done'); App.closeModal('modal-dod'); confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); UI.toast("Done! 🎉"); });
         $('.dod-check').change(() => { const all=$('.dod-check:checked').length===3; $('#btn-confirm-dod').prop('disabled',!all).toggleClass('opacity-50',!all); });
-        
+        $('#btn-save-access').click(App.saveUserAccess); // NEW
         $('#theme-toggle').click(() => { $('html').toggleClass('dark'); localStorage.theme = $('html').hasClass('dark')?'dark':'light'; });
         if(localStorage.theme==='dark' || (!('theme'in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) $('html').addClass('dark');
-
     </script>
 </body>
 </html>
