@@ -519,9 +519,8 @@
         </div>
     </div>
 
-    <script>
+<script>
         // --- CONFIGURATION ---
-        // !!! REPLACE WITH YOUR FIREBASE CONFIG !!!
         const firebaseConfig = { 
             apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k", 
             authDomain: "agile-works-ba545.firebaseapp.com", 
@@ -535,17 +534,10 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // --- LISTENER MANAGER (Prevents Memory Leaks) ---
-        const listeners = {
-            sprint: null,
-            items: null,
-            retro: null,
-            notifs: null,
-            users: null
-        };
-
+        // --- LISTENER MANAGER ---
+        const listeners = { sprint: null, items: null, retro: null, notifs: null, users: null };
         function setListener(key, unsubscribeFunc) {
-            if (listeners[key]) listeners[key](); // Unsubscribe previous
+            if (listeners[key]) listeners[key]();
             listeners[key] = unsubscribeFunc;
         }
 
@@ -557,6 +549,7 @@
             projects: [],
             projectUsers: [],
             sprintData: null,
+            sprintMap: {}, // Added this to store all sprints
             items: [],
             detailId: null,
             pendingAssignUser: null,
@@ -567,28 +560,19 @@
         const UI = {
             toast: (msg, type='success') => {
                 const color = type === 'error' ? 'bg-red-500' : 'bg-emerald-600';
-                const icon = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check';
                 const id = Date.now();
-                const html = `
-                    <div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-xl shadow-lg shadow-${type==='error'?'red':'emerald'}/30 flex items-center gap-3 min-w-[300px] border border-white/10">
-                        <i class="fa-solid ${icon}"></i> <span class="font-medium text-sm">${msg}</span>
-                    </div>`;
-                $('#toast-container').append(html);
+                $('#toast-container').append(`<div id="t-${id}" class="toast-enter ${color} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[300px]"><span class="font-medium text-sm">${msg}</span></div>`);
                 setTimeout(() => $(`#t-${id}`).removeClass('toast-enter').addClass('toast-active'), 10);
                 setTimeout(() => { $(`#t-${id}`).removeClass('toast-active').addClass('toast-enter'); setTimeout(() => $(`#t-${id}`).remove(), 300) }, 3000);
             },
-            toggleLoader: (show) => {
-                show ? $('#global-loader').removeClass('hidden') : $('#global-loader').addClass('hidden');
-            },
+            toggleLoader: (show) => show ? $('#global-loader').removeClass('hidden') : $('#global-loader').addClass('hidden'),
             updateRoleUI: () => {
                 if(!State.user) return;
                 const r = State.user.role;
                 $('#role-badge').text(r).removeClass().addClass('text-[10px] uppercase tracking-wider text-white px-2 py-0.5 rounded-full inline-block font-bold shadow-sm ' + 
                     (r==='superadmin' ? 'bg-purple-600' : r==='master' ? 'bg-brand-600' : 'bg-slate-400'));
-                
                 if (r !== 'dev') {
-                    $('.role-admin').removeClass('hidden');
-                    $('.role-master').removeClass('hidden');
+                    $('.role-admin, .role-master').removeClass('hidden');
                     if (r === 'superadmin') $('#admin-create-project, #admin-setup-cta').removeClass('hidden');
                 } else {
                     $('.role-admin, .role-master').addClass('hidden');
@@ -599,26 +583,22 @@
         // --- CORE LOGIC ---
         const App = {
             init: async () => {
-                // Quill Setup
                 window.quill = new Quill('#quill-editor', { 
-                    theme: 'snow', 
-                    placeholder: 'Task description...',
+                    theme: 'snow', placeholder: 'Task description...',
                     modules: { toolbar: [['bold', 'italic', 'underline', 'strike'], [{'list':'ordered'}, {'list':'bullet'}], ['clean']] } 
                 });
 
-                // Event Listeners
                 $('#project-select').change(function() { State.projectId = $(this).val(); App.loadProjectData(); });
-                $('#sprint-select').change(function() { State.sprintId = $(this).val(); App.loadSprintData(); });
+                // Fixed: Now calling the function defined below
+                $('#sprint-select').change(function() { App.loadSprintData($(this).val()); });
                 $('#view-mode').change(() => App.renderBoard());
                 
-                // Debounced Search
                 let searchTimeout;
                 $('#board-search').on('keyup', function() {
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(() => App.renderBoard(), 300);
                 });
 
-                // Listen for Notifs
                 App.listenNotifications();
                 App.loadProjects();
             },
@@ -654,22 +634,22 @@
                 if (!State.projectId) return;
                 $('#no-project-state').addClass('hidden');
                 
-                // Load Users for this project (for assignments)
-                try {
-                    const uSnap = await db.collection('users').where('projects', 'array-contains', State.projectId).get();
-                    State.projectUsers = [];
-                    const $uSel = $('#detail-assignee').empty().append('<option value="">Unassigned</option>');
-                    uSnap.forEach(doc => {
-                        const u = doc.data();
-                        State.projectUsers.push({ uid: doc.id, name: u.displayName, avatar: u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}` });
-                        $uSel.append(`<option value="${doc.id}">${u.displayName}</option>`);
-                    });
-                } catch(e) { console.log("User load error", e); }
+                // Load Users
+                const uSnap = await db.collection('users').where('projects', 'array-contains', State.projectId).get();
+                State.projectUsers = [];
+                const $uSel = $('#detail-assignee').empty().append('<option value="">Unassigned</option>');
+                uSnap.forEach(doc => {
+                    const u = doc.data();
+                    State.projectUsers.push({ uid: doc.id, name: u.displayName });
+                    $uSel.append(`<option value="${doc.id}">${u.displayName}</option>`);
+                });
 
-                // Load Sprints Listener
+                // Load Sprints
                 setListener('sprint', db.collection('sprints').where('projectId', '==', State.projectId).orderBy('createdAt', 'desc')
                     .onSnapshot(snap => {
                         const $sel = $('#sprint-select').empty();
+                        State.sprintMap = {}; // Reset map
+
                         if (snap.empty) {
                             $sel.append('<option value="">No Sprints</option>');
                             $('#sprint-info-banner').addClass('hidden');
@@ -678,30 +658,44 @@
                         }
 
                         let activeId = null;
-                        const sprintMap = {};
-                        
                         snap.forEach(doc => {
                             const s = doc.data();
                             if (s.status !== 'completed') {
                                 $sel.append(`<option value="${doc.id}">${s.name}</option>`);
                                 if (!activeId) activeId = doc.id;
                             }
-                            sprintMap[doc.id] = { id: doc.id, ...s };
+                            // Store in global state map
+                            State.sprintMap[doc.id] = { id: doc.id, ...s };
                         });
 
-                        // Keep selection if valid, else switch
-                        if (!State.sprintId || !sprintMap[State.sprintId]) State.sprintId = activeId;
-                        
+                        // Decide which sprint to show
+                        const currentVal = State.sprintId;
+                        if (!currentVal || !State.sprintMap[currentVal]) {
+                            State.sprintId = activeId;
+                        }
+
                         if (State.sprintId) {
                             $sel.val(State.sprintId);
-                            State.sprintData = sprintMap[State.sprintId];
-                            App.updateSprintUI();
-                            App.loadSprintItems(); // Load tasks
+                            // Manually trigger the data load for the selected sprint
+                            App.loadSprintData(State.sprintId);
                         }
                     })
                 );
-                
                 App.loadRetro();
+            },
+
+            // --- THIS WAS THE MISSING FUNCTION ---
+            loadSprintData: (sprintId) => {
+                if (!sprintId || !State.sprintMap[sprintId]) return;
+                
+                State.sprintId = sprintId;
+                State.sprintData = State.sprintMap[sprintId];
+                
+                // 1. Update the Banner UI (Goal, Dates, Capacity Bar)
+                App.updateSprintUI();
+                
+                // 2. Fetch the tasks for this specific sprint
+                App.loadSprintItems();
             },
 
             updateSprintUI: () => {
@@ -716,7 +710,7 @@
                 $('#banner-dates').text(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
                 
                 const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
-                $('#banner-days').text(diff > 0 ? diff : 0).parent().removeClass('text-red-300').addClass(diff < 3 ? 'text-red-300' : 'text-brand-100');
+                $('#banner-days').text(diff > 0 ? diff : 0);
 
                 if (State.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
             },
@@ -741,24 +735,21 @@
                 const $area = $('#kanban-area').empty();
                 $('#pbi-list').empty();
 
-                // Capacity Calc
                 let totalLoad = 0;
                 let totalCap = 0;
                 if (State.sprintData && State.sprintData.capacity) {
                     Object.values(State.sprintData.capacity).forEach(v => totalCap += parseInt(v||0));
                 }
 
-                const visibleItems = State.items.filter(i => !filter || (i.title+i.assignee).toLowerCase().includes(filter));
+                const visibleItems = State.items.filter(i => !filter || (i.title+(i.assignee||'')).toLowerCase().includes(filter));
 
-                // Render PBI (Backlog)
-                visibleItems.filter(i => i.type === 'PBI').forEach(i => {
-                    $('#pbi-list').append(App.createCard(i));
-                });
+                // Backlog
+                visibleItems.filter(i => i.type === 'PBI').forEach(i => $('#pbi-list').append(App.createCard(i)));
 
+                // Main Tasks
                 const tasks = visibleItems.filter(i => i.type !== 'PBI');
                 tasks.forEach(t => totalLoad += (parseInt(t.points) || 0));
 
-                // Update Capacity Bar
                 $('#capacity-text').text(`${totalLoad} / ${totalCap} pts`);
                 const pct = totalCap > 0 ? (totalLoad/totalCap)*100 : 0;
                 $('#capacity-bar').css('width', `${Math.min(pct,100)}%`)
@@ -769,73 +760,54 @@
                     const cols = { todo: [], doing: [], done: [] };
                     tasks.forEach(t => { if(cols[t.status]) cols[t.status].push(t); });
 
-                    const colHtml = (id, title, color, items) => `
-                        <div class="flex flex-col h-full bg-slate-100 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                            <div class="p-3 border-b dark:border-slate-700 font-bold text-xs uppercase text-slate-500 tracking-wider bg-slate-50 dark:bg-slate-800 flex justify-between items-center sticky top-0 z-10">
-                                <span class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-${color}-500"></div> ${title}</span>
-                                <span class="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px]">${items.length}</span>
-                            </div>
-                            <div class="kanban-col flex-grow overflow-y-auto p-2 space-y-2 custom-scroll" id="col-${id}" data-status="${id}">
-                                ${items.map(i => App.createCard(i)).join('')}
-                            </div>
-                        </div>`;
-
-                    $area.html(`
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-                            ${colHtml('todo', 'To Do', 'slate', cols.todo)}
-                            ${colHtml('doing', 'In Progress', 'blue', cols.doing)}
-                            ${colHtml('done', 'Done', 'emerald', cols.done)}
-                        </div>
-                    `);
-
-                    ['todo','doing','done'].forEach(s => {
-                        new Sortable(document.getElementById(`col-${s}`), { 
-                            group: 'kanban', animation: 150, delay: 100, delayOnTouchOnly: true, ghostClass: 'sortable-ghost',
-                            onEnd: (evt) => {
-                                const id = evt.item.dataset.id;
-                                const status = evt.to.dataset.status;
-                                if(id && status) App.updateStatus(id, status);
-                            }
+                    ['todo','doing','done'].forEach(k => {
+                        const title = k==='todo'?'To Do':k==='doing'?'Doing':'Done';
+                        const color = k==='todo'?'slate':k==='doing'?'blue':'emerald';
+                        $area.append(`
+                            <div class="flex flex-col h-full bg-slate-100 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                <div class="p-3 border-b dark:border-slate-700 font-bold text-xs uppercase text-slate-500 bg-slate-50 dark:bg-slate-800 flex justify-between">
+                                    <span>${title}</span><span class="bg-slate-200 dark:bg-slate-700 px-2 rounded text-[10px]">${cols[k].length}</span>
+                                </div>
+                                <div class="kanban-col flex-grow overflow-y-auto p-2 space-y-2 custom-scroll" id="col-${k}" data-status="${k}">
+                                    ${cols[k].map(i => App.createCard(i)).join('')}
+                                </div>
+                            </div>`);
+                        
+                        new Sortable(document.getElementById(`col-${k}`), { 
+                            group: 'kanban', animation: 150, ghostClass: 'sortable-ghost',
+                            onEnd: (evt) => App.updateStatus(evt.item.dataset.id, evt.to.dataset.status)
                         });
                     });
+                    $area.addClass('grid grid-cols-1 md:grid-cols-3 gap-4'); // Ensure grid layout
                 } else {
-                    // Swimlanes
-                    $area.addClass('overflow-y-auto custom-scroll pr-2 space-y-4');
+                    $area.removeClass('grid grid-cols-1 md:grid-cols-3 gap-4').addClass('overflow-y-auto custom-scroll pr-2 space-y-4');
                     const assignees = [...new Set(tasks.map(t => t.assignee || "Unassigned"))].sort();
                     
                     assignees.forEach(user => {
                         const uTasks = tasks.filter(t => (t.assignee || "Unassigned") === user);
+                        const uidRaw = user.replace(/[^a-zA-Z0-9]/g,'');
                         const uObj = State.projectUsers.find(u => u.name === user);
-                        const avatar = uObj ? `https://ui-avatars.com/api/?name=${user}&size=24` : `https://ui-avatars.com/api/?name=U&size=24`;
-                        
                         let capHtml = '';
                         if (uObj && State.sprintData.capacity && State.sprintData.capacity[uObj.uid]) {
                             const cap = parseInt(State.sprintData.capacity[uObj.uid]);
                             let load = 0; uTasks.forEach(t => load += (parseInt(t.points)||0));
-                            const cls = load > cap ? "text-red-500 font-bold" : "text-slate-400";
-                            capHtml = `<span class="ml-auto text-xs ${cls}">Load: ${load}/${cap}</span>`;
+                            capHtml = `<span class="ml-auto text-xs ${load>cap?'text-red-500 font-bold':'text-slate-400'}">Load: ${load}/${cap}</span>`;
                         }
 
                         $area.append(`
                             <div class="bg-white dark:bg-darkcard border dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
                                 <div class="p-2 bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700 flex items-center gap-3">
-                                    <img src="${avatar}" class="w-6 h-6 rounded-full">
-                                    <span class="font-bold text-sm">${user}</span>
-                                    <span class="text-xs text-slate-400">(${uTasks.length} tasks)</span>
-                                    ${capHtml}
+                                    <span class="font-bold text-sm">${user}</span> <span class="text-xs text-slate-400">(${uTasks.length})</span> ${capHtml}
                                 </div>
                                 <div class="grid grid-cols-3 divide-x dark:divide-slate-700 min-h-[100px]">
-                                    <div class="p-2 space-y-2 bg-slate-50/20 kanban-col" id="sl-${user.replace(/\s/g,'')}-todo" data-status="todo">${uTasks.filter(t=>t.status==='todo').map(i=>App.createCard(i)).join('')}</div>
-                                    <div class="p-2 space-y-2 bg-blue-50/10 kanban-col" id="sl-${user.replace(/\s/g,'')}-doing" data-status="doing">${uTasks.filter(t=>t.status==='doing').map(i=>App.createCard(i)).join('')}</div>
-                                    <div class="p-2 space-y-2 bg-emerald-50/10 kanban-col" id="sl-${user.replace(/\s/g,'')}-done" data-status="done">${uTasks.filter(t=>t.status==='done').map(i=>App.createCard(i)).join('')}</div>
+                                    <div class="p-2 space-y-2 bg-slate-50/20 kanban-col" id="sl-${uidRaw}-todo" data-status="todo">${uTasks.filter(t=>t.status==='todo').map(i=>App.createCard(i)).join('')}</div>
+                                    <div class="p-2 space-y-2 bg-blue-50/10 kanban-col" id="sl-${uidRaw}-doing" data-status="doing">${uTasks.filter(t=>t.status==='doing').map(i=>App.createCard(i)).join('')}</div>
+                                    <div class="p-2 space-y-2 bg-emerald-50/10 kanban-col" id="sl-${uidRaw}-done" data-status="done">${uTasks.filter(t=>t.status==='done').map(i=>App.createCard(i)).join('')}</div>
                                 </div>
-                            </div>
-                        `);
+                            </div>`);
                         
-                        // Attach sortables for swimlanes
                         ['todo','doing','done'].forEach(s => {
-                            const el = document.getElementById(`sl-${user.replace(/\s/g,'')}-${s}`);
-                            if(el) new Sortable(el, { group: 'kanban', animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { App.updateStatus(evt.item.dataset.id, evt.to.dataset.status); }});
+                            new Sortable(document.getElementById(`sl-${uidRaw}-${s}`), { group: 'kanban', animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => App.updateStatus(evt.item.dataset.id, evt.to.dataset.status) });
                         });
                     });
                 }
@@ -845,212 +817,82 @@
                 const uObj = State.projectUsers.find(u => u.name === i.assignee);
                 const avatar = uObj ? `https://ui-avatars.com/api/?name=${i.assignee}&size=24` : `https://ui-avatars.com/api/?name=U&size=24`;
                 const border = i.status === 'done' ? 'border-l-emerald-500' : i.status === 'doing' ? 'border-l-blue-500' : 'border-l-slate-400';
-                
-                let badge = '';
-                if (i.priority === 'high') badge = `<span class="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">High</span>`;
-                else if (i.priority === 'medium') badge = `<span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">Med</span>`;
+                let btns = i.type==='PBI' ? `<button onclick="App.promotePBI('${i.id}');event.stopPropagation()" class="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded font-bold hover:bg-brand-100">Add</button>` : 
+                           i.status==='todo' ? `<button onclick="App.updateStatus('${i.id}','doing');event.stopPropagation()" class="text-slate-400 hover:text-blue-600"><i class="fa-solid fa-play"></i></button>` :
+                           i.status==='doing' ? `<button onclick="App.checkDoD('${i.id}');event.stopPropagation()" class="text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-check"></i></button>` : '';
 
-                let btns = '';
-                if (i.type === 'PBI') {
-                    btns = `<button onclick="App.promotePBI('${i.id}'); event.stopPropagation()" class="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded font-bold hover:bg-brand-100">Add to Sprint</button>`;
-                } else if (i.status === 'todo') {
-                    btns = `<button onclick="App.updateStatus('${i.id}', 'doing'); event.stopPropagation()" class="text-slate-400 hover:text-blue-600"><i class="fa-solid fa-play"></i></button>`;
-                } else if (i.status === 'doing') {
-                    btns = `<button onclick="App.checkDoD('${i.id}'); event.stopPropagation()" class="text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-check"></i></button>`;
-                }
-
-                return `
-                <div data-id="${i.id}" onclick="App.openDetailModal('${i.id}')" class="bg-white dark:bg-darkcard p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 border-l-4 ${border} group hover:shadow-md transition-all cursor-grab active:cursor-grabbing relative">
-                    <div class="flex justify-between items-start mb-2 gap-2">
-                        <span class="font-semibold text-sm text-slate-800 dark:text-slate-200 line-clamp-2 leading-tight">${i.title}</span>
-                        ${badge}
-                    </div>
-                    <div class="flex justify-between items-center mt-3 pt-2 border-t dark:border-slate-700/50">
-                        <div class="flex items-center gap-2">
-                            <img src="${avatar}" class="w-5 h-5 rounded-full ring-2 ring-white dark:ring-slate-700">
-                            <span class="text-xs font-mono bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-1.5 py-0.5 rounded">${i.points||'-'}</span>
-                        </div>
-                        <div class="flex gap-2">${btns}</div>
-                    </div>
+                return `<div data-id="${i.id}" onclick="App.openDetailModal('${i.id}')" class="bg-white dark:bg-darkcard p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 border-l-4 ${border} group hover:shadow-md transition cursor-pointer">
+                    <div class="flex justify-between items-start mb-2 gap-2"><span class="font-semibold text-sm text-slate-800 dark:text-slate-200 line-clamp-2">${i.title}</span></div>
+                    <div class="flex justify-between items-center mt-2"><div class="flex items-center gap-2"><img src="${avatar}" class="w-5 h-5 rounded-full"><span class="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${i.points||'-'}</span></div><div class="flex gap-2">${btns}</div></div>
                 </div>`;
             },
 
-            // --- ACTIONS ---
             updateStatus: async (id, status) => {
                 if (status === 'done') return App.checkDoD(id);
                 try {
-                    // Check if actually changed to prevent loop from drag-drop
                     const curr = State.items.find(i => i.id === id);
                     if (curr && curr.status === status) return;
-                    
-                    await db.collection('items').doc(id).update({
-                        status: status,
-                        completedAt: null,
-                        history: firebase.firestore.FieldValue.arrayUnion({ user: State.user.displayName, action: `Moved to ${status}`, at: Date.now() })
-                    });
-                } catch(e) { UI.toast('Update failed', 'error'); App.renderBoard(); } // Revert UI if fail
+                    await db.collection('items').doc(id).update({ status: status, completedAt: null, history: firebase.firestore.FieldValue.arrayUnion({ user: State.user.displayName, action: `Moved to ${status}`, at: Date.now() }) });
+                } catch(e) { UI.toast('Update failed', 'error'); App.renderBoard(); }
             },
-
-            promotePBI: async (id) => {
-                await db.collection('items').doc(id).update({ type: 'SBI', status: 'todo', history: firebase.firestore.FieldValue.arrayUnion({ user: State.user.displayName, action: 'Added to Sprint', at: Date.now() }) });
-                UI.toast("Added to Sprint");
-            },
-
-            checkDoD: (id) => {
-                State.pendingItem = id;
-                $('.dod-check').prop('checked', false);
-                $('#btn-confirm-dod').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
-                App.openModal('modal-dod');
-            },
-
-            // --- ADMIN & MANAGEMENT ---
-            saveProjectConfig: async () => {
-                const id = $('#edit-project-id').val();
-                const n = $('#edit-project-name').val();
-                if (!n) return UI.toast("Name Required", "error");
-                UI.toggleLoader(true);
-                try {
-                    const data = { 
-                        name: n, 
-                        description: $('#edit-project-desc').val(), 
-                        scrumMaster: $('#edit-project-master').val() 
-                    };
-                    if (id) {
-                        await db.collection('projects').doc(id).update(data);
-                        UI.toast("Project Updated");
-                    } else {
-                        const ref = await db.collection('projects').add({...data, createdBy: State.user.uid});
-                        // Auto-assign admin
-                        await db.collection('users').doc(State.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)});
-                        UI.toast("Project Created");
-                    }
-                    App.resetProjectForm();
-                } catch(e) { UI.toast(e.message, 'error'); }
-                UI.toggleLoader(false);
-            },
-
-            // --- RETROSPECTIVE ---
-            loadRetro: () => {
-                setListener('retro', db.collection('retro').where('projectId','==',State.projectId).onSnapshot(s => {
-                    $('#retro-start, #retro-stop, #retro-continue').empty();
-                    s.forEach(d => {
-                        const data = d.data();
-                        const voters = data.votedBy || [];
-                        const iVoted = voters.includes(State.user.uid);
-                        const isMine = data.uid === State.user.uid;
-                        
-                        const html = `
-                        <div class="retro-card bg-white dark:bg-darkcard p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm mb-3 group">
-                            <p class="text-sm text-slate-700 dark:text-slate-300 mb-3">${data.text}</p>
-                            <div class="flex justify-between items-center pt-2 border-t border-slate-50 dark:border-slate-800">
-                                <button onclick="App.voteRetro('${d.id}', ${iVoted})" class="text-xs flex items-center gap-1.5 px-2 py-1 rounded transition ${iVoted?'text-brand-600 bg-brand-50 font-bold':'text-slate-400 hover:text-brand-500'}">
-                                    <i class="${iVoted?'fa-solid':'fa-regular'} fa-thumbs-up"></i> ${voters.length||''}
-                                </button>
-                                ${ (isMine || State.user.role!=='dev') ? `<button onclick="App.delRetro('${d.id}')" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>` : '' }
-                            </div>
-                        </div>`;
-                        $(`#retro-${data.type}`).append(html);
-                    });
-                }));
-            },
-            addRetro: (type) => {
-                const txt = $(`#input-retro-${type}`).val().trim();
-                const anon = $('#retro-anon').is(':checked');
-                if(!txt) return;
-                db.collection('retro').add({ projectId: State.projectId, type, text: txt, uid: anon?'anon':State.user.uid, votedBy: [], createdAt: Date.now() });
-                $(`#input-retro-${type}`).val('');
-            },
-            voteRetro: (id, undo) => {
-                db.collection('retro').doc(id).update({ votedBy: undo ? firebase.firestore.FieldValue.arrayRemove(State.user.uid) : firebase.firestore.FieldValue.arrayUnion(State.user.uid) });
-            },
-            delRetro: (id) => { if(confirm("Delete note?")) db.collection('retro').doc(id).delete(); },
-
-            // --- MODAL UTILS ---
+            promotePBI: async (id) => { await db.collection('items').doc(id).update({ type: 'SBI', status: 'todo' }); UI.toast("Added to Sprint"); },
+            checkDoD: (id) => { State.pendingItem = id; $('.dod-check').prop('checked', false); $('#btn-confirm-dod').prop('disabled', true).addClass('opacity-50 cursor-not-allowed'); App.openModal('modal-dod'); },
+            
+            // --- MODALS ---
             openModal: (id) => $(`#${id}`).removeClass('hidden'),
             closeModal: (id) => $(`#${id}`).addClass('hidden'),
-            switchTab: (id) => {
-                $('.view-section').addClass('hidden');
-                $(`#view-${id}`).removeClass('hidden');
-                $('.nav-btn').removeClass('bg-white dark:bg-slate-700 shadow-sm text-brand-600').addClass('text-slate-500 hover:text-brand-600');
-                $(`#tab-btn-${id}`).addClass('bg-white dark:bg-slate-700 shadow-sm text-brand-600').removeClass('text-slate-500 hover:text-brand-600');
-                if(id === 'admin') App.loadAdminView();
+            
+            // --- SPRINT & PROJECT MANAGEMENT ---
+            editSprint: () => {
+                const s = State.sprintData;
+                $('#edit-sprint-id').val(s.id); $('#modal-sprint-title').text('Edit Sprint');
+                $('#new-sprint-name').val(s.name); $('#new-sprint-goal').val(s.goal);
+                $('#new-sprint-start').val(s.startDate); $('#new-sprint-end').val(s.endDate);
+                App.renderCapacityInputs(s.capacity, s.daysOffMap);
+                App.calcSprintDays();
+                App.openModal('modal-sprint');
             },
-
-            // --- MISC ---
-            loadAdminView: () => {
-                setListener('users', db.collection('users').onSnapshot(snap => {
-                    $('#user-table-body').empty();
-                    snap.forEach(doc => {
-                        const u = doc.data();
-                        const pNames = (u.projects||[]).map(pid => {
-                             const p = State.projects.find(x=>x.id===pid); return p ? `<span class="bg-slate-200 dark:bg-slate-700 px-1.5 rounded text-[10px] mr-1">${p.name}</span>` : '';
-                        }).join('');
-                        
-                        const roleSel = `<select onchange="App.changeUserRole('${doc.id}',this.value)" class="border rounded p-1 text-xs bg-transparent dark:border-slate-600" ${State.user.role!=='superadmin'?'disabled':''}>
-                            <option value="dev" ${u.role==='dev'?'selected':''}>Dev</option>
-                            <option value="master" ${u.role==='master'?'selected':''}>Master</option>
-                            <option value="superadmin" ${u.role==='superadmin'?'selected':''}>Admin</option>
-                        </select>`;
-
-                        $('#user-table-body').append(`
-                            <tr class="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                                <td class="p-4 font-bold flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=32" class="rounded-full"> ${u.displayName}</td>
-                                <td class="p-4">${roleSel}</td>
-                                <td class="p-4"><div class="flex flex-wrap max-w-xs">${pNames}</div></td>
-                                <td class="p-4 text-right"><button onclick="App.openAssignModal('${doc.id}')" class="text-brand-600 hover:underline text-xs font-bold">Manage Access</button></td>
-                            </tr>
-                        `);
-                    });
-                }));
-                // Load projects for list
-                db.collection('projects').get().then(s => {
-                    $('#admin-project-list').empty();
-                    s.forEach(d => {
-                        const p = d.data();
-                        $('#admin-project-list').append(`<div onclick="App.editProject('${d.id}','${p.name}','${p.description||''}','${p.scrumMaster||''}')" class="p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg cursor-pointer hover:border-brand-500 transition"><div class="font-bold text-sm">${p.name}</div></div>`);
-                    });
+            
+            renderCapacityInputs: (savedCap={}, savedDaysOff={}) => {
+                const $c = $('#sprint-capacity-inputs').empty();
+                State.projectUsers.forEach(u => {
+                    const dOff = savedDaysOff[u.uid] || 0;
+                    const cap = savedCap[u.uid] || 0;
+                    $c.append(`<div class="grid grid-cols-12 gap-2 items-center bg-slate-50 dark:bg-slate-800 p-2 rounded text-xs user-row" data-uid="${u.uid}">
+                        <div class="col-span-5 font-bold truncate">${u.name}</div>
+                        <div class="col-span-3"><input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-slate-600 days-off-input" value="${dOff}" min="0" onchange="App.recalcAllCapacity()"></div>
+                        <div class="col-span-4"><input type="number" class="w-full border rounded p-1 text-center dark:bg-darkbg dark:border-slate-600 bg-slate-100 dark:bg-slate-700 capacity-output" value="${cap}" readonly></div>
+                    </div>`);
                 });
+                App.recalcAllCapacity();
+            },
+            calcSprintDays: () => {
+                const s = new Date($('#new-sprint-start').val());
+                const e = new Date($('#new-sprint-end').val());
+                let count = 0;
+                if(s && e && s <= e) {
+                    let d = new Date(s);
+                    while (d <= e) { const day = d.getDay(); if(day!==0 && day!==6) count++; d.setDate(d.getDate()+1); }
+                }
+                $('#sprint-days-count').text(count);
+                App.sprintWorkDays = count;
+                App.recalcAllCapacity();
+            },
+            recalcAllCapacity: () => {
+                const hpp = parseFloat($('#calc-hours-point').val()) || 1;
+                const focus = (parseFloat($('#calc-focus').val()) || 100) / 100;
+                let total = 0;
+                $('.user-row').each(function() {
+                    const daysOff = parseFloat($(this).find('.days-off-input').val()) || 0;
+                    const effective = Math.max(0, App.sprintWorkDays - daysOff);
+                    const pts = Math.round((effective * 8 * focus / hpp) * 10) / 10;
+                    $(this).find('.capacity-output').val(pts);
+                    total += pts;
+                });
+                $('#total-sprint-capacity').text(total.toFixed(1));
             },
             
-            showAdminSub: (sub) => {
-                $('.admin-sub-view').addClass('hidden');
-                $(`#admin-sub-${sub}`).removeClass('hidden');
-            },
-
-            // --- Helper Handlers ---
-            openAssignModal: (uid) => { State.pendingAssignUser = uid; App.openModal('modal-assign-project'); },
-            changeUserRole: (uid, r) => db.collection('users').doc(uid).update({role: r}).then(()=>UI.toast("Role Updated")),
-            editProject: (id,n,d,m) => { 
-                $('#edit-project-id').val(id); $('#edit-project-name').val(n); $('#edit-project-desc').val(d); $('#edit-project-master').val(m); 
-                $('#form-project-header').text("Edit Project"); $('#project-actions').removeClass('hidden');
-            },
-            resetProjectForm: () => {
-                 $('#edit-project-id').val(''); $('#edit-project-name').val(''); $('#edit-project-desc').val(''); 
-                 $('#form-project-header').text("New Project"); $('#project-actions').addClass('hidden');
-            },
-            deleteProject: async () => {
-                const id = $('#edit-project-id').val();
-                if(confirm("Permanently delete project?")) {
-                    await db.collection('projects').doc(id).delete();
-                    App.resetProjectForm();
-                    App.loadAdminView();
-                    UI.toast("Project Deleted");
-                }
-            },
-            
-            // --- ITEM DETAILS ---
-            openItemModal: async (type) => {
-                if(!State.projectId) return UI.toast("Select a project first", "error");
-                const t = prompt("Task Title:");
-                if(t) {
-                    await db.collection('items').add({
-                        title: t, type: type, status: 'todo', 
-                        projectId: State.projectId, sprintId: State.sprintId, points: 0, 
-                        createdAt: Date.now(), assignee: '', priority: 'medium'
-                    });
-                    UI.toast("Item Added");
-                }
-            },
+            // --- DETAILS & COMMENTS ---
             openDetailModal: (id) => {
                 State.detailId = id;
                 App.switchModalTab('details');
@@ -1061,140 +903,81 @@
                     window.quill.root.innerHTML = d.description || '';
                     $('#detail-points').val(d.points||0);
                     $('#detail-priority').val(d.priority||'low');
-                    
-                    const uObj = State.projectUsers.find(u => u.name === d.assignee);
-                    $('#detail-assignee').val(uObj ? uObj.uid : "");
+                    $('#detail-assignee').val((State.projectUsers.find(u=>u.name===d.assignee)||{}).uid || "");
                     
                     $('#subtask-list').empty();
-                    (d.subtasks||[]).forEach((t,i) => {
-                         $('#subtask-list').append(`<div class="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/50 rounded"><input type="checkbox" ${t.done?'checked':''} onchange="App.togSub(${i},${t.done})" class="text-brand-600 rounded"> <span class="${t.done?'line-through text-slate-400':''} flex-grow text-sm">${t.text}</span> <button onclick="App.delSub(${i})" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button></div>`);
-                    });
+                    (d.subtasks||[]).forEach((t,i) => $('#subtask-list').append(`<div class="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/50 rounded"><input type="checkbox" ${t.done?'checked':''} onchange="App.togSub(${i},${t.done})" class="text-brand-600"> <span class="${t.done?'line-through text-slate-400':''} flex-grow text-sm">${t.text}</span> <button onclick="App.delSub(${i})" class="text-slate-400 hover:text-red-500">&times;</button></div>`));
 
-                    const $cl = $('#comments-list').empty();
-                    (d.comments||[]).forEach(c => {
-                        const isMe = c.uid === State.user.uid;
-                        $cl.append(`<div class="w-fit max-w-[85%] ${isMe?'ml-auto bg-brand-50 dark:bg-brand-900/20 text-brand-900 dark:text-brand-100':'mr-auto bg-white border dark:bg-slate-700 dark:border-slate-600'} p-3 rounded-lg shadow-sm"><div class="text-[10px] font-bold opacity-70 mb-1 flex justify-between gap-4"><span>${c.user}</span><span>${new Date(c.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><div class="leading-relaxed">${c.text}</div></div>`);
-                    });
-
-                    // History
-                    const $hl = $('#tab-content-activity').empty();
-                    (d.history||[]).reverse().forEach(h => {
-                         $hl.append(`<div class="flex gap-3 text-sm text-slate-600 dark:text-slate-300"><div class="mt-1 text-slate-400"><i class="fa-solid fa-clock-rotate-left"></i></div><div><span class="font-bold text-slate-800 dark:text-white">${h.user}</span> <span class="text-slate-500 text-xs">${new Date(h.at).toLocaleString()}</span><div class="text-sm">${h.action}</div></div></div>`);
-                    });
+                    $('#comments-list').empty();
+                    (d.comments||[]).forEach(c => $('#comments-list').append(`<div class="w-fit max-w-[85%] ${c.uid===State.user.uid?'ml-auto bg-brand-50 dark:bg-brand-900/20 text-brand-900 dark:text-brand-100':'mr-auto bg-white border dark:bg-slate-700'} p-3 rounded-lg shadow-sm"><div class="text-[10px] font-bold opacity-70 mb-1 flex justify-between gap-4"><span>${c.user}</span><span>${new Date(c.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><div>${c.text}</div></div>`));
                     
+                    $('#tab-content-activity').empty();
+                    (d.history||[]).reverse().forEach(h => $('#tab-content-activity').append(`<div class="flex gap-3 text-sm text-slate-600 dark:text-slate-300"><div class="mt-1 text-slate-400"><i class="fa-solid fa-clock-rotate-left"></i></div><div><span class="font-bold">${h.user}</span> <span class="text-slate-500 text-xs">${new Date(h.at).toLocaleString()}</span><div class="text-sm">${h.action}</div></div></div>`));
                     App.openModal('modal-details');
                 });
             },
-            
             saveDetails: async () => {
-                const id = State.detailId;
-                const d = State.items.find(i=>i.id===id); // Get current snapshot
-                if(!d) return;
-
-                const newTitle = $('#detail-title').val();
-                const newDesc = window.quill.root.innerHTML;
-                const newPts = parseInt($('#detail-points').val()) || 0;
-                const newPrio = $('#detail-priority').val();
-                const newUid = $('#detail-assignee').val();
-                const newName = newUid ? $('#detail-assignee option:selected').text() : '';
-
-                const logs = [];
-                if(d.priority !== newPrio) logs.push(`Priority: ${d.priority} -> ${newPrio}`);
-                if((d.points||0) !== newPts) logs.push(`Points: ${d.points||0} -> ${newPts}`);
-                if((d.assignee||'') !== newName) logs.push(`Assignee: ${d.assignee||'None'} -> ${newName||'Unassigned'}`);
-
+                const uid = $('#detail-assignee').val();
                 const updates = { 
-                    title: newTitle, description: newDesc, points: newPts, priority: newPrio, 
-                    assignee: newName, assigneeUid: newUid
+                    title: $('#detail-title').val(), description: window.quill.root.innerHTML, 
+                    points: parseInt($('#detail-points').val())||0, priority: $('#detail-priority').val(),
+                    assignee: uid ? $('#detail-assignee option:selected').text() : '', assigneeUid: uid
                 };
-                
-                if (logs.length > 0) {
-                    updates.history = firebase.firestore.FieldValue.arrayUnion(...logs.map(l => ({ user: State.user.displayName, action: l, at: Date.now() })));
-                }
-
-                await db.collection('items').doc(id).update(updates);
-                if (newUid && newUid !== State.user.uid && newName !== d.assignee) App.sendNotif(newUid, `Assigned to: ${newTitle}`);
-                
-                App.closeModal('modal-details');
-                UI.toast("Saved");
-            },
-
-            addSubtask: async () => {
-                const t = $('#new-subtask').val().trim();
-                if(t) {
-                    await db.collection('items').doc(State.detailId).update({subtasks: firebase.firestore.FieldValue.arrayUnion({text:t, done:false})});
-                    $('#new-subtask').val('').focus();
-                }
-            },
-            togSub: async (i, old) => {
-                const ref = db.collection('items').doc(State.detailId);
-                const d = (await ref.get()).data();
-                d.subtasks[i].done = !old;
-                ref.update({subtasks: d.subtasks});
-            },
-            delSub: async (i) => {
-                 const ref = db.collection('items').doc(State.detailId);
-                 const d = (await ref.get()).data();
-                 d.subtasks.splice(i,1);
-                 ref.update({subtasks: d.subtasks});
+                await db.collection('items').doc(State.detailId).update(updates);
+                App.closeModal('modal-details'); UI.toast("Saved");
             },
             addComment: async () => {
                 const t = $('#new-comment').val().trim();
-                if(!t) return;
-                await db.collection('items').doc(State.detailId).update({
-                    comments: firebase.firestore.FieldValue.arrayUnion({text:t, user:State.user.displayName, uid:State.user.uid, at: Date.now()})
-                });
-                $('#new-comment').val('');
-                // Notify assignee if not me
-                const curr = State.items.find(i=>i.id===State.detailId);
-                if(curr && curr.assigneeUid && curr.assigneeUid !== State.user.uid) App.sendNotif(curr.assigneeUid, `${State.user.displayName} commented on ${curr.title}`);
+                if(t) { await db.collection('items').doc(State.detailId).update({ comments: firebase.firestore.FieldValue.arrayUnion({text:t, user:State.user.displayName, uid:State.user.uid, at: Date.now()}) }); $('#new-comment').val(''); }
             },
-
-            // --- NOTIFICATIONS ---
+            addSubtask: async () => { const t=$('#new-subtask').val().trim(); if(t){ await db.collection('items').doc(State.detailId).update({subtasks:firebase.firestore.FieldValue.arrayUnion({text:t,done:false})}); $('#new-subtask').val(''); } },
+            togSub: async (i,o) => { const r=db.collection('items').doc(State.detailId); const d=(await r.get()).data(); d.subtasks[i].done=!o; r.update({subtasks:d.subtasks}); },
+            delSub: async (i) => { const r=db.collection('items').doc(State.detailId); const d=(await r.get()).data(); d.subtasks.splice(i,1); r.update({subtasks:d.subtasks}); },
+            
+            // --- MISC ---
+            loadRetro: () => setListener('retro', db.collection('retro').where('projectId','==',State.projectId).onSnapshot(s => {
+                $('#retro-start, #retro-stop, #retro-continue').empty();
+                s.forEach(d => { const dt=d.data(); const v=dt.votedBy||[]; const iv=v.includes(State.user.uid); $(`#retro-${dt.type}`).append(`<div class="bg-white dark:bg-darkcard p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm mb-3"><p class="text-sm mb-3">${dt.text}</p><div class="flex justify-between items-center border-t border-slate-50 dark:border-slate-800 pt-2"><button onclick="App.voteRetro('${d.id}',${iv})" class="text-xs px-2 py-1 rounded transition ${iv?'text-brand-600 bg-brand-50 font-bold':'text-slate-400'}"><i class="${iv?'fa-solid':'fa-regular'} fa-thumbs-up"></i> ${v.length||''}</button>${(dt.uid===State.user.uid)?`<button onclick="App.delRetro('${d.id}')" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>`:''}</div></div>`); });
+            })),
+            voteRetro: (id,u) => db.collection('retro').doc(id).update({votedBy: u?firebase.firestore.FieldValue.arrayRemove(State.user.uid):firebase.firestore.FieldValue.arrayUnion(State.user.uid)}),
+            delRetro: (id) => confirm("Delete note?") && db.collection('retro').doc(id).delete(),
+            addRetro: (t) => { const tx=$(`#input-retro-${t}`).val().trim(); if(tx){ db.collection('retro').add({projectId:State.projectId, type:t, text:tx, uid:$('#retro-anon').is(':checked')?'anon':State.user.uid, votedBy:[], createdAt:Date.now()}); $(`#input-retro-${t}`).val(''); } },
+            
             listenNotifications: () => {
                 if(!State.user) return;
                 setListener('notifs', db.collection('notifications').where('recipientId','==',State.user.uid).orderBy('createdAt','desc').limit(10).onSnapshot(s => {
                     const $l = $('#notif-list').empty();
-                    let unread = 0;
+                    let u = 0;
                     if(s.empty) $l.append('<div class="p-4 text-center text-slate-400 text-sm">No notifications</div>');
-                    s.forEach(d => {
-                        const n = d.data();
-                        if(!n.read) unread++;
-                        $l.append(`<div onclick="db.collection('notifications').doc('${d.id}').update({read:true})" class="p-3 border-b dark:border-slate-700 cursor-pointer ${n.read?'bg-white dark:bg-darkcard opacity-70':'bg-brand-50 dark:bg-brand-900/20'} hover:bg-slate-50 transition"><div class="text-sm dark:text-slate-200">${n.message}</div><div class="text-[10px] text-slate-400 mt-1">${new Date(n.createdAt).toLocaleTimeString()}</div></div>`);
-                    });
-                    unread > 0 ? $('#notif-dot').removeClass('hidden') : $('#notif-dot').addClass('hidden');
+                    s.forEach(d => { const n=d.data(); if(!n.read) u++; $l.append(`<div onclick="db.collection('notifications').doc('${d.id}').update({read:true})" class="p-3 border-b dark:border-slate-700 cursor-pointer ${n.read?'bg-white dark:bg-darkcard opacity-70':'bg-brand-50 dark:bg-brand-900/20'}"><div class="text-sm">${n.message}</div></div>`); });
+                    u>0 ? $('#notif-dot').removeClass('hidden') : $('#notif-dot').addClass('hidden');
                 }));
             },
-            sendNotif: (uid, msg) => db.collection('notifications').add({ recipientId: uid, message: msg, read: false, createdAt: Date.now() }),
-            markAllRead: async () => {
-                const s = await db.collection('notifications').where('recipientId','==',State.user.uid).where('read','==',false).get();
-                const b = db.batch(); s.forEach(d => b.update(d.ref, {read:true})); await b.commit();
-            },
-
-            // --- AUTH ---
-            login: () => {
-                UI.toggleLoader(true);
-                auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => { UI.toggleLoader(false); UI.toast(e.message, 'error'); });
-            },
-            logout: () => {
-                auth.signOut().then(() => location.reload());
-            }
+            
+            // Auth / Init
+            login: () => { UI.toggleLoader(true); auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => { UI.toggleLoader(false); UI.toast(e.message, 'error'); }); },
+            logout: () => auth.signOut().then(() => location.reload()),
+            
+            // Required placeholders for modal calls from HTML
+            openItemModal: async (t) => { if(!State.projectId) return; const tx=prompt("Title:"); if(tx) db.collection('items').add({title:tx, type:t, status:'todo', projectId:State.projectId, sprintId:State.sprintId, points:0, createdAt:Date.now(), assignee:''}); },
+            showAdminSub: (s) => { $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${s}`).removeClass('hidden'); if(s==='users') App.loadAdminUsers(); },
+            loadAdminUsers: () => setListener('users', db.collection('users').onSnapshot(s => {
+                $('#user-table-body').empty();
+                s.forEach(d => { const u=d.data(); $('#user-table-body').append(`<tr class="border-b dark:border-slate-700"><td class="p-4 flex gap-2 items-center"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=24" class="rounded-full">${u.displayName}</td><td class="p-4">${u.role}</td><td class="p-4 text-right"><button onclick="App.changeUserRole('${d.id}', 'dev')" class="text-xs text-blue-500">Make Dev</button> <button onclick="App.changeUserRole('${d.id}', 'master')" class="text-xs text-green-500">Make Master</button></td></tr>`); });
+            })),
+            changeUserRole: (id,r) => db.collection('users').doc(id).update({role:r}),
+            switchTab: (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); if(id==='admin') App.loadAdminUsers(); },
+            markAllRead: async () => { const s=await db.collection('notifications').where('recipientId','==',State.user.uid).where('read','==',false).get(); const b=db.batch(); s.forEach(d=>b.update(d.ref,{read:true})); await b.commit(); }
         };
 
-        // --- GLOBAL BINDINGS ---
-        window.App = App;
-        
-        // Initial Auth Check
+        window.App = App; // Global Access
+
+        // Auth Listener
         auth.onAuthStateChanged(async u => {
             if (u) {
-                const userRef = db.collection('users').doc(u.uid);
-                const doc = await userRef.get();
-                if (!doc.exists) {
-                    await userRef.set({ displayName: u.displayName, email: u.email, role: 'dev', photoURL: u.photoURL, projects: [], createdAt: Date.now() });
-                    State.user = { uid: u.uid, role: 'dev', displayName: u.displayName };
-                } else {
-                    State.user = { uid: u.uid, ...doc.data() };
-                }
+                const doc = await db.collection('users').doc(u.uid).get();
+                if (!doc.exists) { await db.collection('users').doc(u.uid).set({ displayName:u.displayName, email:u.email, role:'dev', projects:[], createdAt:Date.now() }); State.user={uid:u.uid, role:'dev', displayName:u.displayName}; }
+                else { State.user = { uid: u.uid, ...doc.data() }; }
                 
                 $('#login-screen').fadeOut();
                 $('#user-display').text(State.user.displayName);
@@ -1207,45 +990,33 @@
             }
         });
 
-        // Event Bindings
+        // Event bindings
         $('#btn-login').click(App.login);
         $('#btn-logout').click(App.logout);
         $('#btn-notifs').click((e) => { e.stopPropagation(); $('#notif-dropdown').toggleClass('hidden'); });
         $(document).click(() => $('#notif-dropdown').addClass('hidden'));
         $('#notif-dropdown').click(e => e.stopPropagation());
         
-        // Modal logic bindings
         $('#btn-save-details').click(App.saveDetails);
-        $('.dod-check').change(() => { 
-            const all = $('.dod-check:checked').length === 3; 
-            $('#btn-confirm-dod').prop('disabled', !all).toggleClass('opacity-50 cursor-not-allowed', !all);
-        });
-        $('#btn-confirm-dod').click(() => {
-            App.updateStatus(State.pendingItem, 'done');
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-            UI.toast("Task Completed! 🎉");
-            App.closeModal('modal-dod');
-        });
-        $('#btn-confirm-assign').click(() => {
-             const pid = $('#assign-project-dropdown').val();
-             if(pid && State.pendingAssignUser) {
-                 db.collection('users').doc(State.pendingAssignUser).update({projects: firebase.firestore.FieldValue.arrayUnion(pid)})
-                 .then(() => { UI.toast("User Assigned"); App.closeModal('modal-assign-project'); });
-             }
-        });
-        App.switchModalTab = (t) => {
-            $('.modal-tab').removeClass('active'); $(`#tab-btn-${t}`).addClass('active');
-            $('#tab-content-details, #tab-content-activity').addClass('hidden'); $(`#tab-content-${t}`).removeClass('hidden');
-        };
-        $('#theme-toggle').click(() => {
-            $('html').toggleClass('dark');
-            localStorage.theme = $('html').hasClass('dark') ? 'dark' : 'light';
+        $('#btn-create-sprint').click(async () => {
+            const n=$('#new-sprint-name').val(), g=$('#new-sprint-goal').val(), s=$('#new-sprint-start').val(), e=$('#new-sprint-end').val(), id=$('#edit-sprint-id').val();
+            const cap={}, off={}; $('.user-row').each(function(){ const u=$(this).data('uid'); off[u]=$(this).find('.days-off-input').val(); cap[u]=$(this).find('.capacity-output').val(); });
+            const d = {name:n, goal:g, startDate:s, endDate:e, projectId:State.projectId, capacity:cap, daysOffMap:off};
+            try { id ? await db.collection('sprints').doc(id).update(d) : await db.collection('sprints').add({...d, status:'active', createdAt:Date.now()}); App.closeModal('modal-sprint'); UI.toast("Sprint Saved"); } catch(e){ UI.toast(e.message,'error'); }
         });
 
-        // Check Theme
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            $('html').addClass('dark');
-        }
+        $('#btn-new-sprint-modal').click(() => { 
+            if(!State.projectId) return; 
+            $('#edit-sprint-id').val(''); $('#modal-sprint-title').text('New Sprint'); 
+            App.renderCapacityInputs(); App.openModal('modal-sprint'); 
+        });
+        
+        $('#btn-confirm-dod').click(() => { App.updateStatus(State.pendingItem, 'done'); App.closeModal('modal-dod'); confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); UI.toast("Done! 🎉"); });
+        $('.dod-check').change(() => { const all=$('.dod-check:checked').length===3; $('#btn-confirm-dod').prop('disabled',!all).toggleClass('opacity-50',!all); });
+        
+        $('#theme-toggle').click(() => { $('html').toggleClass('dark'); localStorage.theme = $('html').hasClass('dark')?'dark':'light'; });
+        if(localStorage.theme==='dark' || (!('theme'in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) $('html').addClass('dark');
+
     </script>
 </body>
 </html>
