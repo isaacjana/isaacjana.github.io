@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn PRO | Voice Edition</title>
+    <title>Daily Burn ULTIMATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,24 +11,25 @@
     <style>
         @keyframes pulse-bg { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .skeleton { animation: pulse-bg 1.5s infinite ease-in-out; background: #334155; }
-        .progress-ring__circle { transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .progress-ring__circle { transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(-90deg); transform-origin: 50% 50%; }
         .muscle-part { fill: #334155; transition: fill 0.6s ease; }
         .muscle-active { fill: #6366f1; }
-        .completed { opacity: 0.35; pointer-events: none; filter: grayscale(1); }
+        .completed { opacity: 0.25; pointer-events: none; filter: grayscale(1); transform: scale(0.95); transition: 0.4s; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .video-modal { background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen font-sans">
 
-    <nav class="fixed top-0 w-full bg-slate-900/90 backdrop-blur border-b border-slate-800 z-50 p-3">
+    <nav class="fixed top-0 w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-50 p-3">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div class="flex space-x-6">
-                <button class="nav-link active text-indigo-400 text-sm font-black uppercase tracking-tighter" data-tab="today">Today</button>
+                <button class="nav-link active text-indigo-400 text-xs font-black uppercase tracking-tighter" data-tab="today">Today</button>
                 <button class="nav-link text-slate-500 text-sm font-black uppercase tracking-tighter" data-tab="history">History</button>
             </div>
             <div class="flex items-center space-x-4">
-                <i id="voice-indicator" class="fas fa-volume-up text-indigo-500 opacity-50"></i>
+                <i id="voice-indicator" class="fas fa-microphone-alt text-indigo-500 opacity-30"></i>
                 <button id="open-settings" class="text-slate-400"><i class="fas fa-cog"></i></button>
             </div>
         </div>
@@ -36,7 +37,7 @@
 
     <main id="today" class="tab-content active max-w-md mx-auto mt-20 p-4">
         
-        <div class="bg-slate-900 rounded-[2rem] p-6 border border-slate-800 shadow-2xl mb-8 flex items-center justify-between relative overflow-hidden">
+        <div class="bg-slate-900 rounded-[2.5rem] p-6 border border-slate-800 shadow-2xl mb-8 flex items-center justify-between relative overflow-hidden">
             <div class="relative flex items-center justify-center z-10">
                 <svg class="w-24 h-24">
                     <circle class="text-slate-800" stroke-width="6" stroke="currentColor" fill="transparent" r="42" cx="48" cy="48"/>
@@ -49,49 +50,50 @@
 
             <div class="flex-grow ml-6 z-10">
                 <div class="text-3xl font-black text-white" id="cal-display">0</div>
-                <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mb-3">Calories</div>
+                <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mb-3">Total Burn</div>
                 <div class="flex items-center space-x-2 bg-slate-800/50 w-fit px-3 py-1 rounded-full border border-slate-700">
                     <i class="fas fa-fire text-orange-500 text-xs"></i>
                     <span id="streak-display" class="text-xs font-bold text-slate-200">0</span>
-                    <span class="text-[9px] text-slate-500 uppercase">Streak</span>
+                    <span class="text-[9px] text-slate-500 uppercase">Days</span>
                 </div>
             </div>
 
             <div class="w-14 h-20 opacity-60">
                 <svg viewBox="0 0 50 100" class="muscle-svg">
-                    <rect x="18" y="10" width="14" height="12" rx="6" class="muscle-part" data-muscle="Core"/>
-                    <rect x="10" y="25" width="30" height="25" rx="4" class="muscle-part" data-muscle="Full Body"/>
-                    <rect x="5" y="25" width="6" height="30" rx="3" class="muscle-part" data-muscle="Arms"/>
-                    <rect x="39" y="25" width="6" height="30" rx="3" class="muscle-part" data-muscle="Arms"/>
-                    <rect x="12" y="55" width="8" height="40" rx="4" class="muscle-part" data-muscle="Legs"/>
-                    <rect x="30" y="55" width="8" height="40" rx="4" class="muscle-part" data-muscle="Legs"/>
+                    <rect x="18" y="10" width="14" height="12" rx="6" class="muscle-part" data-muscle="Upper"/>
+                    <rect x="10" y="25" width="30" height="25" rx="4" class="muscle-part" data-muscle="Core"/>
+                    <rect x="5" y="25" width="6" height="30" rx="3" class="muscle-part" data-muscle="Upper"/>
+                    <rect x="39" y="25" width="6" height="30" rx="3" class="muscle-part" data-muscle="Upper"/>
+                    <rect x="12" y="55" width="8" height="40" rx="4" class="muscle-part" data-muscle="Lower"/>
+                    <rect x="30" y="55" width="8" height="40" rx="4" class="muscle-part" data-muscle="Lower"/>
                 </svg>
             </div>
         </div>
 
-        
-
         <div id="workout-container" class="space-y-4 pb-32"></div>
 
         <div class="fixed bottom-8 left-0 right-0 px-6 max-w-md mx-auto z-40">
-            <button id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl text-white font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20 transform active:scale-95 transition">
-                Start New Session
+            <button id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-[1.5rem] text-white font-black uppercase tracking-widest shadow-2xl shadow-indigo-500/30 transform active:scale-95 transition">
+                Generate Daily Routine
             </button>
         </div>
     </main>
 
-    <main id="history" class="tab-content max-w-md mx-auto mt-20 p-4">
-        <h2 class="text-xl font-black mb-6 uppercase tracking-tight">Activity History</h2>
-        <div id="history-container" class="space-y-3"></div>
-    </main>
+    <div id="video-modal" class="hidden fixed inset-0 z-[70] video-modal flex flex-col items-center justify-center p-4">
+        <button id="close-video" class="absolute top-6 right-6 text-white text-3xl">&times;</button>
+        <div class="w-full max-w-xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
+            <iframe id="video-frame" class="w-full h-full" src="" frameborder="0" allowfullscreen></iframe>
+        </div>
+        <p class="text-slate-400 mt-4 text-sm font-bold uppercase tracking-widest" id="video-title"></p>
+    </div>
 
     <div id="rest-modal" class="hidden fixed inset-0 z-[60] bg-slate-950 flex flex-col items-center justify-center p-8">
         <div class="w-full max-w-xs bg-slate-900 rounded-[3rem] p-12 border border-slate-800 text-center relative">
-             <div class="text-indigo-400 text-xs font-black uppercase tracking-[0.3em] mb-4">Recover</div>
+             <div class="text-indigo-400 text-xs font-black uppercase tracking-[0.3em] mb-4">Recovery</div>
              <div class="text-8xl font-black text-white mb-10 tabular-nums" id="rest-timer">20</div>
-             <button id="skip-rest" class="text-slate-500 hover:text-white font-bold text-sm tracking-widest uppercase">Skip Rest</button>
+             <button id="skip-rest" class="text-slate-500 hover:text-white font-bold text-sm tracking-widest uppercase">Skip</button>
         </div>
-        <div id="up-next" class="mt-12 text-center">
+        <div class="mt-12 text-center">
             <div class="text-slate-500 text-[10px] uppercase tracking-widest mb-2">Up Next</div>
             <div class="text-xl font-bold text-white" id="next-ex-name">...</div>
         </div>
@@ -99,32 +101,43 @@
 
     <script>
         $(document).ready(function() {
-            // --- DATA ---
+            // --- EXTENDED HOME EXERCISE DB ---
             const exerciseDB = [
-                { name: "Push Ups", base: 12, unit: "Reps", type: "Strength", cal: 0.6, muscle: "Full Body" },
-                { name: "Jump Squats", base: 15, unit: "Reps", type: "Cardio", cal: 0.9, muscle: "Legs" },
+                // Upper Body
+                { name: "Push Ups", base: 12, unit: "Reps", type: "Strength", cal: 0.6, muscle: "Upper" },
+                { name: "Diamond Push Ups", base: 8, unit: "Reps", type: "Strength", cal: 0.8, muscle: "Upper" },
+                { name: "Tricep Dips", base: 12, unit: "Reps", type: "Arms", cal: 0.5, muscle: "Upper" },
+                { name: "Pike Push Ups", base: 10, unit: "Reps", type: "Shoulders", cal: 0.7, muscle: "Upper" },
+                
+                // Lower Body
+                { name: "Jump Squats", base: 15, unit: "Reps", type: "Cardio", cal: 0.9, muscle: "Lower" },
+                { name: "Walking Lunges", base: 16, unit: "Reps", type: "Legs", cal: 0.6, muscle: "Lower" },
+                { name: "Wall Sit", base: 30, unit: "Sec", isTime: true, type: "Legs", cal: 0.3, muscle: "Lower" },
+                { name: "Glute Bridges", base: 20, unit: "Reps", type: "Glutes", cal: 0.4, muscle: "Lower" },
+                { name: "Bulgarian Split Squats", base: 10, unit: "Reps/Leg", type: "Strength", cal: 0.8, muscle: "Lower" },
+
+                // Core
                 { name: "Plank", base: 30, unit: "Sec", isTime: true, type: "Core", cal: 0.2, muscle: "Core" },
+                { name: "Russian Twists", base: 24, unit: "Reps", type: "Abs", cal: 0.4, muscle: "Core" },
+                { name: "Bicycle Crunches", base: 30, unit: "Reps", type: "Abs", cal: 0.5, muscle: "Core" },
+                { name: "Leg Raises", base: 12, unit: "Reps", type: "Abs", cal: 0.4, muscle: "Core" },
+
+                // Full Body / Cardio
                 { name: "Burpees", base: 8, unit: "Reps", type: "Full Body", cal: 1.4, muscle: "Full Body" },
-                { name: "Tricep Dips", base: 12, unit: "Reps", type: "Arms", cal: 0.5, muscle: "Arms" },
-                { name: "High Knees", base: 30, unit: "Sec", isTime: true, type: "Cardio", cal: 0.4, muscle: "Legs" }
+                { name: "Mountain Climbers", base: 30, unit: "Sec", isTime: true, type: "Cardio", cal: 0.4, muscle: "Full Body" },
+                { name: "Jumping Jacks", base: 40, unit: "Reps", type: "Cardio", cal: 0.3, muscle: "Full Body" }
             ];
 
-            // --- STATE ---
-            let state = JSON.parse(localStorage.getItem('burn_pro_v3')) || {
+            let state = JSON.parse(localStorage.getItem('burn_pro_v4')) || {
                 streak: 0, lastDate: null, history: [], current: [], cals: 0, diff: 1, rest: 20
             };
 
             const synth = window.speechSynthesis;
 
-            // --- VOICE COACH ---
             function announce(text) {
                 synth.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.pitch = 1;
-                utterance.rate = 1;
                 synth.speak(utterance);
-                $('#voice-indicator').addClass('animate-pulse opacity-100');
-                utterance.onend = () => $('#voice-indicator').removeClass('animate-pulse opacity-100');
             }
 
             function updateUI() {
@@ -140,13 +153,16 @@
 
                 $('.muscle-part').removeClass('muscle-active');
                 state.current.forEach(ex => {
-                    if(!ex.done) $(`.muscle-part[data-muscle="${ex.muscle}"]`).addClass('muscle-active');
+                    if(!ex.done) {
+                        if(ex.muscle === "Full Body") $('.muscle-part').addClass('muscle-active');
+                        else $(`.muscle-part[data-muscle="${ex.muscle}"]`).addClass('muscle-active');
+                    }
                 });
             }
 
             function generate() {
                 const container = $('#workout-container').empty();
-                for(let i=0; i<5; i++) container.append('<div class="h-28 w-full skeleton rounded-3xl"></div>');
+                for(let i=0; i<5; i++) container.append('<div class="h-28 w-full skeleton rounded-[2rem]"></div>');
 
                 setTimeout(() => {
                     state.current = exerciseDB.sort(() => 0.5 - Math.random()).slice(0, 5).map(ex => ({
@@ -158,8 +174,8 @@
                     state.cals = 0;
                     save();
                     render();
-                    announce("Workout ready. Your first exercise is " + state.current[0].name);
-                }, 600);
+                    announce("Let's go. First up: " + state.current[0].name);
+                }, 800);
             }
 
             function render() {
@@ -167,11 +183,16 @@
                 state.current.forEach(ex => {
                     container.append(`
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex items-center justify-between transition-all ${ex.done ? 'completed' : ''}">
-                            <div>
-                                <h3 class="font-black text-white text-lg tracking-tight">${ex.name}</h3>
-                                <p class="text-indigo-500 font-bold text-sm">${ex.target} ${ex.unit}</p>
+                            <div class="flex items-center space-x-4">
+                                <button class="video-btn w-10 h-10 rounded-full bg-slate-800 text-slate-500 hover:text-indigo-400" data-name="${ex.name}">
+                                    <i class="fas fa-play-circle text-xl"></i>
+                                </button>
+                                <div>
+                                    <h3 class="font-black text-white text-md tracking-tight">${ex.name}</h3>
+                                    <p class="text-indigo-500 font-bold text-xs uppercase">${ex.target} ${ex.unit}</p>
+                                </div>
                             </div>
-                            <button class="check-btn w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 active:bg-indigo-600 active:text-white transition shadow-lg" data-id="${ex.id}">
+                            <button class="check-btn w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 active:bg-indigo-600 active:text-white transition" data-id="${ex.id}">
                                 <i class="fas fa-check"></i>
                             </button>
                         </div>
@@ -180,11 +201,27 @@
             }
 
             function save() {
-                localStorage.setItem('burn_pro_v3', JSON.stringify(state));
+                localStorage.setItem('burn_pro_v4', JSON.stringify(state));
                 updateUI();
             }
 
-            // --- ACTIONS ---
+            // --- VIDEO LOGIC ---
+            $(document).on('click', '.video-btn', function() {
+                const name = $(this).data('name');
+                const searchQuery = encodeURIComponent(name + " home exercise form");
+                const embedUrl = `https://www.youtube.com/embed?listType=search&list=${searchQuery}`;
+                
+                $('#video-title').text(name + " Form Guide");
+                $('#video-frame').attr('src', embedUrl);
+                $('#video-modal').removeClass('hidden');
+            });
+
+            $('#close-video').click(() => {
+                $('#video-modal').addClass('hidden');
+                $('#video-frame').attr('src', '');
+            });
+
+            // --- REST & PROGRESS ---
             $(document).on('click', '.check-btn', function() {
                 const id = $(this).data('id');
                 const ex = state.current.find(e => e.id === id);
@@ -204,7 +241,7 @@
             function startRest(next) {
                 $('#next-ex-name').text(next.name);
                 $('#rest-modal').removeClass('hidden');
-                announce("Take a rest. Up next: " + next.name);
+                announce("Rest. Next is " + next.name);
                 
                 let time = state.rest;
                 const timer = setInterval(() => {
@@ -214,10 +251,10 @@
                     if(time <= 0) {
                         clearInterval(timer);
                         $('#rest-modal').addClass('hidden');
-                        announce("Go!");
+                        announce("Start " + next.name);
                     }
                 }, 1000);
-                $('#skip-rest').one('click', () => { clearInterval(timer); $('#rest-modal').addClass('hidden'); announce("Ready? Go."); });
+                $('#skip-rest').click(() => { clearInterval(timer); $('#rest-modal').addClass('hidden'); });
             }
 
             function finishWorkout() {
@@ -227,22 +264,9 @@
                     state.lastDate = today;
                     state.history.unshift({ date: today, cals: state.cals });
                 }
-                announce("Amazing work. Session complete.");
+                announce("Great job. Workout complete.");
+                save();
             }
-
-            $('.nav-link').click(function() {
-                const tab = $(this).data('tab');
-                $('.nav-link').removeClass('active text-indigo-400').addClass('text-slate-500');
-                $(this).addClass('active text-indigo-400').removeClass('text-slate-500');
-                $('.tab-content').removeClass('active');
-                $('#' + tab).addClass('active');
-                if(tab === 'history') {
-                    $('#history-container').empty();
-                    state.history.forEach(h => {
-                        $('#history-container').append(`<div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex justify-between font-bold"><span class="text-slate-500">${h.date}</span><span class="text-indigo-400">${Math.floor(h.cals)} Kcal</span></div>`);
-                    });
-                }
-            });
 
             $('#generate-btn').click(generate);
             if(state.current.length) render();
