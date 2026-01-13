@@ -3,84 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Munch Karaoke - Firestore Edition</title>
+    <title>Munch Karaoke - Embed Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .stage-gradient { background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); }
-        .search-item:hover { background: #1e293b; border-color: #3b82f6; }
-        .queue-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .stage-bg { background: radial-gradient(circle at center, #1e293b 0%, #020617 100%); }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); }
+        .queue-card { transition: all 0.3s ease; }
+        .queue-card:hover { transform: translateX(4px); background: #1e293b; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-screen flex flex-col font-sans overflow-hidden">
 
-    <div id="auth-overlay" class="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 transition-opacity">
+    <div id="auth-overlay" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-6 transition-opacity duration-500">
         <div class="text-center">
-            <h1 class="text-5xl font-black italic mb-2">MUNCH<span class="text-blue-500">KARAOKE</span></h1>
-            <p class="text-slate-500 mb-10 tracking-widest uppercase text-xs">The Firestore Cloud Experience</p>
-            <button id="btn-login" class="bg-white text-slate-950 font-bold py-4 px-10 rounded-full flex items-center gap-4 hover:scale-105 transition shadow-2xl">
+            <h1 class="text-5xl font-black italic mb-2 tracking-tighter">MUNCH<span class="text-blue-500">KARAOKE</span></h1>
+            <p class="text-slate-500 mb-10 text-xs tracking-[0.3em] uppercase">No-API Embed Version</p>
+            <button id="btn-login" class="bg-white text-slate-950 font-bold py-4 px-10 rounded-xl flex items-center gap-4 hover:bg-slate-200 transition active:scale-95 shadow-2xl">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6">
-                Sign in with Google
+                Login with Google
             </button>
         </div>
     </div>
 
-    <header class="h-16 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-50">
+    <header class="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-50">
         <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <i class="fas fa-microphone-alt"></i>
-            </div>
-            <span class="text-xl font-black italic tracking-tighter">MUNCH</span>
+            <span class="text-xl font-black italic text-blue-500">MUNCH</span>
         </div>
         
-        <div id="user-info" class="hidden flex items-center gap-4">
-            <span id="display-name" class="text-xs font-bold text-slate-400 hidden sm:block"></span>
-            <img id="display-photo" class="w-9 h-9 rounded-full border-2 border-slate-800">
-            <button id="btn-logout" class="text-slate-500 hover:text-red-500 transition"><i class="fas fa-power-off"></i></button>
+        <div id="user-info" class="hidden flex items-center gap-3">
+            <div class="text-right hidden sm:block leading-none">
+                <p id="user-name" class="text-[11px] font-bold"></p>
+                <button id="btn-logout" class="text-[9px] text-slate-500 hover:text-red-400 uppercase font-bold">Logout</button>
+            </div>
+            <img id="user-photo" class="w-9 h-9 rounded-full border border-slate-700">
         </div>
     </header>
 
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
         
-        <section class="flex-1 stage-gradient relative flex flex-col">
+        <section class="flex-1 stage-bg relative flex flex-col">
             <div class="flex-1 relative">
                 <div id="youtube-player"></div>
-                <div id="idle-overlay" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center pointer-events-none">
-                    <i class="fas fa-music text-8xl text-slate-900 mb-6 animate-pulse"></i>
-                    <p class="text-slate-600 font-black uppercase tracking-widest text-sm">Ready for the first singer</p>
+                <div id="idle-screen" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center pointer-events-none">
+                    <i class="fas fa-play-circle text-7xl text-slate-900 mb-4 animate-pulse"></i>
+                    <p class="text-slate-700 font-black uppercase tracking-widest text-xs">Stage is Idle</p>
                 </div>
             </div>
-            
-            <div class="h-24 bg-slate-900 border-t border-slate-800 flex items-center px-8 gap-6">
+
+            <div class="h-20 bg-slate-900/80 border-t border-slate-800 flex items-center px-6 gap-4">
                 <div class="flex-1 min-w-0">
-                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Now Performing</p>
-                    <h2 id="np-title" class="text-xl font-bold truncate">Waiting...</h2>
+                    <p class="text-[10px] font-bold text-blue-500 uppercase mb-1">Live Now</p>
+                    <h2 id="np-title" class="text-base font-bold truncate italic">Waiting for singer...</h2>
                 </div>
-                <button onclick="window.playNext()" class="bg-slate-800 hover:bg-slate-700 text-white w-12 h-12 rounded-full flex items-center justify-center transition">
-                    <i class="fas fa-step-forward"></i>
+                <button onclick="window.playNext()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition">
+                    <i class="fas fa-forward text-xs"></i>
                 </button>
             </div>
         </section>
 
-        <aside class="w-full md:w-96 bg-slate-950 border-l border-slate-800 flex flex-col shadow-2xl">
+        <aside class="w-full md:w-80 bg-slate-950 border-l border-slate-800 flex flex-col shadow-2xl">
             
-            <div class="p-4 bg-slate-900/30">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-4 text-slate-600"></i>
-                    <input id="search-input" type="text" placeholder="Search for karaoke tracks..." 
-                        class="w-full bg-slate-900 border border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:border-blue-500 outline-none transition shadow-inner">
+            <div class="p-5 border-b border-slate-800 bg-slate-900/30">
+                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Add To Queue</h3>
+                <div class="space-y-3">
+                    <input id="input-song" type="text" placeholder="Song Name" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none">
+                    <input id="input-url" type="text" placeholder="YouTube URL or Embed Link" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none">
+                    <button id="btn-add" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg font-bold text-xs transition uppercase tracking-widest">
+                        Queue Song
+                    </button>
                 </div>
-                
-                <div id="search-results" class="mt-4 space-y-2 hidden max-h-[40vh] overflow-y-auto pr-2"></div>
             </div>
 
             <div class="flex-1 overflow-y-auto p-5">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest">Live Queue</h3>
-                    <span id="queue-badge" class="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded">0 SONGS</span>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Up Next</span>
+                    <span id="q-count" class="text-[10px] text-slate-600 font-bold">0</span>
                 </div>
-                <div id="queue-list" class="space-y-3"></div>
+                <div id="queue-container" class="space-y-3"></div>
             </div>
         </aside>
     </main>
@@ -90,7 +91,7 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 1. CONFIG
+        // Firebase Setup
         const firebaseConfig = {
             apiKey: "AIzaSyCk6mub0hDCzJ5iDmV-61v3WLSHMC51JP4",
             authDomain: "munch-24119.firebaseapp.com",
@@ -100,17 +101,16 @@
             appId: "1:834099093086:web:2f618d05d479f49e17decf",
             measurementId: "G-GRP6GVZVEY"
         };
-        const YT_API_KEY = "YOUR_YOUTUBE_DATA_API_V3_KEY"; // REQUIRED FOR SEARCH
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        let player, currentUser, queueData = [];
+        let player, currentUser, queue = [];
         let isPlaying = false;
 
-        // --- AUTH ---
+        // AUTH ACTIONS
         $('#btn-login').click(() => signInWithPopup(auth, provider));
         $('#btn-logout').click(() => signOut(auth));
 
@@ -119,112 +119,92 @@
                 currentUser = user;
                 $('#auth-overlay').addClass('opacity-0 pointer-events-none');
                 $('#user-info').removeClass('hidden').addClass('flex');
-                $('#display-name').text(user.displayName);
-                $('#display-photo').attr('src', user.photoURL);
+                $('#user-name').text(user.displayName);
+                $('#user-photo').attr('src', user.photoURL);
             } else {
                 $('#auth-overlay').removeClass('opacity-0 pointer-events-none');
             }
         });
 
-        // --- FIRESTORE REALTIME SYNC ---
-        const q = query(collection(db, "munch_queue"), orderBy("createdAt", "asc"));
-        onSnapshot(q, (snapshot) => {
-            queueData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // FIRESTORE SYNC
+        const q = query(collection(db, "munch_queue"), orderBy("timestamp", "asc"));
+        onSnapshot(q, snap => {
+            queue = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             renderQueue();
-            if (queueData.length > 0 && !isPlaying) playNext();
+            if(queue.length > 0 && !isPlaying) playNext();
         });
 
-        // --- PLAYER LOGIC ---
+        // PLAYER
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('youtube-player', {
                 height: '100%', width: '100%',
-                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
+                playerVars: { 'autoplay': 1, 'controls': 1 },
                 events: { 'onStateChange': e => { if(e.data === 0) playNext(); } }
             });
         };
 
         async function playNext() {
-            if (queueData.length > 0) {
+            if (queue.length > 0) {
                 isPlaying = true;
-                const song = queueData[0];
+                const song = queue[0];
                 player.loadVideoById(song.videoId);
                 $('#np-title').text(song.name);
-                $('#idle-overlay').addClass('hidden');
+                $('#idle-screen').addClass('hidden');
                 
-                // Update Global Status
                 await setDoc(doc(db, "app_status", "now_playing"), {
                     name: song.name,
                     addedBy: song.addedBy,
                     isPlaying: true
                 });
-
-                // Remove from Firestore
                 await deleteDoc(doc(db, "munch_queue", song.id));
             } else {
                 isPlaying = false;
-                $('#idle-overlay').removeClass('hidden');
+                $('#idle-screen').removeClass('hidden');
                 $('#np-title').text("Stage Idle");
                 await setDoc(doc(db, "app_status", "now_playing"), { isPlaying: false });
             }
         }
         window.playNext = playNext;
 
-        // --- SEARCH ENGINE ---
-        let searchTimer;
-        $('#search-input').on('input', function() {
-            clearTimeout(searchTimer);
-            const val = $(this).val();
-            if (val.length < 3) return $('#search-results').addClass('hidden');
-            searchTimer = setTimeout(() => runSearch(val), 600);
-        });
-
-        async function runSearch(query) {
-            try {
-                const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query} karaoke&type=video&maxResults=6&key=${YT_API_KEY}`);
-                const data = await res.json();
-                renderSearchResults(data.items);
-            } catch (e) { alert("Enable YouTube Data API v3 in Google Console"); }
+        // URL EXTRACTION
+        function getID(url) {
+            const reg = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(reg);
+            return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        function renderSearchResults(items) {
-            const $box = $('#search-results').empty().removeClass('hidden');
-            items.forEach(item => {
-                const title = item.snippet.title;
-                const vid = item.id.videoId;
-                $box.append(`
-                    <div onclick="window.pushToFirestore('${vid}', '${title.replace(/'/g, "")}')" 
-                        class="search-item flex items-center gap-3 p-2 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer transition">
-                        <img src="${item.snippet.thumbnails.default.url}" class="w-16 h-12 rounded-lg object-cover">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-[11px] font-bold text-slate-200 line-clamp-2">${title}</p>
-                        </div>
-                        <i class="fas fa-plus-circle text-blue-500 mr-2"></i>
-                    </div>
-                `);
-            });
-        }
+        // ADD TO QUEUE
+        $('#btn-add').click(async () => {
+            const name = $('#input-song').val();
+            const url = $('#input-url').val();
+            const videoId = getID(url);
 
-        window.pushToFirestore = async (videoId, name) => {
+            if(!name || !videoId) return alert("Enter song name and valid YouTube URL");
+
+            $('#btn-add').prop('disabled', true).text('Processing...');
+
             await addDoc(collection(db, "munch_queue"), {
-                videoId, name,
+                name,
+                videoId,
                 addedBy: currentUser.displayName,
                 userPhoto: currentUser.photoURL,
-                createdAt: serverTimestamp()
+                timestamp: serverTimestamp()
             });
-            $('#search-input').val('');
-            $('#search-results').addClass('hidden');
-        };
+
+            $('#input-song, #input-url').val('');
+            $('#btn-add').prop('disabled', false).text('Queue Song');
+        });
 
         function renderQueue() {
-            const $list = $('#queue-list').empty();
-            $('#queue-badge').text(`${queueData.length} SONGS`);
-            queueData.forEach(song => {
-                $list.append(`
-                    <div class="queue-item flex items-center gap-4 p-3 bg-slate-900/50 border border-slate-800 rounded-2xl">
-                        <img src="${song.userPhoto}" class="w-10 h-10 rounded-xl border border-slate-700">
+            const $cont = $('#queue-container').empty();
+            $('#q-count').text(queue.length);
+            queue.forEach(song => {
+                $cont.append(`
+                    <div class="queue-card flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                        <img src="${song.userPhoto}" class="w-8 h-8 rounded-lg">
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold truncate">${song.name}</p>
-                            <p class="text-[10px] text-blue-500 font-black uppercase tracking-tighter">${song.addedBy}</p>
+                            <p class="text-xs font-bold truncate">${song.name}</p>
+                            <p class="text-[9px] text-blue-500 font-black uppercase tracking-tighter">${song.addedBy}</p>
                         </div>
                     </div>
                 `);
