@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Sapphire</title>
+    <title>Daily Burn | Opal</title>
     
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,10 +17,11 @@
         /* --- VARIABLES --- */
         :root { 
             --bg-main: #0f172a; 
-            --glass-bg: rgba(15, 23, 42, 0.85); /* Darker glass for legibility */
+            --glass-bg: rgba(15, 23, 42, 0.85);
             --glass-border: rgba(255, 255, 255, 0.1);
-            --primary: #3b82f6; /* Sapphire Blue */
+            --primary: #3b82f6; 
             --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --danger: #ef4444;
             --text-main: #f1f5f9;
         }
 
@@ -42,9 +43,12 @@
 
         .gradient-text { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .gradient-bg { background: var(--primary-gradient); }
-        .gradient-border { border-color: var(--primary); }
-
+        
         .completed { opacity: 0.4; filter: grayscale(1); transform: scale(0.98); pointer-events: none; transition: 0.4s; }
+
+        /* Animation: Slide Up */
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-item { opacity: 0; animation: slideIn 0.4s ease-out forwards; }
 
         /* Day Nav */
         .day-btn.active { background: var(--primary-gradient); color: white; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transform: translateY(-2px); }
@@ -55,7 +59,7 @@
         .muscle-part { fill: rgba(255,255,255,0.05); transition: fill 0.6s ease; }
         .muscle-active { fill: var(--primary); filter: drop-shadow(0 0 8px var(--primary)); }
 
-        /* Custom Toggle Switch */
+        /* Switch */
         .toggle-checkbox:checked { right: 0; border-color: var(--primary); }
         .toggle-checkbox:checked + .toggle-label { background-color: var(--primary); }
         
@@ -102,9 +106,10 @@
 
         <main class="max-w-md mx-auto mt-40 px-4">
             
-            <div class="glass-panel rounded-[2.5rem] p-6 mb-8 relative overflow-hidden">
-                <button id="reset-day-btn" class="absolute top-6 right-6 text-[10px] font-black text-slate-600 hover:text-red-500 uppercase tracking-widest transition z-20 flex items-center">
-                    <i class="fas fa-redo-alt mr-1"></i> Reset
+            <div class="glass-panel rounded-[2.5rem] p-6 mb-8 relative overflow-hidden transition-all duration-300" id="stats-card">
+                
+                <button id="session-action-btn" class="absolute top-6 right-6 text-[10px] font-black uppercase tracking-widest transition z-20 flex items-center px-3 py-1 rounded-full bg-slate-800/50 hover:bg-slate-700 text-slate-400">
+                    <i class="fas fa-redo-alt mr-2"></i> Reset
                 </button>
 
                 <div class="flex justify-between items-center relative z-10">
@@ -112,7 +117,7 @@
                         <div id="day-focus" class="gradient-text font-black uppercase tracking-widest text-xs mb-2">...</div>
                         
                         <div class="flex items-baseline space-x-2 mb-2">
-                            <h2 id="global-timer" class="text-5xl font-mono font-black text-white tracking-tighter">00:00</h2>
+                            <h2 id="global-timer" class="text-6xl font-mono font-black text-white tracking-tighter">00:00</h2>
                         </div>
 
                         <div class="w-full max-w-[140px]">
@@ -141,7 +146,7 @@
                 </div>
             </div>
 
-            <div id="start-overlay" class="absolute top-36 left-0 right-0 z-40 flex flex-col items-center justify-start pt-6 h-full transition-all">
+            <div id="start-overlay" class="absolute top-36 left-0 right-0 z-40 flex flex-col items-center justify-start pt-6 h-full transition-all duration-500">
                 <div class="glass-panel p-2 rounded-[3rem] mb-6">
                     <button id="start-btn" class="gradient-bg text-white font-black uppercase text-xl py-6 px-16 rounded-[2.8rem] shadow-2xl shadow-blue-500/20 transform transition hover:scale-105 active:scale-95 animate-bounce flex items-center">
                         <i class="fas fa-play mr-3"></i> Start
@@ -227,11 +232,12 @@
 
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             let activeDay = new Date().getDay();
-            let schedule = JSON.parse(localStorage.getItem('sp_schedule')) || defaultSchedule;
-            let completed = JSON.parse(localStorage.getItem('sp_completed')) || {};
-            let profile = JSON.parse(localStorage.getItem('sp_profile')) || { level: 1.0, theme: 'theme-default' };
+            let schedule = JSON.parse(localStorage.getItem('opal_schedule')) || defaultSchedule;
+            let completed = JSON.parse(localStorage.getItem('opal_completed')) || {};
+            let profile = JSON.parse(localStorage.getItem('opal_profile')) || { level: 1.0, theme: 'theme-default' };
             
             let isEditing = false;
+            let isSessionActive = false;
             let sessionSeconds = 0;
             let sessionTimerIntv = null;
             let currentSessionList = []; // Holds active workout queue
@@ -247,7 +253,12 @@
 
             // --- START ---
             $('#start-btn').click(function() {
+                startSession();
+            });
+
+            function startSession() {
                 if(audioCtx.state === 'suspended') audioCtx.resume();
+                isSessionActive = true;
                 
                 // 1. Build Session Queue
                 const base = schedule[activeDay].exercises;
@@ -260,7 +271,11 @@
                 // 2. UI Updates
                 $('#start-overlay').fadeOut();
                 $('#workout-list').removeClass('blur-sm pointer-events-none');
-                renderList(); // Re-render with new queue
+                
+                // Change Reset Button to Stop Button
+                $('#session-action-btn').html('<i class="fas fa-stop mr-2"></i> End Session').addClass('text-red-400 bg-red-400/10').removeClass('text-slate-400 bg-slate-800/50');
+                
+                renderList(); // Render visible list
                 
                 // 3. Start Timer
                 sessionSeconds = 0;
@@ -274,6 +289,38 @@
 
                 playSound("Session started.");
                 updateGymMode();
+            }
+
+            function endSession(userAction = true) {
+                isSessionActive = false;
+                clearInterval(sessionTimerIntv);
+                
+                if(userAction) {
+                    $('#start-overlay').fadeIn();
+                    $('#workout-list').addClass('blur-sm pointer-events-none');
+                    $('#global-timer, #gym-timer').text("00:00");
+                    
+                    // Revert button to Reset Day
+                    $('#session-action-btn').html('<i class="fas fa-redo-alt mr-2"></i> Reset').removeClass('text-red-400 bg-red-400/10').addClass('text-slate-400 bg-slate-800/50');
+                    
+                    // Reset Gym Mode
+                    $('#gym-name').text("START"); $('#gym-target').text("--"); $('#gym-unit').text("--");
+                }
+            }
+
+            // --- SESSION ACTION BUTTON (RESET / STOP) ---
+            $('#session-action-btn').click(function() {
+                if(isSessionActive) {
+                    if(confirm("End current session?")) {
+                        endSession(true);
+                    }
+                } else {
+                    if(confirm("Clear progress for this day?")) {
+                        delete completed[activeDay];
+                        localStorage.setItem('opal_completed', JSON.stringify(completed));
+                        loadDay(activeDay);
+                    }
+                }
             });
 
             // --- CORE UI ---
@@ -281,7 +328,7 @@
                 const container = $('#day-nav-container').empty();
                 dayNames.forEach((d, i) => {
                     const activeClass = (i === activeDay) ? 'active' : 'glass-panel text-slate-400';
-                    const hasData = completed[i] && completed[i].length === schedule[i].exercises.length; // Approximate check
+                    const hasData = completed[i] && completed[i].length === schedule[i].exercises.length;
                     
                     container.append(`
                         <button class="day-btn w-12 h-16 rounded-2xl flex flex-col items-center justify-center relative shrink-0 ${activeClass}" data-day="${i}">
@@ -305,22 +352,23 @@
                 $('.muscle-part').removeClass('muscle-active');
                 data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
 
-                // Reset Session Queue to default day view
+                // Default view is base schedule
                 currentSessionList = data.exercises; 
-
                 renderList();
                 updateProgress();
                 
                 // Reset View
-                $('#workout-list').addClass('blur-sm pointer-events-none');
-                $('#start-overlay').fadeIn(0);
-                $('#global-timer').text("00:00");
-                clearInterval(sessionTimerIntv);
-                updateGymMode();
+                endSession(true); 
             }
 
             function renderList() {
                 const container = $('#workout-list').empty();
+                
+                if(currentSessionList.length === 0) {
+                     container.html('<div class="text-center text-slate-500 py-10">No exercises found.</div>');
+                     return;
+                }
+
                 currentSessionList.forEach((ex, idx) => {
                     const isDone = completed[activeDay] && completed[activeDay].includes(ex.id);
                     const reps = Math.ceil(ex.reps * profile.level);
@@ -337,10 +385,10 @@
                         );
                     
                     if(isEditing) {
-                        container.append(`<div class="glass-panel p-4 rounded-3xl text-center text-xs text-slate-500" style="animation: slideUpFade 0.5s ease forwards ${delay}ms; opacity: 0;">Editing Disabled during active session</div>`);
+                        container.append(`<div class="glass-panel p-4 rounded-3xl text-center text-xs text-slate-500 slide-item" style="animation-delay: ${delay}ms">Editing Disabled during active session</div>`);
                     } else {
                         container.append(`
-                            <div class="glass-panel p-5 rounded-[1.8rem] transition-all duration-300 ${isDone ? 'completed' : ''}" id="card-${ex.id}" style="animation: slideUpFade 0.5s ease forwards ${delay}ms; opacity: 0;">
+                            <div class="glass-panel p-5 rounded-[1.8rem] transition-all duration-300 slide-item ${isDone ? 'completed' : ''}" id="card-${ex.id}" style="animation-delay: ${delay}ms">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-4">
                                         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white gradient-bg shadow-lg">
@@ -361,6 +409,7 @@
 
             // --- LOGIC ---
             function updateGymMode() {
+                if(!isSessionActive) return;
                 const nextEx = currentSessionList.find(e => !completed[activeDay]?.includes(e.id));
                 if (nextEx) {
                     $('#gym-name').text(nextEx.name);
@@ -376,7 +425,7 @@
             $(document).on('click', '.timer-btn', function() {
                 const btn = $(this);
                 if (btn.hasClass('running')) return;
-                btn.addClass('running gradient-bg border-transparent text-white pulse-active');
+                btn.addClass('running gradient-bg border-transparent text-white');
                 
                 let timeLeft = btn.data('duration');
                 const label = $(`.dynamic-text-${btn.data('id')}`);
@@ -398,7 +447,7 @@
                 if(!completed[activeDay]) completed[activeDay] = [];
                 if(!completed[activeDay].includes(id)) {
                     completed[activeDay].push(id);
-                    localStorage.setItem('sp_completed', JSON.stringify(completed));
+                    localStorage.setItem('opal_completed', JSON.stringify(completed));
                 }
                 
                 $(`#card-${id}`).addClass('completed');
@@ -453,7 +502,7 @@
 
             function finishSession() {
                 fireConfetti();
-                clearInterval(sessionTimerIntv);
+                endSession(false); // Stop timer but keep view
                 playSound("Session Complete!");
                 setTimeout(() => alert("Great work! Session Complete."), 1000);
             }
@@ -484,14 +533,13 @@
             $('.day-btn').click(function() { loadDay($(this).data('day')); });
             $('#open-profile').click(() => $('#profile-modal').removeClass('hidden'));
             $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
-            $('#reset-day-btn').click(() => { if(confirm("Restart today?")) { delete completed[activeDay]; localStorage.setItem('sp_completed', JSON.stringify(completed)); loadDay(activeDay); }});
             
             $('.theme-btn').click(function() {
                 const t = $(this).data('theme'); $('body').removeClass().addClass(t);
-                profile.theme = t; localStorage.setItem('sp_profile', JSON.stringify(profile));
+                profile.theme = t; localStorage.setItem('opal_profile', JSON.stringify(profile));
             });
-            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem('sp_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
-            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem('sp_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
+            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem('opal_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
+            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem('opal_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
             $('#hard-reset').click(() => { if(confirm("Factory Reset?")) { localStorage.clear(); location.reload(); }});
             $('#toggle-edit').click(() => { isEditing = !isEditing; renderList(); });
         });
