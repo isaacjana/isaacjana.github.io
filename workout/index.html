@@ -3,274 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn ULTIMATE</title>
+    <title>Daily Burn | Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        @keyframes pulse-bg { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .skeleton { animation: pulse-bg 1.5s infinite ease-in-out; background: #334155; }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.3); opacity: 0; } }
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        
+        .heart-pulse { animation: heartbeat 0.8s infinite ease-in-out; }
+        .heart-ring { animation: pulse-ring 0.8s infinite ease-out; }
+        
         .progress-ring__circle { transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(-90deg); transform-origin: 50% 50%; }
-        .muscle-part { fill: #334155; transition: fill 0.6s ease; }
+        .completed { opacity: 0.2; transform: scale(0.95); transition: 0.4s; }
+        
+        /* Burn Velocity Chart Bars */
+        .chart-bar { transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .muscle-part { fill: #1e293b; transition: fill 0.5s; }
         .muscle-active { fill: #6366f1; }
-        .completed { opacity: 0.25; pointer-events: none; filter: grayscale(1); transform: scale(0.95); transition: 0.4s; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .video-modal { background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen font-sans">
 
-    <nav class="fixed top-0 w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-50 p-3">
+    <header class="fixed top-0 w-full bg-slate-950/90 backdrop-blur-xl border-b border-white/5 z-50 px-6 py-4">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <div class="flex space-x-6">
-                <button class="nav-link active text-indigo-400 text-xs font-black uppercase tracking-tighter" data-tab="today">Today</button>
-                <button class="nav-link text-slate-500 text-sm font-black uppercase tracking-tighter" data-tab="history">History</button>
+            <div class="flex items-center space-x-3">
+                <div class="relative flex items-center justify-center">
+                    <div class="heart-ring absolute w-6 h-6 rounded-full bg-red-500/50"></div>
+                    <i class="fas fa-heart text-red-500 heart-pulse relative z-10 text-sm"></i>
+                </div>
+                <div>
+                    <span id="hr-val" class="text-xl font-black tabular-nums">72</span>
+                    <span class="text-[9px] font-black text-slate-500 uppercase ml-1">BPM</span>
+                </div>
             </div>
-            <div class="flex items-center space-x-4">
-                <i id="voice-indicator" class="fas fa-microphone-alt text-indigo-500 opacity-30"></i>
-                <button id="open-settings" class="text-slate-400"><i class="fas fa-cog"></i></button>
+            
+            <div class="flex items-end space-x-1 h-6" id="velocity-chart">
+                <div class="chart-bar w-1 bg-slate-800 rounded-full h-2"></div>
+                <div class="chart-bar w-1 bg-slate-800 rounded-full h-3"></div>
+                <div class="chart-bar w-1 bg-slate-800 rounded-full h-1"></div>
+                <div class="chart-bar w-1 bg-slate-800 rounded-full h-4"></div>
+                <div class="chart-bar w-1 bg-slate-800 rounded-full h-2"></div>
             </div>
         </div>
-    </nav>
+    </header>
 
-    <main id="today" class="tab-content active max-w-md mx-auto mt-20 p-4">
+    <main class="max-w-md mx-auto mt-24 p-6 pb-40">
         
-        <div class="bg-slate-900 rounded-[2.5rem] p-6 border border-slate-800 shadow-2xl mb-8 flex items-center justify-between relative overflow-hidden">
-            <div class="relative flex items-center justify-center z-10">
-                <svg class="w-24 h-24">
-                    <circle class="text-slate-800" stroke-width="6" stroke="currentColor" fill="transparent" r="42" cx="48" cy="48"/>
-                    <circle id="progress-ring" class="text-indigo-500 progress-ring__circle" stroke-width="6" stroke-dasharray="263.8" stroke-dashoffset="263.8" stroke-linecap="round" stroke="currentColor" fill="transparent" r="42" cx="48" cy="48"/>
-                </svg>
-                <div class="absolute text-center">
-                    <span id="progress-percent" class="text-xl font-black text-white">0%</span>
+        <div class="bg-slate-900 rounded-[2.5rem] p-6 border border-white/5 mb-8 relative overflow-hidden">
+            <div class="relative z-10 flex justify-between items-center">
+                <div>
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Burn</span>
+                    <h2 class="text-4xl font-black text-white"><span id="live-cals">0</span><span class="text-indigo-500 text-sm ml-1">Kcal</span></h2>
+                </div>
+                
+                <div class="relative w-20 h-20 flex items-center justify-center">
+                    <svg class="w-full h-full">
+                        <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="36" cx="40" cy="40"/>
+                        <circle id="progress-ring" class="text-indigo-500 progress-ring__circle" stroke-width="4" stroke-dasharray="226.2" stroke-dashoffset="226.2" stroke-linecap="round" stroke="currentColor" fill="transparent" r="36" cx="40" cy="40"/>
+                    </svg>
+                    <span id="percent-text" class="absolute text-xs font-black">0%</span>
                 </div>
             </div>
-
-            <div class="flex-grow ml-6 z-10">
-                <div class="text-3xl font-black text-white" id="cal-display">0</div>
-                <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mb-3">Total Burn</div>
-                <div class="flex items-center space-x-2 bg-slate-800/50 w-fit px-3 py-1 rounded-full border border-slate-700">
-                    <i class="fas fa-fire text-orange-500 text-xs"></i>
-                    <span id="streak-display" class="text-xs font-bold text-slate-200">0</span>
-                    <span class="text-[9px] text-slate-500 uppercase">Days</span>
+            
+            <div class="mt-8">
+                <div class="flex justify-between text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                    <span>Intensity Goal</span>
+                    <span id="goal-label">150 KCAL</span>
                 </div>
-            </div>
-
-            <div class="w-14 h-20 opacity-60">
-                <svg viewBox="0 0 50 100" class="muscle-svg">
-                    <rect x="18" y="10" width="14" height="12" rx="6" class="muscle-part" data-muscle="Upper"/>
-                    <rect x="10" y="25" width="30" height="25" rx="4" class="muscle-part" data-muscle="Core"/>
-                    <rect x="5" y="25" width="6" height="30" rx="3" class="muscle-part" data-muscle="Upper"/>
-                    <rect x="39" y="25" width="6" height="30" rx="3" class="muscle-part" data-muscle="Upper"/>
-                    <rect x="12" y="55" width="8" height="40" rx="4" class="muscle-part" data-muscle="Lower"/>
-                    <rect x="30" y="55" width="8" height="40" rx="4" class="muscle-part" data-muscle="Lower"/>
-                </svg>
+                <input type="range" id="goal-slider" min="50" max="500" step="50" value="150" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
             </div>
         </div>
 
-        <div id="workout-container" class="space-y-4 pb-32"></div>
+        <div id="workout-container" class="space-y-4"></div>
 
-        <div class="fixed bottom-8 left-0 right-0 px-6 max-w-md mx-auto z-40">
-            <button id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-[1.5rem] text-white font-black uppercase tracking-widest shadow-2xl shadow-indigo-500/30 transform active:scale-95 transition">
-                Generate Daily Routine
-            </button>
-        </div>
     </main>
 
-    <div id="video-modal" class="hidden fixed inset-0 z-[70] video-modal flex flex-col items-center justify-center p-4">
-        <button id="close-video" class="absolute top-6 right-6 text-white text-3xl">&times;</button>
-        <div class="w-full max-w-xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
-            <iframe id="video-frame" class="w-full h-full" src="" frameborder="0" allowfullscreen></iframe>
+    <div class="fixed bottom-0 w-full bg-slate-950/90 backdrop-blur-xl p-6 border-t border-white/5 z-50">
+        <div class="max-w-md mx-auto">
+            <button id="generate-btn" class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                Assemble Routine
+            </button>
         </div>
-        <p class="text-slate-400 mt-4 text-sm font-bold uppercase tracking-widest" id="video-title"></p>
     </div>
 
-    <div id="rest-modal" class="hidden fixed inset-0 z-[60] bg-slate-950 flex flex-col items-center justify-center p-8">
-        <div class="w-full max-w-xs bg-slate-900 rounded-[3rem] p-12 border border-slate-800 text-center relative">
-             <div class="text-indigo-400 text-xs font-black uppercase tracking-[0.3em] mb-4">Recovery</div>
-             <div class="text-8xl font-black text-white mb-10 tabular-nums" id="rest-timer">20</div>
-             <button id="skip-rest" class="text-slate-500 hover:text-white font-bold text-sm tracking-widest uppercase">Skip</button>
-        </div>
-        <div class="mt-12 text-center">
-            <div class="text-slate-500 text-[10px] uppercase tracking-widest mb-2">Up Next</div>
-            <div class="text-xl font-bold text-white" id="next-ex-name">...</div>
-        </div>
+    <div id="rest-modal" class="hidden fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8">
+        <div class="text-9xl font-black text-white tabular-nums mb-4" id="rest-timer">20</div>
+        <div class="text-indigo-500 font-bold uppercase tracking-widest text-sm" id="next-ex-label">...</div>
     </div>
 
     <script>
         $(document).ready(function() {
-            // --- EXTENDED HOME EXERCISE DB ---
             const exerciseDB = [
-                // Upper Body
-                { name: "Push Ups", base: 12, unit: "Reps", type: "Strength", cal: 0.6, muscle: "Upper" },
-                { name: "Diamond Push Ups", base: 8, unit: "Reps", type: "Strength", cal: 0.8, muscle: "Upper" },
-                { name: "Tricep Dips", base: 12, unit: "Reps", type: "Arms", cal: 0.5, muscle: "Upper" },
-                { name: "Pike Push Ups", base: 10, unit: "Reps", type: "Shoulders", cal: 0.7, muscle: "Upper" },
-                
-                // Lower Body
-                { name: "Jump Squats", base: 15, unit: "Reps", type: "Cardio", cal: 0.9, muscle: "Lower" },
-                { name: "Walking Lunges", base: 16, unit: "Reps", type: "Legs", cal: 0.6, muscle: "Lower" },
-                { name: "Wall Sit", base: 30, unit: "Sec", isTime: true, type: "Legs", cal: 0.3, muscle: "Lower" },
-                { name: "Glute Bridges", base: 20, unit: "Reps", type: "Glutes", cal: 0.4, muscle: "Lower" },
-                { name: "Bulgarian Split Squats", base: 10, unit: "Reps/Leg", type: "Strength", cal: 0.8, muscle: "Lower" },
-
-                // Core
-                { name: "Plank", base: 30, unit: "Sec", isTime: true, type: "Core", cal: 0.2, muscle: "Core" },
-                { name: "Russian Twists", base: 24, unit: "Reps", type: "Abs", cal: 0.4, muscle: "Core" },
-                { name: "Bicycle Crunches", base: 30, unit: "Reps", type: "Abs", cal: 0.5, muscle: "Core" },
-                { name: "Leg Raises", base: 12, unit: "Reps", type: "Abs", cal: 0.4, muscle: "Core" },
-
-                // Full Body / Cardio
-                { name: "Burpees", base: 8, unit: "Reps", type: "Full Body", cal: 1.4, muscle: "Full Body" },
-                { name: "Mountain Climbers", base: 30, unit: "Sec", isTime: true, type: "Cardio", cal: 0.4, muscle: "Full Body" },
-                { name: "Jumping Jacks", base: 40, unit: "Reps", type: "Cardio", cal: 0.3, muscle: "Full Body" }
+                { name: "Push Ups", cal: 0.6, base: 15, unit: "Reps", icon: "fa-hand-rock" },
+                { name: "Jump Squats", cal: 1.0, base: 15, unit: "Reps", icon: "fa-bolt" },
+                { name: "Plank", cal: 0.2, base: 45, unit: "Sec", icon: "fa-stopwatch" },
+                { name: "Burpees", cal: 1.6, base: 10, unit: "Reps", icon: "fa-fire" },
+                { name: "Bicycle Crunches", cal: 0.4, base: 30, unit: "Reps", icon: "fa-bicycle" },
+                { name: "Wall Sit", cal: 0.3, base: 45, unit: "Sec", icon: "fa-chair" }
             ];
 
-            let state = JSON.parse(localStorage.getItem('burn_pro_v4')) || {
-                streak: 0, lastDate: null, history: [], current: [], cals: 0, diff: 1, rest: 20
-            };
-
+            let state = { current: [], cals: 0, target: 150 };
             const synth = window.speechSynthesis;
 
-            function announce(text) {
-                synth.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                synth.speak(utterance);
-            }
-
-            function updateUI() {
+            // --- ANALYTICS ENGINE ---
+            function simulateHeartRate() {
                 const done = state.current.filter(e => e.done).length;
-                const total = state.current.length || 1;
-                const percent = Math.round((done / total) * 100);
-                const offset = 263.8 - (percent / 100 * 263.8);
+                const progress = done / (state.current.length || 1);
+                // BPM increases from 70 to 140+ as you progress
+                const bpm = Math.floor(72 + (progress * 80) + (Math.random() * 5));
+                $('#hr-val').text(bpm);
                 
-                $('#progress-ring').css('stroke-dashoffset', offset);
-                $('#progress-percent').text(percent + '%');
-                $('#cal-display').text(Math.floor(state.cals));
-                $('#streak-display').text(state.streak);
+                // Speed up animations based on heart rate
+                const duration = 60 / bpm;
+                $('.heart-pulse, .heart-ring').css('animation-duration', duration + 's');
+            }
+            setInterval(simulateHeartRate, 2000);
 
-                $('.muscle-part').removeClass('muscle-active');
-                state.current.forEach(ex => {
-                    if(!ex.done) {
-                        if(ex.muscle === "Full Body") $('.muscle-part').addClass('muscle-active');
-                        else $(`.muscle-part[data-muscle="${ex.muscle}"]`).addClass('muscle-active');
-                    }
+            function updateVelocityChart() {
+                const bars = $('#velocity-chart .chart-bar');
+                bars.each(function() {
+                    const h = Math.floor(Math.random() * 20) + 4;
+                    $(this).css('height', h + 'px');
+                    if(h > 15) $(this).addClass('bg-indigo-500').removeClass('bg-slate-800');
+                    else $(this).addClass('bg-slate-800').removeClass('bg-indigo-500');
                 });
             }
 
-            function generate() {
-                const container = $('#workout-container').empty();
-                for(let i=0; i<5; i++) container.append('<div class="h-28 w-full skeleton rounded-[2rem]"></div>');
+            // --- WORKOUT ENGINE ---
+            function assemble() {
+                state.target = $('#goal-slider').val();
+                state.cals = 0;
+                let currentBurn = 0;
+                let selected = [];
+                let pool = [...exerciseDB].sort(() => 0.5 - Math.random());
 
-                setTimeout(() => {
-                    state.current = exerciseDB.sort(() => 0.5 - Math.random()).slice(0, 5).map(ex => ({
-                        ...ex,
-                        target: Math.ceil(ex.base * state.diff),
-                        done: false,
-                        id: Math.random().toString(36).substr(2, 9)
-                    }));
-                    state.cals = 0;
-                    save();
-                    render();
-                    announce("Let's go. First up: " + state.current[0].name);
-                }, 800);
+                while (currentBurn < state.target && selected.length < 12) {
+                    let ex = pool[Math.floor(Math.random() * pool.length)];
+                    selected.push({...ex, done: false, id: Math.random()});
+                    currentBurn += (ex.cal * ex.base);
+                }
+
+                state.current = selected;
+                render();
+                updateUI();
+                const utter = new SpeechSynthesisUtterance("Routine assembled. Let's burn " + state.target + " calories.");
+                synth.speak(utter);
             }
 
             function render() {
                 const container = $('#workout-container').empty();
                 state.current.forEach(ex => {
                     container.append(`
-                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex items-center justify-between transition-all ${ex.done ? 'completed' : ''}">
+                        <div class="bg-slate-900 border border-white/5 p-6 rounded-[2rem] flex items-center justify-between transition-all ${ex.done ? 'completed' : ''}">
                             <div class="flex items-center space-x-4">
-                                <button class="video-btn w-10 h-10 rounded-full bg-slate-800 text-slate-500 hover:text-indigo-400" data-name="${ex.name}">
-                                    <i class="fas fa-play-circle text-xl"></i>
-                                </button>
+                                <div class="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center text-indigo-500"><i class="fas ${ex.icon}"></i></div>
                                 <div>
-                                    <h3 class="font-black text-white text-md tracking-tight">${ex.name}</h3>
-                                    <p class="text-indigo-500 font-bold text-xs uppercase">${ex.target} ${ex.unit}</p>
+                                    <h3 class="font-black text-white uppercase text-xs tracking-tight">${ex.name}</h3>
+                                    <p class="text-indigo-400 font-black text-[10px] uppercase">${ex.base} ${ex.unit}</p>
                                 </div>
                             </div>
-                            <button class="check-btn w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 active:bg-indigo-600 active:text-white transition" data-id="${ex.id}">
-                                <i class="fas fa-check"></i>
+                            <button class="check-btn w-10 h-10 rounded-full border-2 border-slate-700 flex items-center justify-center" data-id="${ex.id}">
+                                <i class="fas fa-check text-white ${ex.done ? '' : 'hidden'}"></i>
                             </button>
                         </div>
                     `);
                 });
             }
 
-            function save() {
-                localStorage.setItem('burn_pro_v4', JSON.stringify(state));
-                updateUI();
+            function updateUI() {
+                const doneCount = state.current.filter(e => e.done).length;
+                const total = state.current.length || 1;
+                const percent = Math.round((doneCount / total) * 100);
+                
+                $('#progress-ring').css('stroke-dashoffset', 226.2 - (percent / 100 * 226.2));
+                $('#percent-text').text(percent + '%');
+                $('#live-cals').text(Math.floor(state.cals));
+                updateVelocityChart();
             }
 
-            // --- VIDEO LOGIC ---
-            $(document).on('click', '.video-btn', function() {
-                const name = $(this).data('name');
-                const searchQuery = encodeURIComponent(name + " home exercise form");
-                const embedUrl = `https://www.youtube.com/embed?listType=search&list=${searchQuery}`;
-                
-                $('#video-title').text(name + " Form Guide");
-                $('#video-frame').attr('src', embedUrl);
-                $('#video-modal').removeClass('hidden');
-            });
-
-            $('#close-video').click(() => {
-                $('#video-modal').addClass('hidden');
-                $('#video-frame').attr('src', '');
-            });
-
-            // --- REST & PROGRESS ---
             $(document).on('click', '.check-btn', function() {
                 const id = $(this).data('id');
-                const ex = state.current.find(e => e.id === id);
+                const ex = state.current.find(e => e.id == id);
+                if(ex.done) return;
+
                 ex.done = true;
-                state.cals += (ex.cal * ex.target);
+                state.cals += (ex.cal * ex.base);
+                
+                updateUI();
+                render();
                 
                 const next = state.current.find(e => !e.done);
-                if(!next) {
-                    finishWorkout();
-                } else if(state.rest > 0) {
-                    startRest(next);
+                if(next) {
+                    $('#next-ex-label').text("Next: " + next.name);
+                    $('#rest-modal').removeClass('hidden');
+                    let time = 15;
+                    const timer = setInterval(() => {
+                        time--;
+                        $('#rest-timer').text(time);
+                        if(time <= 0) {
+                            clearInterval(timer);
+                            $('#rest-modal').addClass('hidden');
+                        }
+                    }, 1000);
+                } else {
+                    const final = new SpeechSynthesisUtterance("Goal reached. Workout complete.");
+                    synth.speak(final);
                 }
-                save();
-                render();
             });
 
-            function startRest(next) {
-                $('#next-ex-name').text(next.name);
-                $('#rest-modal').removeClass('hidden');
-                announce("Rest. Next is " + next.name);
-                
-                let time = state.rest;
-                const timer = setInterval(() => {
-                    time--;
-                    $('#rest-timer').text(time);
-                    if(time <= 3 && time > 0) announce(time.toString());
-                    if(time <= 0) {
-                        clearInterval(timer);
-                        $('#rest-modal').addClass('hidden');
-                        announce("Start " + next.name);
-                    }
-                }, 1000);
-                $('#skip-rest').click(() => { clearInterval(timer); $('#rest-modal').addClass('hidden'); });
-            }
+            $('#goal-slider').on('input', function() {
+                $('#goal-label').text($(this).val() + " KCAL");
+            });
 
-            function finishWorkout() {
-                const today = new Date().toDateString();
-                if(state.lastDate !== today) {
-                    state.streak++;
-                    state.lastDate = today;
-                    state.history.unshift({ date: today, cals: state.cals });
-                }
-                announce("Great job. Workout complete.");
-                save();
-            }
-
-            $('#generate-btn').click(generate);
-            if(state.current.length) render();
-            updateUI();
+            $('#generate-btn').click(assemble);
         });
     </script>
 </body>
