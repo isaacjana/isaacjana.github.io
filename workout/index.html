@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Ruby</title>
+    <title>Daily Burn | Sapphire</title>
     
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,17 +14,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- VARIABLES & THEMES --- */
+        /* --- VARIABLES --- */
         :root { 
             --bg-main: #0f172a; 
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --primary: #f43f5e; /* Ruby Red */
-            --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+            --glass-bg: rgba(15, 23, 42, 0.85); /* Darker glass for legibility */
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: #3b82f6; /* Sapphire Blue */
+            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             --text-main: #f1f5f9;
         }
 
-        body.theme-ocean { --primary: #3b82f6; --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        /* Themes */
+        body.theme-ruby { --primary: #f43f5e; --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); }
         body.theme-emerald { --primary: #10b981; --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         body.theme-amber { --primary: #f59e0b; --primary-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
@@ -33,41 +34,32 @@
         /* --- UI COMPONENTS --- */
         .glass-panel {
             background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--glass-border);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
-        .gradient-text {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
+        .gradient-text { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .gradient-bg { background: var(--primary-gradient); }
         .gradient-border { border-color: var(--primary); }
 
-        /* --- ANIMATIONS --- */
-        @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .slide-in { animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-        
-        @keyframes pulse-soft { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.98); } }
-        .pulse-active { animation: pulse-soft 2s infinite ease-in-out; }
-
         .completed { opacity: 0.4; filter: grayscale(1); transform: scale(0.98); pointer-events: none; transition: 0.4s; }
 
-        /* --- DAY NAV --- */
-        .day-btn { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        /* Day Nav */
         .day-btn.active { background: var(--primary-gradient); color: white; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transform: translateY(-2px); }
         .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); position: absolute; bottom: 6px; }
         .day-btn.active .status-dot { background: white; }
 
-        /* --- MUSCLE SVG --- */
+        /* Muscle SVG */
         .muscle-part { fill: rgba(255,255,255,0.05); transition: fill 0.6s ease; }
         .muscle-active { fill: var(--primary); filter: drop-shadow(0 0 8px var(--primary)); }
 
-        /* --- LANDSCAPE MODE --- */
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: var(--primary); }
+        .toggle-checkbox:checked + .toggle-label { background-color: var(--primary); }
+        
+        /* Landscape Mode */
         #gym-mode { display: none; }
         @media (orientation: landscape) and (max-height: 500px) { body { overflow: hidden; } #main-ui { display: none; } #gym-mode { display: flex; } }
     </style>
@@ -88,7 +80,7 @@
 
     <div id="main-ui" class="pb-32 relative">
         
-        <header class="fixed top-0 w-full glass-panel z-50 pt-4 pb-3 px-4 border-b-0 rounded-b-3xl">
+        <header class="fixed top-0 w-full glass-panel z-[60] pt-4 pb-3 px-4 border-b-0 rounded-b-3xl">
             <div class="max-w-md mx-auto">
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center space-x-3 cursor-pointer group" id="open-profile">
@@ -96,7 +88,7 @@
                             <span class="text-sm font-black text-white" id="user-level-badge">1</span>
                         </div>
                         <div>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">Current Level</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">Profile</span>
                             <span id="difficulty-display" class="text-sm font-black text-white uppercase tracking-tight">1.0x</span>
                         </div>
                     </div>
@@ -135,7 +127,6 @@
                     </div>
                     
                     <div class="w-20 h-28 opacity-90 relative">
-                        
                          <svg viewBox="0 0 50 100" class="w-full h-full drop-shadow-xl">
                             <g transform="translate(0,0)">
                                 <rect x="10" y="22" width="30" height="28" rx="4" class="muscle-part" data-muscle="Chest"/>
@@ -150,13 +141,20 @@
                 </div>
             </div>
 
-            <div id="start-overlay" class="absolute top-40 left-0 right-0 z-10 flex flex-col items-center justify-start pt-10 h-full transition-all">
-                <div class="glass-panel p-1 rounded-[3rem]">
-                    <button id="start-btn" class="gradient-bg text-white font-black uppercase text-xl py-6 px-16 rounded-[2.8rem] shadow-2xl shadow-red-500/20 transform transition hover:scale-105 active:scale-95 animate-bounce flex items-center">
+            <div id="start-overlay" class="absolute top-36 left-0 right-0 z-40 flex flex-col items-center justify-start pt-6 h-full transition-all">
+                <div class="glass-panel p-2 rounded-[3rem] mb-6">
+                    <button id="start-btn" class="gradient-bg text-white font-black uppercase text-xl py-6 px-16 rounded-[2.8rem] shadow-2xl shadow-blue-500/20 transform transition hover:scale-105 active:scale-95 animate-bounce flex items-center">
                         <i class="fas fa-play mr-3"></i> Start
                     </button>
                 </div>
-                <p class="text-slate-500 text-xs font-bold mt-4 uppercase tracking-widest">Tap to activate audio</p>
+                
+                <div class="flex items-center space-x-3 glass-panel px-6 py-3 rounded-xl">
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wide">Include Warm-Up</span>
+                    <div class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="warmup-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300"/>
+                        <label for="warmup-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer"></label>
+                    </div>
+                </div>
             </div>
 
             <div id="workout-list" class="space-y-3 blur-sm transition-all duration-500 pointer-events-none pb-20"></div>
@@ -172,8 +170,8 @@
             <div class="mb-8">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Color Theme</span>
                 <div class="grid grid-cols-4 gap-3 mt-3">
-                    <button class="theme-btn h-10 rounded-2xl bg-[#f43f5e]" data-theme="theme-default"></button>
-                    <button class="theme-btn h-10 rounded-2xl bg-[#3b82f6]" data-theme="theme-ocean"></button>
+                    <button class="theme-btn h-10 rounded-2xl bg-[#3b82f6]" data-theme="theme-default"></button>
+                    <button class="theme-btn h-10 rounded-2xl bg-[#f43f5e]" data-theme="theme-ruby"></button>
                     <button class="theme-btn h-10 rounded-2xl bg-[#10b981]" data-theme="theme-emerald"></button>
                     <button class="theme-btn h-10 rounded-2xl bg-[#f59e0b]" data-theme="theme-amber"></button>
                 </div>
@@ -213,8 +211,8 @@
             
             // --- DATA ---
             const defaultSchedule = {
-                1: { focus: "Chest & Triceps", color: "#f43f5e", muscles: ["Chest", "Arms"], exercises: [{ id: "m1", name: "Push Ups", reps: 15, unit: "Reps", icon: "fa-hand-rock", rest: 30 }, { id: "m2", name: "Plank", reps: 45, unit: "Sec", icon: "fa-stopwatch", rest: 30 }, { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", icon: "fa-chair", rest: 30 }] },
-                2: { focus: "Back & Biceps", color: "#3b82f6", muscles: ["Chest", "Arms"], exercises: [{ id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", icon: "fa-superpowers", rest: 30 }, { id: "tu2", name: "Doorframe Rows", reps: 15, unit: "Reps", icon: "fa-columns", rest: 30 }, { id: "tu3", name: "Good Mornings", reps: 20, unit: "Reps", icon: "fa-sun", rest: 40 }] },
+                1: { focus: "Chest & Triceps", color: "#3b82f6", muscles: ["Chest", "Arms"], exercises: [{ id: "m1", name: "Push Ups", reps: 15, unit: "Reps", icon: "fa-hand-rock", rest: 30 }, { id: "m2", name: "Plank", reps: 45, unit: "Sec", icon: "fa-stopwatch", rest: 30 }, { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", icon: "fa-chair", rest: 30 }] },
+                2: { focus: "Back & Biceps", color: "#10b981", muscles: ["Chest", "Arms"], exercises: [{ id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", icon: "fa-superpowers", rest: 30 }, { id: "tu2", name: "Doorframe Rows", reps: 15, unit: "Reps", icon: "fa-columns", rest: 30 }, { id: "tu3", name: "Good Mornings", reps: 20, unit: "Reps", icon: "fa-sun", rest: 40 }] },
                 3: { focus: "Legs & Glutes", color: "#f59e0b", muscles: ["Legs"], exercises: [{ id: "w1", name: "Air Squats", reps: 20, unit: "Reps", icon: "fa-chevron-down", rest: 30 }, { id: "w2", name: "Lunges", reps: 12, unit: "Per Leg", icon: "fa-person-walking", rest: 45 }, { id: "w3", name: "Wall Sit", reps: 45, unit: "Sec", icon: "fa-chair", rest: 30 }] },
                 4: { focus: "Shoulders & Core", color: "#8b5cf6", muscles: ["Arms", "Abs"], exercises: [{ id: "th1", name: "Pike Push Ups", reps: 10, unit: "Reps", icon: "fa-mountain", rest: 45 }, { id: "th2", name: "Plank", reps: 60, unit: "Sec", icon: "fa-stopwatch", rest: 30 }, { id: "th3", name: "Russian Twists", reps: 25, unit: "Reps", icon: "fa-arrows-spin", rest: 30 }] },
                 5: { focus: "Full Body Intensity", color: "#ef4444", muscles: ["Chest", "Arms", "Legs", "Abs"], exercises: [{ id: "f1", name: "Burpees", reps: 10, unit: "Reps", icon: "fa-fire", rest: 60 }, { id: "f2", name: "Mtn Climbers", reps: 40, unit: "Sec", icon: "fa-person-running", rest: 30 }, { id: "f3", name: "Jumping Jacks", reps: 50, unit: "Reps", icon: "fa-star", rest: 20 }] },
@@ -222,15 +220,22 @@
                 0: { focus: "Rest & Mobility", color: "#64748b", muscles: [], exercises: [{ id: "su1", name: "Light Walk", reps: 15, unit: "Mins", icon: "fa-shoe-prints", rest: 0 }] }
             };
 
+            const warmupRoutine = [
+                { id: "wm1", name: "Arm Circles", reps: 30, unit: "Sec", icon: "fa-sync", rest: 10 },
+                { id: "wm2", name: "Jumping Jacks", reps: 20, unit: "Reps", icon: "fa-star", rest: 15 }
+            ];
+
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             let activeDay = new Date().getDay();
-            let schedule = JSON.parse(localStorage.getItem('rb_schedule')) || defaultSchedule;
-            let completed = JSON.parse(localStorage.getItem('rb_completed')) || {};
-            let profile = JSON.parse(localStorage.getItem('rb_profile')) || { level: 1.0, theme: 'theme-default' };
+            let schedule = JSON.parse(localStorage.getItem('sp_schedule')) || defaultSchedule;
+            let completed = JSON.parse(localStorage.getItem('sp_completed')) || {};
+            let profile = JSON.parse(localStorage.getItem('sp_profile')) || { level: 1.0, theme: 'theme-default' };
             
             let isEditing = false;
             let sessionSeconds = 0;
             let sessionTimerIntv = null;
+            let currentSessionList = []; // Holds active workout queue
+
             let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const synth = window.speechSynthesis;
 
@@ -243,10 +248,21 @@
             // --- START ---
             $('#start-btn').click(function() {
                 if(audioCtx.state === 'suspended') audioCtx.resume();
+                
+                // 1. Build Session Queue
+                const base = schedule[activeDay].exercises;
+                if($('#warmup-toggle').is(':checked')) {
+                    currentSessionList = [...warmupRoutine, ...base];
+                } else {
+                    currentSessionList = [...base];
+                }
+
+                // 2. UI Updates
                 $('#start-overlay').fadeOut();
                 $('#workout-list').removeClass('blur-sm pointer-events-none');
+                renderList(); // Re-render with new queue
                 
-                // Start Timer
+                // 3. Start Timer
                 sessionSeconds = 0;
                 clearInterval(sessionTimerIntv);
                 sessionTimerIntv = setInterval(() => {
@@ -264,9 +280,8 @@
             function renderWeekNav() {
                 const container = $('#day-nav-container').empty();
                 dayNames.forEach((d, i) => {
-                    const isToday = (i === new Date().getDay());
                     const activeClass = (i === activeDay) ? 'active' : 'glass-panel text-slate-400';
-                    const hasData = completed[i] && completed[i].length === schedule[i].exercises.length;
+                    const hasData = completed[i] && completed[i].length === schedule[i].exercises.length; // Approximate check
                     
                     container.append(`
                         <button class="day-btn w-12 h-16 rounded-2xl flex flex-col items-center justify-center relative shrink-0 ${activeClass}" data-day="${i}">
@@ -290,6 +305,9 @@
                 $('.muscle-part').removeClass('muscle-active');
                 data.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
 
+                // Reset Session Queue to default day view
+                currentSessionList = data.exercises; 
+
                 renderList();
                 updateProgress();
                 
@@ -303,11 +321,13 @@
 
             function renderList() {
                 const container = $('#workout-list').empty();
-                schedule[activeDay].exercises.forEach((ex, idx) => {
+                currentSessionList.forEach((ex, idx) => {
                     const isDone = completed[activeDay] && completed[activeDay].includes(ex.id);
                     const reps = Math.ceil(ex.reps * profile.level);
                     const isTimed = (ex.unit.toLowerCase().includes('sec'));
-                    const delay = idx * 100; // Stagger animation
+                    
+                    // Simple animation stagger
+                    const delay = idx * 50; 
 
                     let btnHtml = isDone 
                         ? `<button class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg"><i class="fas fa-check text-white"></i></button>`
@@ -317,10 +337,10 @@
                         );
                     
                     if(isEditing) {
-                        container.append(`<div class="glass-panel p-4 rounded-3xl text-center text-xs text-slate-500 slide-in" style="animation-delay: ${delay}ms">Editing Disabled during active session</div>`);
+                        container.append(`<div class="glass-panel p-4 rounded-3xl text-center text-xs text-slate-500" style="animation: slideUpFade 0.5s ease forwards ${delay}ms; opacity: 0;">Editing Disabled during active session</div>`);
                     } else {
                         container.append(`
-                            <div class="glass-panel p-5 rounded-[1.8rem] transition-all duration-300 slide-in ${isDone ? 'completed' : ''}" id="card-${ex.id}" style="animation-delay: ${delay}ms">
+                            <div class="glass-panel p-5 rounded-[1.8rem] transition-all duration-300 ${isDone ? 'completed' : ''}" id="card-${ex.id}" style="animation: slideUpFade 0.5s ease forwards ${delay}ms; opacity: 0;">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-4">
                                         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white gradient-bg shadow-lg">
@@ -341,7 +361,7 @@
 
             // --- LOGIC ---
             function updateGymMode() {
-                const nextEx = schedule[activeDay].exercises.find(e => !completed[activeDay]?.includes(e.id));
+                const nextEx = currentSessionList.find(e => !completed[activeDay]?.includes(e.id));
                 if (nextEx) {
                     $('#gym-name').text(nextEx.name);
                     $('#gym-target').text(Math.ceil(nextEx.reps * profile.level));
@@ -378,7 +398,7 @@
                 if(!completed[activeDay]) completed[activeDay] = [];
                 if(!completed[activeDay].includes(id)) {
                     completed[activeDay].push(id);
-                    localStorage.setItem('rb_completed', JSON.stringify(completed));
+                    localStorage.setItem('sp_completed', JSON.stringify(completed));
                 }
                 
                 $(`#card-${id}`).addClass('completed');
@@ -387,7 +407,7 @@
                 updateProgress();
                 updateGymMode();
 
-                const remaining = schedule[activeDay].exercises.filter(e => !completed[activeDay].includes(e.id));
+                const remaining = currentSessionList.filter(e => !completed[activeDay].includes(e.id));
                 if(remaining.length > 0) {
                     triggerRest(remaining[0]);
                     setTimeout(() => {
@@ -447,11 +467,11 @@
 
             // --- UTILS & PROFILE ---
             function updateProgress() {
-                const total = schedule[activeDay].exercises.length;
-                const done = completed[activeDay]?.length || 0;
+                const total = currentSessionList.length;
+                const done = currentSessionList.filter(e => completed[activeDay]?.includes(e.id)).length;
                 const pct = Math.round((done / total) * 100) || 0;
                 $('#percent-text').text(pct + '%'); $('#mini-progress').css('width', pct + '%');
-                if(done === total) renderWeekNav();
+                if(done === total && total > 0) renderWeekNav();
             }
 
             function updateProfileUI() {
@@ -464,14 +484,14 @@
             $('.day-btn').click(function() { loadDay($(this).data('day')); });
             $('#open-profile').click(() => $('#profile-modal').removeClass('hidden'));
             $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
+            $('#reset-day-btn').click(() => { if(confirm("Restart today?")) { delete completed[activeDay]; localStorage.setItem('sp_completed', JSON.stringify(completed)); loadDay(activeDay); }});
             
             $('.theme-btn').click(function() {
                 const t = $(this).data('theme'); $('body').removeClass().addClass(t);
-                profile.theme = t; localStorage.setItem('rb_profile', JSON.stringify(profile));
+                profile.theme = t; localStorage.setItem('sp_profile', JSON.stringify(profile));
             });
-            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem('rb_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
-            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem('rb_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
-            $('#reset-day-btn').click(() => { if(confirm("Restart today?")) { delete completed[activeDay]; localStorage.setItem('rb_completed', JSON.stringify(completed)); loadDay(activeDay); }});
+            $('#level-up-btn').click(() => { profile.level += 0.1; localStorage.setItem('sp_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
+            $('#level-reset-btn').click(() => { profile.level = 1.0; localStorage.setItem('sp_profile', JSON.stringify(profile)); updateProfileUI(); loadDay(activeDay); });
             $('#hard-reset').click(() => { if(confirm("Factory Reset?")) { localStorage.clear(); location.reload(); }});
             $('#toggle-edit').click(() => { isEditing = !isEditing; renderList(); });
         });
