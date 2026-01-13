@@ -125,18 +125,23 @@
         </aside>
     </main>
 
-    <div id="admin-modal" class="fixed inset-0 z-[110] bg-slate-950/95 backdrop-blur-md hidden flex items-center justify-center p-6">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-bold italic">Master Setup</h2>
-                <button id="close-admin" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div class="space-y-4">
-                <input id="setup-title" type="text" placeholder="Song Title" class="w-full bg-black border border-slate-800 rounded-xl p-4 text-sm">
-                <input id="setup-artist" type="text" placeholder="Artist" class="w-full bg-black border border-slate-800 rounded-xl p-4 text-sm">
-                <input id="setup-url" type="text" placeholder="YouTube Link" class="w-full bg-black border border-slate-800 rounded-xl p-4 text-sm">
-                <button id="btn-save-song" class="w-full bg-blue-600 font-bold py-4 rounded-xl transition hover:bg-blue-500 shadow-xl shadow-blue-500/20">PUBLISH TO LIBRARY</button>
-            </div>
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl p-8 shadow-2xl flex flex-col max-h-[90vh]">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold italic">Master Setup</h2>
+            <button id="close-admin" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8 bg-black/40 p-4 rounded-2xl border border-slate-800">
+            <input id="setup-title" type="text" placeholder="Song Title" class="bg-black border border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-blue-500 text-white">
+            <input id="setup-artist" type="text" placeholder="Artist" class="bg-black border border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-blue-500 text-white">
+            <input id="setup-url" type="text" placeholder="YouTube Link" class="md:col-span-2 bg-black border border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-blue-500 text-white">
+            <button id="btn-save-song" class="md:col-span-2 bg-blue-600 font-bold py-3 rounded-xl transition hover:bg-blue-500 shadow-xl shadow-blue-500/20">PUBLISH TO LIBRARY</button>
+        </div>
+
+        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Master Library</h3>
+        
+        <div id="master-song-list" class="flex-1 overflow-y-auto space-y-2 pr-2 no-scrollbar">
+            <p class="text-slate-600 text-center py-4 italic text-sm">Loading library...</p>
         </div>
     </div>
 
@@ -325,17 +330,74 @@
         }
 
         $('#vibe-toggle').click(() => $('body').toggleClass('vibe-party'));
-        $('#nav-admin').click(() => $('#admin-modal').removeClass('hidden'));
         $('#close-admin').click(() => $('#admin-modal').addClass('hidden'));
+        // Open Modal and Load List
+        $('#nav-admin').click(() => {
+            $('#admin-modal').removeClass('hidden');
+            refreshMasterLibrary();
+        });
+
+        // Update Save logic to refresh list
         $('#btn-save-song').click(async () => {
             const title = $('#setup-title').val();
-            const vid = extractID($('#setup-url').val());
+            const artist = $('#setup-artist').val();
+            const url = $('#setup-url').val();
+            const vid = extractID(url);
+            
             if(title && vid) {
-                await addDoc(collection(db, "songs"), { title, artist: $('#setup-artist').val(), videoId: vid, searchKey: title.toLowerCase(), createdAt: serverTimestamp() });
-                alert("Saved!"); $('#admin-modal').addClass('hidden');
+                await addDoc(collection(db, "songs"), { 
+                    title, 
+                    artist: artist || "Unknown Artist", 
+                    videoId: vid, 
+                    searchKey: title.toLowerCase(), 
+                    createdAt: serverTimestamp() 
+                });
+                
+                // Clear inputs
+                $('#setup-title, #setup-artist, #setup-url').val('');
+                // Refresh the list immediately
+                refreshMasterLibrary();
+            } else {
+                alert("Please enter a title and a valid YouTube URL");
             }
         });
         $('#btn-applause').click(() => addDoc(collection(db, "applause_events"), { sessionCode, timestamp: serverTimestamp() }));
+        
+        // Function to load and display the library in the Admin Modal
+        async function refreshMasterLibrary() {
+            const $list = $('#master-song-list').empty();
+            const q = query(collection(db, "songs"), orderBy("createdAt", "desc"));
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                $list.append('<p class="text-slate-600 text-center py-4">No songs in library.</p>');
+                return;
+            }
+
+            snap.forEach(d => {
+                const s = d.data();
+                const id = d.id;
+                $list.append(`
+                    <div class="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold truncate text-white">${s.title}</p>
+                            <p class="text-[10px] text-slate-500 uppercase">${s.artist}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="window.deleteSong('${id}')" class="text-slate-600 hover:text-red-500 p-2 transition"><i class="fas fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        // Global delete function
+        window.deleteSong = async (id) => {
+            if(confirm("Remove this song from the library?")) {
+                await deleteDoc(doc(db, "songs", id));
+                refreshMasterLibrary();
+            }
+        }; 
     </script>
     <script src="https://www.youtube.com/iframe_api"></script>
 </body>
