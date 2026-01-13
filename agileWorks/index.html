@@ -549,7 +549,7 @@
             projects: [],
             projectUsers: [],
             sprintData: null,
-            sprintMap: {}, // Added this to store all sprints
+            sprintMap: {}, 
             items: [],
             detailId: null,
             pendingAssignUser: null,
@@ -589,7 +589,6 @@
                 });
 
                 $('#project-select').change(function() { State.projectId = $(this).val(); App.loadProjectData(); });
-                // Fixed: Now calling the function defined below
                 $('#sprint-select').change(function() { App.loadSprintData($(this).val()); });
                 $('#view-mode').change(() => App.renderBoard());
                 
@@ -648,7 +647,7 @@
                 setListener('sprint', db.collection('sprints').where('projectId', '==', State.projectId).orderBy('createdAt', 'desc')
                     .onSnapshot(snap => {
                         const $sel = $('#sprint-select').empty();
-                        State.sprintMap = {}; // Reset map
+                        State.sprintMap = {};
 
                         if (snap.empty) {
                             $sel.append('<option value="">No Sprints</option>');
@@ -664,19 +663,14 @@
                                 $sel.append(`<option value="${doc.id}">${s.name}</option>`);
                                 if (!activeId) activeId = doc.id;
                             }
-                            // Store in global state map
                             State.sprintMap[doc.id] = { id: doc.id, ...s };
                         });
 
-                        // Decide which sprint to show
                         const currentVal = State.sprintId;
-                        if (!currentVal || !State.sprintMap[currentVal]) {
-                            State.sprintId = activeId;
-                        }
+                        if (!currentVal || !State.sprintMap[currentVal]) State.sprintId = activeId;
 
                         if (State.sprintId) {
                             $sel.val(State.sprintId);
-                            // Manually trigger the data load for the selected sprint
                             App.loadSprintData(State.sprintId);
                         }
                     })
@@ -684,17 +678,11 @@
                 App.loadRetro();
             },
 
-            // --- THIS WAS THE MISSING FUNCTION ---
             loadSprintData: (sprintId) => {
                 if (!sprintId || !State.sprintMap[sprintId]) return;
-                
                 State.sprintId = sprintId;
                 State.sprintData = State.sprintMap[sprintId];
-                
-                // 1. Update the Banner UI (Goal, Dates, Capacity Bar)
                 App.updateSprintUI();
-                
-                // 2. Fetch the tasks for this specific sprint
                 App.loadSprintItems();
             },
 
@@ -717,7 +705,6 @@
 
             loadSprintItems: () => {
                 if (!State.sprintId) return;
-                
                 setListener('items', db.collection('items')
                     .where('projectId', '==', State.projectId)
                     .where('sprintId', '==', State.sprintId)
@@ -743,10 +730,8 @@
 
                 const visibleItems = State.items.filter(i => !filter || (i.title+(i.assignee||'')).toLowerCase().includes(filter));
 
-                // Backlog
                 visibleItems.filter(i => i.type === 'PBI').forEach(i => $('#pbi-list').append(App.createCard(i)));
 
-                // Main Tasks
                 const tasks = visibleItems.filter(i => i.type !== 'PBI');
                 tasks.forEach(t => totalLoad += (parseInt(t.points) || 0));
 
@@ -762,7 +747,6 @@
 
                     ['todo','doing','done'].forEach(k => {
                         const title = k==='todo'?'To Do':k==='doing'?'Doing':'Done';
-                        const color = k==='todo'?'slate':k==='doing'?'blue':'emerald';
                         $area.append(`
                             <div class="flex flex-col h-full bg-slate-100 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                                 <div class="p-3 border-b dark:border-slate-700 font-bold text-xs uppercase text-slate-500 bg-slate-50 dark:bg-slate-800 flex justify-between">
@@ -778,7 +762,7 @@
                             onEnd: (evt) => App.updateStatus(evt.item.dataset.id, evt.to.dataset.status)
                         });
                     });
-                    $area.addClass('grid grid-cols-1 md:grid-cols-3 gap-4'); // Ensure grid layout
+                    $area.addClass('grid grid-cols-1 md:grid-cols-3 gap-4');
                 } else {
                     $area.removeClass('grid grid-cols-1 md:grid-cols-3 gap-4').addClass('overflow-y-auto custom-scroll pr-2 space-y-4');
                     const assignees = [...new Set(tasks.map(t => t.assignee || "Unassigned"))].sort();
@@ -838,11 +822,7 @@
             promotePBI: async (id) => { await db.collection('items').doc(id).update({ type: 'SBI', status: 'todo' }); UI.toast("Added to Sprint"); },
             checkDoD: (id) => { State.pendingItem = id; $('.dod-check').prop('checked', false); $('#btn-confirm-dod').prop('disabled', true).addClass('opacity-50 cursor-not-allowed'); App.openModal('modal-dod'); },
             
-            // --- MODALS ---
-            openModal: (id) => $(`#${id}`).removeClass('hidden'),
-            closeModal: (id) => $(`#${id}`).addClass('hidden'),
-            
-            // --- SPRINT & PROJECT MANAGEMENT ---
+            // --- SPRINT LOGIC ---
             editSprint: () => {
                 const s = State.sprintData;
                 $('#edit-sprint-id').val(s.id); $('#modal-sprint-title').text('Edit Sprint');
@@ -891,7 +871,104 @@
                 });
                 $('#total-sprint-capacity').text(total.toFixed(1));
             },
+
+            // --- PROJECT MANAGEMENT (Restored) ---
+            saveProjectConfig: async () => {
+                const id = $('#edit-project-id').val();
+                const n = $('#edit-project-name').val();
+                if (!n) return UI.toast("Name Required", "error");
+                UI.toggleLoader(true);
+                try {
+                    const data = { 
+                        name: n, 
+                        description: $('#edit-project-desc').val(), 
+                        scrumMaster: $('#edit-project-master').val() 
+                    };
+                    if (id) {
+                        await db.collection('projects').doc(id).update(data);
+                        UI.toast("Project Updated");
+                    } else {
+                        const ref = await db.collection('projects').add({...data, createdBy: State.user.uid});
+                        await db.collection('users').doc(State.user.uid).update({projects: firebase.firestore.FieldValue.arrayUnion(ref.id)});
+                        UI.toast("Project Created");
+                    }
+                    App.resetProjectForm();
+                    // Refresh if in admin view
+                    if($('#admin-project-list').is(':visible')) {
+                        db.collection('projects').get().then(s => {
+                            $('#admin-project-list').empty();
+                            s.forEach(d => {
+                                const p = d.data();
+                                $('#admin-project-list').append(`<div onclick="App.editProject('${d.id}','${p.name}','${p.description||''}','${p.scrumMaster||''}')" class="p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg cursor-pointer hover:border-brand-500 transition"><div class="font-bold text-sm">${p.name}</div></div>`);
+                            });
+                        });
+                    }
+                } catch(e) { UI.toast(e.message, 'error'); }
+                UI.toggleLoader(false);
+            },
+            editProject: (id,n,d,m) => { 
+                $('#edit-project-id').val(id); $('#edit-project-name').val(n); $('#edit-project-desc').val(d); $('#edit-project-master').val(m); 
+                $('#form-project-header').text("Edit Project"); $('#project-actions').removeClass('hidden');
+            },
+            resetProjectForm: () => {
+                 $('#edit-project-id').val(''); $('#edit-project-name').val(''); $('#edit-project-desc').val(''); $('#edit-project-master').val('');
+                 $('#form-project-header').text("New Project"); $('#project-actions').addClass('hidden');
+            },
+            deleteProject: async () => {
+                const id = $('#edit-project-id').val();
+                if(confirm("Permanently delete project?")) {
+                    await db.collection('projects').doc(id).delete();
+                    App.resetProjectForm();
+                    UI.toast("Project Deleted");
+                }
+            },
+
+            // --- ANALYTICS (Restored) ---
+            openBurndown: () => {
+                App.openModal('modal-burndown');
+                const sd = State.sprintData;
+                if(!sd) return;
+                const start=new Date(sd.startDate); const end=new Date(sd.endDate);
+                const totalDays=Math.ceil((end-start)/(1000*60*60*24))+1;
+                const labels=[], idealData=[], actualData=[];
+                let totalPoints=0;
+                State.items.forEach(i=>{if(i.type!=='PBI')totalPoints+=(parseInt(i.points)||0)});
+                const burnRate=totalPoints/(totalDays-1);
+                
+                for(let i=0;i<totalDays;i++){
+                    const d=new Date(start); d.setDate(start.getDate()+i);
+                    labels.push(d.toLocaleDateString(undefined,{month:'short',day:'numeric'}));
+                    let ideal=totalPoints-(burnRate*i);
+                    idealData.push(ideal<0?0:ideal);
+                    
+                    if(d <= new Date() || i===0) {
+                         let remaining=totalPoints;
+                         const checkTime=d.setHours(23,59,59,999);
+                         State.items.forEach(item=>{if(item.status==='done'&&item.completedAt&&item.completedAt<=checkTime){remaining-=(parseInt(item.points)||0)}});
+                         actualData.push(remaining);
+                    }
+                }
+                
+                if(window.myChart)window.myChart.destroy();
+                const ctx=document.getElementById('burndownChart').getContext('2d');
+                window.myChart=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'Ideal',data:idealData,borderColor:'#94a3b8',borderDash:[5,5],fill:false},{label:'Actual',data:actualData,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.2)',fill:true,tension:0.1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}});
+            },
             
+            loadVelocityChart: async () => {
+                if(!State.projectId) return;
+                const sprints = await db.collection('sprints').where('projectId','==',State.projectId).where('status','==','completed').orderBy('createdAt','asc').limitToLast(5).get();
+                const labels=[], data=[];
+                for(const doc of sprints.docs){
+                    const s=doc.data(); labels.push(s.name);
+                    const items=await db.collection('items').where('sprintId','==',doc.id).where('status','==','done').get();
+                    let pts=0; items.forEach(i=>pts+=(parseInt(i.data().points)||0));
+                    data.push(pts);
+                }
+                if(window.velChart) window.velChart.destroy();
+                const ctx=document.getElementById('velocityChart').getContext('2d');
+                window.velChart=new Chart(ctx, {type:'bar',data:{labels:labels,datasets:[{label:'Points Completed',data:data,backgroundColor:'rgba(99,102,241,0.8)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}});
+            },
+
             // --- DETAILS & COMMENTS ---
             openDetailModal: (id) => {
                 State.detailId = id;
@@ -960,17 +1037,32 @@
             
             // Required placeholders for modal calls from HTML
             openItemModal: async (t) => { if(!State.projectId) return; const tx=prompt("Title:"); if(tx) db.collection('items').add({title:tx, type:t, status:'todo', projectId:State.projectId, sprintId:State.sprintId, points:0, createdAt:Date.now(), assignee:''}); },
-            showAdminSub: (s) => { $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${s}`).removeClass('hidden'); if(s==='users') App.loadAdminUsers(); },
+            showAdminSub: (s) => { 
+                $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${s}`).removeClass('hidden'); 
+                if(s==='users') App.loadAdminUsers();
+                if(s==='analytics') App.loadVelocityChart(); 
+                if(s==='projects') {
+                    db.collection('projects').get().then(s => {
+                        $('#admin-project-list').empty();
+                        s.forEach(d => { const p=d.data(); $('#admin-project-list').append(`<div onclick="App.editProject('${d.id}','${p.name}','${p.description||''}','${p.scrumMaster||''}')" class="p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg cursor-pointer hover:border-brand-500 transition"><div class="font-bold text-sm">${p.name}</div></div>`); });
+                    });
+                }
+            },
             loadAdminUsers: () => setListener('users', db.collection('users').onSnapshot(s => {
                 $('#user-table-body').empty();
                 s.forEach(d => { const u=d.data(); $('#user-table-body').append(`<tr class="border-b dark:border-slate-700"><td class="p-4 flex gap-2 items-center"><img src="https://ui-avatars.com/api/?name=${u.displayName}&size=24" class="rounded-full">${u.displayName}</td><td class="p-4">${u.role}</td><td class="p-4 text-right"><button onclick="App.changeUserRole('${d.id}', 'dev')" class="text-xs text-blue-500">Make Dev</button> <button onclick="App.changeUserRole('${d.id}', 'master')" class="text-xs text-green-500">Make Master</button></td></tr>`); });
             })),
             changeUserRole: (id,r) => db.collection('users').doc(id).update({role:r}),
             switchTab: (id) => { $('.view-section').addClass('hidden'); $(`#view-${id}`).removeClass('hidden'); if(id==='admin') App.loadAdminUsers(); },
-            markAllRead: async () => { const s=await db.collection('notifications').where('recipientId','==',State.user.uid).where('read','==',false).get(); const b=db.batch(); s.forEach(d=>b.update(d.ref,{read:true})); await b.commit(); }
+            markAllRead: async () => { const s=await db.collection('notifications').where('recipientId','==',State.user.uid).where('read','==',false).get(); const b=db.batch(); s.forEach(d=>b.update(d.ref,{read:true})); await b.commit(); },
+            
+            // --- MODAL UTILS ---
+            openModal: (id) => $(`#${id}`).removeClass('hidden'),
+            closeModal: (id) => $(`#${id}`).addClass('hidden'),
+            switchModalTab: (t) => { $('.modal-tab').removeClass('active'); $(`#tab-btn-${t}`).addClass('active'); $('#tab-content-details, #tab-content-activity').addClass('hidden'); $(`#tab-content-${t}`).removeClass('hidden'); }
         };
 
-        window.App = App; // Global Access
+        window.App = App;
 
         // Auth Listener
         auth.onAuthStateChanged(async u => {
@@ -1010,6 +1102,8 @@
             $('#edit-sprint-id').val(''); $('#modal-sprint-title').text('New Sprint'); 
             App.renderCapacityInputs(); App.openModal('modal-sprint'); 
         });
+        
+        $('#btn-open-burndown').click(App.openBurndown);
         
         $('#btn-confirm-dod').click(() => { App.updateStatus(State.pendingItem, 'done'); App.closeModal('modal-dod'); confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); UI.toast("Done! 🎉"); });
         $('.dod-check').change(() => { const all=$('.dod-check:checked').length===3; $('#btn-confirm-dod').prop('disabled',!all).toggleClass('opacity-50',!all); });
