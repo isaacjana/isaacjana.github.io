@@ -1,203 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Daily Burn | Pro Elite</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Burn | Pro Elite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root { --zone-color: #6366f1; }
+        
+        /* Animations */
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.4); opacity: 0; } }
+        
+        .heart-pulse { animation: heartbeat 0.8s infinite ease-in-out; color: var(--zone-color); transition: color 0.5s; }
+        .heart-ring { animation: pulse-ring 0.8s infinite ease-out; background-color: var(--zone-color); }
+        .progress-ring__circle { transition: stroke-dashoffset 0.6s ease, stroke 0.5s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .completed { opacity: 0.15; transform: scale(0.95); filter: grayscale(1); pointer-events: none; }
+        
+        /* Gym Mode (Landscape) */
+        #gym-mode { display: none; }
+        @media (orientation: landscape) and (max-height: 500px) {
+            body { overflow: hidden; }
+            #main-ui { display: none; }
+            #gym-mode { display: flex; }
+        }
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#020617">
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-<style>
-:root { --zone:#6366f1 }
-.completed{opacity:.25;filter:grayscale(1)}
-.progress{transition:stroke-dashoffset .5s}
-</style>
+        input[type=range] { accent-color: var(--zone-color); }
+        .zone-text { color: var(--zone-color); transition: color 0.5s; }
+    </style>
 </head>
+<body class="bg-slate-950 text-slate-200 min-h-screen font-sans overflow-x-hidden">
 
-<body class="bg-slate-950 text-slate-200">
+    <div id="gym-mode" class="fixed inset-0 bg-slate-950 z-[200] flex-col items-center justify-center p-6 text-center">
+        <div class="text-indigo-500 text-xs font-black tracking-[0.5em] mb-4 uppercase">Current Exercise</div>
+        <h1 id="gym-name" class="text-6xl font-black text-white uppercase leading-none mb-4">Assemble Routine</h1>
+        <div id="gym-target" class="text-8xl font-black text-indigo-500 tabular-nums">0</div>
+        <div class="mt-8 flex space-x-4">
+            <span class="text-slate-500 font-bold uppercase tracking-widest text-sm">Rotate phone to exit Gym Mode</span>
+        </div>
+    </div>
 
-<!-- SUMMARY SCREEN -->
-<div id="summary" class="hidden fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-8 text-center">
-  <h1 class="text-4xl font-black mb-6">Workout Complete</h1>
-  <div class="space-y-3 text-lg">
-    <div>🔥 Calories: <span id="sumCals"></span></div>
-    <div>⏱ Time: <span id="sumTime"></span></div>
-    <div>❤️ Avg BPM: <span id="sumBpm"></span></div>
-    <div>⚡ Peak Zone: <span id="sumZone"></span></div>
-    <div>📈 Difficulty Next Time: <span id="sumDiff"></span></div>
-  </div>
-  <button onclick="location.reload()" class="mt-8 px-8 py-3 bg-white text-black rounded-xl font-black uppercase">Done</button>
-</div>
+    <div id="main-ui">
+        <header class="fixed top-0 w-full bg-slate-950/90 backdrop-blur-xl border-b border-white/5 z-50 px-6 py-4">
+            <div class="max-w-md mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="relative flex items-center justify-center">
+                        <div class="heart-ring absolute w-6 h-6 rounded-full opacity-20"></div>
+                        <i class="fas fa-heart heart-pulse relative z-10 text-sm"></i>
+                    </div>
+                    <div>
+                        <span id="hr-val" class="text-xl font-black tabular-nums">72</span>
+                        <span class="text-[9px] font-black text-slate-500 uppercase ml-1">BPM</span>
+                    </div>
+                </div>
+                <div id="zone-label" class="text-[10px] font-black uppercase tracking-widest zone-text">Warm Up Zone</div>
+            </div>
+        </header>
 
-<header class="fixed top-0 w-full bg-slate-950/90 backdrop-blur border-b border-white/5 px-6 py-4">
-  <div class="max-w-md mx-auto flex justify-between items-center">
-    <span id="bpm" class="font-black">72 BPM</span>
-    <span id="zone" class="text-xs uppercase tracking-widest text-indigo-500">Warm Up</span>
-  </div>
-</header>
+        <main class="max-w-md mx-auto mt-24 p-6 pb-40">
+            <div class="bg-slate-900 rounded-[2.5rem] p-8 border border-white/5 mb-8 text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-white/5">
+                    <div id="burn-progress-bar" class="h-full bg-indigo-500 transition-all duration-500" style="width: 0%"></div>
+                </div>
+                
+                <div class="relative inline-flex items-center justify-center mb-6">
+                    <svg class="w-32 h-32">
+                        <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                        <circle id="progress-ring" class="zone-text progress-ring__circle" stroke-width="4" stroke-dasharray="364.4" stroke-dashoffset="364.4" stroke-linecap="round" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                    </svg>
+                    <div class="absolute flex flex-col items-center">
+                        <span id="live-cals" class="text-3xl font-black text-white leading-none">0</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase mt-1">Burned</span>
+                    </div>
+                </div>
 
-<main class="max-w-md mx-auto pt-24 p-6 pb-40">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        <span>Daily Goal</span>
+                        <span id="goal-label" class="text-white">150 KCAL</span>
+                    </div>
+                    <input type="range" id="goal-slider" min="50" max="500" step="50" value="150" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
 
-<div class="bg-slate-900 p-6 rounded-2xl mb-6 text-center">
-  <svg class="w-32 h-32 mx-auto mb-4">
-    <circle r="58" cx="64" cy="64" fill="none" stroke="#1e293b" stroke-width="4"/>
-    <circle id="ring" r="58" cx="64" cy="64" fill="none" stroke="var(--zone)" stroke-width="4"
-      stroke-dasharray="364" stroke-dashoffset="364" stroke-linecap="round" class="progress"/>
-  </svg>
-  <div id="cals" class="text-3xl font-black">0</div>
-  <input id="goal" type="range" min="100" max="600" step="50" value="200" class="w-full mt-4">
-</div>
+            <div id="workout-container" class="space-y-4">
+                <div class="text-center py-20 text-slate-600 font-bold uppercase tracking-widest text-xs">
+                    Set your goal & assemble
+                </div>
+            </div>
+        </main>
 
-<div id="list" class="space-y-4 text-xs uppercase tracking-widest text-slate-500 text-center">
-Set goal & start
-</div>
+        <div class="fixed bottom-0 w-full bg-slate-950/90 backdrop-blur-xl p-6 border-t border-white/5 z-50">
+            <div class="max-w-md mx-auto">
+                <button id="generate-btn" class="w-full bg-white text-black py-5 rounded-[1.8rem] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center">
+                    <i class="fas fa-play mr-3 text-xs"></i> Assemble Routine
+                </button>
+            </div>
+        </div>
+    </div>
 
-</main>
+    <div id="rest-modal" class="hidden fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8">
+        <div class="text-9xl font-black text-white tabular-nums mb-4" id="rest-timer">20</div>
+        <div class="zone-text font-black uppercase tracking-widest text-sm mb-12" id="next-ex-label">RECOVERY</div>
+        <button id="skip-rest" class="px-8 py-3 bg-white/5 rounded-full text-slate-500 uppercase text-[10px] font-black tracking-widest">Skip</button>
+    </div>
 
-<footer class="fixed bottom-0 w-full bg-slate-950/90 p-6">
-<button id="start" class="w-full bg-white text-black py-4 rounded-xl font-black uppercase">Assemble Routine</button>
-</footer>
+    <script>
+        $(document).ready(function() {
+            const exerciseDB = [
+                { name: "Push Ups", cal: 0.6, base: 15, unit: "Reps", icon: "fa-hand-rock" },
+                { name: "Jump Squats", cal: 1.0, base: 12, unit: "Reps", icon: "fa-bolt" },
+                { name: "Plank", cal: 0.2, base: 45, unit: "Sec", icon: "fa-stopwatch" },
+                { name: "Burpees", cal: 1.8, base: 8, unit: "Reps", icon: "fa-fire" },
+                { name: "Mountain Climbers", cal: 0.5, base: 40, unit: "Sec", icon: "fa-mountain" },
+                { name: "Wall Sit", cal: 0.4, base: 40, unit: "Sec", icon: "fa-chair" }
+            ];
 
-<div id="modal" class="hidden fixed inset-0 bg-slate-950 z-40 flex flex-col items-center justify-center">
-  <div id="timer" class="text-8xl font-black mb-4">20</div>
-  <div id="label" class="uppercase tracking-widest text-indigo-500 mb-6">REST</div>
-  <button id="skip" class="uppercase text-xs tracking-widest text-slate-500">Skip</button>
-</div>
+            let state = { current: [], cals: 0, target: 150 };
+            const synth = window.speechSynthesis;
 
-<script>
-/* ---------- PWA ---------- */
-if ("serviceWorker" in navigator) {
- navigator.serviceWorker.register("sw.js");
-}
+            function speak(t) { 
+                synth.cancel(); 
+                const u = new SpeechSynthesisUtterance(t);
+                u.rate = 1.1;
+                synth.speak(u); 
+            }
 
-/* ---------- DATA ---------- */
-const DB=[
- {n:"Push Ups",b:15,cal:.6,u:"Reps"},
- {n:"Jump Squats",b:12,cal:1,u:"Reps"},
- {n:"Plank",b:45,cal:.2,u:"Sec"},
- {n:"Burpees",b:8,cal:1.8,u:"Reps"},
- {n:"Wall Sit",b:40,cal:.4,u:"Sec"}
-];
+            function haptic(ms) {
+                if (navigator.vibrate) navigator.vibrate(ms);
+            }
 
-/* ---------- ENGINE ---------- */
-const Engine={
- state:{
-  list:[],i:0,c:0,goal:200,
-  bpmLog:[],zoneLog:[],
-  start:0,difficulty:1
- },
+            // --- ANALYTICS ENGINE ---
+            function updateHeartRate(progress) {
+                const bpm = Math.floor(72 + (progress * 88));
+                $('#hr-val').text(bpm);
+                $('.heart-pulse, .heart-ring').css('animation-duration', (60/bpm) + 's');
+                
+                // ZONE LOGIC
+                let zone = "Warm Up";
+                let color = "#6366f1";
+                if (progress > 0.3) { zone = "Fat Burn"; color = "#10b981"; }
+                if (progress > 0.7) { zone = "Anabolic"; color = "#f59e0b"; }
+                if (progress > 0.9) { zone = "Peak Power"; color = "#ef4444"; }
 
- zone(){
-  const p=this.i()/this.state.list.length;
-  if(p>.9) return ["Peak","#ef4444",1.4];
-  if(p>.7) return ["Anabolic","#f59e0b",1.25];
-  if(p>.3) return ["Fat Burn","#10b981",1.1];
-  return ["Warm Up","#6366f1",1];
- },
+                $(':root').css('--zone-color', color);
+                $('#zone-label').text(zone + " Zone");
+            }
 
- i(){return this.state.i},
- cur(){return this.state.list[this.state.i]},
+            function assemble() {
+                state.target = $('#goal-slider').val();
+                state.cals = 0;
+                let currentBurn = 0, selected = [], pool = [...exerciseDB];
+                
+                while (currentBurn < state.target && selected.length < 15) {
+                    let ex = pool[Math.floor(Math.random() * pool.length)];
+                    selected.push({...ex, done: false, id: Math.random()});
+                    currentBurn += (ex.cal * ex.base);
+                }
+                state.current = selected;
+                haptic([50, 30, 50]);
+                render();
+                updateUI();
+                speak("Routine assembled. Goal is " + state.target + " calories.");
+            }
 
- progress(){return this.i()/this.state.list.length},
+            function render() {
+                const container = $('#workout-container').empty();
+                state.current.forEach((ex, i) => {
+                    container.append(`
+                        <div class="bg-slate-900 border border-white/5 p-6 rounded-[2rem] flex items-center justify-between transition-all duration-500 ${ex.done ? 'completed' : ''}" data-id="${ex.id}">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center zone-text"><i class="fas ${ex.icon}"></i></div>
+                                <div>
+                                    <h3 class="font-black text-white uppercase text-xs tracking-tight">${ex.name}</h3>
+                                    <p class="text-slate-500 font-black text-[10px] uppercase">${ex.base} ${ex.unit}</p>
+                                </div>
+                            </div>
+                            <button class="check-btn w-12 h-12 rounded-full border-2 border-slate-800 flex items-center justify-center text-transparent" data-id="${ex.id}">
+                                <i class="fas fa-check text-white ${ex.done ? '' : 'hidden'}"></i>
+                            </button>
+                        </div>
+                    `);
+                });
+                
+                // Update Gym Mode preview
+                const next = state.current.find(e => !e.done);
+                if(next) {
+                    $('#gym-name').text(next.name);
+                    $('#gym-target').text(next.base);
+                }
+            }
 
- complete(){
-  const [z,,m]=this.zone();
-  const e=this.cur();
-  this.state.c+=e.cal*e.b*m;
-  this.state.i++;
-  this.state.zoneLog.push(z);
-  render();
- }
-};
+            function updateUI() {
+                const doneCount = state.current.filter(e => e.done).length;
+                const total = state.current.length || 1;
+                const progress = doneCount / total;
+                
+                $('#progress-ring').css('stroke-dashoffset', 364.4 - (progress * 364.4));
+                $('#live-cals').text(Math.floor(state.cals));
+                $('#burn-progress-bar').css('width', (progress * 100) + '%');
+                updateHeartRate(progress);
+            }
 
-/* ---------- AI DIFFICULTY ---------- */
-function adaptDifficulty(){
- const perf=Engine.state.c/Engine.state.goal;
- if(perf>1.1) Engine.state.difficulty+=0.1;
- if(perf<0.9) Engine.state.difficulty=Math.max(0.8,Engine.state.difficulty-0.1);
- localStorage.setItem("difficulty",Engine.state.difficulty);
-}
+            $(document).on('click', '.check-btn', function() {
+                const id = $(this).data('id');
+                const ex = state.current.find(e => e.id == id);
+                if(ex.done) return;
 
-/* ---------- ASSEMBLE ---------- */
-function assemble(){
- Engine.state.goal=+goal.value;
- Engine.state.list=[];
- Engine.state.i=0;
- Engine.state.c=0;
- Engine.state.start=Date.now();
- let burn=0;
- while(burn<Engine.state.goal){
-  let e={...DB[Math.random()*DB.length|0]};
-  e.b=Math.round(e.b*Engine.state.difficulty);
-  burn+=e.cal*e.b;
-  Engine.state.list.push(e);
- }
- render();
-}
+                haptic(80);
+                ex.done = true;
+                state.cals += (ex.cal * ex.base);
+                
+                updateUI();
+                render();
+                
+                const next = state.current.find(e => !e.done);
+                if(next) {
+                    $('#next-ex-label').text("Next: " + next.name);
+                    $('#rest-modal').removeClass('hidden');
+                    speak("Great. Rest for 20 seconds.");
+                    let time = 20;
+                    const timer = setInterval(() => {
+                        time--;
+                        $('#rest-timer').text(time);
+                        if(time <= 3 && time > 0) { speak(time.toString()); haptic(40); }
+                        if(time <= 0) {
+                            clearInterval(timer);
+                            $('#rest-modal').addClass('hidden');
+                            haptic([100, 50, 100]);
+                            speak("Go! " + next.name);
+                        }
+                    }, 1000);
+                    $('#skip-rest').one('click', () => { clearInterval(timer); $('#rest-modal').addClass('hidden'); });
+                } else {
+                    haptic([200, 100, 200, 100, 500]);
+                    speak("Workout complete. Goal achieved.");
+                }
+            });
 
-/* ---------- FLOW ---------- */
-function startEx(){
- const e=Engine.cur();
- let t=e.u==="Sec"?e.b:(e.cal>1?30:15);
- modal.classList.remove("hidden");
- label.textContent=e.n;
- timer.textContent=t;
- const int=setInterval(()=>{
-  t--; timer.textContent=t;
-  if(t<=0){clearInterval(int);modal.classList.add("hidden");Engine.complete();}
- },1000);
- skip.onclick=()=>{clearInterval(int);modal.classList.add("hidden");Engine.complete();}
-}
+            $('#goal-slider').on('input', function() {
+                $('#goal-label').text($(this).val() + " KCAL");
+            });
 
-/* ---------- RENDER ---------- */
-function render(){
- list.innerHTML="";
- Engine.state.list.forEach((e,idx)=>{
-  list.innerHTML+=`
-  <div class="bg-slate-900 p-4 rounded-xl flex justify-between ${idx<Engine.i()?'completed':''}">
-    <div>${e.n} • ${e.b} ${e.u}</div>
-    ${idx===Engine.i()?`<button onclick="startEx()">▶</button>`:""}
-  </div>`;
- });
-
- const p=Engine.progress();
- ring.style.strokeDashoffset=364-(364*p);
- cals.textContent=Math.floor(Engine.state.c);
-
- const [z,c]=Engine.zone();
- document.documentElement.style.setProperty("--zone",c);
- zone.textContent=z;
-
- const bpm=Math.floor(72+Math.sin(p*Math.PI/2)*88);
- bpmEl=bpm+" BPM";
- Engine.state.bpmLog.push(bpm);
-
- if(Engine.i()>=Engine.state.list.length && Engine.state.list.length){
-  finish();
- }
-}
-
-/* ---------- SUMMARY ---------- */
-function finish(){
- adaptDifficulty();
- const time=Math.round((Date.now()-Engine.state.start)/60000);
- sumCals.textContent=Math.floor(Engine.state.c);
- sumTime.textContent=time+" min";
- sumBpm.textContent=Math.round(Engine.state.bpmLog.reduce((a,b)=>a+b,0)/Engine.state.bpmLog.length);
- sumZone.textContent=[...new Set(Engine.state.zoneLog)].join(", ");
- sumDiff.textContent=Engine.state.difficulty.toFixed(2);
- summary.classList.remove("hidden");
-}
-
-/* ---------- INIT ---------- */
-Engine.state.difficulty=+localStorage.getItem("difficulty")||1;
-start.onclick=assemble;
-</script>
-
+            $('#generate-btn').click(assemble);
+        });
+    </script>
 </body>
 </html>
