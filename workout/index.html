@@ -3,184 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Burn | Analytics</title>
+    <title>Daily Burn | Pro Elite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.3); opacity: 0; } }
-        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        :root { --zone-color: #6366f1; }
         
-        .heart-pulse { animation: heartbeat 0.8s infinite ease-in-out; }
-        .heart-ring { animation: pulse-ring 0.8s infinite ease-out; }
+        /* Animations */
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.4); opacity: 0; } }
         
-        .progress-ring__circle { transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(-90deg); transform-origin: 50% 50%; }
-        .completed { opacity: 0.2; transform: scale(0.95); transition: 0.4s; }
+        .heart-pulse { animation: heartbeat 0.8s infinite ease-in-out; color: var(--zone-color); transition: color 0.5s; }
+        .heart-ring { animation: pulse-ring 0.8s infinite ease-out; background-color: var(--zone-color); }
+        .progress-ring__circle { transition: stroke-dashoffset 0.6s ease, stroke 0.5s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .completed { opacity: 0.15; transform: scale(0.95); filter: grayscale(1); pointer-events: none; }
         
-        /* Burn Velocity Chart Bars */
-        .chart-bar { transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .muscle-part { fill: #1e293b; transition: fill 0.5s; }
-        .muscle-active { fill: #6366f1; }
+        /* Gym Mode (Landscape) */
+        #gym-mode { display: none; }
+        @media (orientation: landscape) and (max-height: 500px) {
+            body { overflow: hidden; }
+            #main-ui { display: none; }
+            #gym-mode { display: flex; }
+        }
+
+        input[type=range] { accent-color: var(--zone-color); }
+        .zone-text { color: var(--zone-color); transition: color 0.5s; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 min-h-screen font-sans">
+<body class="bg-slate-950 text-slate-200 min-h-screen font-sans overflow-x-hidden">
 
-    <header class="fixed top-0 w-full bg-slate-950/90 backdrop-blur-xl border-b border-white/5 z-50 px-6 py-4">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="relative flex items-center justify-center">
-                    <div class="heart-ring absolute w-6 h-6 rounded-full bg-red-500/50"></div>
-                    <i class="fas fa-heart text-red-500 heart-pulse relative z-10 text-sm"></i>
-                </div>
-                <div>
-                    <span id="hr-val" class="text-xl font-black tabular-nums">72</span>
-                    <span class="text-[9px] font-black text-slate-500 uppercase ml-1">BPM</span>
-                </div>
-            </div>
-            
-            <div class="flex items-end space-x-1 h-6" id="velocity-chart">
-                <div class="chart-bar w-1 bg-slate-800 rounded-full h-2"></div>
-                <div class="chart-bar w-1 bg-slate-800 rounded-full h-3"></div>
-                <div class="chart-bar w-1 bg-slate-800 rounded-full h-1"></div>
-                <div class="chart-bar w-1 bg-slate-800 rounded-full h-4"></div>
-                <div class="chart-bar w-1 bg-slate-800 rounded-full h-2"></div>
-            </div>
+    <div id="gym-mode" class="fixed inset-0 bg-slate-950 z-[200] flex-col items-center justify-center p-6 text-center">
+        <div class="text-indigo-500 text-xs font-black tracking-[0.5em] mb-4 uppercase">Current Exercise</div>
+        <h1 id="gym-name" class="text-6xl font-black text-white uppercase leading-none mb-4">Assemble Routine</h1>
+        <div id="gym-target" class="text-8xl font-black text-indigo-500 tabular-nums">0</div>
+        <div class="mt-8 flex space-x-4">
+            <span class="text-slate-500 font-bold uppercase tracking-widest text-sm">Rotate phone to exit Gym Mode</span>
         </div>
-    </header>
+    </div>
 
-    <main class="max-w-md mx-auto mt-24 p-6 pb-40">
-        
-        <div class="bg-slate-900 rounded-[2.5rem] p-6 border border-white/5 mb-8 relative overflow-hidden">
-            <div class="relative z-10 flex justify-between items-center">
-                <div>
-                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Burn</span>
-                    <h2 class="text-4xl font-black text-white"><span id="live-cals">0</span><span class="text-indigo-500 text-sm ml-1">Kcal</span></h2>
+    <div id="main-ui">
+        <header class="fixed top-0 w-full bg-slate-950/90 backdrop-blur-xl border-b border-white/5 z-50 px-6 py-4">
+            <div class="max-w-md mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="relative flex items-center justify-center">
+                        <div class="heart-ring absolute w-6 h-6 rounded-full opacity-20"></div>
+                        <i class="fas fa-heart heart-pulse relative z-10 text-sm"></i>
+                    </div>
+                    <div>
+                        <span id="hr-val" class="text-xl font-black tabular-nums">72</span>
+                        <span class="text-[9px] font-black text-slate-500 uppercase ml-1">BPM</span>
+                    </div>
+                </div>
+                <div id="zone-label" class="text-[10px] font-black uppercase tracking-widest zone-text">Warm Up Zone</div>
+            </div>
+        </header>
+
+        <main class="max-w-md mx-auto mt-24 p-6 pb-40">
+            <div class="bg-slate-900 rounded-[2.5rem] p-8 border border-white/5 mb-8 text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-white/5">
+                    <div id="burn-progress-bar" class="h-full bg-indigo-500 transition-all duration-500" style="width: 0%"></div>
                 </div>
                 
-                <div class="relative w-20 h-20 flex items-center justify-center">
-                    <svg class="w-full h-full">
-                        <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="36" cx="40" cy="40"/>
-                        <circle id="progress-ring" class="text-indigo-500 progress-ring__circle" stroke-width="4" stroke-dasharray="226.2" stroke-dashoffset="226.2" stroke-linecap="round" stroke="currentColor" fill="transparent" r="36" cx="40" cy="40"/>
+                <div class="relative inline-flex items-center justify-center mb-6">
+                    <svg class="w-32 h-32">
+                        <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                        <circle id="progress-ring" class="zone-text progress-ring__circle" stroke-width="4" stroke-dasharray="364.4" stroke-dashoffset="364.4" stroke-linecap="round" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
                     </svg>
-                    <span id="percent-text" class="absolute text-xs font-black">0%</span>
+                    <div class="absolute flex flex-col items-center">
+                        <span id="live-cals" class="text-3xl font-black text-white leading-none">0</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase mt-1">Burned</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        <span>Daily Goal</span>
+                        <span id="goal-label" class="text-white">150 KCAL</span>
+                    </div>
+                    <input type="range" id="goal-slider" min="50" max="500" step="50" value="150" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
             </div>
-            
-            <div class="mt-8">
-                <div class="flex justify-between text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                    <span>Intensity Goal</span>
-                    <span id="goal-label">150 KCAL</span>
+
+            <div id="workout-container" class="space-y-4">
+                <div class="text-center py-20 text-slate-600 font-bold uppercase tracking-widest text-xs">
+                    Set your goal & assemble
                 </div>
-                <input type="range" id="goal-slider" min="50" max="500" step="50" value="150" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
             </div>
-        </div>
+        </main>
 
-        <div id="workout-container" class="space-y-4"></div>
-
-    </main>
-
-    <div class="fixed bottom-0 w-full bg-slate-950/90 backdrop-blur-xl p-6 border-t border-white/5 z-50">
-        <div class="max-w-md mx-auto">
-            <button id="generate-btn" class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-                Assemble Routine
-            </button>
+        <div class="fixed bottom-0 w-full bg-slate-950/90 backdrop-blur-xl p-6 border-t border-white/5 z-50">
+            <div class="max-w-md mx-auto">
+                <button id="generate-btn" class="w-full bg-white text-black py-5 rounded-[1.8rem] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center">
+                    <i class="fas fa-play mr-3 text-xs"></i> Assemble Routine
+                </button>
+            </div>
         </div>
     </div>
 
     <div id="rest-modal" class="hidden fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8">
         <div class="text-9xl font-black text-white tabular-nums mb-4" id="rest-timer">20</div>
-        <div class="text-indigo-500 font-bold uppercase tracking-widest text-sm" id="next-ex-label">...</div>
+        <div class="zone-text font-black uppercase tracking-widest text-sm mb-12" id="next-ex-label">RECOVERY</div>
+        <button id="skip-rest" class="px-8 py-3 bg-white/5 rounded-full text-slate-500 uppercase text-[10px] font-black tracking-widest">Skip</button>
     </div>
 
     <script>
         $(document).ready(function() {
             const exerciseDB = [
                 { name: "Push Ups", cal: 0.6, base: 15, unit: "Reps", icon: "fa-hand-rock" },
-                { name: "Jump Squats", cal: 1.0, base: 15, unit: "Reps", icon: "fa-bolt" },
+                { name: "Jump Squats", cal: 1.0, base: 12, unit: "Reps", icon: "fa-bolt" },
                 { name: "Plank", cal: 0.2, base: 45, unit: "Sec", icon: "fa-stopwatch" },
-                { name: "Burpees", cal: 1.6, base: 10, unit: "Reps", icon: "fa-fire" },
-                { name: "Bicycle Crunches", cal: 0.4, base: 30, unit: "Reps", icon: "fa-bicycle" },
-                { name: "Wall Sit", cal: 0.3, base: 45, unit: "Sec", icon: "fa-chair" }
+                { name: "Burpees", cal: 1.8, base: 8, unit: "Reps", icon: "fa-fire" },
+                { name: "Mountain Climbers", cal: 0.5, base: 40, unit: "Sec", icon: "fa-mountain" },
+                { name: "Wall Sit", cal: 0.4, base: 40, unit: "Sec", icon: "fa-chair" }
             ];
 
             let state = { current: [], cals: 0, target: 150 };
             const synth = window.speechSynthesis;
 
+            function speak(t) { 
+                synth.cancel(); 
+                const u = new SpeechSynthesisUtterance(t);
+                u.rate = 1.1;
+                synth.speak(u); 
+            }
+
+            function haptic(ms) {
+                if (navigator.vibrate) navigator.vibrate(ms);
+            }
+
             // --- ANALYTICS ENGINE ---
-            function simulateHeartRate() {
-                const done = state.current.filter(e => e.done).length;
-                const progress = done / (state.current.length || 1);
-                // BPM increases from 70 to 140+ as you progress
-                const bpm = Math.floor(72 + (progress * 80) + (Math.random() * 5));
+            function updateHeartRate(progress) {
+                const bpm = Math.floor(72 + (progress * 88));
                 $('#hr-val').text(bpm);
+                $('.heart-pulse, .heart-ring').css('animation-duration', (60/bpm) + 's');
                 
-                // Speed up animations based on heart rate
-                const duration = 60 / bpm;
-                $('.heart-pulse, .heart-ring').css('animation-duration', duration + 's');
-            }
-            setInterval(simulateHeartRate, 2000);
+                // ZONE LOGIC
+                let zone = "Warm Up";
+                let color = "#6366f1";
+                if (progress > 0.3) { zone = "Fat Burn"; color = "#10b981"; }
+                if (progress > 0.7) { zone = "Anabolic"; color = "#f59e0b"; }
+                if (progress > 0.9) { zone = "Peak Power"; color = "#ef4444"; }
 
-            function updateVelocityChart() {
-                const bars = $('#velocity-chart .chart-bar');
-                bars.each(function() {
-                    const h = Math.floor(Math.random() * 20) + 4;
-                    $(this).css('height', h + 'px');
-                    if(h > 15) $(this).addClass('bg-indigo-500').removeClass('bg-slate-800');
-                    else $(this).addClass('bg-slate-800').removeClass('bg-indigo-500');
-                });
+                $(':root').css('--zone-color', color);
+                $('#zone-label').text(zone + " Zone");
             }
 
-            // --- WORKOUT ENGINE ---
             function assemble() {
                 state.target = $('#goal-slider').val();
                 state.cals = 0;
-                let currentBurn = 0;
-                let selected = [];
-                let pool = [...exerciseDB].sort(() => 0.5 - Math.random());
-
-                while (currentBurn < state.target && selected.length < 12) {
+                let currentBurn = 0, selected = [], pool = [...exerciseDB];
+                
+                while (currentBurn < state.target && selected.length < 15) {
                     let ex = pool[Math.floor(Math.random() * pool.length)];
                     selected.push({...ex, done: false, id: Math.random()});
                     currentBurn += (ex.cal * ex.base);
                 }
-
                 state.current = selected;
+                haptic([50, 30, 50]);
                 render();
                 updateUI();
-                const utter = new SpeechSynthesisUtterance("Routine assembled. Let's burn " + state.target + " calories.");
-                synth.speak(utter);
+                speak("Routine assembled. Goal is " + state.target + " calories.");
             }
 
             function render() {
                 const container = $('#workout-container').empty();
-                state.current.forEach(ex => {
+                state.current.forEach((ex, i) => {
                     container.append(`
-                        <div class="bg-slate-900 border border-white/5 p-6 rounded-[2rem] flex items-center justify-between transition-all ${ex.done ? 'completed' : ''}">
+                        <div class="bg-slate-900 border border-white/5 p-6 rounded-[2rem] flex items-center justify-between transition-all duration-500 ${ex.done ? 'completed' : ''}" data-id="${ex.id}">
                             <div class="flex items-center space-x-4">
-                                <div class="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center text-indigo-500"><i class="fas ${ex.icon}"></i></div>
+                                <div class="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center zone-text"><i class="fas ${ex.icon}"></i></div>
                                 <div>
                                     <h3 class="font-black text-white uppercase text-xs tracking-tight">${ex.name}</h3>
-                                    <p class="text-indigo-400 font-black text-[10px] uppercase">${ex.base} ${ex.unit}</p>
+                                    <p class="text-slate-500 font-black text-[10px] uppercase">${ex.base} ${ex.unit}</p>
                                 </div>
                             </div>
-                            <button class="check-btn w-10 h-10 rounded-full border-2 border-slate-700 flex items-center justify-center" data-id="${ex.id}">
+                            <button class="check-btn w-12 h-12 rounded-full border-2 border-slate-800 flex items-center justify-center text-transparent" data-id="${ex.id}">
                                 <i class="fas fa-check text-white ${ex.done ? '' : 'hidden'}"></i>
                             </button>
                         </div>
                     `);
                 });
+                
+                // Update Gym Mode preview
+                const next = state.current.find(e => !e.done);
+                if(next) {
+                    $('#gym-name').text(next.name);
+                    $('#gym-target').text(next.base);
+                }
             }
 
             function updateUI() {
                 const doneCount = state.current.filter(e => e.done).length;
                 const total = state.current.length || 1;
-                const percent = Math.round((doneCount / total) * 100);
+                const progress = doneCount / total;
                 
-                $('#progress-ring').css('stroke-dashoffset', 226.2 - (percent / 100 * 226.2));
-                $('#percent-text').text(percent + '%');
+                $('#progress-ring').css('stroke-dashoffset', 364.4 - (progress * 364.4));
                 $('#live-cals').text(Math.floor(state.cals));
-                updateVelocityChart();
+                $('#burn-progress-bar').css('width', (progress * 100) + '%');
+                updateHeartRate(progress);
             }
 
             $(document).on('click', '.check-btn', function() {
@@ -188,6 +210,7 @@
                 const ex = state.current.find(e => e.id == id);
                 if(ex.done) return;
 
+                haptic(80);
                 ex.done = true;
                 state.cals += (ex.cal * ex.base);
                 
@@ -198,18 +221,23 @@
                 if(next) {
                     $('#next-ex-label').text("Next: " + next.name);
                     $('#rest-modal').removeClass('hidden');
-                    let time = 15;
+                    speak("Great. Rest for 20 seconds.");
+                    let time = 20;
                     const timer = setInterval(() => {
                         time--;
                         $('#rest-timer').text(time);
+                        if(time <= 3 && time > 0) { speak(time.toString()); haptic(40); }
                         if(time <= 0) {
                             clearInterval(timer);
                             $('#rest-modal').addClass('hidden');
+                            haptic([100, 50, 100]);
+                            speak("Go! " + next.name);
                         }
                     }, 1000);
+                    $('#skip-rest').one('click', () => { clearInterval(timer); $('#rest-modal').addClass('hidden'); });
                 } else {
-                    const final = new SpeechSynthesisUtterance("Goal reached. Workout complete.");
-                    synth.speak(final);
+                    haptic([200, 100, 200, 100, 500]);
+                    speak("Workout complete. Goal achieved.");
                 }
             });
 
