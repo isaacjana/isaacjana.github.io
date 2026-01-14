@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Munch Karaoke - Ultimate Pro</title>
+    <title>MUNCH KARAOKE - PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -14,158 +14,117 @@
         body { background-color: var(--bg); color: #f8fafc; font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         .vibe-party { --accent: #f472b6; --bg: #0f0014; }
         
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); }
-        .stage-container { position: relative; background: #000; overflow: hidden; height: 100%; border-radius: 1.5rem; border: 2px solid rgba(255,255,255,0.05); }
+        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+        .stage-container { position: relative; background: #000; overflow: hidden; height: 100%; border-radius: 2rem; border: 4px solid #1e293b; }
         
-        #youtube-player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; }
+        #youtube-player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         
-        /* Player Status Glow */
-        .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-        .status-ready { background: #22c55e; box-shadow: 0 0 15px #22c55e; }
-        .status-blocked { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
+        /* Status Glows */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .ready { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+        .idle { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
 
-        #scrubber-bar { transition: width 0.5s linear; box-shadow: 0 0 10px var(--accent); }
+        #scrubber-bar { transition: width 0.5s linear; background: var(--accent); box-shadow: 0 0 15px var(--accent); }
         
         @keyframes float-up { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-400px) scale(2); opacity: 0; } }
         .emoji-float { position: absolute; bottom: 20%; left: 50%; font-size: 4rem; pointer-events: none; animation: float-up 1.8s ease-out forwards; z-index: 100; }
         
         .handle { cursor: grab; padding: 10px; color: #475569; }
-        .sortable-ghost { opacity: 0.2; background: #3b82f6 !important; }
-
-        @media (max-width: 768px) {
-            #view-main { display: none; }
-            body { overflow-y: auto; }
-            .mobile-full { width: 100% !important; }
-        }
+        @media (max-width: 768px) { #view-main { display: none; } body { overflow-y: auto; } }
     </style>
 </head>
 <body>
 
     <div id="auth-overlay" class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-6">
-        <div class="glass p-10 rounded-[3rem] max-w-sm w-full shadow-2xl text-center border-blue-500/20">
-            <h1 class="text-5xl font-black italic mb-8 tracking-tighter text-white">MUNCH<span class="text-blue-500">KARAOKE</span></h1>
+        <div class="glass p-10 rounded-[3rem] max-w-sm w-full text-center border-blue-500/20 shadow-2xl">
+            <h1 class="text-5xl font-black italic mb-8 tracking-tighter">MUNCH<span class="text-blue-500">KARAOKE</span></h1>
             <div id="login-section">
-                <button id="btn-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl active:scale-95 transition">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5"> Login with Google
+                <button id="btn-login" class="w-full bg-white text-black font-bold py-5 rounded-3xl flex items-center justify-center gap-3 active:scale-95 transition">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6"> Login with Google
                 </button>
             </div>
             <div id="party-section" class="hidden space-y-4">
-                <input id="party-code-input" type="text" placeholder="SESSION CODE" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-5 text-center font-mono text-3xl uppercase tracking-widest text-white outline-none focus:border-blue-500">
-                <button id="btn-join" class="w-full bg-blue-600 font-bold py-4 rounded-2xl text-white shadow-lg text-lg">ENTER STAGE</button>
+                <input id="party-code-input" type="text" placeholder="SESSION CODE" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-5 text-center font-mono text-3xl uppercase tracking-widest text-white outline-none">
+                <button id="btn-join" class="w-full bg-blue-600 font-bold py-5 rounded-3xl text-white shadow-lg text-lg hover:bg-blue-500 transition">ENTER STAGE</button>
             </div>
         </div>
     </div>
 
-    <header class="h-16 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between px-6 z-50">
+    <header class="h-16 bg-slate-900/40 border-b border-slate-800 flex items-center justify-between px-6 z-50">
         <div class="flex items-center gap-3">
-            <div id="player-status-indicator" class="status-dot status-blocked" title="Player Status"></div>
-            <span class="text-xl font-black italic text-blue-500 tracking-tighter">MUNCH</span>
+            <div id="status-indicator" class="status-dot idle"></div>
+            <span class="text-xl font-black italic text-blue-500 tracking-tighter uppercase">Munch</span>
         </div>
         <div class="flex items-center gap-4">
-            <button id="vibe-toggle" class="text-slate-400 p-2"><i class="fas fa-wand-magic-sparkles"></i></button>
-            <button id="nav-admin" class="hidden text-slate-400 p-2"><i class="fas fa-cog"></i></button>
-            <img id="user-pfp" class="w-9 h-9 rounded-full border-2 border-slate-800">
+            <button id="vibe-toggle" class="text-slate-400"><i class="fas fa-wand-magic-sparkles"></i></button>
+            <button id="nav-admin" class="hidden text-slate-400"><i class="fas fa-shield-halved"></i></button>
+            <img id="user-pfp" class="w-8 h-8 rounded-full border border-slate-700">
         </div>
     </header>
 
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden p-2 md:p-4 gap-4">
         
-        <section id="view-main" class="flex-1 flex flex-col relative rounded-[2rem] overflow-hidden bg-black shadow-2xl">
+        <section id="view-main" class="flex-1 flex flex-col relative rounded-[2.5rem] overflow-hidden bg-black shadow-2xl border-4 border-slate-900">
             <div class="flex-1 stage-container">
-                <div id="youtube-player"></div>
+                <div id="player-container" class="w-full h-full">
+                    <div id="youtube-player"></div>
+                </div>
                 
-                <div id="idle-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10 transition-opacity duration-700">
-                    <div class="relative group">
-                        <div id="qrcode-border" class="absolute -inset-4 rounded-[2.5rem] bg-red-500/20 blur-xl transition-all duration-500"></div>
-                        <div id="qrcode" class="relative p-6 bg-white rounded-[2rem] shadow-2xl"></div>
-                    </div>
+                <div id="idle-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 transition-opacity duration-1000">
+                    <div id="qrcode" class="p-6 bg-white rounded-[2rem] shadow-2xl"></div>
                     <h2 id="idle-code-display" class="text-7xl font-black text-white italic mt-8 tracking-tighter">---</h2>
-                    <p id="player-hint" class="text-red-500 text-xs font-bold uppercase tracking-[0.3em] mt-4 animate-pulse">Browser Blocked: Click Screen to Enable</p>
+                    <p class="text-blue-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-4 animate-pulse">Waiting for your request</p>
                 </div>
 
-                <div id="animation-layer" class="absolute inset-0 pointer-events-none z-[60]"></div>
+                <div id="animation-layer" class="absolute inset-0 pointer-events-none z-30"></div>
             </div>
 
-            <div id="stage-info-bar" class="h-24 bg-slate-900/95 border-t border-slate-800 flex items-center px-10 gap-8 z-40 transition-transform duration-500 translate-y-full">
+            <div id="stage-info-bar" class="h-24 bg-slate-900 flex items-center px-10 gap-8 z-40 transition-transform duration-500 translate-y-full border-t border-slate-800">
                 <div class="flex-1 min-w-0">
-                    <p id="np-user-display" class="text-blue-500 font-black uppercase text-[10px] tracking-widest mb-1"></p>
+                    <p id="np-user-display" class="text-blue-400 font-black uppercase text-[10px] tracking-widest mb-1"></p>
                     <h2 id="np-title-display" class="text-2xl font-bold truncate text-white italic"></h2>
                 </div>
-                <div id="singer-timer" class="text-blue-500 font-bold text-4xl tabular-nums tracking-tighter">00:00</div>
+                <div id="singer-timer" class="text-white font-black text-4xl tabular-nums tracking-tighter">00:00</div>
             </div>
-            <div id="scrubber-container" class="h-1.5 bg-white/5 absolute bottom-0 left-0 w-full z-50">
-                <div id="scrubber-bar" class="h-full bg-blue-500 w-0"></div>
+            <div class="h-1.5 bg-white/5 relative z-50">
+                <div id="scrubber-bar" class="h-full w-0"></div>
             </div>
         </section>
 
-        <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2rem] border border-slate-800 overflow-hidden shadow-2xl">
+        <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-2xl">
             <div class="p-5 border-b border-slate-800">
-                <div class="relative group">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors"></i>
-                    <input id="song-search" type="text" placeholder="Search song or artist..." class="w-full bg-slate-900 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner">
-                    <div id="search-results" class="hidden absolute top-full left-0 w-full bg-slate-900 border border-slate-700 rounded-2xl mt-3 z-[100] p-2 shadow-2xl max-h-[60vh] overflow-y-auto"></div>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                    <input id="song-search" type="text" placeholder="Search Song or Artist..." class="w-full bg-slate-900 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-blue-500 outline-none transition-all">
+                    <div id="search-results" class="hidden absolute top-full left-0 w-full bg-slate-900 border border-slate-700 rounded-2xl mt-3 z-[100] p-2 shadow-2xl max-h-96 overflow-y-auto"></div>
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-6 no-scrollbar">
+            <div class="flex-1 overflow-y-auto p-5 no-scrollbar">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Queue</h3>
+                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Live Queue</h3>
                     <div class="flex gap-2">
-                        <button id="btn-applause" class="w-12 h-12 rounded-full bg-yellow-500 text-black flex items-center justify-center shadow-lg active:scale-90 transition"><i class="fas fa-hands-clapping text-xl"></i></button>
-                        <button onclick="window.stopPlayback()" class="admin-only hidden w-12 h-12 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition"><i class="fas fa-stop"></i></button>
-                        <button onclick="window.playNext()" class="admin-only hidden w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center hover:text-white transition"><i class="fas fa-forward"></i></button>
+                        <button id="btn-play-pause" class="admin-only hidden w-10 h-10 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center transition"><i class="fas fa-play"></i></button>
+                        <button onclick="window.stopPlayback()" class="admin-only hidden w-10 h-10 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center transition"><i class="fas fa-stop"></i></button>
+                        <button onclick="window.playNext()" class="admin-only hidden w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center transition"><i class="fas fa-forward"></i></button>
                     </div>
                 </div>
                 <div id="queue-list" class="space-y-4"></div>
             </div>
+            
+            <div class="p-4 bg-slate-900/50 border-t border-slate-800 md:hidden">
+                <button id="btn-applause-mobile" class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl"><i class="fas fa-hands-clapping"></i> SEND LOVE</button>
+            </div>
         </aside>
     </main>
-
-    <div id="admin-modal" class="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-5xl h-[85vh] rounded-[3rem] flex flex-col overflow-hidden shadow-2xl">
-            <div class="px-8 py-6 border-b border-slate-800 flex justify-between items-center">
-                <div class="flex gap-8">
-                    <button onclick="window.switchAdminTab('library')" class="admin-tab-btn active text-blue-500 font-bold" data-tab="library">LIBRARY MANAGER</button>
-                    <button onclick="window.switchAdminTab('bulk')" class="admin-tab-btn text-slate-500 hover:text-white font-bold" data-tab="bulk">BULK IMPORT</button>
-                </div>
-                <button id="close-admin" class="text-slate-500 hover:text-white"><i class="fas fa-times text-2xl"></i></button>
-            </div>
-            <div id="tab-library" class="admin-tab-content flex-1 flex flex-col md:flex-row overflow-hidden">
-                <div class="w-full md:w-80 p-8 border-r border-slate-800 bg-black/20 overflow-y-auto">
-                    <div class="space-y-4">
-                        <input id="edit-id" type="hidden">
-                        <input id="setup-title" type="text" placeholder="Song Title" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:border-blue-500 outline-none">
-                        <input id="setup-artist" type="text" placeholder="Artist" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:border-blue-500 outline-none">
-                        <input id="setup-url" type="text" placeholder="YouTube Link" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:border-blue-500 outline-none">
-                        <button id="btn-save-song" class="w-full bg-blue-600 font-bold py-4 rounded-xl text-white shadow-lg">SAVE TO GLOBAL</button>
-                        <button id="btn-reset-editor" class="hidden w-full bg-slate-800 py-2 rounded-xl text-[10px] text-slate-500 uppercase">Cancel Edit</button>
-                    </div>
-                </div>
-                <div class="flex-1 flex flex-col">
-                    <div class="p-4 bg-slate-900/50"><input id="master-filter" type="text" placeholder="Filter global songs..." class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-3 text-sm text-white outline-none focus:border-blue-500"></div>
-                    <div id="master-song-list" class="flex-1 overflow-y-auto p-6 space-y-3 no-scrollbar"></div>
-                    <div class="p-6 border-t border-slate-800 flex justify-between items-center bg-slate-950">
-                        <button id="prev-page" class="px-6 py-2 bg-slate-800 rounded-xl text-xs font-bold disabled:opacity-20">PREV</button>
-                        <span id="page-info" class="text-[10px] text-slate-500 font-mono">PAGE 1</span>
-                        <button id="next-page" class="px-6 py-2 bg-slate-800 rounded-xl text-xs font-bold disabled:opacity-20">NEXT</button>
-                    </div>
-                </div>
-            </div>
-            <div id="tab-bulk" class="admin-tab-content hidden flex-1 p-10 flex flex-col">
-                <textarea id="bulk-input" class="flex-1 bg-black border border-slate-800 rounded-3xl p-8 font-mono text-xs text-blue-400 outline-none focus:border-blue-500" placeholder='[{"title": "Song", "artist": "Artist", "videoId": "ID"}]'></textarea>
-                <div class="mt-6 flex justify-end"><button id="btn-run-import" class="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-12 rounded-2xl shadow-xl transition">START BULK IMPORT</button></div>
-            </div>
-        </div>
-    </div>
 
     <audio id="applause-sound" src="https://www.myinstants.com/media/sounds/applause-8.mp3" preload="auto"></audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, startAfter, endBefore, limitToLast, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyCk6mub0hDCzJ5iDmV-61v3WLSHMC51JP4",
             authDomain: "munch-24119.firebaseapp.com",
@@ -182,80 +141,55 @@
         const provider = new GoogleAuthProvider();
 
         let currentUser, player, sessionCode, isPlaying = false, timerInterval, scrubberInterval;
-        let lastVisible = null, firstVisible = null, currentPage = 1, currentFilter = "";
-        const PAGE_SIZE = 12;
+        let isPlayerReady = false;
 
-        // --- HANDSHAKE LOGIC ---
-        // Click to Enable Audio/Video on Stage
-        $('#btn-join').click(async () => {
-            sessionCode = $('#party-code-input').val().toUpperCase();
-            if(!sessionCode) return;
-            
-            // Mark player as ready (unlock browser autoplay)
-            $('#player-status-indicator').removeClass('status-blocked').addClass('status-ready');
-            $('#qrcode-border').removeClass('bg-red-500/20').addClass('bg-green-500/20 shadow-[0_0_50px_rgba(34,197,94,0.3)]');
-            $('#player-hint').text("Stage Ready & Armed").removeClass('text-red-500').addClass('text-green-500');
-
-            $('#auth-overlay').addClass('opacity-0 pointer-events-none');
-            $('#session-code-text, #idle-code-display').text(sessionCode);
-            
-            const joinLink = window.location.origin + window.location.pathname + "?join=" + sessionCode;
-            $('#qrcode').empty();
-            new QRCode(document.getElementById("qrcode"), { text: joinLink, width: 220, height: 220, colorDark : "#000000", colorLight : "#ffffff" });
-
-            initSync();
-        });
-
-        // --- AUTH ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                $('#user-pfp').attr('src', user.photoURL);
-                $('#login-section').addClass('hidden');
-                $('#party-section').removeClass('hidden');
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().isAdmin) $('#nav-admin, .admin-only').removeClass('hidden');
-                
-                const code = new URLSearchParams(window.location.search).get('join');
-                if(code) { $('#party-code-input').val(code); $('#btn-join').click(); }
-            }
-        });
-
-        $('#btn-login').click(() => signInWithPopup(auth, provider));
-
-        // --- PLAYER ENGINE ---
+        // --- HANDSHAKE & PLAYER ---
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('youtube-player', {
-                host: 'https://www.youtube-nocookie.com', height: '100%', width: '100%',
-                playerVars: { 'autoplay': 1, 'controls': 1, 'origin': window.location.origin, 'rel': 0, 'modestbranding': 1 },
-                events: { 'onStateChange': (e) => { 
-                    if(e.data === 0) { isPlaying = false; playNext(); } 
-                    if(e.data === 1) startScrubber(); else stopScrubber(); 
-                },
-                'onError': () => { isPlaying = false; playNext(); }
+                height: '100%', width: '100%',
+                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'modestbranding': 1, 'iv_load_policy': 3 },
+                events: {
+                    'onReady': () => { isPlayerReady = true; console.log("Player Loaded"); },
+                    'onStateChange': (e) => {
+                        if(e.data === 0) playNext(); // Song ended
+                        updateRemoteButton(e.data);
+                    }
                 }
             });
         };
 
-        // --- FIREBASE REALTIME SYNC ---
+        $('#btn-join').click(async () => {
+            sessionCode = $('#party-code-input').val().toUpperCase();
+            if(!sessionCode) return;
+            
+            // Interaction to enable sound/video
+            $('#status-indicator').removeClass('idle').addClass('ready');
+            $('#auth-overlay').fadeOut();
+            $('#session-code-text, #idle-code-display').text(sessionCode);
+            
+            const joinLink = window.location.origin + window.location.pathname + "?join=" + sessionCode;
+            $('#qrcode').empty();
+            new QRCode(document.getElementById("qrcode"), { text: joinLink, width: 220, height: 220 });
+
+            initSync();
+        });
+
+        // --- FIREBASE SYNC ---
         function initSync() {
-            // Queue Listener
+            // Queue Management
             onSnapshot(query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc")), snap => {
                 const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderQueue(list);
-                // Autoplay only on Desktop Stage
-                if(list.length > 0 && !isPlaying && player && window.innerWidth > 768) {
-                    playNext(list[0]);
-                }
+                if(list.length > 0 && !isPlaying && window.innerWidth > 768) playNext(list[0]);
             });
 
-            // Playback Sync Listener
+            // Master Playback Sync
             onSnapshot(doc(db, "session_status", sessionCode), (snap) => {
                 const data = snap.data();
                 if(data && data.startTime) {
                     $('#np-title-display').text(data.currentSong);
-                    $('#np-user-display').text("On Stage: " + data.userName);
-                    $('#idle-screen').css('opacity', '0');
+                    $('#np-user-display').text("Singing: " + data.userName);
+                    $('#idle-screen').css('opacity', '0').css('pointer-events', 'none');
                     $('#stage-info-bar').removeClass('translate-y-full');
                     updateTimer(data.startTime);
 
@@ -264,16 +198,19 @@
                         isPlaying = true;
                         player.loadVideoById(data.videoId);
                     }
+                    
+                    // Remote Play/Pause Sync
+                    if(player && window.innerWidth > 768) {
+                        data.isPaused ? player.pauseVideo() : player.playVideo();
+                    }
                 } else {
                     isPlaying = false;
-                    if(player && window.innerWidth > 768) player.stopVideo();
-                    $('#idle-screen').css('opacity', '1');
+                    if(player) player.stopVideo();
+                    $('#idle-screen').css('opacity', '1').css('pointer-events', 'auto');
                     $('#stage-info-bar').addClass('translate-y-full');
-                    $('#scrubber-bar').css('width', '0%');
                 }
             });
 
-            // Applause Listener
             onSnapshot(query(collection(db, "applause_events"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "desc")), (snap) => {
                 snap.docChanges().forEach(change => { if (change.type === "added") handleApplause(); });
             });
@@ -283,14 +220,10 @@
             if(!player) return;
             if(song) {
                 isPlaying = true;
-                // Update global status (Tells TV to play)
                 await setDoc(doc(db, "session_status", sessionCode), { 
-                    currentSong: song.name, 
-                    userName: song.userName, 
-                    startTime: Date.now(),
-                    videoId: song.videoId
+                    currentSong: song.name, userName: song.userName, 
+                    startTime: Date.now(), videoId: song.videoId, isPaused: false 
                 });
-                // Remove from queue
                 if(song.id) await deleteDoc(doc(db, "munch_queue", song.id));
             } else {
                 isPlaying = false;
@@ -300,32 +233,35 @@
         window.playNext = () => playNext();
 
         window.stopPlayback = async () => {
-            isPlaying = false;
             await setDoc(doc(db, "session_status", sessionCode), { currentSong: "", userName: "", startTime: null });
         };
 
-        // --- UI & INTERACTIONS ---
-        const sortable = new Sortable(document.getElementById('queue-list'), {
-            animation: 150, handle: '.handle', ghostClass: 'sortable-ghost',
-            onEnd: async () => {
-                const batch = writeBatch(db);
-                $('#queue-list > div').each((i, el) => {
-                    batch.update(doc(db, "munch_queue", $(el).data('id')), { timestamp: new Date(Date.now() + i * 1000) });
-                });
-                await batch.commit();
+        // REMOTE PAUSE/PLAY
+        $('#btn-play-pause').click(async () => {
+            const snap = await getDoc(doc(db, "session_status", sessionCode));
+            if(snap.exists()) {
+                const newState = !snap.data().isPaused;
+                await updateDoc(doc(db, "session_status", sessionCode), { isPaused: newState });
             }
         });
 
+        function updateRemoteButton(state) {
+            const $btn = $('#btn-play-pause');
+            if(state === 1) $btn.html('<i class="fas fa-pause"></i>').addClass('bg-orange-500/20 text-orange-500').removeClass('bg-blue-500/20 text-blue-500');
+            else $btn.html('<i class="fas fa-play"></i>').addClass('bg-blue-500/20 text-blue-500').removeClass('bg-orange-500/20 text-orange-500');
+        }
+
+        // --- UI RENDER ---
         function renderQueue(list) {
             const $l = $('#queue-list').empty();
             const isAdmin = !$('#nav-admin').hasClass('hidden');
             list.forEach(s => {
                 $l.append(`
                     <div data-id="${s.id}" class="flex items-center gap-4 p-4 bg-slate-900 border border-slate-800 rounded-3xl shadow-xl">
-                        ${isAdmin ? '<div class="handle text-slate-700 p-1"><i class="fas fa-grip-vertical"></i></div>' : ''}
+                        ${isAdmin ? '<div class="handle text-slate-700"><i class="fas fa-grip-vertical"></i></div>' : ''}
                         <img src="${s.userPhoto}" class="w-10 h-10 rounded-full border border-slate-700">
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-bold text-white truncate">${s.name}</p>
+                            <p class="text-[11px] font-bold text-white truncate">${s.name}</p>
                             <p class="text-[9px] text-blue-500 font-black uppercase tracking-widest">${s.userName}</p>
                         </div>
                         ${isAdmin ? `
@@ -336,13 +272,7 @@
             });
         }
 
-        window.forcePlay = async (id) => {
-            const snap = await getDoc(doc(db, "munch_queue", id));
-            if(snap.exists()) playNext({ id: snap.id, ...snap.data() });
-        };
-        window.removeFromQueue = async (id) => { if(confirm("Remove?")) await deleteDoc(doc(db, "munch_queue", id)); };
-
-        // --- SEARCH ENGINE ---
+        // --- SEARCH ---
         $('#song-search').on('input', async function() {
             const val = $(this).val().trim();
             if(val.length < 2) return $('#search-results').addClass('hidden');
@@ -356,42 +286,49 @@
         });
 
         window.queueItem = async (videoId, name) => {
-            await addDoc(collection(db, "munch_queue"), { name, videoId, sessionCode, userPhoto: currentUser.photoURL, userName: currentUser.displayName, timestamp: serverTimestamp() });
+            await addDoc(collection(db, "munch_queue"), { 
+                name, videoId, sessionCode, userPhoto: currentUser.photoURL, 
+                userName: currentUser.displayName, timestamp: serverTimestamp() 
+            });
             $('#song-search').val(''); $('#search-results').addClass('hidden');
         };
 
-        // --- UTILS ---
+        // Sortable logic
+        new Sortable(document.getElementById('queue-list'), {
+            animation: 200, handle: '.handle',
+            onEnd: async () => {
+                const batch = writeBatch(db);
+                $('#queue-list > div').each((i, el) => {
+                    batch.update(doc(db, "munch_queue", $(el).data('id')), { timestamp: new Date(Date.now() + i * 1000) });
+                });
+                await batch.commit();
+            }
+        });
+
+        // Helpers
         function startScrubber() { clearInterval(scrubberInterval); scrubberInterval = setInterval(() => { if(player?.getDuration) $('#scrubber-bar').css('width', (player.getCurrentTime()/player.getDuration()*100)+'%'); }, 1000); }
         function stopScrubber() { clearInterval(scrubberInterval); }
         function updateTimer(start) { clearInterval(timerInterval); timerInterval = setInterval(() => { const elapsed = Date.now() - start; const m = Math.floor(elapsed/60000).toString().padStart(2,'0'); const s = Math.floor((elapsed%60000)/1000).toString().padStart(2,'0'); $('#singer-timer').text(`${m}:${s}`); }, 1000); }
         function handleApplause() { const emojis = ['👏','🔥','✨','🎸','🙌']; const $e = $(`<div class="emoji-float">${emojis[Math.floor(Math.random()*emojis.length)]}</div>`).css('left', (20+Math.random()*60)+'%'); $('#animation-layer').append($e); setTimeout(()=> $e.remove(), 1800); document.getElementById('applause-sound').play().catch(()=>{}); }
-        function extractID(url) { const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/; const match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : url; }
+        window.forcePlay = async (id) => { const s = await getDoc(doc(db, "munch_queue", id)); if(s.exists()) playNext({ id: s.id, ...s.data() }); };
+        window.removeFromQueue = async (id) => { if(confirm("Remove?")) await deleteDoc(doc(db, "munch_queue", id)); };
 
-        // Master Setup Actions
-        $('#btn-save-song').click(async () => {
-            const id = $('#edit-id').val(), title = $('#setup-title').val(), artist = $('#setup-artist').val(), vid = extractID($('#setup-url').val());
-            if(!title || !vid) return;
-            const data = { title, artist, videoId: vid, searchKey: title.toLowerCase(), createdAt: serverTimestamp() };
-            if(id) await updateDoc(doc(db, "songs", id), data);
-            else await addDoc(collection(db, "songs"), data);
-            window.resetEditor(); loadMasterLibrary();
+        // --- AUTH & MISC ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                $('#user-pfp').attr('src', user.photoURL);
+                $('#login-section').addClass('hidden');
+                $('#party-section').removeClass('hidden');
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists() && userDoc.data().isAdmin) $('#nav-admin, .admin-only').removeClass('hidden');
+                const code = new URLSearchParams(window.location.search).get('join');
+                if(code) { $('#party-code-input').val(code); $('#btn-join').click(); }
+            }
         });
-
-        $('#nav-admin').click(() => { $('#admin-modal').removeClass('hidden'); loadMasterLibrary(); });
-        $('#close-admin').click(() => $('#admin-modal').addClass('hidden'));
-        window.switchAdminTab = (tab) => { $('.admin-tab-content').addClass('hidden'); $(`#tab-${tab}`).removeClass('hidden'); $('.admin-tab-btn').removeClass('text-blue-500').addClass('text-slate-500'); $(`[data-tab="${tab}"]`).addClass('text-blue-500'); };
-        
-        async function loadMasterLibrary() {
-            const $list = $('#master-song-list').empty();
-            const snap = await getDocs(query(collection(db, "songs"), limit(50)));
-            snap.forEach(d => {
-                const s = d.data();
-                $list.append(`<div class="flex items-center justify-between p-4 bg-black/40 border border-slate-800 rounded-2xl"><div class="min-w-0"><p class="text-sm font-bold text-white truncate">${s.title}</p><p class="text-[10px] text-slate-500 uppercase">${s.artist}</p></div><div class="flex gap-2"><button onclick="window.editSong('${d.id}')" class="text-blue-400"><i class="fas fa-edit"></i></button><button onclick="window.deleteSong('${d.id}')" class="text-red-500"><i class="fas fa-trash"></i></button></div></div>`);
-            });
-        }
-        window.editSong = async (id) => { const s = (await getDoc(doc(db, "songs", id))).data(); $('#edit-id').val(id); $('#setup-title').val(s.title); $('#setup-artist').val(s.artist); $('#setup-url').val(`https://youtube.com/watch?v=${s.videoId}`); $('#btn-reset-editor').removeClass('hidden'); };
-        window.resetEditor = () => { $('#edit-id, #setup-title, #setup-artist, #setup-url').val(''); $('#btn-reset-editor').addClass('hidden'); };
-        window.deleteSong = async (id) => { if(confirm("Delete?")) { await deleteDoc(doc(db, "songs", id)); loadMasterLibrary(); } };
+        $('#btn-login').click(() => signInWithPopup(auth, provider));
+        $('#vibe-toggle').click(() => $('body').toggleClass('vibe-party'));
+        $('#btn-applause-mobile').click(() => addDoc(collection(db, "applause_events"), { sessionCode, timestamp: serverTimestamp() }));
     </script>
     <script src="https://www.youtube.com/iframe_api"></script>
 </body>
