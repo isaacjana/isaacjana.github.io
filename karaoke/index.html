@@ -13,9 +13,7 @@
         body { background-color: var(--bg); color: #f8fafc; font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
         .stage-container { position: relative; background: #000; overflow: hidden; height: 100%; border-radius: 2rem; border: 4px solid #1e293b; }
-        #youtube-player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-        .animate-enter { animation: slideIn 0.3s ease-out forwards; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #youtube-player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; }
         @media (max-width: 768px) { #view-main { display: none; } body { overflow-y: auto; } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
@@ -39,25 +37,22 @@
 
     <header class="h-16 bg-slate-900/40 border-b border-slate-800 flex items-center justify-between px-6 z-50">
         <div class="flex items-center gap-3">
-            <i class="fas fa-link text-green-500 text-xl"></i>
-            <span class="text-xl font-black italic tracking-tighter uppercase text-white">Direct<span class="text-green-500">Queue</span></span>
+            <i class="fas fa-microphone text-green-500 text-xl"></i>
+            <span class="text-xl font-black italic tracking-tighter uppercase text-white">Munch<span class="text-green-500">Karaoke</span></span>
         </div>
-        <div class="flex items-center gap-4">
-            <button id="nav-admin" class="hidden text-slate-400 p-2 hover:text-white transition"><i class="fas fa-cog text-lg"></i></button>
-            <img id="user-pfp" class="w-8 h-8 rounded-full border border-slate-700">
-        </div>
+        <img id="user-pfp" class="w-8 h-8 rounded-full border border-slate-700">
     </header>
 
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden p-2 md:p-4 gap-4">
         <section id="view-main" class="flex-1 flex flex-col relative rounded-[2.5rem] overflow-hidden bg-black shadow-2xl">
             <div class="flex-1 stage-container">
                 <div id="youtube-player"></div>
-                <div id="idle-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 transition-opacity duration-1000">
+                <div id="idle-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20">
                     <div id="qrcode" class="p-6 bg-white rounded-[2rem] shadow-2xl"></div>
                     <h2 id="idle-code-display" class="text-7xl font-black text-white italic mt-8 tracking-tighter">---</h2>
                 </div>
             </div>
-            <div id="stage-info-bar" class="h-20 bg-slate-900 flex items-center px-10 gap-8 z-40 border-t border-slate-800 translate-y-full transition-transform">
+            <div id="stage-info-bar" class="h-20 bg-slate-900 flex items-center px-10 gap-8 z-40 border-t border-slate-800 translate-y-full transition-all">
                 <div class="flex-1 min-w-0">
                     <p id="np-user-display" class="text-green-500 font-black uppercase text-[10px] tracking-widest mb-1"></p>
                     <h2 id="np-title-display" class="text-lg font-bold truncate text-white italic"></h2>
@@ -66,17 +61,18 @@
         </section>
 
         <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2rem] border border-slate-800 overflow-hidden shadow-2xl relative">
-            <div class="p-5 border-b border-slate-800 bg-slate-900/30">
+            <div class="p-5 border-b border-slate-800">
                 <div class="flex gap-2">
-                    <input id="song-search" type="text" autocomplete="off" placeholder="Search or paste link..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-4 px-4 text-sm text-white focus:border-green-500 outline-none transition-all">
-                    <button id="btn-add" class="bg-green-600 px-5 rounded-xl text-white shadow-lg"><i class="fas fa-plus"></i></button>
+                    <input id="song-search" type="text" placeholder="Paste link or search..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-green-500 outline-none">
+                    <button id="btn-add" class="bg-green-600 px-4 rounded-xl text-white"><i class="fas fa-plus"></i></button>
                 </div>
                 <div id="search-results" class="hidden absolute top-40 left-4 right-4 md:static md:mt-3 bg-slate-900 border border-slate-700 rounded-2xl z-[100] p-2 shadow-2xl max-h-60 overflow-y-auto"></div>
             </div>
             <div class="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar" id="queue-list"></div>
-            <div class="p-4 bg-slate-900/50 border-t border-slate-800 flex gap-2">
-                <button id="btn-skip-trigger" class="admin-only hidden flex-1 bg-slate-800 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition">SKIP <i class="fas fa-step-forward"></i></button>
-                <button id="btn-stop-trigger" class="admin-only hidden w-16 bg-red-500/20 text-red-500 rounded-2xl active:scale-95 transition"><i class="fas fa-stop"></i></button>
+            
+            <div id="admin-controls" class="hidden p-4 bg-slate-900/50 border-t border-slate-800 flex gap-2">
+                <button id="btn-skip" class="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition">SKIP SONG</button>
+                <button id="btn-stop" class="w-16 bg-red-600 text-white rounded-2xl active:scale-95 transition"><i class="fas fa-stop"></i></button>
             </div>
         </aside>
     </main>
@@ -101,7 +97,7 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        let currentUser, player, sessionCode, isPlaying = false;
+        let currentUser, player, sessionCode, currentSongId = null;
 
         // --- YOUTUBE API ---
         const tag = document.createElement('script');
@@ -112,105 +108,107 @@
             player = new YT.Player('youtube-player', {
                 height: '100%', width: '100%',
                 playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'modestbranding': 1 },
-                events: { 'onStateChange': onPlayerStateChange }
+                events: { 'onStateChange': (e) => { 
+                    if (e.data === YT.PlayerState.ENDED) window.sendStageCommand('skip');
+                }}
             });
         };
 
-        function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.ENDED) {
-                isPlaying = false;
-                window.triggerNextInQueue();
+        // --- AUTH & JOIN ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                $('#user-pfp').attr('src', user.photoURL);
+                $('#login-section').addClass('hidden');
+                $('#party-section').removeClass('hidden');
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists() && userDoc.data().isAdmin) $('#admin-controls').removeClass('hidden');
             }
-        }
+        });
 
-        // --- SESSION JOIN ---
+        $('#btn-login').click(() => signInWithPopup(auth, provider));
+
         $('#btn-join').click(async () => {
             sessionCode = $('#party-code-input').val().toUpperCase();
             if(!sessionCode) return;
             $('#auth-overlay').fadeOut();
             $('#idle-code-display').text(sessionCode);
-            
-            // Interaction to prime the player
-            if(player) player.playVideo(); 
-
             new QRCode(document.getElementById("qrcode"), { 
                 text: window.location.origin + window.location.pathname + "?join=" + sessionCode, 
                 width: 220, height: 220 
             });
-
             initSync();
         });
 
-        // --- SYNC LOGIC ---
+        // --- MASTER SYNC ENGINE ---
         function initSync() {
-            // 1. Queue Listener
+            // 1. Sync Queue UI
             onSnapshot(query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc")), snap => {
                 const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderQueueUI(list);
                 
-                // TV Auto-play next if idle
-                if(list.length > 0 && !isPlaying && window.innerWidth > 768) {
-                    window.playNext(list[0]);
+                // TV AUTO-START: If idle and queue has items, TV triggers a skip command to itself
+                if(list.length > 0 && !currentSongId && window.innerWidth > 768) {
+                    window.sendStageCommand('skip');
                 }
             });
 
-            // 2. Control Listener (The fix for Skip/Stop)
-            onSnapshot(doc(db, "session_status", sessionCode), (snap) => {
+            // 2. Sync TV Playback State (The "Skip/Stop" Fix)
+            onSnapshot(doc(db, "session_status", sessionCode), async (snap) => {
                 const data = snap.data();
-                if(data && data.triggerEvent && window.innerWidth > 768) {
-                    if(data.triggerEvent === 'skip') {
-                        isPlaying = false;
-                        window.triggerNextInQueue();
-                    }
-                    if(data.triggerEvent === 'stop') {
-                        window.playNext(null);
-                    }
-                    // Reset trigger so it doesn't loop
-                    updateDoc(doc(db, "session_status", sessionCode), { triggerEvent: null });
+                if(!data || window.innerWidth < 768) return; // Only the TV acts on these commands
+
+                if(data.command === 'skip') {
+                    await handleSkipOnTV();
+                    await updateDoc(doc(db, "session_status", sessionCode), { command: null });
+                }
+                if(data.command === 'stop') {
+                    handleStopOnTV();
+                    await updateDoc(doc(db, "session_status", sessionCode), { command: null });
                 }
             });
         }
 
-        window.triggerNextInQueue = async () => {
-             const q = query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc"), limit(1));
-             const snap = await getDocs(q);
-             if(!snap.empty) {
-                 window.playNext({ id: snap.docs[0].id, ...snap.docs[0].data() });
-             } else {
-                 window.playNext(null);
-             }
-        };
-
-        window.playNext = async (song = null) => {
-            if(!player) return;
-            if(song) {
-                isPlaying = true;
+        // --- TV COMMAND HANDLERS ---
+        async function handleSkipOnTV() {
+            const q = query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc"), limit(1));
+            const snap = await getDocs(q);
+            
+            if(!snap.empty) {
+                const nextSong = snap.docs[0].data();
+                const nextId = snap.docs[0].id;
+                
+                currentSongId = nextId;
                 $('#idle-screen').css('opacity', '0');
                 $('#stage-info-bar').removeClass('translate-y-full');
-                $('#np-title-display').text(song.name);
-                $('#np-user-display').text("On Stage: " + song.userName);
+                $('#np-title-display').text(nextSong.name);
+                $('#np-user-display').text("Singing: " + nextSong.userName);
                 
-                player.loadVideoById(song.videoId);
-                if(song.id) await deleteDoc(doc(db, "munch_queue", song.id));
+                player.loadVideoById(nextSong.videoId);
+                await deleteDoc(doc(db, "munch_queue", nextId));
             } else {
-                isPlaying = false;
-                $('#idle-screen').css('opacity', '1');
-                $('#stage-info-bar').addClass('translate-y-full');
-                player.stopVideo();
+                handleStopOnTV();
             }
+        }
+
+        function handleStopOnTV() {
+            currentSongId = null;
+            isPlaying = false;
+            $('#idle-screen').css('opacity', '1');
+            $('#stage-info-bar').addClass('translate-y-full');
+            if(player) player.stopVideo();
+        }
+
+        // --- REMOTE COMMANDS ---
+        window.sendStageCommand = async (cmd) => {
+            await setDoc(doc(db, "session_status", sessionCode), { command: cmd }, { merge: true });
         };
 
-        // --- REMOTE TRIGGERS ---
-        $('#btn-skip-trigger').click(async () => {
-            await setDoc(doc(db, "session_status", sessionCode), { triggerEvent: 'skip' }, { merge: true });
-        });
+        $('#btn-skip').click(() => window.sendStageCommand('skip'));
+        $('#btn-stop').click(() => window.sendStageCommand('stop'));
 
-        $('#btn-stop-trigger').click(async () => {
-            await setDoc(doc(db, "session_status", sessionCode), { triggerEvent: 'stop' }, { merge: true });
-        });
-
-        // --- SEARCH & INPUT ---
-        async function processInput() {
+        // --- SEARCH & ADD ---
+        $('#btn-add').click(async () => {
             const input = $('#song-search');
             const val = input.val().trim();
             const videoId = extractID(val);
@@ -218,31 +216,17 @@
             if(videoId) {
                 const resp = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
                 const data = await resp.json();
-                window.queueItem(videoId, data.title || "Linked Video");
+                await addDoc(collection(db, "munch_queue"), { 
+                    name: data.title || "Linked Video", 
+                    videoId, sessionCode, 
+                    userName: currentUser.displayName, 
+                    timestamp: serverTimestamp() 
+                });
                 input.val('');
-            } else if(val.length > 1) {
-                runLibrarySearch(val);
+            } else {
+                // Fuzzy library search logic here if needed
             }
-        }
-
-        async function runLibrarySearch(term) {
-            const $res = $('#search-results').empty().removeClass('hidden');
-            const q = query(collection(db, "songs"), 
-                where("searchKey", ">=", term.toLowerCase()), 
-                where("searchKey", "<=", term.toLowerCase() + '\uf8ff'), 
-                limit(10));
-            const snap = await getDocs(q);
-            if(snap.empty) return $res.append('<div class="p-4 text-center text-xs opacity-50">Not found in library.</div>');
-            snap.forEach(d => {
-                const s = d.data();
-                $res.append(`<div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1 border border-transparent hover:border-green-500 transition"><b>${s.title}</b></div>`);
-            });
-        }
-
-        window.queueItem = async (videoId, name) => {
-            await addDoc(collection(db, "munch_queue"), { name, videoId, sessionCode, userName: currentUser.displayName, timestamp: serverTimestamp() });
-            $('#search-results').addClass('hidden');
-        };
+        });
 
         function extractID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -252,26 +236,16 @@
 
         function renderQueueUI(list) {
             const $l = $('#queue-list').empty();
-            if(list.length === 0) $l.append('<p class="text-center text-slate-600 mt-10 text-sm italic">Queue empty</p>');
-            list.forEach((s, i) => {
-                $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl animate-enter"><img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-white truncate">${s.name}</p><p class="text-[9px] text-green-500 uppercase">${s.userName}</p></div></div>`);
+            list.forEach((s) => {
+                $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl animate-enter">
+                    <img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-white truncate">${s.name}</p>
+                        <p class="text-[9px] text-green-500 uppercase">${s.userName}</p>
+                    </div>
+                </div>`);
             });
         }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                $('#user-pfp').attr('src', user.photoURL);
-                $('#login-section').addClass('hidden');
-                $('#party-section').removeClass('hidden');
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().isAdmin) $('#nav-admin, .admin-only, #btn-skip-trigger, #btn-stop-trigger').removeClass('hidden');
-            }
-        });
-
-        $('#btn-login').click(() => signInWithPopup(auth, provider));
-        $('#btn-add').click(processInput);
-        $('#song-search').on('keypress', (e) => { if(e.key === 'Enter') processInput(); });
     </script>
 </body>
 </html>
