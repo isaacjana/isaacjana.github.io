@@ -1,100 +1,369 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MUNCH KARAOKE - PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #22c55e; --bg: #020617; }
-        body { background-color: var(--bg); color: #f8fafc; font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
-        .stage-container { position: relative; background: #000; overflow: hidden; height: 100%; border-radius: 2rem; border: 4px solid #1e293b; }
-        #youtube-player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        @media (max-width: 768px) { #view-main { display: none; } body { overflow-y: auto; } }
+        :root {
+            --accent: #22c55e;
+            --bg: #020617;
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb-1 {
+            top: -10%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, #22c55e, transparent);
+        }
+
+        .orb-2 {
+            bottom: -20%;
+            right: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, #3b82f6, transparent);
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(30px, 50px);
+            }
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .stage-container {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            height: 100%;
+            border-radius: 2rem;
+            border: 4px solid #1e293b;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        #youtube-player {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        /* Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+            width: max-content;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 99px;
+            shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            font-size: 0.875rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s;
+            pointer-events: auto;
+            display: flex;
+            items-center;
+            gap: 0.5rem;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            #view-main {
+                display: none;
+            }
+
+            body {
+                overflow-y: auto;
+            }
+        }
     </style>
 </head>
+
 <body>
 
-    <div id="auth-overlay" class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-6 text-center">
-        <div class="glass p-10 rounded-[3rem] max-w-sm w-full border-green-500/20 shadow-2xl">
-            <h1 class="text-4xl font-black italic mb-8 tracking-tighter uppercase text-white">Munch<span class="text-green-500">Karaoke</span></h1>
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div id="auth-overlay"
+        class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-6 text-center transition-opacity duration-500">
+        <div class="glass p-10 rounded-[3rem] max-w-sm w-full shadow-2xl relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-blue-500"></div>
+            <h1 class="text-4xl font-black italic mb-8 tracking-tighter uppercase text-white drop-shadow-lg">Munch<span
+                    class="text-green-500">Karaoke</span></h1>
+
             <div id="login-section">
-                <button id="btn-login" class="w-full bg-white text-black font-bold py-5 rounded-3xl flex items-center justify-center gap-3 active:scale-95 transition">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6"> Login with Google
+                <button id="btn-login"
+                    class="w-full bg-white hover:bg-slate-100 text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg group-hover:shadow-green-500/20">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6">
+                    <span>Login with Google</span>
                 </button>
             </div>
-            <div id="party-section" class="hidden space-y-4">
-                <input id="party-code-input" type="text" placeholder="SESSION CODE" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-center font-mono text-2xl uppercase text-white outline-none">
-                <button id="btn-join" class="w-full bg-green-600 font-bold py-4 rounded-xl text-white shadow-lg">ENTER STAGE</button>
+
+            <div id="party-section" class="hidden space-y-4 animate-enter">
+                <div class="relative">
+                    <input id="party-code-input" type="text" placeholder="SESSION CODE"
+                        class="w-full bg-slate-900/50 border border-slate-700/50 focus:border-green-500 rounded-2xl p-4 text-center font-mono text-2xl uppercase text-white outline-none transition-all placeholder:text-slate-600">
+                </div>
+                <button id="btn-join"
+                    class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 font-bold py-4 rounded-2xl text-white shadow-lg active:scale-95 transition-all">
+                    ENTER STAGE
+                </button>
             </div>
         </div>
     </div>
 
-    <header class="h-16 bg-slate-900/40 border-b border-slate-800 flex items-center justify-between px-6 z-50">
+    <header class="h-16 glass border-b-0 flex items-center justify-between px-6 z-50 shrink-0">
         <div class="flex items-center gap-3">
-            <i class="fas fa-microphone text-green-500 text-xl"></i>
-            <span class="text-xl font-black italic tracking-tighter uppercase text-white">Munch<span class="text-green-500">Karaoke</span></span>
+            <div
+                class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center shadow-lg shadow-green-500/20">
+                <i class="fas fa-microphone text-white text-sm"></i>
+            </div>
+            <span class="text-xl font-black italic tracking-tighter uppercase text-white hidden md:block">Munch<span
+                    class="text-green-500">Karaoke</span></span>
         </div>
         <div class="flex items-center gap-4">
-            <button id="btn-make-admin" class="hidden bg-red-600 text-white text-[10px] px-3 py-1 rounded-full font-bold">SETUP ADMIN</button>
-            <button id="nav-admin" class="hidden text-slate-400 p-2 hover:text-white transition"><i class="fas fa-cog text-lg"></i></button>
-            <img id="user-pfp" class="w-8 h-8 rounded-full border border-slate-700">
+            <button id="btn-make-admin"
+                class="hidden bg-red-600/90 hover:bg-red-500 text-white text-[10px] px-3 py-1.5 rounded-full font-bold transition">SETUP
+                ADMIN</button>
+            <button id="nav-admin"
+                class="hidden w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition text-slate-300 hover:text-white"><i
+                    class="fas fa-cog"></i></button>
+            <div class="relative group">
+                <img id="user-pfp" class="w-9 h-9 rounded-full border-2 border-slate-700/50 shadow-lg object-cover">
+                <div id="user-name-tooltip"
+                    class="absolute top-full right-0 mt-2 px-3 py-1 bg-black/80 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                </div>
+            </div>
         </div>
     </header>
 
-    <main class="flex-1 flex flex-col md:flex-row overflow-hidden p-2 md:p-4 gap-4">
-        <section id="view-main" class="flex-1 flex flex-col relative rounded-[2.5rem] overflow-hidden bg-black shadow-2xl">
-            <div class="flex-1 stage-container">
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden p-2 md:p-6 gap-6">
+        <!-- Stage View -->
+        <section id="view-main"
+            class="flex-1 flex flex-col relative rounded-[2.5rem] overflow-hidden bg-black shadow-2xl ring-1 ring-white/10">
+            <div class="flex-1 stage-container group">
                 <div id="youtube-player"></div>
-                <div id="idle-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20">
-                    <div id="qrcode" class="p-6 bg-white rounded-[2rem] shadow-2xl"></div>
-                    <h2 id="idle-code-display" class="text-7xl font-black text-white italic mt-8 tracking-tighter">---</h2>
+
+                <!-- Idle Screen -->
+                <div id="idle-screen"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 transition-opacity duration-700">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-green-500 blur-[60px] opacity-20 animate-pulse"></div>
+                        <div id="qrcode" class="p-4 bg-white rounded-3xl shadow-2xl relative z-10"></div>
+                    </div>
+                    <div class="mt-8 text-center relative z-10">
+                        <p class="text-slate-500 font-bold tracking-widest text-xs uppercase mb-2">Join Code</p>
+                        <h2 id="idle-code-display"
+                            class="text-7xl font-black text-white italic tracking-tighter drop-shadow-2xl">---</h2>
+                    </div>
+                </div>
+
+                <!-- Hover Controls (Optional Future Feature placeholder) -->
+                <div
+                    class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none">
                 </div>
             </div>
-            <div id="stage-info-bar" class="h-20 bg-slate-900 flex items-center px-10 gap-8 z-40 border-t border-slate-800 translate-y-full transition-all">
+
+            <!-- Now Playing Bar -->
+            <div id="stage-info-bar"
+                class="h-24 bg-slate-900/95 backdrop-blur-md flex items-center px-8 gap-6 z-40 border-t border-white/5 translate-y-full transition-transform duration-500 ease-in-out">
+                <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                    <i class="fas fa-music text-green-500 animate-bounce"></i>
+                </div>
                 <div class="flex-1 min-w-0">
-                    <p id="np-user-display" class="text-green-500 font-black uppercase text-[10px] tracking-widest mb-1"></p>
-                    <h2 id="np-title-display" class="text-lg font-bold truncate text-white italic"></h2>
+                    <p id="np-user-display" class="text-green-400 font-bold uppercase text-[10px] tracking-widest mb-1">
+                    </p>
+                    <h2 id="np-title-display" class="text-xl font-bold truncate text-white italic tracking-tight"></h2>
+                </div>
+                <div class="flex gap-2">
+                    <div class="h-1 w-24 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-green-500 w-full animate-pulse"></div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2rem] border border-slate-800 overflow-hidden shadow-2xl relative">
-            <div class="p-5 border-b border-slate-800">
+        <!-- Sidebar / Mobile View -->
+        <aside class="w-full md:w-[26rem] flex flex-col glass rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+            <div class="p-5 border-b border-white/5 bg-slate-900/40">
                 <div class="flex gap-2">
-                    <input id="song-search" type="text" placeholder="Search or paste link..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-green-500 outline-none">
-                    <button id="btn-add" class="bg-green-600 px-4 rounded-xl text-white active:scale-95 transition-all"><i class="fas fa-plus"></i></button>
+                    <div class="relative flex-1">
+                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-500 text-sm"></i>
+                        <input id="song-search" type="text" placeholder="Search song or paste URL..."
+                            class="w-full bg-slate-950/50 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white focus:border-green-500 outline-none transition-all placeholder:text-slate-600">
+                    </div>
+                    <button id="btn-add"
+                        class="bg-green-600 hover:bg-green-500 text-white w-12 rounded-2xl flex items-center justify-center active:scale-95 transition-all shadow-lg hover:shadow-green-500/20">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
-                <div id="search-results" class="hidden absolute top-40 left-4 right-4 md:static md:mt-3 bg-slate-900 border border-slate-700 rounded-2xl z-[100] p-2 shadow-2xl max-h-60 overflow-y-auto"></div>
+                <!-- Search Results -->
+                <div id="search-results"
+                    class="hidden absolute top-[4.5rem] left-4 right-4 bg-slate-900 border border-slate-700 rounded-2xl z-50 p-2 shadow-2xl max-h-64 overflow-y-auto custom-scroll ring-1 ring-black/50">
+                </div>
             </div>
-            <div class="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar" id="queue-list"></div>
-            
-            <div id="admin-controls" class="hidden p-4 bg-slate-900/50 border-t border-slate-800 flex gap-2">
-                <button onclick="window.sendStageCommand('skip')" class="flex-1 bg-slate-800 text-white font-bold py-4 rounded-2xl active:scale-95 transition">SKIP</button>
-                <button onclick="window.sendStageCommand('stop')" class="w-16 bg-red-600/20 text-red-500 rounded-2xl active:scale-95 transition"><i class="fas fa-stop"></i></button>
+
+            <!-- Queue List -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scroll" id="queue-list"></div>
+
+            <!-- Admin / Footer -->
+            <div id="admin-controls"
+                class="hidden p-4 bg-slate-900/60 border-t border-white/5 flex gap-3 backdrop-blur-sm">
+                <button id="btn-admin-skip"
+                    class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition text-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-forward"></i> SKIP
+                </button>
+                <button id="btn-admin-stop"
+                    class="w-16 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-2xl active:scale-95 transition flex items-center justify-center">
+                    <i class="fas fa-stop"></i>
+                </button>
             </div>
         </aside>
     </main>
 
-    <div id="admin-modal" class="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="glass border border-slate-800 w-full max-w-4xl h-[85vh] rounded-[3rem] flex flex-col overflow-hidden shadow-2xl">
-            <div class="px-8 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h2 class="text-xl font-bold italic">Master Library</h2>
-                <button id="close-admin" class="text-slate-500 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+    <!-- Admin Modal -->
+    <div id="admin-modal"
+        class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div
+            class="glass w-full max-w-4xl h-[85vh] rounded-[3rem] flex flex-col overflow-hidden shadow-2xl ring-1 ring-white/10 animate-enter">
+            <div class="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-slate-900/40">
+                <h2 class="text-xl font-bold italic tracking-tight"><i class="fas fa-database text-green-500 mr-2"></i>
+                    Master Library</h2>
+                <button id="close-admin"
+                    class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition text-slate-400 hover:text-white"><i
+                        class="fas fa-times"></i></button>
             </div>
-            <div class="p-6 border-b border-slate-800">
-                <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Bulk Import (JSON)</h3>
-                <div class="flex gap-2">
-                    <textarea id="bulk-input" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono h-20" placeholder='[{"title":"Name", "artist":"Artist", "videoId":"ID"}]'></textarea>
-                    <button id="btn-bulk-import" class="bg-blue-600 px-4 rounded-xl text-xs font-bold">IMPORT</button>
+            <div class="p-6 border-b border-white/5 bg-slate-900/20">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-3 tracking-wider">Json Bulk Import</h3>
+                <div class="flex gap-3">
+                    <textarea id="bulk-input"
+                        class="flex-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs font-mono h-20 focus:border-green-500/50 outline-none resize-none text-slate-300"
+                        placeholder='[{"title":"Song Title", "artist":"Artist", "videoId":"..."}, ...]'></textarea>
+                    <button id="btn-bulk-import"
+                        class="bg-blue-600 hover:bg-blue-500 px-6 rounded-xl text-xs font-bold text-white shadow-lg active:scale-95 transition">IMPORT</button>
                 </div>
             </div>
-            <div class="flex-1 overflow-y-auto p-6 space-y-2 no-scrollbar" id="master-song-list"></div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-2 custom-scroll" id="master-song-list"></div>
         </div>
     </div>
 
@@ -118,7 +387,35 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        let currentUser, player, sessionCode, isPlaying = false;
+        // State
+        let currentUser = null;
+        let player = null;
+        let sessionCode = null;
+        let isPlaying = false;
+
+        // --- UTILS ---
+        const $ = (sel) => document.querySelector(sel);
+        const $$ = (sel) => document.querySelectorAll(sel);
+
+        function showToast(msg, type = 'info') {
+            const container = $('#toast-container');
+            const el = document.createElement('div');
+            el.className = 'toast';
+            const icon = type === 'error' ? 'fa-circle-exclamation text-red-500' : 'fa-check-circle text-green-500';
+            el.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+            container.appendChild(el);
+            setTimeout(() => el.classList.add('show'), 10);
+            setTimeout(() => {
+                el.classList.remove('show');
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        function extractID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
 
         // --- YOUTUBE API ---
         const tag = document.createElement('script');
@@ -128,179 +425,355 @@
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('youtube-player', {
                 height: '100%', width: '100%',
-                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'modestbranding': 1 },
-                events: { 'onStateChange': (e) => { 
-                    if (e.data === YT.PlayerState.ENDED) window.sendStageCommand('skip');
-                }}
+                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'modestbranding': 1, 'iv_load_policy': 3 },
+                events: { 'onStateChange': onPlayerStateChange }
             });
         };
 
-        // --- ADMIN RECOVERY ---
-        $('#btn-make-admin').click(async () => {
-            await setDoc(doc(db, "users", currentUser.uid), { 
-                name: currentUser.displayName, 
-                email: currentUser.email, 
-                isAdmin: true 
-            });
-            alert("Admin privileges granted. Refreshing...");
-            location.reload();
-        });
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                sendCommand('skip');
+            }
+        }
 
-        // --- AUTH ---
+        // --- AUTH & SETUP ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                $('#user-pfp').attr('src', user.photoURL);
-                $('#login-section').addClass('hidden');
-                $('#party-section').removeClass('hidden');
+                $('#user-pfp').src = user.photoURL;
+                $('#user-name-tooltip').textContent = user.displayName;
+                $('#login-section').classList.add('hidden');
+                $('#party-section').classList.remove('hidden');
 
-                // Check if user is you (Admin Override)
-                if(user.email === "isaacjana.h@gmail.com") { // CHANGE THIS to your actual email
-                    $('#btn-make-admin').removeClass('hidden');
+                // Check Admin Override
+                if (user.email === "isaacjana.h@gmail.com") {
+                    $('#btn-make-admin').classList.remove('hidden');
                 }
 
+                // Check Admin Role
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists() && userDoc.data().isAdmin) {
-                    $('#admin-controls, #nav-admin').removeClass('hidden');
+                    $('#admin-controls').classList.remove('hidden');
+                    $('#nav-admin').classList.remove('hidden');
+                    // Mobile view admin logic could go here
                 }
+            } else {
+                $('#login-section').classList.remove('hidden');
+                $('#party-section').classList.add('hidden');
             }
         });
 
-        $('#btn-login').click(() => signInWithPopup(auth, provider));
+        $('#btn-login').addEventListener('click', () => signInWithPopup(auth, provider));
+
+        $('#btn-make-admin').addEventListener('click', async () => {
+            if (!currentUser) return;
+            await setDoc(doc(db, "users", currentUser.uid), {
+                name: currentUser.displayName,
+                email: currentUser.email,
+                isAdmin: true
+            });
+            showToast("Admin privileges granted!", "success");
+            setTimeout(() => location.reload(), 1000);
+        });
 
         // --- SESSION JOIN ---
-        $('#btn-join').click(async () => {
-            sessionCode = $('#party-code-input').val().toUpperCase();
-            if(!sessionCode) return;
-            $('#auth-overlay').fadeOut();
-            $('#idle-code-display').text(sessionCode);
-            if(player) player.playVideo(); 
-            new QRCode(document.getElementById("qrcode"), { 
-                text: window.location.origin + window.location.pathname + "?join=" + sessionCode, 
-                width: 220, height: 220 
+        $('#btn-join').addEventListener('click', joinSession);
+        $('#party-code-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') joinSession(); });
+
+        async function joinSession() {
+            const codeInput = $('#party-code-input').value.trim().toUpperCase();
+            if (!codeInput) {
+                showToast("Please enter a session code", "error");
+                return;
+            }
+            sessionCode = codeInput;
+
+            // UI Transition
+            $('#auth-overlay').style.opacity = '0';
+            setTimeout(() => $('#auth-overlay').classList.add('hidden'), 500);
+
+            $('#idle-code-display').textContent = sessionCode;
+
+            // Generate QR
+            $('#qrcode').innerHTML = '';
+            new QRCode($('#qrcode'), {
+                text: window.location.origin + window.location.pathname + "?join=" + sessionCode,
+                width: 200, height: 200,
+                colorDark: "#000000", colorLight: "#ffffff"
             });
+
+            // Auto-play if ready
+            if (player && player.playVideo) player.playVideo();
+
             initSync();
-        });
+        }
 
         // --- SYNC ENGINE ---
         function initSync() {
+            // Queue Listener
             onSnapshot(query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc")), snap => {
                 const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderQueueUI(list);
-                if(list.length > 0 && !isPlaying && window.innerWidth > 768) {
-                    window.sendStageCommand('skip');
+
+                // Auto-start if host (desktop) and not playing
+                if (list.length > 0 && !isPlaying && window.innerWidth > 768) {
+                    sendCommand('skip');
                 }
             });
 
+            // Command Listener
             onSnapshot(doc(db, "session_status", sessionCode), async (snap) => {
                 const data = snap.data();
-                if(!data || window.innerWidth < 768) return; 
-                if(data.command === 'skip') {
-                    await handleSkipOnTV();
+                // Only host (desktop) processes commands for playback
+                if (!data || window.innerWidth < 768) return;
+
+                if (data.command === 'skip') {
+                    await handleSkipAction();
                     await updateDoc(doc(db, "session_status", sessionCode), { command: null });
                 }
-                if(data.command === 'stop') {
-                    handleStopOnTV();
+                if (data.command === 'stop') {
+                    handleStopAction();
                     await updateDoc(doc(db, "session_status", sessionCode), { command: null });
                 }
             });
         }
 
-        async function handleSkipOnTV() {
+        async function sendCommand(cmd, payload = null) {
+            await setDoc(doc(db, "session_status", sessionCode), { command: cmd, payload }, { merge: true });
+        }
+
+        // --- PLAYBACK LOGIC (HOST) ---
+        async function handleSkipAction() {
             const q = query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc"), limit(1));
             const snap = await getDocs(q);
-            if(!snap.empty) {
+
+            if (!snap.empty) {
                 const nextSong = snap.docs[0].data();
                 const nextId = snap.docs[0].id;
+
                 isPlaying = true;
-                $('#idle-screen').css('opacity', '0');
-                $('#stage-info-bar').removeClass('translate-y-full');
-                $('#np-title-display').text(nextSong.name);
-                $('#np-user-display').text("Singing: " + nextSong.userName);
-                player.loadVideoById(nextSong.videoId);
+                $('#idle-screen').style.opacity = '0';
+                $('#stage-info-bar').classList.remove('translate-y-full');
+
+                $('#np-title-display').textContent = nextSong.name;
+                $('#np-user-display').textContent = "PERFORMING: " + nextSong.userName;
+
+                if (player && player.loadVideoById) {
+                    player.loadVideoById(nextSong.videoId);
+                }
+
                 await deleteDoc(doc(db, "munch_queue", nextId));
-            } else { handleStopOnTV(); }
+            } else {
+                handleStopAction();
+            }
         }
 
-        function handleStopOnTV() {
+        function handleStopAction() {
             isPlaying = false;
-            $('#idle-screen').css('opacity', '1');
-            $('#stage-info-bar').addClass('translate-y-full');
-            if(player) player.stopVideo();
+            $('#idle-screen').style.opacity = '1';
+            $('#stage-info-bar').classList.add('translate-y-full');
+            if (player && player.stopVideo) player.stopVideo();
         }
 
-        window.sendStageCommand = async (cmd) => {
-            await setDoc(doc(db, "session_status", sessionCode), { command: cmd }, { merge: true });
-        };
+        // --- SEARCH & QUEUE ---
+        $('#btn-add').addEventListener('click', handleAddSong);
+        $('#song-search').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAddSong(); });
 
-        // --- SEARCH & BULK ---
-        $('#btn-add').click(async () => {
+        async function handleAddSong() {
             const input = $('#song-search');
-            const val = input.val().trim();
+            const val = input.value.trim();
             const videoId = extractID(val);
-            if(videoId) {
-                const resp = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-                const data = await resp.json();
-                window.queueItem(videoId, data.title || "Linked Video");
-                input.val('');
-            } else if(val.length > 1) {
+
+            if (videoId) {
+                // It's a URL
+                try {
+                    input.disabled = true;
+                    // Simple oEmbed fetch (cors might be issue, but using previous method)
+                    const resp = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+                    const data = await resp.json();
+                    await queueItem(videoId, data.title || "Linked Video");
+                    input.value = '';
+                    showToast("Song queued!", "success");
+                } catch (e) {
+                    showToast("Could not fetch video info", "error");
+                } finally {
+                    input.disabled = false;
+                    input.focus();
+                }
+            } else if (val.length > 1) {
+                // It's a search term
                 runLibrarySearch(val);
             }
-        });
+        }
 
         async function runLibrarySearch(term) {
-            const $res = $('#search-results').empty().removeClass('hidden');
-            const q = query(collection(db, "songs"), where("searchKey", ">=", term.toLowerCase()), where("searchKey", "<=", term.toLowerCase() + '\uf8ff'), limit(10));
+            const resContainer = $('#search-results');
+            resContainer.innerHTML = '<div class="p-4 text-center text-xs text-slate-500"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+            resContainer.classList.remove('hidden');
+
+            const q = query(collection(db, "songs"),
+                where("searchKey", ">=", term.toLowerCase()),
+                where("searchKey", "<=", term.toLowerCase() + '\uf8ff'),
+                limit(10)
+            );
             const snap = await getDocs(q);
-            if(snap.empty) return $res.append('<div class="p-4 text-center text-xs opacity-50">Not found.</div>');
+
+            resContainer.innerHTML = '';
+            if (snap.empty) {
+                resContainer.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">No matches found.</div>';
+                return;
+            }
+
             snap.forEach(d => {
                 const s = d.data();
-                $res.append(`<div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1"><b>${s.title}</b></div>`);
+                const el = document.createElement('div');
+                el.className = 'p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1 flex items-center justify-between group transition-colors';
+                el.innerHTML = `
+                    <div class="font-bold text-slate-200 group-hover:text-white truncate pr-2">${s.title}</div>
+                    <div class="text-[10px] text-slate-500 group-hover:text-slate-400">${s.artist || ''}</div>
+                `;
+                el.onclick = async () => {
+                    await queueItem(s.videoId, s.title);
+                    resContainer.classList.add('hidden');
+                    $('#song-search').value = '';
+                    showToast(`Added "${s.title}"`, "success");
+                };
+                resContainer.appendChild(el);
             });
         }
 
-        window.queueItem = async (videoId, name) => {
-            await addDoc(collection(db, "munch_queue"), { name, videoId, sessionCode, userName: currentUser.displayName, timestamp: serverTimestamp() });
-            $('#search-results').addClass('hidden');
-        };
-
-        $('#btn-bulk-import').click(async () => {
-            try {
-                const list = JSON.parse($('#bulk-input').val());
-                const batch = writeBatch(db);
-                list.forEach(s => {
-                    const ref = doc(collection(db, "songs"));
-                    batch.set(ref, { title: s.title, artist: s.artist, videoId: s.videoId, searchKey: s.title.toLowerCase() });
-                });
-                await batch.commit();
-                alert("Imported!"); window.loadMasterLibrary();
-            } catch(e) { alert("JSON Error!"); }
-        });
-
-        // --- UI UTILS ---
-        function extractID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+        async function queueItem(videoId, name) {
+            await addDoc(collection(db, "munch_queue"), {
+                name,
+                videoId,
+                sessionCode,
+                userName: currentUser.displayName,
+                userId: currentUser.uid, // STORE UID FOR DELETION CHECK
+                timestamp: serverTimestamp()
+            });
         }
 
         function renderQueueUI(list) {
-            const $l = $('#queue-list').empty();
-            list.forEach((s) => $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl"><img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-white truncate">${s.name}</p><p class="text-[9px] text-green-500 uppercase">${s.userName}</p></div></div>`));
+            const listContainer = $('#queue-list');
+            listContainer.innerHTML = '';
+
+            if (list.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center p-8 opacity-30 mt-10">
+                        <i class="fas fa-music text-4xl mb-3"></i>
+                        <p class="text-xs font-bold uppercase">Queue is empty</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.forEach((s) => {
+                const el = document.createElement('div');
+                el.className = 'flex items-center gap-3 p-3 bg-slate-900/60 border border-white/5 rounded-2xl animate-enter group hover:bg-slate-800/60 transition';
+
+                // Check if user owns this song
+                const isOwner = currentUser && s.userId === currentUser.uid;
+                const deleteBtn = isOwner
+                    ? `<button class="w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition opacity-0 group-hover:opacity-100 delete-btn"><i class="fas fa-trash text-xs"></i></button>`
+                    : '';
+
+                el.innerHTML = `
+                    <img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-12 h-9 rounded-lg object-cover shadow-sm bg-slate-800">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-slate-200 truncate group-hover:text-white">${s.name}</p>
+                        <p class="text-[9px] text-green-500 font-bold uppercase tracking-wide">${s.userName}</p>
+                    </div>
+                    ${deleteBtn}
+                `;
+
+                if (isOwner) {
+                    const btn = el.querySelector('.delete-btn');
+                    if (btn) btn.onclick = () => deleteQueueItem(s.id);
+                }
+
+                listContainer.appendChild(el);
+            });
         }
 
-        window.loadMasterLibrary = async () => {
-            const $list = $('#master-song-list').empty();
+        async function deleteQueueItem(docId) {
+            if (confirm("Remove this song?")) {
+                await deleteDoc(doc(db, "munch_queue", docId));
+                showToast("Removed from queue");
+            }
+        }
+
+        // --- ADMIN CONTROLS ---
+        $('#btn-admin-skip').addEventListener('click', () => sendCommand('skip'));
+        $('#btn-admin-stop').addEventListener('click', () => sendCommand('stop'));
+
+        $('#nav-admin').addEventListener('click', () => {
+            $('#admin-modal').classList.remove('hidden');
+            loadMasterLibrary();
+        });
+        $('#close-admin').addEventListener('click', () => $('#admin-modal').classList.add('hidden'));
+
+        async function loadMasterLibrary() {
+            const list = $('#master-song-list');
+            list.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-green-500"></i></div>';
+
             const snap = await getDocs(query(collection(db, "songs"), limit(100)));
+            list.innerHTML = '';
+
             snap.forEach(d => {
                 const s = d.data();
-                $list.append(`<div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-2xl"><div class="min-w-0"><p class="text-sm font-bold text-white truncate">${s.title}</p></div><button onclick="window.deleteSong('${d.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button></div>`);
+                const el = document.createElement('div');
+                el.className = 'flex items-center justify-between p-3 bg-black/40 border border-white/5 rounded-2xl hover:bg-slate-800/40 transition';
+                el.innerHTML = `
+                    <div class="min-w-0 pr-4">
+                        <p class="text-sm font-bold text-slate-200 truncate">${s.title}</p>
+                        <p class="text-[10px] text-slate-500 uppercase">${s.artist || 'Unknown Artist'}</p>
+                    </div>
+                    <button class="text-slate-600 hover:text-red-500 p-2 transition del-btn"><i class="fas fa-trash"></i></button>
+                `;
+                el.querySelector('.del-btn').onclick = async () => {
+                    if (confirm(`Delete "${s.title}"?`)) {
+                        await deleteDoc(doc(db, "songs", d.id));
+                        loadMasterLibrary(); // visual refresh
+                    }
+                };
+                list.appendChild(el);
             });
-        };
-        window.deleteSong = async (id) => { if(confirm("Delete?")) { await deleteDoc(doc(db, "songs", id)); window.loadMasterLibrary(); } };
+        }
 
-        $('#nav-admin').click(() => { $('#admin-modal').removeClass('hidden'); window.loadMasterLibrary(); });
-        $('#close-admin').click(() => $('#admin-modal').addClass('hidden'));
+        $('#btn-bulk-import').addEventListener('click', async () => {
+            try {
+                const raw = $('#bulk-input').value;
+                if (!raw) return;
+                const list = JSON.parse(raw);
+                if (!Array.isArray(list)) throw new Error("Not an array");
+
+                const batch = writeBatch(db);
+                list.forEach(s => {
+                    const ref = doc(collection(db, "songs"));
+                    batch.set(ref, {
+                        title: s.title,
+                        artist: s.artist || "",
+                        videoId: s.videoId,
+                        searchKey: s.title.toLowerCase()
+                    });
+                });
+                await batch.commit();
+                $('#bulk-input').value = '';
+                showToast(`Imported ${list.length} songs!`, "success");
+                loadMasterLibrary();
+            } catch (e) {
+                alert("Invalid JSON format. Check your input.");
+            }
+        });
+
+        // Hide search results on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#song-search') && !e.target.closest('#search-results')) {
+                $('#search-results').classList.add('hidden');
+            }
+        });
+
     </script>
 </body>
+
 </html>
