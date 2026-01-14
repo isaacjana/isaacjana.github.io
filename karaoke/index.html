@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MUNCH KARAOKE - MASTER</title>
+    <title>MUNCH KARAOKE - PRO MASTER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -28,7 +28,7 @@
 
     <div id="auth-overlay" class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-6 text-center">
         <div class="glass p-10 rounded-[3rem] max-w-sm w-full border-blue-500/20 shadow-2xl">
-            <h1 class="text-4xl font-black italic mb-8 tracking-tighter">MUNCH<span class="text-blue-500">KARAOKE</span></h1>
+            <h1 class="text-4xl font-black italic mb-8 tracking-tighter uppercase">Munch<span class="text-blue-500">Karaoke</span></h1>
             <div id="login-section">
                 <button id="btn-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5"> Login with Google
@@ -75,9 +75,9 @@
         <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2rem] border border-slate-800 overflow-hidden shadow-2xl relative">
             <div class="p-5 border-b border-slate-800 bg-slate-900/30">
                 <div class="flex gap-2 relative">
-                    <input id="song-search" type="text" autocomplete="off" placeholder="Paste link or song name..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-blue-500 outline-none">
+                    <input id="song-search" type="text" autocomplete="off" placeholder="Search or paste link..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-blue-500 outline-none">
                     <button id="btn-direct-add" class="bg-blue-600 px-4 rounded-xl text-white"><i class="fas fa-plus"></i></button>
-                    <div id="search-results" class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-700 rounded-2xl mt-2 z-[999] p-2 shadow-2xl max-h-80 overflow-y-auto no-scrollbar border-t-4 border-blue-500"></div>
+                    <div id="search-results" class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-800 rounded-2xl mt-2 z-[999] p-2 shadow-2xl max-h-80 overflow-y-auto no-scrollbar border-t-4 border-blue-500"></div>
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto p-5 no-scrollbar">
@@ -107,15 +107,15 @@
                     <h3 class="text-blue-500 font-bold text-xs uppercase">Quick Add</h3>
                     <input id="setup-title" type="text" placeholder="Title" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm">
                     <input id="setup-artist" type="text" placeholder="Artist" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm">
-                    <input id="setup-url" type="text" placeholder="YT URL" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm">
-                    <button id="btn-save-song" class="w-full bg-blue-600 font-bold py-3 rounded-xl">SAVE SONG</button>
+                    <input id="setup-url" type="text" placeholder="YouTube URL" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm">
+                    <button id="btn-save-song" class="w-full bg-blue-600 font-bold py-3 rounded-xl text-white">SAVE SONG</button>
                 </div>
             </div>
 
             <div id="admin-bulk-tab" class="hidden flex-1 p-8 flex flex-col">
-                <p class="text-xs text-slate-500 mb-4">Paste JSON: [{"title":"..", "artist":"..", "videoId":".."}]</p>
+                <p class="text-xs text-slate-500 mb-2 italic">Format: [{"title":"Song", "artist":"Name", "videoId":"ID"}]</p>
                 <textarea id="bulk-input" class="flex-1 bg-black border border-slate-800 rounded-2xl p-6 font-mono text-xs text-blue-400 outline-none"></textarea>
-                <button id="btn-bulk-import" class="mt-4 bg-green-600 font-bold py-4 rounded-xl">RUN IMPORT</button>
+                <button id="btn-bulk-import" class="mt-4 bg-green-600 font-bold py-4 rounded-xl text-white">RUN IMPORT</button>
             </div>
         </div>
     </div>
@@ -125,7 +125,12 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // Correction for import sources
+        import { getFirestore as getDB } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // Re-importing to ensure full toolset
+        const firestoreFull = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, writeBatch } = firestoreFull;
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk6mub0hDCzJ5iDmV-61v3WLSHMC51JP4",
@@ -144,7 +149,7 @@
 
         let currentUser, player, sessionCode, isPlaying = false, timerInterval;
 
-        // --- YOUTUBE API ---
+        // YouTube API Init
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
@@ -157,26 +162,46 @@
             });
         };
 
-        // --- CORE LOGIC ---
+        // Improved Search Logic
+        async function runSearch(val) {
+            const $res = $('#search-results').empty().removeClass('hidden');
+            const term = val.toLowerCase();
+            
+            // Try searching by Title (via searchKey)
+            const q = query(collection(db, "songs"), 
+                where("searchKey", ">=", term), 
+                where("searchKey", "<=", term + '\uf8ff'), 
+                limit(15));
+            
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                return $res.append('<div class="p-4 text-center text-xs text-slate-500 italic">No exact matches. Check spelling or try a URL.</div>');
+            }
+
+            snap.forEach(d => {
+                const s = d.data();
+                $res.append(`
+                    <div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1 border border-transparent hover:border-blue-500 transition">
+                        <b class="text-white">${s.title}</b><br><span class="text-slate-500 uppercase">${s.artist || 'Unknown Artist'}</span>
+                    </div>
+                `);
+            });
+        }
+
         function extractVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        async function runSearch(val) {
-            const $res = $('#search-results').empty().removeClass('hidden');
-            const q = query(collection(db, "songs"), where("searchKey", ">=", val.toLowerCase()), where("searchKey", "<=", val.toLowerCase() + '\uf8ff'), limit(10));
-            const snap = await getDocs(q);
-            if(snap.empty) return $res.append('<div class="p-4 text-center text-xs text-slate-500 italic">No songs found in library</div>');
-            snap.forEach(d => {
-                const s = d.data();
-                $res.append(`<div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1"><b>${s.title}</b><br><span class="text-slate-500 uppercase">${s.artist}</span></div>`);
-            });
-        }
-
         window.queueItem = async (videoId, name) => {
-            await addDoc(collection(db, "munch_queue"), { name, videoId, sessionCode, userPhoto: currentUser.photoURL, userName: currentUser.displayName, timestamp: serverTimestamp() });
+            await addDoc(collection(db, "munch_queue"), { 
+                name, videoId, sessionCode, 
+                userPhoto: currentUser.photoURL, 
+                userName: currentUser.displayName, 
+                timestamp: serverTimestamp() 
+            });
             $('#song-search').val(''); $('#search-results').addClass('hidden');
         };
 
@@ -192,7 +217,7 @@
             }
         });
 
-        // --- ADMIN / BULK ---
+        // Admin & Tabs
         window.switchTab = (tab) => {
             $('.tab-btn').removeClass('active text-blue-500').addClass('text-slate-500');
             $(event.target).addClass('active text-blue-500');
@@ -201,8 +226,9 @@
         };
 
         async function loadMasterLibrary() {
-            const $list = $('#master-song-list').empty();
+            const $list = $('#master-song-list').empty().append('<p class="text-xs p-4 opacity-50">Loading global library...</p>');
             const snap = await getDocs(query(collection(db, "songs"), limit(100)));
+            $list.empty();
             snap.forEach(d => {
                 const s = d.data();
                 $list.append(`<div class="flex items-center justify-between p-3 bg-black/40 border border-slate-800 rounded-xl"><div class="min-w-0"><p class="text-sm font-bold text-white truncate">${s.title}</p><p class="text-[10px] text-slate-500 uppercase">${s.artist}</p></div><button onclick="window.deleteSong('${d.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button></div>`);
@@ -212,12 +238,17 @@
         $('#btn-bulk-import').click(async () => {
             try {
                 const list = JSON.parse($('#bulk-input').val());
-                for(let s of list) await addDoc(collection(db, "songs"), { ...s, searchKey: s.title.toLowerCase(), createdAt: serverTimestamp() });
-                alert("Imported!"); window.switchTab('list');
-            } catch(e) { alert("JSON Error: " + e); }
+                const batch = writeBatch(db);
+                for(let s of list) {
+                    const ref = doc(collection(db, "songs"));
+                    batch.set(ref, { ...s, searchKey: s.title.toLowerCase(), createdAt: serverTimestamp() });
+                }
+                await batch.commit();
+                alert("Bulk Import Successful!"); window.switchTab('list');
+            } catch(e) { alert("JSON Error: Ensure proper array format."); }
         });
 
-        // --- SYNC ---
+        // Auth & Sync
         $('#btn-join').click(async () => {
             sessionCode = $('#party-code-input').val().toUpperCase();
             if(!sessionCode) return;
@@ -237,10 +268,8 @@
             onSnapshot(doc(db, "session_status", sessionCode), (snap) => {
                 const data = snap.data();
                 if(data && data.startTime) {
-                    $('#np-title-display').text(data.currentSong);
-                    $('#np-user-display').text("Singing: " + data.userName);
-                    $('#idle-screen').css('opacity', '0');
-                    $('#stage-info-bar').removeClass('translate-y-full');
+                    $('#np-title-display').text(data.currentSong); $('#np-user-display').text("Singing: " + data.userName);
+                    $('#idle-screen').css('opacity', '0'); $('#stage-info-bar').removeClass('translate-y-full');
                     updateTimerUI(data.startTime);
                     if(!isPlaying && window.innerWidth > 768) { isPlaying = true; player.loadVideoById(data.videoId); }
                 } else {
@@ -268,8 +297,8 @@
 
         function renderQueueUI(list) {
             const $l = $('#queue-list').empty();
-            list.forEach((s, i) => {
-                $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl"><img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-white truncate">${s.name}</p><p class="text-[9px] text-blue-500 uppercase tracking-widest">${s.userName}</p></div></div>`);
+            list.forEach((s) => {
+                $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl animate-in fade-in duration-500"><img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-white truncate">${s.name}</p><p class="text-[9px] text-blue-500 uppercase">${s.userName}</p></div></div>`);
             });
         }
 
