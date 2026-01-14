@@ -299,10 +299,13 @@
                 <div id="admin-sub-projects" class="admin-sub-view hidden">
                     <div id="admin-project-list" class="grid grid-cols-2 gap-4"></div>
                     <div class="mt-8 border-t pt-6">
-                        <h3 class="font-bold mb-4">Project Form</h3><input type="hidden" id="edit-project-id"><input
-                            id="edit-project-name" class="border p-2 rounded w-full mb-2"
-                            placeholder="Project Name"><button onclick="App.saveProjectConfig()"
-                            class="bg-brand-600 text-white px-4 py-2 rounded font-bold">Save Project</button>
+                        <h3 class="font-bold mb-4">Project Form</h3><input type="hidden" id="edit-project-id">
+                        <input id="edit-project-name" class="border p-2 rounded w-full mb-2" placeholder="Project Name">
+                        <select id="edit-project-sm" class="border p-2 rounded w-full mb-2">
+                            <option value="">Select Scrum Master</option>
+                        </select>
+                        <button onclick="App.saveProjectConfig()"
+                            class="bg-brand-600 text-white px-4 py-2 rounded font-bold w-full">Save Project</button>
                     </div>
                 </div>
                 <div id="admin-sub-analytics" class="admin-sub-view hidden"><canvas id="velocityChart"></canvas></div>
@@ -603,6 +606,17 @@
                 if (this.state.user.role !== 'dev') $('#btn-open-burndown').removeClass('hidden');
             }
 
+            editSprint() {
+                const s = this.state.sprintData;
+                if (!s) return;
+                $('#edit-sprint-id').val(s.id);
+                $('#new-sprint-name').val(s.name);
+                $('#new-sprint-goal').val(s.goal);
+                $('#new-sprint-start').val(s.startDate);
+                $('#new-sprint-end').val(s.endDate);
+                $('#modal-sprint').removeClass('hidden');
+            }
+
             renderBoard() {
                 const view = $('#view-mode').val();
                 const filter = $('#board-search').val().toLowerCase();
@@ -884,14 +898,29 @@
                     });
                 }));
             }
-            loadAdminProjects() {
+            editProject(id) {
+                db.collection('projects').doc(id).get().then(d => {
+                    const p = d.data();
+                    $('#edit-project-id').val(id);
+                    $('#edit-project-name').val(p.name);
+                    $('#edit-project-sm').val(p.scrumMaster || '');
+                });
+            }
+
+            async loadAdminProjects() {
+                const masters = [];
+                (await db.collection('users').where('role', 'in', ['master', 'superadmin']).get()).forEach(d => masters.push({ id: d.id, ...d.data() }));
+                const $smSel = $('#edit-project-sm').empty().append('<option value="">Select Scrum Master</option>');
+                masters.forEach(m => $smSel.append(`<option value="${m.id}">${m.displayName}</option>`));
+
                 this.setListener('adminProj', db.collection('projects').onSnapshot(s => {
                     $('#admin-project-list').empty();
                     s.forEach(d => {
                         const p = d.data();
-                        const card = $(`<div class="bg-white dark:bg-darkcard p-4 rounded-xl shadow-sm border dark:border-slate-700 flex justify-between items-center text-sm font-bold">
-                            <span>${p.name}</span>
-                            <span class="text-xs font-normal text-slate-500">ID: ${d.id.substr(0, 8)}...</span>
+                        const smName = masters.find(m => m.id === p.scrumMaster)?.displayName || 'Unassigned';
+                        const card = $(`<div class="bg-white dark:bg-darkcard p-4 rounded-xl shadow-sm border dark:border-slate-700 flex justify-between items-center text-sm">
+                            <div><div class="font-bold">${p.name}</div><div class="text-xs text-slate-500">SM: ${smName}</div></div>
+                            <button class="text-brand-600 hover:underline" onclick="App.editProject('${d.id}')">Edit</button>
                         </div>`);
                         $('#admin-project-list').append(card);
                     });
@@ -916,7 +945,25 @@
                 });
             }
             changeRole(id, r) { db.collection('users').doc(id).update({ role: r }); Utils.showToast(`Role updated to ${r}`, 'success'); }
-            saveProjectConfig() { const n = $('#edit-project-name').val(); if (n) db.collection('projects').add({ name: n, createdBy: this.state.user.uid }); $('#edit-project-name').val(''); Utils.showToast('Project Added', 'success'); }
+            async saveProjectConfig() {
+                const id = $('#edit-project-id').val();
+                const n = $('#edit-project-name').val();
+                const sm = $('#edit-project-sm').val();
+                if (!n) return;
+
+                const data = { name: n, scrumMaster: sm };
+                if (id) {
+                    await db.collection('projects').doc(id).update(data);
+                    Utils.showToast('Project Updated', 'success');
+                } else {
+                    await db.collection('projects').add({ ...data, createdBy: this.state.user.uid });
+                    Utils.showToast('Project Added', 'success');
+                }
+
+                $('#edit-project-id').val('');
+                $('#edit-project-name').val('');
+                $('#edit-project-sm').val('');
+            }
         }
 
         // --- INIT ---
@@ -939,14 +986,26 @@
         $('#btn-logout').click(() => App.logout());
         $('#btn-confirm-dod').click(() => { App.updateStatus(App.state.pendingItem, 'done'); App.closeModal('modal-dod'); confetti({ particleCount: 100, origin: { y: 0.6 } }); });
         $('.dod-check').change(() => $('#btn-confirm-dod').prop('disabled', $('.dod-check:checked').length !== 3).toggleClass('opacity-50', $('.dod-check:checked').length !== 3));
-        $('#btn-new-sprint-modal').click(() => { $('#modal-sprint').removeClass('hidden'); $('#new-sprint-start').val(''); $('#new-sprint-end').val(''); });
+        $('#btn-new-sprint-modal').click(() => { $('#modal-sprint').removeClass('hidden'); $('#new-sprint-start').val(''); $('#new-sprint-end').val(''); $('#edit-sprint-id').val(''); });
 
         $('#btn-create-sprint').click(async () => {
             Utils.setLoading('#btn-create-sprint', true);
-            await db.collection('sprints').add({ name: $('#new-sprint-name').val(), goal: $('#new-sprint-goal').val(), startDate: $('#new-sprint-start').val(), endDate: $('#new-sprint-end').val(), projectId: App.state.projectId, status: 'active', createdAt: Date.now() });
+            const id = $('#edit-sprint-id').val();
+            const data = {
+                name: $('#new-sprint-name').val(),
+                goal: $('#new-sprint-goal').val(),
+                startDate: $('#new-sprint-start').val(),
+                endDate: $('#new-sprint-end').val()
+            };
+            if (id) {
+                await db.collection('sprints').doc(id).update(data);
+                Utils.showToast('Sprint updated', 'success');
+            } else {
+                await db.collection('sprints').add({ ...data, projectId: App.state.projectId, status: 'active', createdAt: Date.now() });
+                Utils.showToast('Sprint created', 'success');
+            }
             $('#modal-sprint').addClass('hidden');
             Utils.setLoading('#btn-create-sprint', false);
-            Utils.showToast('Sprint created successfully', 'success');
         });
 
         $('#theme-toggle').click(() => { $('html').toggleClass('dark'); localStorage.theme = $('html').hasClass('dark') ? 'dark' : 'light'; });
