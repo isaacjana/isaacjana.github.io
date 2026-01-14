@@ -40,7 +40,7 @@
     <header class="h-16 bg-slate-900/40 border-b border-slate-800 flex items-center justify-between px-6 z-50">
         <div class="flex items-center gap-3">
             <i class="fas fa-link text-green-500 text-xl"></i>
-            <span class="text-xl font-black italic tracking-tighter uppercase">Direct<span class="text-green-500">Queue</span></span>
+            <span class="text-xl font-black italic tracking-tighter uppercase text-white">Direct<span class="text-green-500">Queue</span></span>
         </div>
         <div class="flex items-center gap-4">
             <button id="nav-admin" class="hidden text-slate-400 p-2 hover:text-white transition"><i class="fas fa-cog text-lg"></i></button>
@@ -68,33 +68,23 @@
         <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2rem] border border-slate-800 overflow-hidden shadow-2xl relative">
             <div class="p-5 border-b border-slate-800 bg-slate-900/30">
                 <div class="flex gap-2">
-                    <input id="song-search" type="text" autocomplete="off" placeholder="Paste link or search..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-4 px-4 text-sm text-white focus:border-green-500 outline-none transition-all">
-                    <button id="btn-add" class="bg-green-600 px-5 rounded-xl text-white shadow-lg active:scale-95"><i class="fas fa-plus"></i></button>
+                    <input id="song-search" type="text" autocomplete="off" placeholder="Search or paste link..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-4 px-4 text-sm text-white focus:border-green-500 outline-none transition-all">
+                    <button id="btn-add" class="bg-green-600 px-5 rounded-xl text-white shadow-lg"><i class="fas fa-plus"></i></button>
                 </div>
                 <div id="search-results" class="hidden absolute top-40 left-4 right-4 md:static md:mt-3 bg-slate-900 border border-slate-700 rounded-2xl z-[100] p-2 shadow-2xl max-h-60 overflow-y-auto"></div>
             </div>
             <div class="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar" id="queue-list"></div>
             <div class="p-4 bg-slate-900/50 border-t border-slate-800 flex gap-2">
-                <button id="btn-skip" class="admin-only hidden flex-1 bg-slate-800 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">SKIP <i class="fas fa-step-forward"></i></button>
-                <button id="btn-stop" class="admin-only hidden w-16 bg-red-500/20 text-red-500 rounded-2xl"><i class="fas fa-stop"></i></button>
+                <button id="btn-skip-trigger" class="admin-only hidden flex-1 bg-slate-800 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition">SKIP <i class="fas fa-step-forward"></i></button>
+                <button id="btn-stop-trigger" class="admin-only hidden w-16 bg-red-500/20 text-red-500 rounded-2xl active:scale-95 transition"><i class="fas fa-stop"></i></button>
             </div>
         </aside>
     </main>
 
-    <div id="admin-modal" class="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="glass border border-slate-800 w-full max-w-4xl h-[80vh] rounded-[3rem] flex flex-col overflow-hidden shadow-2xl">
-            <div class="px-8 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h2 class="text-xl font-bold italic">Global Library</h2>
-                <button id="close-admin" class="text-slate-500 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div class="flex-1 overflow-y-auto p-6 space-y-2 no-scrollbar" id="master-song-list"></div>
-        </div>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, setDoc, updateDoc, serverTimestamp, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk6mub0hDCzJ5iDmV-61v3WLSHMC51JP4",
@@ -113,7 +103,7 @@
 
         let currentUser, player, sessionCode, isPlaying = false;
 
-        // --- YOUTUBE INIT ---
+        // --- YOUTUBE API ---
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
@@ -122,30 +112,74 @@
             player = new YT.Player('youtube-player', {
                 height: '100%', width: '100%',
                 playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'modestbranding': 1 },
-                events: { 'onStateChange': (e) => { if (e.data === 0) { isPlaying = false; window.playNext(); } } }
+                events: { 'onStateChange': onPlayerStateChange }
             });
         };
 
-        // --- HANDSHAKE ---
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                isPlaying = false;
+                window.triggerNextInQueue();
+            }
+        }
+
+        // --- SESSION JOIN ---
         $('#btn-join').click(async () => {
             sessionCode = $('#party-code-input').val().toUpperCase();
             if(!sessionCode) return;
             $('#auth-overlay').fadeOut();
             $('#idle-code-display').text(sessionCode);
-            new QRCode(document.getElementById("qrcode"), { text: window.location.origin + window.location.pathname + "?join=" + sessionCode, width: 220, height: 220 });
+            
+            // Interaction to prime the player
+            if(player) player.playVideo(); 
+
+            new QRCode(document.getElementById("qrcode"), { 
+                text: window.location.origin + window.location.pathname + "?join=" + sessionCode, 
+                width: 220, height: 220 
+            });
+
             initSync();
         });
 
-        // --- CORE SYNC ---
+        // --- SYNC LOGIC ---
         function initSync() {
+            // 1. Queue Listener
             onSnapshot(query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc")), snap => {
                 const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderQueueUI(list);
+                
+                // TV Auto-play next if idle
                 if(list.length > 0 && !isPlaying && window.innerWidth > 768) {
                     window.playNext(list[0]);
                 }
             });
+
+            // 2. Control Listener (The fix for Skip/Stop)
+            onSnapshot(doc(db, "session_status", sessionCode), (snap) => {
+                const data = snap.data();
+                if(data && data.triggerEvent && window.innerWidth > 768) {
+                    if(data.triggerEvent === 'skip') {
+                        isPlaying = false;
+                        window.triggerNextInQueue();
+                    }
+                    if(data.triggerEvent === 'stop') {
+                        window.playNext(null);
+                    }
+                    // Reset trigger so it doesn't loop
+                    updateDoc(doc(db, "session_status", sessionCode), { triggerEvent: null });
+                }
+            });
         }
+
+        window.triggerNextInQueue = async () => {
+             const q = query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc"), limit(1));
+             const snap = await getDocs(q);
+             if(!snap.empty) {
+                 window.playNext({ id: snap.docs[0].id, ...snap.docs[0].data() });
+             } else {
+                 window.playNext(null);
+             }
+        };
 
         window.playNext = async (song = null) => {
             if(!player) return;
@@ -155,6 +189,7 @@
                 $('#stage-info-bar').removeClass('translate-y-full');
                 $('#np-title-display').text(song.name);
                 $('#np-user-display').text("On Stage: " + song.userName);
+                
                 player.loadVideoById(song.videoId);
                 if(song.id) await deleteDoc(doc(db, "munch_queue", song.id));
             } else {
@@ -165,7 +200,16 @@
             }
         };
 
-        // --- SEARCH & ADD ---
+        // --- REMOTE TRIGGERS ---
+        $('#btn-skip-trigger').click(async () => {
+            await setDoc(doc(db, "session_status", sessionCode), { triggerEvent: 'skip' }, { merge: true });
+        });
+
+        $('#btn-stop-trigger').click(async () => {
+            await setDoc(doc(db, "session_status", sessionCode), { triggerEvent: 'stop' }, { merge: true });
+        });
+
+        // --- SEARCH & INPUT ---
         async function processInput() {
             const input = $('#song-search');
             const val = input.val().trim();
@@ -177,14 +221,22 @@
                 window.queueItem(videoId, data.title || "Linked Video");
                 input.val('');
             } else if(val.length > 1) {
-                const q = query(collection(db, "songs"), where("searchKey", ">=", val.toLowerCase()), where("searchKey", "<=", val.toLowerCase() + '\uf8ff'), limit(10));
-                const snap = await getDocs(q);
-                const $res = $('#search-results').empty().removeClass('hidden');
-                snap.forEach(d => {
-                    const s = d.data();
-                    $res.append(`<div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1"><b>${s.title}</b></div>`);
-                });
+                runLibrarySearch(val);
             }
+        }
+
+        async function runLibrarySearch(term) {
+            const $res = $('#search-results').empty().removeClass('hidden');
+            const q = query(collection(db, "songs"), 
+                where("searchKey", ">=", term.toLowerCase()), 
+                where("searchKey", "<=", term.toLowerCase() + '\uf8ff'), 
+                limit(10));
+            const snap = await getDocs(q);
+            if(snap.empty) return $res.append('<div class="p-4 text-center text-xs opacity-50">Not found in library.</div>');
+            snap.forEach(d => {
+                const s = d.data();
+                $res.append(`<div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1 border border-transparent hover:border-green-500 transition"><b>${s.title}</b></div>`);
+            });
         }
 
         window.queueItem = async (videoId, name) => {
@@ -200,6 +252,7 @@
 
         function renderQueueUI(list) {
             const $l = $('#queue-list').empty();
+            if(list.length === 0) $l.append('<p class="text-center text-slate-600 mt-10 text-sm italic">Queue empty</p>');
             list.forEach((s, i) => {
                 $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl animate-enter"><img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-white truncate">${s.name}</p><p class="text-[9px] text-green-500 uppercase">${s.userName}</p></div></div>`);
             });
@@ -212,26 +265,13 @@
                 $('#login-section').addClass('hidden');
                 $('#party-section').removeClass('hidden');
                 const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().isAdmin) $('#nav-admin, .admin-only').removeClass('hidden');
+                if (userDoc.exists() && userDoc.data().isAdmin) $('#nav-admin, .admin-only, #btn-skip-trigger, #btn-stop-trigger').removeClass('hidden');
             }
         });
 
         $('#btn-login').click(() => signInWithPopup(auth, provider));
         $('#btn-add').click(processInput);
-        $('#btn-skip').click(() => window.playNext());
-        $('#btn-stop').click(() => window.playNext(null));
-        $('#nav-admin').click(() => { $('#admin-modal').removeClass('hidden'); window.loadMasterLibrary(); });
-        $('#close-admin').click(() => $('#admin-modal').addClass('hidden'));
-        
-        window.loadMasterLibrary = async () => {
-            const $list = $('#master-song-list').empty();
-            const snap = await getDocs(query(collection(db, "songs"), limit(100)));
-            snap.forEach(d => {
-                const s = d.data();
-                $list.append(`<div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-2xl"><div class="min-w-0"><p class="text-sm font-bold text-white truncate">${s.title}</p></div><button onclick="window.deleteSong('${d.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button></div>`);
-            });
-        };
-        window.deleteSong = async (id) => { if(confirm("Delete?")) { await deleteDoc(doc(db, "songs", id)); window.loadMasterLibrary(); } };
+        $('#song-search').on('keypress', (e) => { if(e.key === 'Enter') processInput(); });
     </script>
 </body>
 </html>
