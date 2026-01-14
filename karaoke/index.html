@@ -147,6 +147,34 @@
             animation: slideIn 0.3s ease-out forwards;
         }
 
+        /* Floating Emojis */
+        .emoji-float {
+            position: absolute;
+            bottom: 0;
+            font-size: 3rem;
+            animation: floatUp 3s ease-in forwards;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+                transform: translateY(-50px) scale(1.2);
+            }
+
+            100% {
+                transform: translateY(-80vh) scale(1);
+                opacity: 0;
+            }
+        }
+
         #toast-container {
             position: fixed;
             bottom: 2rem;
@@ -202,6 +230,25 @@
         <div class="orb orb-2"></div>
     </div>
 
+    <!-- Voting Mobile Overlay -->
+    <div id="voting-overlay"
+        class="fixed inset-0 z-[150] bg-slate-950/90 hidden flex flex-col items-center justify-center p-6 animate-enter">
+        <h2 class="text-3xl font-black italic text-white mb-6 uppercase">Rate Performance!</h2>
+        <div class="grid grid-cols-5 gap-2 mb-8">
+            <button onclick="submitVote(1)"
+                class="w-12 h-12 rounded-full bg-slate-800 text-2xl hover:bg-yellow-500 transition">★</button>
+            <button onclick="submitVote(2)"
+                class="w-12 h-12 rounded-full bg-slate-800 text-2xl hover:bg-yellow-500 transition">★</button>
+            <button onclick="submitVote(3)"
+                class="w-12 h-12 rounded-full bg-slate-800 text-2xl hover:bg-yellow-500 transition">★</button>
+            <button onclick="submitVote(4)"
+                class="w-12 h-12 rounded-full bg-slate-800 text-2xl hover:bg-yellow-500 transition">★</button>
+            <button onclick="submitVote(5)"
+                class="w-12 h-12 rounded-full bg-slate-800 text-2xl hover:bg-yellow-500 transition">★</button>
+        </div>
+        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Voting closes in 10s...</p>
+    </div>
+
     <div id="toast-container"></div>
 
     <div id="auth-overlay"
@@ -228,6 +275,18 @@
                     class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 font-bold py-4 rounded-2xl text-white shadow-lg active:scale-95 transition-all">
                     ENTER STAGE
                 </button>
+
+                <div id="reaction-bar"
+                    class="hidden mt-6 pt-6 border-t border-white/10 grid grid-cols-4 gap-2 animate-enter">
+                    <button onclick="sendReaction('🔥')"
+                        class="text-2xl bg-slate-800/50 p-3 rounded-xl hover:bg-slate-700 active:scale-90 transition">🔥</button>
+                    <button onclick="sendReaction('❤️')"
+                        class="text-2xl bg-slate-800/50 p-3 rounded-xl hover:bg-slate-700 active:scale-90 transition">❤️</button>
+                    <button onclick="sendReaction('👏')"
+                        class="text-2xl bg-slate-800/50 p-3 rounded-xl hover:bg-slate-700 active:scale-90 transition">👏</button>
+                    <button onclick="sendReaction('🎤')"
+                        class="text-2xl bg-slate-800/50 p-3 rounded-xl hover:bg-slate-700 active:scale-90 transition">🎤</button>
+                </div>
             </div>
         </div>
     </div>
@@ -278,6 +337,17 @@
                     </div>
                 </div>
 
+                <!-- Score Display -->
+                <div id="score-display"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 z-30 hidden animate-enter">
+                    <h2 class="text-4xl font-black text-white italic uppercase mb-4">Performance Score</h2>
+                    <div class="text-9xl font-black text-yellow-500 drop-shadow-2xl" id="final-score">0.0</div>
+                    <div class="flex gap-2 mt-4 text-yellow-500 text-2xl">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
+                            class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                </div>
+
                 <!-- Hover Controls (Optional Future Feature placeholder) -->
                 <div
                     class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none">
@@ -312,6 +382,11 @@
                         <input id="song-search" type="text" placeholder="Search song or paste URL..."
                             class="w-full bg-slate-950/50 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white focus:border-green-500 outline-none transition-all placeholder:text-slate-600">
                     </div>
+                    <button id="btn-lucky"
+                        class="bg-purple-600 hover:bg-purple-500 text-white w-12 rounded-2xl flex items-center justify-center active:scale-95 transition-all shadow-lg hover:shadow-purple-500/20"
+                        title="I'm Feeling Lucky">
+                        <i class="fas fa-dice"></i>
+                    </button>
                     <button id="btn-add"
                         class="bg-green-600 hover:bg-green-500 text-white w-12 rounded-2xl flex items-center justify-center active:scale-95 transition-all shadow-lg hover:shadow-green-500/20">
                         <i class="fas fa-plus"></i>
@@ -353,6 +428,13 @@
                     class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition text-slate-400 hover:text-white"><i
                         class="fas fa-times"></i></button>
             </div>
+            <div class="p-6 border-b border-white/5 bg-slate-900/20 flex gap-4 items-center">
+                <div class="flex-1">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">Remote Volume</h3>
+                    <input type="range" id="volume-slider" min="0" max="100"
+                        class="w-full accent-green-500 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
             <div class="p-6 border-b border-white/5 bg-slate-900/20">
                 <h3 class="text-xs font-bold text-slate-500 uppercase mb-3 tracking-wider">Json Bulk Import</h3>
                 <div class="flex gap-3">
@@ -370,7 +452,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, limit, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk6mub0hDCzJ5iDmV-61v3WLSHMC51JP4",
@@ -432,7 +514,8 @@
 
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.ENDED) {
-                sendCommand('skip');
+                // Instead of skipping immediately, start voting
+                if (window.innerWidth > 768) startVotingSession();
             }
         }
 
@@ -505,6 +588,8 @@
             // Auto-play if ready
             if (player && player.playVideo) player.playVideo();
 
+            $('#reaction-bar').classList.remove('hidden');
+
             initSync();
         }
 
@@ -535,7 +620,65 @@
                     handleStopAction();
                     await updateDoc(doc(db, "session_status", sessionCode), { command: null });
                 }
+
+                // Volume Listener
+                if (data.volume !== undefined && player && player.setVolume) {
+                    player.setVolume(data.volume);
+                }
+
+                // Reaction Listener
+                if (data.reaction && data.reaction.id !== lastReactionId) {
+                    lastReactionId = data.reaction.id;
+                    spawnFloatingEmoji(data.reaction.type);
+                }
             });
+        }
+
+        let lastReactionId = 0;
+        window.sendReaction = async (emoji) => {
+            if (!sessionCode) return;
+            // Optimistic UI for sender
+            spawnFloatingEmoji(emoji);
+            await setDoc(doc(db, "session_status", sessionCode), { reaction: { type: emoji, id: Date.now() } }, { merge: true });
+        };
+
+        function spawnFloatingEmoji(char) {
+            const el = document.createElement('div');
+            el.className = 'emoji-float';
+            el.textContent = char;
+            el.style.left = Math.random() * 80 + 10 + '%'; // Random horizontal
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+
+        // --- VOTING LOGIC ---
+        window.submitVote = async (stars) => {
+            $('#voting-overlay').classList.add('hidden');
+            showToast("Vote Submitted!");
+            await updateDoc(doc(db, "session_status", sessionCode), { votes: arrayUnion(stars) });
+        };
+
+        async function startVotingSession() {
+            await updateDoc(doc(db, "session_status", sessionCode), { status: 'voting', votes: [], finalScore: null });
+
+            // TV Side: Wait 10s then calculate
+            setTimeout(async () => {
+                const snap = await getDoc(doc(db, "session_status", sessionCode));
+                const votes = snap.data().votes || [];
+                const avg = votes.length ? (votes.reduce((a, b) => a + b, 0) / votes.length).toFixed(1) : "0.0";
+
+                // Show Score
+                $('#score-display').classList.remove('hidden');
+                $('#final-score').textContent = avg;
+                await updateDoc(doc(db, "session_status", sessionCode), { status: 'idle', finalScore: avg });
+
+                // Finish up
+                setTimeout(async () => {
+                    $('#score-display').classList.add('hidden');
+                    sendCommand('skip');
+                }, 4000); // Show score for 4s
+            }, 10000); // 10s voting window
         }
 
         async function sendCommand(cmd, payload = null) {
@@ -577,7 +720,25 @@
 
         // --- SEARCH & QUEUE ---
         $('#btn-add').addEventListener('click', handleAddSong);
+        $('#btn-lucky').addEventListener('click', handleLucky);
         $('#song-search').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAddSong(); });
+
+        const luckySongs = [
+            { id: 'fJ9rUzIMcZQ', t: 'Bohemian Rhapsody - Queen' },
+            { id: 'lDK9QqIzhwk', t: 'Livin On A Prayer - Bon Jovi' },
+            { id: 'Start,e-ORhEE9VVg', t: 'Blank Space - Taylor Swift' },
+            { id: 'T5xCn87Pr9E', t: 'Don\'t Stop Believin\' - Journey' },
+            { id: 'ftjEcrrf7r0', t: 'I Want It That Way - Backstreet Boys' },
+            { id: 'P37xPiRz19o', t: 'Mr. Brightside - The Killers' },
+            { id: 'V1bFr2SWP1I', t: 'Shallow - Lady Gaga & Bradley Cooper' },
+            { id: 'Zi_XLOBDo_Y', t: 'Billie Jean - Michael Jackson' }
+        ];
+
+        async function handleLucky() {
+            const song = luckySongs[Math.floor(Math.random() * luckySongs.length)];
+            await queueItem(song.id, song.t);
+            showToast(`🎲 Queued: ${song.t}`, "success");
+        }
 
         let searchTimeout;
         $('#song-search').addEventListener('input', (e) => {
@@ -718,6 +879,15 @@
         // --- ADMIN CONTROLS ---
         $('#btn-admin-skip').addEventListener('click', () => sendCommand('skip'));
         $('#btn-admin-stop').addEventListener('click', () => sendCommand('stop'));
+
+        // Volume Control
+        let volTimeout;
+        $('#volume-slider').addEventListener('input', (e) => {
+            clearTimeout(volTimeout);
+            volTimeout = setTimeout(async () => {
+                await updateDoc(doc(db, "session_status", sessionCode), { volume: parseInt(e.target.value) }, { merge: true });
+            }, 200);
+        });
 
         $('#nav-admin').addEventListener('click', () => {
             $('#admin-modal').classList.remove('hidden');
