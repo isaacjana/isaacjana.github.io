@@ -759,6 +759,21 @@
                 $('#detail-points').val(pts); this.switchModalTab('details');
             }
 
+            openItemModal(type) {
+                this.state.detailId = null;
+                this.switchModalTab('details');
+                $('#detail-title').val('');
+                if (window.quill) window.quill.root.innerHTML = '';
+                $('#detail-points').val(0);
+                $('#detail-priority').val('low');
+                $('#detail-tag').val(type === 'PBI' ? 'feature' : 'chore');
+                $('#detail-assignee').val('');
+                $('#subtask-list').empty();
+                $('#comments-list').empty();
+                $('#poker-inactive').removeClass('hidden'); $('#poker-active').addClass('hidden');
+                this.openModal('modal-details');
+            }
+
             // --- DETAILS ---
             openDetailModal(id) {
                 this.state.detailId = id; this.switchModalTab('details');
@@ -793,15 +808,25 @@
             }
             async saveDetails() {
                 const uid = $('#detail-assignee').val();
-                const updates = {
+                const data = {
                     title: $('#detail-title').val(), description: window.quill.root.innerHTML,
                     points: parseInt($('#detail-points').val()) || 0, priority: $('#detail-priority').val(),
                     tag: $('#detail-tag').val(), assignee: uid ? $('#detail-assignee option:selected').text() : '', assigneeUid: uid
                 };
                 Utils.setLoading($('button[onclick="App.saveDetails()"]'), true);
-                await db.collection('items').doc(this.state.detailId).update(updates);
+
+                if (this.state.detailId) {
+                    await db.collection('items').doc(this.state.detailId).update(data);
+                    Utils.showToast('Item saved', 'success');
+                } else {
+                    await db.collection('items').add({
+                        ...data, projectId: this.state.projectId, sprintId: this.state.sprintId,
+                        status: 'todo', type: 'PBI', order: 0, createdAt: Date.now(), subtasks: [], comments: []
+                    });
+                    Utils.showToast('Item created', 'success');
+                }
+
                 Utils.setLoading($('button[onclick="App.saveDetails()"]'), false);
-                Utils.showToast('Item saved', 'success');
                 this.closeModal('modal-details');
             }
 
