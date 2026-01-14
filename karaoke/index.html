@@ -1007,24 +1007,24 @@
                 let validCount = 1;
                 let ignoredCount = 0;
 
-              //  for (const s of list) {
+                for (const s of list) {
                     // Check embeddability if videoId is present
                //     if (s.videoId) {
-              //          const details = await checkVideoDetails(s.videoId);
+                        const details = await checkVideoDetails(s.videoId);
                //         if (details && details.embeddable) {
-              //              const ref = doc(collection(db, "songs"));
-              //              batch.set(ref, {
-              //                  title: s.title || details.title,
-              //                  artist: s.artist || "",
-              //                  videoId: s.videoId,
-              //                  searchKey: (s.title || details.title).toLowerCase()
-              //              });
+                           const ref = doc(collection(db, "songs"));
+                           batch.set(ref, {
+                                 title: s.title || details.title,
+                                 artist: s.artist || "",
+                                videoId: s.videoId,
+                                searchKey: (s.title || details.title).toLowerCase()
+                            });
              //               validCount++;
              //           } else {
              //               ignoredCount++;
              //           }
              //       }
-            //    } 
+                } 
 
                 if (validCount > 0) {
                     await batch.commit();
