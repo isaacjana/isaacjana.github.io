@@ -317,7 +317,8 @@
             <div
                 class="p-5 border-b dark:border-slate-700 flex justify-between items-start bg-slate-50 dark:bg-slate-800/50">
                 <input id="detail-title"
-                    class="text-xl font-bold w-full bg-transparent border-none focus:ring-0 dark:text-white placeholder-slate-400">
+                    class="text-xl font-bold w-full bg-transparent border-b-2 border-transparent hover:border-slate-200 focus:border-brand-500 focus:outline-none dark:text-white placeholder-slate-400 px-2 py-1 transition-colors"
+                    placeholder="Enter task title...">
                 <button onclick="App.closeModal('modal-details')" class="text-slate-400 hover:text-slate-600"><i
                         class="fa-solid fa-xmark text-2xl"></i></button>
             </div>
@@ -448,12 +449,8 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script>
-        // --- CONFIG ---
-        const firebaseConfig = { apiKey: "AIzaSyD4QLq5wS3t_W1ckxuBDWydSDWSkVcaW7k", authDomain: "agile-works-ba545.firebaseapp.com", projectId: "agile-works-ba545", storageBucket: "agile-works-ba545.firebasestorage.app", messagingSenderId: "588869159638", appId: "1:588869159638:web:5bfc6e3740ec231776d777" };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(); const auth = firebase.auth();
-        db.enablePersistence().catch(console.warn);
 
         // --- UTILS ---
         class Utils {
@@ -772,6 +769,7 @@
                 $('#comments-list').empty();
                 $('#poker-inactive').removeClass('hidden'); $('#poker-active').addClass('hidden');
                 this.openModal('modal-details');
+                setTimeout(() => $('#detail-title').focus(), 100);
             }
 
             // --- DETAILS ---
@@ -866,7 +864,13 @@
             logout() { auth.signOut().then(() => location.reload()); }
 
             // --- ADMIN ---
-            showAdminSub(s) { $('.admin-sub-view').addClass('hidden'); $(`#admin-sub-${s}`).removeClass('hidden'); if (s === 'users') this.loadAdminUsers(); }
+            showAdminSub(s) {
+                $('.admin-sub-view').addClass('hidden');
+                $(`#admin-sub-${s}`).removeClass('hidden');
+                if (s === 'users') this.loadAdminUsers();
+                if (s === 'projects') this.loadAdminProjects();
+                if (s === 'analytics') this.loadAdminAnalytics();
+            }
             loadAdminUsers() {
                 this.setListener('users', db.collection('users').onSnapshot(s => {
                     $('#user-table-body').empty();
@@ -880,8 +884,39 @@
                     });
                 }));
             }
+            loadAdminProjects() {
+                this.setListener('adminProj', db.collection('projects').onSnapshot(s => {
+                    $('#admin-project-list').empty();
+                    s.forEach(d => {
+                        const p = d.data();
+                        const card = $(`<div class="bg-white dark:bg-darkcard p-4 rounded-xl shadow-sm border dark:border-slate-700 flex justify-between items-center text-sm font-bold">
+                            <span>${p.name}</span>
+                            <span class="text-xs font-normal text-slate-500">ID: ${d.id.substr(0, 8)}...</span>
+                        </div>`);
+                        $('#admin-project-list').append(card);
+                    });
+                }));
+            }
+            loadAdminAnalytics() {
+                const ctx = document.getElementById('velocityChart');
+                if (!ctx) return;
+                // Dummy Velocity Data for visual improvement
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4'],
+                        datasets: [{
+                            label: 'Velocity (Points)',
+                            data: [12, 19, 15, 22],
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            }
             changeRole(id, r) { db.collection('users').doc(id).update({ role: r }); Utils.showToast(`Role updated to ${r}`, 'success'); }
-            saveProjectConfig() { const n = $('#edit-project-name').val(); if (n) db.collection('projects').add({ name: n, createdBy: this.state.user.uid }).then(() => location.reload()); }
+            saveProjectConfig() { const n = $('#edit-project-name').val(); if (n) db.collection('projects').add({ name: n, createdBy: this.state.user.uid }); $('#edit-project-name').val(''); Utils.showToast('Project Added', 'success'); }
         }
 
         // --- INIT ---

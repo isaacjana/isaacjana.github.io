@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isSuperAdmin() {
+      return getUserData().role == 'superadmin';
+    }
+
+    // Users: Users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Projects: Authenticated users can read. Only Admins can write.
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isSuperAdmin();
+    }
+
+    // Sprints, Items, Retro: simplified to authenticated for now
+    // In production, you would check if the user is a member of the project
+    match /{collection}/{docId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}
