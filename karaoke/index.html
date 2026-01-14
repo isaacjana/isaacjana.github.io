@@ -762,14 +762,25 @@
                 // It's a URL
                 try {
                     input.disabled = true;
-                    // Simple oEmbed fetch (cors might be issue, but using previous method)
-                    const resp = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-                    const data = await resp.json();
-                    await queueItem(videoId, data.title || "Linked Video");
+                    // Verify Embeddability via YouTube API
+                    const details = await checkVideoDetails(videoId);
+
+                    if (!details) {
+                        showToast("Video not found or API error", "error");
+                        return;
+                    }
+
+                    if (!details.embeddable) {
+                        showToast("Video is not embeddable (restricted)", "error");
+                        return;
+                    }
+
+                    await queueItem(videoId, details.title);
                     input.value = '';
                     showToast("Song queued!", "success");
                 } catch (e) {
-                    showToast("Could not fetch video info", "error");
+                    console.error(e);
+                    showToast("Error checking video", "error");
                 } finally {
                     input.disabled = false;
                     input.focus();
@@ -777,6 +788,34 @@
             } else if (val.length > 1) {
                 // It's a search term
                 runLibrarySearch(val);
+            }
+        }
+
+        async function checkVideoDetails(videoId) {
+            try {
+                const key = firebaseConfig.apiKey;
+                const url = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,status&key=${key}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!data.items || data.items.length === 0) return null;
+
+                const item = data.items[0];
+                return {
+                    title: item.snippet.title,
+                    embeddable: item.status.embeddable
+                };
+            } catch (e) {
+                console.error("YouTube API Error", e);
+                // Fallback to noembed if API fails (quota etc), but can't check embed status
+                try {
+                    const resp = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+                    const data = await resp.json();
+                    if (data.error) return null;
+                    return { title: data.title, embeddable: true }; // Assume true on fallback
+                } catch (err) {
+                    return null;
+                }
             }
         }
 
@@ -930,22 +969,50 @@
                 const list = JSON.parse(raw);
                 if (!Array.isArray(list)) throw new Error("Not an array");
 
+                const btn = $('#btn-bulk-import');
+                const originalText = btn.textContent;
+                btn.textContent = "VERIFYING...";
+                btn.disabled = true;
+
                 const batch = writeBatch(db);
-                list.forEach(s => {
-                    const ref = doc(collection(db, "songs"));
-                    batch.set(ref, {
-                        title: s.title,
-                        artist: s.artist || "",
-                        videoId: s.videoId,
-                        searchKey: s.title.toLowerCase()
-                    });
-                });
-                await batch.commit();
-                $('#bulk-input').value = '';
-                showToast(`Imported ${list.length} songs!`, "success");
-                loadMasterLibrary();
+                let validCount = 0;
+                let ignoredCount = 0;
+
+                for (const s of list) {
+                    // Check embeddability if videoId is present
+                    if (s.videoId) {
+                        const details = await checkVideoDetails(s.videoId);
+                        if (details && details.embeddable) {
+                            const ref = doc(collection(db, "songs"));
+                            batch.set(ref, {
+                                title: s.title || details.title,
+                                artist: s.artist || "",
+                                videoId: s.videoId,
+                                searchKey: (s.title || details.title).toLowerCase()
+                            });
+                            validCount++;
+                        } else {
+                            ignoredCount++;
+                        }
+                    }
+                }
+
+                if (validCount > 0) {
+                    await batch.commit();
+                    $('#bulk-input').value = '';
+                    showToast(`Imported ${validCount} songs! (${ignoredCount} failed)`, "success");
+                    loadMasterLibrary();
+                } else {
+                    showToast("No valid embeddable videos found.", "error");
+                }
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+
             } catch (e) {
-                alert("Invalid JSON format. Check your input.");
+                alert("Invalid JSON format or Error: " + e.message);
+                $('#btn-bulk-import').textContent = "IMPORT";
+                $('#btn-bulk-import').disabled = false;
             }
         });
 
