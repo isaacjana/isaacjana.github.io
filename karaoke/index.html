@@ -14,24 +14,25 @@
         .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
         .stage-container { position: relative; background: #000; overflow: hidden; height: 100%; border-radius: 2rem; border: 4px solid #1e293b; }
         #youtube-player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-        @media (max-width: 768px) { #view-main { display: none; } body { overflow-y: auto; } }
         .animate-enter { animation: slideIn 0.3s ease-out forwards; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 768px) { #view-main { display: none; } body { overflow-y: auto; } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="auth-overlay" class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-6">
-        <div class="glass p-10 rounded-[3rem] max-w-sm w-full text-center border-green-500/20 shadow-2xl">
+    <div id="auth-overlay" class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-6 text-center">
+        <div class="glass p-10 rounded-[3rem] max-w-sm w-full border-green-500/20 shadow-2xl">
             <h1 class="text-4xl font-black italic mb-8 tracking-tighter uppercase text-white">Munch<span class="text-green-500">Karaoke</span></h1>
             <div id="login-section">
-                <button id="btn-login" class="w-full bg-white text-black font-bold py-5 rounded-3xl flex items-center justify-center gap-3 active:scale-95 transition">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6"> Login with Google
+                <button id="btn-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5"> Login with Google
                 </button>
             </div>
             <div id="party-section" class="hidden space-y-4">
-                <input id="party-code-input" type="text" placeholder="SESSION CODE" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-5 text-center font-mono text-3xl uppercase tracking-widest text-white outline-none focus:border-green-500 transition-all">
-                <button id="btn-join" class="w-full bg-green-600 font-bold py-5 rounded-3xl text-white shadow-lg text-lg hover:bg-green-500 transition">ENTER STAGE</button>
+                <input id="party-code-input" type="text" placeholder="SESSION CODE" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-center font-mono text-2xl uppercase text-white outline-none">
+                <button id="btn-join" class="w-full bg-green-600 font-bold py-4 rounded-xl text-white shadow-lg">ENTER STAGE</button>
             </div>
         </div>
     </div>
@@ -54,45 +55,39 @@
                 <div id="idle-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 transition-opacity duration-1000">
                     <div id="qrcode" class="p-6 bg-white rounded-[2rem] shadow-2xl"></div>
                     <h2 id="idle-code-display" class="text-7xl font-black text-white italic mt-8 tracking-tighter">---</h2>
-                    <p class="text-green-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-4">Waiting for Singer</p>
                 </div>
             </div>
-
             <div id="stage-info-bar" class="h-20 bg-slate-900 flex items-center px-10 gap-8 z-40 border-t border-slate-800 translate-y-full transition-transform">
                 <div class="flex-1 min-w-0">
                     <p id="np-user-display" class="text-green-500 font-black uppercase text-[10px] tracking-widest mb-1"></p>
-                    <h2 id="np-title-display" class="text-lg font-bold truncate text-white italic leading-tight"></h2>
+                    <h2 id="np-title-display" class="text-lg font-bold truncate text-white italic"></h2>
                 </div>
             </div>
         </section>
 
-        <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-2xl">
+        <aside class="w-full md:w-96 flex flex-col bg-slate-950/50 rounded-[2rem] border border-slate-800 overflow-hidden shadow-2xl relative">
             <div class="p-5 border-b border-slate-800 bg-slate-900/30">
                 <div class="flex gap-2">
                     <input id="song-search" type="text" autocomplete="off" placeholder="Paste link or search..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-4 px-4 text-sm text-white focus:border-green-500 outline-none transition-all">
-                    <button id="btn-add" class="bg-green-600 px-5 rounded-xl text-white shadow-lg active:scale-95 transition-all"><i class="fas fa-plus"></i></button>
+                    <button id="btn-add" class="bg-green-600 px-5 rounded-xl text-white shadow-lg active:scale-95"><i class="fas fa-plus"></i></button>
                 </div>
                 <div id="search-results" class="hidden absolute top-40 left-4 right-4 md:static md:mt-3 bg-slate-900 border border-slate-700 rounded-2xl z-[100] p-2 shadow-2xl max-h-60 overflow-y-auto"></div>
             </div>
-
-            <div class="flex-1 overflow-y-auto p-5 space-y-3" id="queue-list">
-                <p class="text-center text-slate-600 mt-10 text-sm italic">Queue is empty</p>
-            </div>
-            
+            <div class="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar" id="queue-list"></div>
             <div class="p-4 bg-slate-900/50 border-t border-slate-800 flex gap-2">
-                <button id="btn-skip" class="admin-only hidden flex-1 bg-slate-800 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-700 transition">SKIP <i class="fas fa-step-forward"></i></button>
-                <button id="btn-stop" class="admin-only hidden w-16 bg-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition"><i class="fas fa-stop"></i></button>
+                <button id="btn-skip" class="admin-only hidden flex-1 bg-slate-800 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">SKIP <i class="fas fa-step-forward"></i></button>
+                <button id="btn-stop" class="admin-only hidden w-16 bg-red-500/20 text-red-500 rounded-2xl"><i class="fas fa-stop"></i></button>
             </div>
         </aside>
     </main>
 
     <div id="admin-modal" class="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="glass border border-slate-800 w-full max-w-4xl h-[80vh] rounded-[3rem] flex flex-col overflow-hidden">
+        <div class="glass border border-slate-800 w-full max-w-4xl h-[80vh] rounded-[3rem] flex flex-col overflow-hidden shadow-2xl">
             <div class="px-8 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h2 class="text-xl font-bold italic">Master Library</h2>
+                <h2 class="text-xl font-bold italic">Global Library</h2>
                 <button id="close-admin" class="text-slate-500 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <div class="flex-1 overflow-y-auto p-6 space-y-2" id="master-song-list"></div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-2 no-scrollbar" id="master-song-list"></div>
         </div>
     </div>
 
@@ -118,7 +113,7 @@
 
         let currentUser, player, sessionCode, isPlaying = false;
 
-        // --- 1. ROBUST YOUTUBE INIT (Following the working code) ---
+        // --- YOUTUBE INIT ---
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
@@ -127,42 +122,25 @@
             player = new YT.Player('youtube-player', {
                 height: '100%', width: '100%',
                 playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'modestbranding': 1 },
-                events: { 'onStateChange': onPlayerStateChange }
+                events: { 'onStateChange': (e) => { if (e.data === 0) { isPlaying = false; window.playNext(); } } }
             });
         };
 
-        function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.ENDED) {
-                isPlaying = false;
-                window.playNext();
-            }
-        }
-
-        // --- 2. THE HANDSHAKE (Stage Activation) ---
+        // --- HANDSHAKE ---
         $('#btn-join').click(async () => {
             sessionCode = $('#party-code-input').val().toUpperCase();
             if(!sessionCode) return;
             $('#auth-overlay').fadeOut();
             $('#idle-code-display').text(sessionCode);
-            
-            // Interaction to unlock autoplay
-            if(player) player.playVideo(); 
-
-            new QRCode(document.getElementById("qrcode"), { 
-                text: window.location.origin + window.location.pathname + "?join=" + sessionCode, 
-                width: 220, height: 220 
-            });
-
+            new QRCode(document.getElementById("qrcode"), { text: window.location.origin + window.location.pathname + "?join=" + sessionCode, width: 220, height: 220 });
             initSync();
         });
 
-        // --- 3. FIREBASE SYNC (Direct Logic) ---
+        // --- CORE SYNC ---
         function initSync() {
             onSnapshot(query(collection(db, "munch_queue"), where("sessionCode", "==", sessionCode), orderBy("timestamp", "asc")), snap => {
                 const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderQueueUI(list);
-                
-                // If TV view and nothing is playing, play the first song
                 if(list.length > 0 && !isPlaying && window.innerWidth > 768) {
                     window.playNext(list[0]);
                 }
@@ -177,61 +155,44 @@
                 $('#stage-info-bar').removeClass('translate-y-full');
                 $('#np-title-display').text(song.name);
                 $('#np-user-display').text("On Stage: " + song.userName);
-                
                 player.loadVideoById(song.videoId);
                 if(song.id) await deleteDoc(doc(db, "munch_queue", song.id));
             } else {
                 isPlaying = false;
                 $('#idle-screen').css('opacity', '1');
                 $('#stage-info-bar').addClass('translate-y-full');
+                player.stopVideo();
             }
         };
 
-        // --- 4. ADD SONG LOGIC (NoEmbed + Library Search) ---
+        // --- SEARCH & ADD ---
         async function processInput() {
             const input = $('#song-search');
             const val = input.val().trim();
-            const videoId = extractVideoID(val);
+            const videoId = extractID(val);
 
             if(videoId) {
-                try {
-                    const resp = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-                    const data = await resp.json();
-                    window.queueItem(videoId, data.title || "Linked Video");
-                    input.val('');
-                } catch (e) { window.queueItem(videoId, "Video Request"); input.val(''); }
+                const resp = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+                const data = await resp.json();
+                window.queueItem(videoId, data.title || "Linked Video");
+                input.val('');
             } else if(val.length > 1) {
-                runLibrarySearch(val);
+                const q = query(collection(db, "songs"), where("searchKey", ">=", val.toLowerCase()), where("searchKey", "<=", val.toLowerCase() + '\uf8ff'), limit(10));
+                const snap = await getDocs(q);
+                const $res = $('#search-results').empty().removeClass('hidden');
+                snap.forEach(d => {
+                    const s = d.data();
+                    $res.append(`<div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1"><b>${s.title}</b></div>`);
+                });
             }
         }
 
-        async function runLibrarySearch(term) {
-            const $res = $('#search-results').empty().removeClass('hidden');
-            const q = query(collection(db, "songs"), 
-                where("searchKey", ">=", term.toLowerCase()), 
-                where("searchKey", "<=", term.toLowerCase() + '\uf8ff'), 
-                limit(10));
-            
-            const snap = await getDocs(q);
-            if(snap.empty) return $res.append('<div class="p-4 text-center text-xs opacity-50">Not in library. Try a direct link.</div>');
-            
-            snap.forEach(d => {
-                const s = d.data();
-                $res.append(`<div onclick="window.queueItem('${s.videoId}', '${s.title.replace(/'/g, "")}')" class="p-3 hover:bg-slate-800 rounded-xl cursor-pointer text-xs mb-1 border border-transparent hover:border-green-500 transition"><b>${s.title}</b><br><span class="text-[10px] text-slate-500 uppercase">${s.artist}</span></div>`);
-            });
-        }
-
         window.queueItem = async (videoId, name) => {
-            await addDoc(collection(db, "munch_queue"), { 
-                name, videoId, sessionCode, 
-                userName: currentUser.displayName, 
-                timestamp: serverTimestamp() 
-            });
+            await addDoc(collection(db, "munch_queue"), { name, videoId, sessionCode, userName: currentUser.displayName, timestamp: serverTimestamp() });
             $('#search-results').addClass('hidden');
         };
 
-        // --- 5. UTILS & UI ---
-        function extractVideoID(url) {
+        function extractID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
@@ -239,36 +200,11 @@
 
         function renderQueueUI(list) {
             const $l = $('#queue-list').empty();
-            if(list.length === 0) $l.append('<p class="text-center text-slate-600 mt-10 text-sm italic">Queue is empty</p>');
             list.forEach((s, i) => {
-                $l.append(`
-                    <div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl animate-enter">
-                        <div class="text-xs font-bold text-slate-600 w-4">${i+1}</div>
-                        <img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs font-bold text-white truncate">${s.name}</p>
-                            <p class="text-[9px] text-green-500 uppercase">${s.userName}</p>
-                        </div>
-                    </div>`);
+                $l.append(`<div class="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl animate-enter"><img src="https://img.youtube.com/vi/${s.videoId}/default.jpg" class="w-10 h-8 rounded object-cover"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-white truncate">${s.name}</p><p class="text-[9px] text-green-500 uppercase">${s.userName}</p></div></div>`);
             });
         }
 
-        async function loadMasterLibrary() {
-            const $list = $('#master-song-list').empty();
-            const snap = await getDocs(query(collection(db, "songs"), limit(100)));
-            snap.forEach(d => {
-                const s = d.data();
-                $list.append(`
-                    <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-2xl">
-                        <div class="min-w-0"><p class="text-sm font-bold text-white truncate">${s.title}</p><p class="text-[10px] text-slate-500 uppercase">${s.artist}</p></div>
-                        <button onclick="window.deleteSong('${d.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button>
-                    </div>`);
-            });
-        }
-
-        window.deleteSong = async (id) => { if(confirm("Delete?")) { await deleteDoc(doc(db, "songs", id)); loadMasterLibrary(); } };
-
-        // --- AUTH & EVENTS ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -277,19 +213,25 @@
                 $('#party-section').removeClass('hidden');
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists() && userDoc.data().isAdmin) $('#nav-admin, .admin-only').removeClass('hidden');
-                
-                const urlCode = new URLSearchParams(window.location.search).get('join');
-                if(urlCode) { $('#party-code-input').val(urlCode); $('#btn-join').click(); }
             }
         });
 
         $('#btn-login').click(() => signInWithPopup(auth, provider));
         $('#btn-add').click(processInput);
-        $('#song-search').on('keypress', (e) => { if(e.key === 'Enter') processInput(); });
         $('#btn-skip').click(() => window.playNext());
         $('#btn-stop').click(() => window.playNext(null));
-        $('#nav-admin').click(() => { $('#admin-modal').removeClass('hidden'); loadMasterLibrary(); });
+        $('#nav-admin').click(() => { $('#admin-modal').removeClass('hidden'); window.loadMasterLibrary(); });
         $('#close-admin').click(() => $('#admin-modal').addClass('hidden'));
+        
+        window.loadMasterLibrary = async () => {
+            const $list = $('#master-song-list').empty();
+            const snap = await getDocs(query(collection(db, "songs"), limit(100)));
+            snap.forEach(d => {
+                const s = d.data();
+                $list.append(`<div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-2xl"><div class="min-w-0"><p class="text-sm font-bold text-white truncate">${s.title}</p></div><button onclick="window.deleteSong('${d.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button></div>`);
+            });
+        };
+        window.deleteSong = async (id) => { if(confirm("Delete?")) { await deleteDoc(doc(db, "songs", id)); window.loadMasterLibrary(); } };
     </script>
 </body>
 </html>
