@@ -15,255 +15,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <style>
-        /* --- VARIABLES --- */
-        :root {
-            --bg-main: #0f172a;
-            --glass-bg: rgba(15, 23, 42, 0.94);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --primary: #6366f1;
-            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            --safe-top: env(safe-area-inset-top);
-            --safe-bottom: env(safe-area-inset-bottom);
-            --text-main: #f1f5f9;
-        }
-
-        /* Themes */
-        body.theme-emerald {
-            --primary: #10b981;
-            --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
-
-        body.theme-ruby {
-            --primary: #f43f5e;
-            --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-        }
-
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: 'Inter', system-ui, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
-            padding-bottom: calc(100px + var(--safe-bottom));
-        }
-
-        /* --- UI COMPONENTS --- */
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        .gradient-text {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .gradient-bg {
-            background: var(--primary-gradient);
-        }
-
-        .completed {
-            opacity: 0.4;
-            filter: grayscale(1);
-            pointer-events: none;
-            transition: 0.4s;
-        }
-
-        .anim-enter {
-            animation: enterRow 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
-        }
-
-        @keyframes enterRow {
-            from {
-                opacity: 0;
-                transform: translateY(20px) scale(0.95);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        /* Day Nav */
-        .day-btn {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .day-btn.active {
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            transform: translateY(-3px);
-        }
-
-        .status-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--primary);
-            position: absolute;
-            bottom: 6px;
-        }
-
-        .day-btn.active .status-dot {
-            background: white;
-        }
-
-        /* Tabs Logic (FIXED) */
-        .tab-content {
-            display: none !important;
-        }
-
-        .tab-content.active {
-            display: block !important;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .tab-btn {
-            opacity: 0.5;
-            border-bottom: 2px solid transparent;
-            transition: 0.3s;
-        }
-
-        .tab-btn.active {
-            opacity: 1;
-            border-color: var(--primary);
-            color: white;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Inputs */
-        .glass-input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            border-radius: 0.75rem;
-            padding: 0.75rem;
-            width: 100%;
-            font-size: 0.875rem;
-            outline: none;
-            transition: 0.3s;
-        }
-
-        .edit-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 6px;
-            width: 100%;
-            font-size: 11px;
-            font-family: monospace;
-        }
-
-        .edit-input:focus {
-            border-color: var(--primary);
-            background: rgba(0, 0, 0, 0.5);
-            outline: none;
-        }
-
-        /* Toast */
-        #toast-container {
-            position: fixed;
-            top: calc(20px + var(--safe-top));
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            display: flex;
-            flex-col;
-            gap: 10px;
-            pointer-events: none;
-            width: 90%;
-            max-width: 350px;
-        }
-
-        .toast {
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            animation: toastPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-        }
-
-        @keyframes toastPop {
-            0% {
-                transform: scale(0.8) translateY(-20px);
-                opacity: 0;
-            }
-
-            100% {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* Sticky Footer */
-        .sticky-action-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 1rem 1.5rem calc(1.5rem + var(--safe-bottom)) 1.5rem;
-            background: linear-gradient(to top, var(--bg-main) 90%, transparent);
-            z-index: 50;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            justify-content: space-between;
-            transition: transform 0.3s;
-        }
-
-        .sticky-action-bar.hidden-bar {
-            transform: translateY(150%);
-        }
-
-        /* Landscape Mode */
-        #gym-mode {
-            display: none;
-        }
-
-        @media (orientation: landscape) and (max-height: 500px) {
-            body {
-                overflow: hidden;
-            }
-
-            #main-ui {
-                display: none;
-            }
-
-            #gym-mode {
-                display: flex;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body class="theme-default">
@@ -398,593 +150,173 @@
                 <button class="tab-btn active px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-white"
                     data-tab="tab-prefs">Prefs</button>
                 <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-slate-400"
+                    data-tab="tab-library">Library</button>
+                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-slate-400"
+                    data-tab="tab-custom">Custom</button>
+                <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-slate-400"
                     data-tab="tab-journal">Journal</button>
                 <button class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0 text-slate-400"
                     data-tab="tab-data">Data</button>
             </div>
 
-            <div id="tab-prefs" class="tab-content active space-y-6">
-                <div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Theme</span>
-                    <div class="grid grid-cols-3 gap-3 mt-2">
-                        <button class="theme-btn h-10 rounded-xl bg-[#6366f1]" data-theme="theme-default"></button>
-                        <button class="theme-btn h-10 rounded-xl bg-[#10b981]" data-theme="theme-emerald"></button>
-                        <button class="theme-btn h-10 rounded-xl bg-[#f43f5e]" data-theme="theme-ruby"></button>
+            <div id="tab-library" class="tab-content space-y-4">
+                <input type="text" id="lib-search" placeholder="Search exercises..." class="glass-input mb-2">
+                <div id="library-list" class="space-y-2 max-h-[50vh] overflow-y-auto pr-2"></div>
+            </div>
+
+            <div id="tab-custom" class="tab-content space-y-4">
+                <button id="create-routine-btn"
+                    class="w-full py-3 gradient-bg rounded-xl font-bold text-white text-xs uppercase tracking-widest shadow-lg">+
+                    New
+                    Routine</button>
+                <div id="custom-routines-list" class="space-y-3 pb-6"></div>
+
+                <div id="tab-prefs" class="tab-content active space-y-6">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Display</span>
+                        <div class="flex items-center justify-between mt-2 glass-panel p-3 rounded-xl">
+                            <span class="text-xs font-bold text-white">Light Mode</span>
+                            <input type="checkbox" id="light-mode-toggle" class="w-5 h-5 accent-indigo-500">
+                        </div>
+                    </div>
+                    <div>
+                        <button id="install-btn"
+                            class="hidden w-full py-3 glass-panel rounded-xl font-bold text-white text-xs uppercase tracking-widest shadow-lg mb-4">
+                            <i class="fas fa-download mr-2"></i> Install App
+                        </button>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Theme</span>
+                        <div class="grid grid-cols-3 gap-3 mt-2">
+                            <button class="theme-btn h-10 rounded-xl bg-[#6366f1]" data-theme="theme-default"></button>
+                            <button class="theme-btn h-10 rounded-xl bg-[#10b981]" data-theme="theme-emerald"></button>
+                            <button class="theme-btn h-10 rounded-xl bg-[#f43f5e]" data-theme="theme-ruby"></button>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-black/20 rounded-2xl border border-white/5">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global
+                            Difficulty</span>
+                        <div class="flex items-center justify-between mt-1 mb-3">
+                            <span class="text-xl font-black text-white" id="modal-level-val">1.0x</span>
+                            <button id="level-reset-btn"
+                                class="text-[9px] font-bold text-slate-500 uppercase hover:text-white">Reset</button>
+                        </div>
+                        <button id="level-up-btn"
+                            class="w-full py-3 gradient-bg rounded-xl font-bold text-white text-xs uppercase tracking-widest shadow-lg active:scale-95 transition">Increase
+                            (+10%)</button>
                     </div>
                 </div>
-                <div class="p-4 bg-black/20 rounded-2xl border border-white/5">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global
-                        Difficulty</span>
-                    <div class="flex items-center justify-between mt-1 mb-3">
-                        <span class="text-xl font-black text-white" id="modal-level-val">1.0x</span>
-                        <button id="level-reset-btn"
-                            class="text-[9px] font-bold text-slate-500 uppercase hover:text-white">Reset</button>
-                    </div>
-                    <button id="level-up-btn"
-                        class="w-full py-3 gradient-bg rounded-xl font-bold text-white text-xs uppercase tracking-widest shadow-lg active:scale-95 transition">Increase
-                        (+10%)</button>
+
+                <div id="tab-journal" class="tab-content space-y-4">
+                    <div id="journal-list" class="space-y-3 pb-6"></div>
+                </div>
+
+                <div id="tab-data" class="tab-content space-y-4">
+                    <button id="export-data" class="w-full py-3 glass-input text-left flex items-center"><i
+                            class="fas fa-download mr-3 text-slate-400"></i> Export Backup</button>
+                    <label class="w-full py-3 glass-input text-left flex items-center cursor-pointer">
+                        <i class="fas fa-upload mr-3 text-slate-400"></i> Import Backup
+                        <input type="file" id="import-data" class="hidden" accept=".json">
+                    </label>
+                    <button id="hard-reset"
+                        class="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl font-bold text-xs uppercase tracking-widest transition">Factory
+                        Reset App</button>
                 </div>
             </div>
+        </div>
 
-            <div id="tab-journal" class="tab-content space-y-4">
-                <div id="journal-list" class="space-y-3 pb-6"></div>
+        <div id="overload-modal"
+            class="hidden fixed inset-0 z-[400] bg-slate-950/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl">
+            <div
+                class="w-20 h-20 rounded-full gradient-bg flex items-center justify-center text-3xl text-white mb-6 shadow-2xl animate-bounce">
+                <i class="fas fa-level-up-alt"></i>
             </div>
-
-            <div id="tab-data" class="tab-content space-y-4">
-                <button id="export-data" class="w-full py-3 glass-input text-left flex items-center"><i
-                        class="fas fa-download mr-3 text-slate-400"></i> Export Backup</button>
-                <label class="w-full py-3 glass-input text-left flex items-center cursor-pointer">
-                    <i class="fas fa-upload mr-3 text-slate-400"></i> Import Backup
-                    <input type="file" id="import-data" class="hidden" accept=".json">
-                </label>
-                <button id="hard-reset"
-                    class="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl font-bold text-xs uppercase tracking-widest transition">Factory
-                    Reset App</button>
+            <h2 class="text-2xl font-black text-white mb-2 text-center">Session Complete!</h2>
+            <p class="text-slate-400 text-sm text-center mb-8">Was that workout too easy for you?</p>
+            <div class="w-full max-w-xs space-y-3">
+                <button id="share-session-btn"
+                    class="w-full py-4 glass-panel rounded-2xl font-bold text-blue-400 uppercase tracking-widest border border-blue-500/30 mb-4">
+                    <i class="fas fa-share-alt mr-2"></i> Share Session
+                </button>
+                <button id="overload-yes"
+                    class="w-full py-4 gradient-bg rounded-2xl font-bold text-white uppercase tracking-widest shadow-lg">Yes,
+                    Make it Harder</button>
+                <button id="overload-no"
+                    class="w-full py-4 glass-panel rounded-2xl font-bold text-slate-400 uppercase tracking-widest">No,
+                    Keep
+                    it same</button>
             </div>
         </div>
-    </div>
 
-    <div id="overload-modal"
-        class="hidden fixed inset-0 z-[400] bg-slate-950/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl">
-        <div
-            class="w-20 h-20 rounded-full gradient-bg flex items-center justify-center text-3xl text-white mb-6 shadow-2xl animate-bounce">
-            <i class="fas fa-level-up-alt"></i>
+        <div id="rest-modal"
+            class="hidden fixed inset-0 z-[400] bg-slate-950/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl">
+            <div class="text-[10rem] font-black gradient-text tabular-nums mb-4 leading-none" id="rest-timer">30</div>
+            <div class="text-white font-black uppercase tracking-[0.5em] text-sm mb-12 animate-pulse"
+                id="next-ex-label">
+                RECOVER</div>
+            <div class="glass-panel p-6 rounded-[2rem] w-full max-w-xs text-center mb-10 transform scale-110">
+                <h3 id="next-ex-name" class="text-2xl font-black text-white">...</h3>
+            </div>
+            <div class="flex space-x-6">
+                <button id="add-time"
+                    class="w-20 h-20 rounded-full glass-panel text-white font-bold hover:bg-white/10 active:scale-90 transition flex flex-col items-center justify-center"><span
+                        class="text-sm">+15</span></button>
+                <button id="skip-rest"
+                    class="w-20 h-20 rounded-full glass-panel text-white font-bold hover:bg-white/10 active:scale-90 transition flex items-center justify-center"><i
+                        class="fas fa-forward text-xl"></i></button>
+            </div>
         </div>
-        <h2 class="text-2xl font-black text-white mb-2 text-center">Session Complete!</h2>
-        <p class="text-slate-400 text-sm text-center mb-8">Was that workout too easy for you?</p>
-        <div class="w-full max-w-xs space-y-3">
-            <button id="overload-yes"
-                class="w-full py-4 gradient-bg rounded-2xl font-bold text-white uppercase tracking-widest shadow-lg">Yes,
-                Make it Harder</button>
-            <button id="overload-no"
-                class="w-full py-4 glass-panel rounded-2xl font-bold text-slate-400 uppercase tracking-widest">No, Keep
-                it same</button>
+
+        <div id="rep-input-modal"
+            class="hidden fixed inset-0 z-[500] bg-slate-950/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl">
+            <div class="text-2xl font-bold text-white mb-2 uppercase tracking-widest" id="rep-input-title">How many
+                reps?</div>
+            <p class="text-slate-400 text-sm mb-6">Target was: <span class="font-bold text-white"
+                    id="rep-input-target">15</span></p>
+            <input type="number" id="rep-input-value"
+                class="w-full max-w-xs text-center text-6xl font-black text-white bg-white/10 rounded-3xl py-4 mb-6 outline-none focus:ring-2 ring-white/20"
+                placeholder="0">
+            <button id="rep-input-submit"
+                class="w-full max-w-xs py-4 gradient-bg rounded-2xl font-bold text-white uppercase tracking-widest shadow-lg">
+                Log Reps
+            </button>
         </div>
-    </div>
 
-    <div id="rest-modal"
-        class="hidden fixed inset-0 z-[400] bg-slate-950/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl">
-        <div class="text-[10rem] font-black gradient-text tabular-nums mb-4 leading-none" id="rest-timer">30</div>
-        <div class="text-white font-black uppercase tracking-[0.5em] text-sm mb-12 animate-pulse" id="next-ex-label">
-            RECOVER</div>
-        <div class="glass-panel p-6 rounded-[2rem] w-full max-w-xs text-center mb-10 transform scale-110">
-            <h3 id="next-ex-name" class="text-2xl font-black text-white">...</h3>
+        <!-- FULLSCREEN WORKOUT MODE -->
+        <div id="fullscreen-workout"
+            class="hidden fixed inset-0 z-[600] bg-slate-950 flex flex-col items-center justify-center p-6 overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-slate-800">
+                <div id="fs-progress-bar" class="h-full gradient-bg transition-all duration-500" style="width: 0%">
+                </div>
+            </div>
+            <div class="absolute top-6 right-6 text-right">
+                <span class="text-[10px] font-bold text-slate-500 uppercase">Session</span>
+                <div id="fs-session-timer" class="text-lg font-mono font-bold text-white">00:00</div>
+            </div>
+            <button id="fs-exit"
+                class="absolute top-6 left-6 w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="fs-exercise-icon"
+                class="w-24 h-24 rounded-3xl gradient-bg flex items-center justify-center text-4xl text-white mb-6 shadow-2xl">
+                <i class="fas fa-dumbbell"></i>
+            </div>
+            <div id="fs-exercise-name" class="text-3xl font-black text-white uppercase tracking-wider mb-2 text-center">
+                Push Ups</div>
+            <div id="fs-exercise-target" class="text-slate-400 font-bold text-sm uppercase mb-8">Target: 15 reps</div>
+            <div id="fs-countdown" class="text-[12rem] font-black gradient-text tabular-nums leading-none mb-8">30</div>
+            <div id="fs-status" class="text-white font-bold uppercase tracking-[0.5em] text-sm animate-pulse">GO!</div>
+            <div class="absolute bottom-10 flex space-x-4">
+                <button id="fs-add-time"
+                    class="px-6 py-3 glass-panel rounded-2xl text-white font-bold text-xs uppercase">+15s</button>
+                <button id="fs-skip"
+                    class="px-6 py-3 glass-panel rounded-2xl text-white font-bold text-xs uppercase">Skip</button>
+            </div>
         </div>
-        <div class="flex space-x-6">
-            <button id="add-time"
-                class="w-20 h-20 rounded-full glass-panel text-white font-bold hover:bg-white/10 active:scale-90 transition flex flex-col items-center justify-center"><span
-                    class="text-sm">+15</span></button>
-            <button id="skip-rest"
-                class="w-20 h-20 rounded-full glass-panel text-white font-bold hover:bg-white/10 active:scale-90 transition flex items-center justify-center"><i
-                    class="fas fa-forward text-xl"></i></button>
-        </div>
-    </div>
 
-    <script>
-        $(document).ready(function () {
-            /** 
-             * BACKEND: DATA LAYER 
-             * Centralizes storage, validation, and schema.
-             */
-            class DataManager {
-                constructor() {
-                    this.KEYS = { SCHED: 'iri_sched', COMP: 'iri_comp', PROF: 'iri_prof', HIST: 'iri_hist', STREAK: 'iri_str' };
-                    this.defaults = {
-                        schedule: {
-                            1: { focus: "Chest & Triceps", color: "#10b981", muscles: ["Chest", "Arms"], exercises: [{ id: "m1", name: "Push Ups", reps: 15, unit: "Reps", icon: "fa-hand-rock", rest: 30 }, { id: "m2", name: "Plank", reps: 45, unit: "Sec", icon: "fa-stopwatch", rest: 30 }, { id: "m3", name: "Tricep Dips", reps: 15, unit: "Reps", icon: "fa-chair", rest: 30 }] },
-                            2: { focus: "Back & Biceps", color: "#3b82f6", muscles: ["Chest", "Arms"], exercises: [{ id: "tu1", name: "Superman Holds", reps: 45, unit: "Sec", icon: "fa-superpowers", rest: 30 }, { id: "tu2", name: "Doorframe Rows", reps: 15, unit: "Reps", icon: "fa-columns", rest: 30 }, { id: "tu3", name: "Good Mornings", reps: 20, unit: "Reps", icon: "fa-sun", rest: 40 }] },
-                            3: { focus: "Legs & Glutes", color: "#f59e0b", muscles: ["Legs"], exercises: [{ id: "w1", name: "Air Squats", reps: 20, unit: "Reps", icon: "fa-chevron-down", rest: 30 }, { id: "w2", name: "Lunges", reps: 12, unit: "Per Leg", icon: "fa-person-walking", rest: 45 }, { id: "w3", name: "Wall Sit", reps: 45, unit: "Sec", icon: "fa-chair", rest: 30 }] },
-                            4: { focus: "Shoulders & Core", color: "#f43f5e", muscles: ["Arms", "Abs"], exercises: [{ id: "th1", name: "Pike Push Ups", reps: 10, unit: "Reps", icon: "fa-mountain", rest: 45 }, { id: "th2", name: "Plank", reps: 60, unit: "Sec", icon: "fa-stopwatch", rest: 30 }, { id: "th3", name: "Russian Twists", reps: 25, unit: "Reps", icon: "fa-arrows-spin", rest: 30 }] },
-                            5: { focus: "Full Body Intensity", color: "#ef4444", muscles: ["Chest", "Arms", "Legs", "Abs"], exercises: [{ id: "f1", name: "Burpees", reps: 10, unit: "Reps", icon: "fa-fire", rest: 60 }, { id: "f2", name: "Mtn Climbers", reps: 40, unit: "Sec", icon: "fa-person-running", rest: 30 }, { id: "f3", name: "Jumping Jacks", reps: 50, unit: "Reps", icon: "fa-star", rest: 20 }] },
-                            6: { focus: "Active Recovery", color: "#10b981", muscles: ["Abs"], exercises: [{ id: "s1", name: "Bird Dog", reps: 10, unit: "Per Side", icon: "fa-dog", rest: 20 }, { id: "s2", name: "Cat Cow", reps: 60, unit: "Sec", icon: "fa-cat", rest: 20 }] },
-                            0: { focus: "Rest & Mobility", color: "#64748b", muscles: [], exercises: [{ id: "su1", name: "Light Walk", reps: 15, unit: "Mins", icon: "fa-shoe-prints", rest: 0 }] }
-                        },
-                        profile: { level: 1.0, theme: 'theme-default', sound: 'voice', warmup: false },
-                        streak: { count: 0, last: null }
-                    };
-
-                    this.schedule = this._load(this.KEYS.SCHED, this.defaults.schedule);
-                    this.completed = this._load(this.KEYS.COMP, {});
-                    this.profile = this._load(this.KEYS.PROF, this.defaults.profile);
-                    this.history = this._load(this.KEYS.HIST, []);
-                    this.streak = this._load(this.KEYS.STREAK, this.defaults.streak);
-                }
-
-                _load(key, fallback) {
-                    try {
-                        const saved = JSON.parse(localStorage.getItem(key));
-                        return saved ? saved : fallback;
-                    } catch (e) { console.error("Load Error", e); return fallback; }
-                }
-
-                save(key, data) {
-                    localStorage.setItem(this.KEYS[key], JSON.stringify(data));
-                }
-
-                clear() { localStorage.clear(); location.reload(); }
-
-                exportData() {
-                    const data = { schedule: this.schedule, completed: this.completed, profile: this.profile, history: this.history, streak: this.streak };
-                    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-                    a.download = `dailyburn_backup_${new Date().toISOString().slice(0, 10)}.json`; a.click();
-                }
-
-                importData(file, cb) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const d = JSON.parse(e.target.result);
-                            if (d.schedule) localStorage.setItem(this.KEYS.SCHED, JSON.stringify(d.schedule));
-                            if (d.history) localStorage.setItem(this.KEYS.HIST, JSON.stringify(d.history));
-                            // Basic validation: Check if schedule has keys 0-6
-                            if (d.schedule && !d.schedule['1']) throw new Error("Invalid Schedule Format");
-                            cb(true, "Data Imported successfully");
-                        } catch (err) { cb(false, "Invalid Backup File"); }
-                    };
-                    reader.readAsText(file);
-                }
-            }
-
-            /**
-             * FRONTEND: CONTROLLER
-             * Manages App State, Timer, Audio, and UI Events.
-             */
-            class WorkoutApp {
-                constructor() {
-                    this.db = new DataManager();
-                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    this.synth = window.speechSynthesis;
-
-                    this.state = {
-                        activeDay: new Date().getDay(),
-                        isSessionActive: false,
-                        isEditing: false,
-                        sessionSeconds: 0,
-                        timerIntv: null,
-                        currentList: [],
-                        warmupRoutine: [
-                            { id: "wm1", name: "Arm Circles", reps: 30, unit: "Sec", icon: "fa-sync", rest: 10 },
-                            { id: "wm2", name: "Jumping Jacks", reps: 20, unit: "Reps", icon: "fa-star", rest: 15 }
-                        ]
-                    };
-
-                    this.init();
-                }
-
-                init() {
-                    this.applyTheme(this.db.profile.theme);
-                    this.checkStreak();
-                    this.bindEvents();
-                    this.loadDay(this.state.activeDay);
-                    this.updateSettingsUI();
-                    $('#warmup-toggle').prop('checked', this.db.profile.warmup);
-                    this.updateAudioIcon();
-                }
-
-                // --- LOGIC ---
-                loadDay(dayIdx) {
-                    this.state.activeDay = parseInt(dayIdx);
-                    this.renderWeekNav();
-
-                    const dayData = this.db.schedule[this.state.activeDay];
-                    $('#day-focus').text(dayData.focus);
-                    $('.muscle-part').removeClass('muscle-active');
-                    dayData.muscles.forEach(m => $(`.muscle-part[data-muscle="${m}"]`).addClass('muscle-active'));
-
-                    this.buildQueue();
-                    this.renderList();
-                    this.updateProgress();
-                }
-
-                buildQueue() {
-                    const base = this.db.schedule[this.state.activeDay].exercises;
-                    this.state.currentList = (this.db.profile.warmup && !this.state.isEditing)
-                        ? [...this.state.warmupRoutine, ...base]
-                        : [...base];
-                }
-
-                toggleSession() {
-                    if (this.state.isSessionActive) {
-                        if (confirm("End current session?")) this.endSession(true);
-                    } else {
-                        this.startSession();
-                    }
-                }
-
-                startSession() {
-                    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-                    this.state.isSessionActive = true;
-
-                    // UI Updates
-                    $('#main-action-btn').html('<i class="fas fa-stop mr-2"></i> End Session').addClass('bg-red-500').removeClass('gradient-bg');
-                    $('#reset-day-btn').addClass('opacity-0 pointer-events-none');
-                    $('#quick-warmup-container').fadeOut();
-                    $('#timer-label').text("Active");
-
-                    if (this.state.isEditing) this.toggleEditMode(); // Exit edit mode
-
-                    this.state.sessionSeconds = 0;
-                    clearInterval(this.state.timerIntv);
-                    this.state.timerIntv = setInterval(() => {
-                        this.state.sessionSeconds++;
-                        const m = Math.floor(this.state.sessionSeconds / 60).toString().padStart(2, '0');
-                        const s = (this.state.sessionSeconds % 60).toString().padStart(2, '0');
-                        $('#global-timer, #gym-timer').text(`${m}:${s}`);
-                    }, 1000);
-
-                    this.showToast("Session Started");
-                    this.speak("Session started.");
-                    this.renderList();
-                    this.updateGymMode();
-                }
-
-                endSession(userAction = true) {
-                    this.state.isSessionActive = false;
-                    clearInterval(this.state.timerIntv);
-
-                    $('#main-action-btn').html('<i class="fas fa-play mr-2"></i> Start Session').addClass('gradient-bg').removeClass('bg-red-500');
-                    $('#reset-day-btn').removeClass('opacity-0 pointer-events-none');
-                    $('#quick-warmup-container').fadeIn();
-                    $('#global-timer').text("00:00");
-                    $('#timer-label').text("Duration");
-                    $('#gym-name').text("START"); $('#gym-target').text("--"); $('#gym-unit').text("--");
-
-                    if (userAction) this.showToast("Session Stopped");
-                    this.renderList();
-                }
-
-                completeExercise(id, btnEl) {
-                    const day = this.state.activeDay;
-                    if (!this.db.completed[day]) this.db.completed[day] = [];
-
-                    if (!this.db.completed[day].includes(id)) {
-                        this.db.completed[day].push(id);
-                        this.db.save('COMP', this.db.completed);
-                    }
-
-                    $(`#card-${id}`).addClass('completed');
-                    btnEl.replaceWith(`<div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg"><i class="fas fa-check text-white"></i></div>`);
-                    if (navigator.vibrate) navigator.vibrate(50);
-
-                    this.updateProgress();
-                    this.updateGymMode();
-
-                    const remaining = this.state.currentList.filter(e => !this.db.completed[day].includes(e.id));
-                    if (remaining.length > 0) {
-                        this.triggerRest(remaining[0]);
-                        setTimeout(() => { document.getElementById('card-' + remaining[0].id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600);
-                    } else {
-                        this.finishSession();
-                    }
-                }
-
-                triggerRest(nextEx) {
-                    $('#rest-modal').removeClass('hidden');
-                    $('#next-ex-name').text(nextEx.name);
-                    this.speak("Rest.");
-
-                    let time = nextEx.rest || 30;
-                    $('#rest-timer').text(time);
-
-                    const intv = setInterval(() => {
-                        time--;
-                        $('#rest-timer').text(time);
-                        if (time <= 3 && time > 0) this.playSound("beep");
-                        if (time <= 0) {
-                            clearInterval(intv);
-                            $('#rest-modal').addClass('hidden');
-                            this.speak("Start!");
-                        }
-                    }, 1000);
-
-                    // Button Handlers
-                    $('#skip-rest').off().one('click', () => { clearInterval(intv); $('#rest-modal').addClass('hidden'); });
-                    $('#add-time').off().click(() => { time += 15; $('#rest-timer').text(time); });
-                }
-
-                finishSession() {
-                    this.updateStreak(true);
-                    this.db.history.unshift({ date: new Date().toLocaleString(), focus: this.db.schedule[this.state.activeDay].focus, time: $('#global-timer').text() });
-                    if (this.db.history.length > 20) this.db.history.pop();
-                    this.db.save('HIST', this.db.history);
-
-                    this.endSession(false);
-                    this.fireConfetti();
-                    this.speak("Session Complete!");
-                    setTimeout(() => $('#overload-modal').removeClass('hidden'), 500);
-                }
-
-                toggleEditMode() {
-                    if (this.state.isSessionActive) { this.showToast("Stop session to edit!"); return; }
-                    this.state.isEditing = !this.state.isEditing;
-
-                    const btn = $('#toggle-edit');
-                    if (this.state.isEditing) {
-                        btn.html('<i class="fas fa-check text-green-400"></i>').addClass('border-green-400');
-                        $('#action-bar').addClass('hidden-bar');
-                        $('#quick-warmup-container').addClass('opacity-0 pointer-events-none');
-                        this.showToast("Edit Mode Active");
-                    } else {
-                        this.saveEdits();
-                        btn.html('<i class="fas fa-pencil-alt text-sm"></i>').removeClass('border-green-400');
-                        $('#action-bar').removeClass('hidden-bar');
-                        $('#quick-warmup-container').removeClass('opacity-0 pointer-events-none');
-                        this.showToast("Changes Saved");
-                    }
-                    this.renderList();
-                }
-
-                saveEdits() {
-                    $('.edit-name').each((i, el) => {
-                        const id = $(el).data('id');
-                        const ex = this.db.schedule[this.state.activeDay].exercises.find(e => e.id === id);
-                        if (ex) ex.name = $(el).val();
-                    });
-                    $('.edit-reps').each((i, el) => {
-                        const id = $(el).data('id');
-                        const ex = this.db.schedule[this.state.activeDay].exercises.find(e => e.id === id);
-                        if (ex) ex.reps = parseInt($(el).val());
-                    });
-                    this.db.save('SCHED', this.db.schedule);
-                    this.buildQueue();
-                }
-
-                // --- RENDERING ---
-                renderWeekNav() {
-                    const container = $('#day-nav-container').empty();
-                    const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-                    days.forEach((d, i) => {
-                        const activeClass = (i === this.state.activeDay) ? 'active' : 'glass-panel text-slate-400';
-                        const hasData = this.db.completed[i] && this.db.completed[i].length === this.db.schedule[i].exercises.length;
-                        container.append(`<button class="day-btn w-10 h-14 rounded-xl flex flex-col items-center justify-center relative shrink-0 ${activeClass}" data-day="${i}"><span class="text-[9px] uppercase font-bold opacity-60">${d}</span><span class="text-lg font-black">${i === new Date().getDay() ? '★' : new Date().getDate() + (i - new Date().getDay())}</span>${hasData ? '<div class="status-dot"></div>' : ''}</button>`);
-                    });
-                    // Rebind
-                    $('.day-btn').click((e) => this.loadDay($(e.currentTarget).data('day')));
-                }
-
-                renderList() {
-                    const container = $('#workout-list').empty();
-                    const source = this.state.isEditing ? this.db.schedule[this.state.activeDay].exercises : this.state.currentList;
-
-                    if (source.length === 0) { container.html('<div class="text-center text-slate-500 py-10">No exercises.</div>'); return; }
-
-                    source.forEach((ex, idx) => {
-                        const isDone = this.db.completed[this.state.activeDay]?.includes(ex.id);
-                        const reps = Math.ceil(ex.reps * this.db.profile.level);
-                        const isTimed = (ex.unit.toLowerCase().includes('sec'));
-                        const isWarmup = ex.id.startsWith('wm');
-
-                        if (this.state.isEditing) {
-                            container.append(`
-                                <div class="glass-panel p-4 rounded-3xl grid grid-cols-12 gap-2 anim-enter" style="animation-delay: ${idx * 0.05}s">
-                                    <div class="col-span-8"><label class="text-[9px] text-slate-500 uppercase">Name</label><input type="text" class="edit-input edit-name" value="${ex.name}" data-id="${ex.id}"></div>
-                                    <div class="col-span-4"><label class="text-[9px] text-slate-500 uppercase">Reps</label><input type="number" class="edit-input edit-reps" value="${ex.reps}" data-id="${ex.id}"></div>
-                                </div>`);
-                        } else {
-                            let btnHtml = '';
-                            if (!this.state.isSessionActive) btnHtml = `<div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-500"><i class="fas fa-lock text-xs"></i></div>`;
-                            else if (isDone) btnHtml = `<div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center shadow-lg"><i class="fas fa-check text-white"></i></div>`;
-                            else if (isTimed) btnHtml = `<button class="timer-btn w-12 h-12 rounded-full glass-panel flex items-center justify-center text-white active:scale-90 transition" data-id="${ex.id}" data-duration="${reps}"><i class="fas fa-play text-xs"></i></button>`;
-                            else btnHtml = `<button class="check-btn w-12 h-12 rounded-full glass-panel flex items-center justify-center text-slate-500 hover:text-white active:scale-90 transition" data-id="${ex.id}"><i class="fas fa-check"></i></button>`;
-
-                            const badge = isWarmup ? `<span class="text-[9px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded ml-2 uppercase font-bold">Warmup</span>` : '';
-                            container.append(`
-                                <div class="glass-panel p-5 rounded-[1.8rem] transition-all duration-300 ${isDone ? 'completed' : ''} anim-enter" id="card-${ex.id}" style="animation-delay: ${idx * 0.05}s">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white gradient-bg shadow-lg"><i class="fas ${ex.icon}"></i></div>
-                                            <div><div class="flex items-center"><h3 class="font-bold text-white uppercase text-sm tracking-tight">${ex.name}</h3>${badge}</div><p class="text-slate-400 font-bold text-xs uppercase dynamic-text-${ex.id}">${reps} ${ex.unit}</p></div>
-                                        </div>
-                                        ${btnHtml}
-                                    </div>
-                                </div>`);
-                        }
-                    });
-                }
-
-                updateProgress() {
-                    const total = this.state.currentList.length;
-                    const done = this.state.currentList.filter(e => this.db.completed[this.state.activeDay]?.includes(e.id)).length;
-                    const pct = Math.round((done / total) * 100) || 0;
-                    $('#percent-text').text(pct + '%');
-                    $('#mini-progress').css('width', pct + '%');
-                    if (done === total && total > 0) this.renderWeekNav();
-                }
-
-                updateGymMode() {
-                    if (!this.state.isSessionActive) return;
-                    const nextEx = this.state.currentList.find(e => !this.db.completed[this.state.activeDay]?.includes(e.id));
-                    if (nextEx) {
-                        $('#gym-name').text(nextEx.name);
-                        $('#gym-target').text(Math.ceil(nextEx.reps * this.db.profile.level));
-                        $('#gym-unit').text(nextEx.unit);
-                    } else {
-                        $('#gym-name').text("DONE"); $('#gym-target').text("✔"); $('#gym-unit').text("");
-                    }
-                }
-
-                // --- EVENTS & UTILS ---
-                bindEvents() {
-                    $('#main-action-btn').click(() => this.toggleSession());
-                    $('#toggle-edit').click(() => this.toggleEditMode());
-
-                    $(document).on('click', '.check-btn', (e) => this.completeExercise($(e.currentTarget).data('id'), $(e.currentTarget)));
-                    $(document).on('click', '.timer-btn', (e) => {
-                        const btn = $(e.currentTarget); if (btn.hasClass('running')) return;
-                        btn.addClass('running gradient-bg border-transparent text-white');
-                        let timeLeft = btn.data('duration');
-                        const label = $(`.dynamic-text-${btn.data('id')}`);
-                        this.speak("Go");
-
-                        const intv = setInterval(() => {
-                            timeLeft--;
-                            btn.html(`<span class="text-xs font-black text-white">${timeLeft}</span>`);
-                            label.text(timeLeft + " Sec").addClass('gradient-text');
-                            if (timeLeft <= 3 && timeLeft > 0) this.playSound("beep");
-                            if (timeLeft <= 0) { clearInterval(intv); this.completeExercise(btn.data('id'), btn); }
-                        }, 1000);
-                    });
-
-                    // Settings & Modals
-                    $('.tab-btn').click((e) => {
-                        const tabId = $(e.currentTarget).data('tab');
-                        $('.tab-content').removeClass('active');
-                        $('.tab-btn').removeClass('active text-white').addClass('text-slate-400');
-                        $(`#${tabId}`).addClass('active');
-                        $(`[data-tab="${tabId}"]`).addClass('active text-white').removeClass('text-slate-400');
-                    });
-
-                    $('#open-profile').click(() => {
-                        const el = $('#journal-list').empty();
-                        if (this.db.history.length === 0) el.html('<div class="text-center text-slate-500 text-xs py-10">No history yet.</div>');
-                        else this.db.history.forEach(h => el.append(`<div class="glass-panel p-4 rounded-2xl flex justify-between items-center mb-2"><div><div class="text-[10px] text-slate-500">${h.date}</div><div class="font-bold text-white text-sm">${h.focus}</div></div><div class="text-xs font-mono text-slate-300">${h.time}</div></div>`));
-                        $('#profile-modal').removeClass('hidden');
-                    });
-
-                    $('#close-profile').click(() => $('#profile-modal').addClass('hidden'));
-
-                    // Profile Actions
-                    $('.theme-btn').click((e) => { const t = $(e.currentTarget).data('theme'); this.applyTheme(t); });
-                    $('#quick-mute').click(() => {
-                        this.db.profile.sound = (this.db.profile.sound === 'silent') ? 'voice' : 'silent';
-                        this.db.save('PROF', this.db.profile);
-                        this.updateAudioIcon();
-                        this.showToast(this.db.profile.sound === 'silent' ? "Muted" : "Voice On");
-                    });
-                    $('#level-up-btn').click(() => { this.db.profile.level += 0.1; this.db.save('PROF', this.db.profile); this.updateSettingsUI(); this.loadDay(this.state.activeDay); });
-                    $('#level-reset-btn').click(() => { this.db.profile.level = 1.0; this.db.save('PROF', this.db.profile); this.updateSettingsUI(); this.loadDay(this.state.activeDay); });
-
-                    $('#export-data').click(() => this.db.exportData());
-                    $('#import-data').change((e) => this.db.importData(e.target.files[0], (success, msg) => {
-                        this.showToast(msg);
-                        if (success) location.reload();
-                    }));
-                    $('#hard-reset').click(() => { if (confirm("Factory Reset?")) this.db.clear(); });
-
-                    // Warmup Toggle
-                    $('#warmup-toggle').change((e) => {
-                        this.db.profile.warmup = e.target.checked;
-                        this.db.save('PROF', this.db.profile);
-                        this.loadDay(this.state.activeDay);
-                    });
-
-                    // Overload Modal
-                    $('#overload-yes').click(() => {
-                        this.db.schedule[this.state.activeDay].exercises.forEach(e => {
-                            if (e.unit.toLowerCase().includes('sec')) e.reps += 5; else e.reps += 2;
-                        });
-                        this.db.save('SCHED', this.db.schedule);
-                        $('#overload-modal').addClass('hidden');
-                        this.showToast("Difficulty Increased!");
-                        this.loadDay(this.state.activeDay);
-                    });
-                    $('#overload-no').click(() => $('#overload-modal').addClass('hidden'));
-
-                    // Reset Day
-                    $('#reset-day-btn').click(() => {
-                        if (confirm("Clear day?")) {
-                            delete this.db.completed[this.state.activeDay];
-                            this.db.save('COMP', this.db.completed);
-                            this.loadDay(this.state.activeDay);
-                        }
-                    });
-                }
-
-                // --- HELPERS ---
-                checkStreak() {
-                    const today = new Date().toDateString();
-                    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                    if (this.db.streak.last !== today && this.db.streak.last !== yesterday.toDateString()) {
-                        if (this.db.streak.last) { this.db.streak.count = 0; }
-                    }
-                    $('#streak-count').text(this.db.streak.count);
-                    if (this.db.streak.count > 0) $('#streak-icon').removeClass('text-slate-600').addClass('text-orange-500 streak-fire');
-                    else $('#streak-icon').addClass('text-slate-600').removeClass('text-orange-500 streak-fire');
-                }
-
-                updateStreak(increment = false) {
-                    const today = new Date().toDateString();
-                    if (increment && this.db.streak.last !== today) {
-                        this.db.streak.count++;
-                        this.db.streak.last = today;
-                        this.db.save('STREAK', this.db.streak);
-                    }
-                    this.checkStreak();
-                }
-
-                applyTheme(t) {
-                    $('body').removeClass().addClass(t);
-                    this.db.profile.theme = t;
-                    this.db.save('PROF', this.db.profile);
-                }
-
-                updateSettingsUI() { $('#modal-level-val').text(this.db.profile.level.toFixed(1) + "x"); }
-
-                updateAudioIcon() {
-                    if (this.db.profile.sound === 'silent') $('#quick-mute').html('<i class="fas fa-volume-mute text-red-400"></i>');
-                    else $('#quick-mute').html('<i class="fas fa-volume-up text-xs"></i>');
-                }
-
-                showToast(msg) {
-                    const t = $(`<div class="toast">${msg}</div>`);
-                    $('#toast-container').append(t);
-                    setTimeout(() => { t.fadeOut(300, () => t.remove()); }, 2000);
-                }
-
-                speak(text) {
-                    if (this.db.profile.sound === 'silent') return;
-                    this.synth.cancel();
-                    const u = new SpeechSynthesisUtterance(text);
-                    u.rate = 1.1;
-                    this.synth.speak(u);
-                }
-
-                playSound(type) {
-                    if (this.db.profile.sound === 'silent') return;
-                    if (type === 'beep') {
-                        const o = this.audioCtx.createOscillator();
-                        const g = this.audioCtx.createGain();
-                        o.connect(g); g.connect(this.audioCtx.destination);
-                        o.type = 'triangle'; o.frequency.value = 600;
-                        o.start(); g.gain.exponentialRampToValueAtTime(0.00001, this.audioCtx.currentTime + 0.15);
-                        o.stop(this.audioCtx.currentTime + 0.15);
-                    }
-                }
-
-                fireConfetti() {
-                    const c = document.getElementById('confetti-canvas');
-                    const x = c.getContext('2d');
-                    c.width = window.innerWidth; c.height = window.innerHeight;
-                    let p = []; for (let i = 0; i < 100; i++)p.push({ x: c.width / 2, y: c.height / 2, vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20, c: `hsl(${Math.random() * 360},100%,50%)`, a: 1 });
-                    function a() { x.clearRect(0, 0, c.width, c.height); p.forEach((k, i) => { k.x += k.vx; k.y += k.vy; k.vy += 0.5; k.a -= 0.02; x.fillStyle = k.c; x.globalAlpha = k.a; x.fillRect(k.x, k.y, 8, 8); if (k.a <= 0) p.splice(i, 1) }); if (p.length) requestAnimationFrame(a); } a();
-                }
-            }
-
-            // --- INIT ---
-            window.App = new WorkoutApp();
-        });
-    </script>
+        <script src="js/DataManager.js"></script>
+        <script src="js/WorkoutApp.js"></script>
+        <script src="js/main.js"></script>
 </body>
 
 </html>
