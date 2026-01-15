@@ -109,89 +109,153 @@
     </div>
 
     <!-- Main Container -->
-    <div class="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        <!-- Left Side: Serving Display -->
-        <div class="lg:col-span-12 flex justify-between items-center mb-4 px-4">
+        <!-- Header Row -->
+        <div class="lg:col-span-12 flex justify-between items-center px-4">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-lg">
-                    <span class="text-white font-bold text-lg">Q</span>
+                <div
+                    class="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <span class="text-white font-bold text-xl">Q</span>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight">Q-Next</h1>
+                    <h1 class="text-2xl font-black tracking-tight tracking-tighter">Q-Next <span
+                            class="text-indigo-600">Pro</span></h1>
                     <div class="flex items-center gap-1.5 opacity-60">
                         <div class="live-dot"></div>
-                        <span class="text-[10px] uppercase font-bold tracking-wider">Kiosk Live</span>
+                        <span class="text-[10px] uppercase font-bold tracking-widest text-emerald-600">Terminal
+                            Active</span>
                     </div>
                 </div>
             </div>
 
             <div id="connection-status"
-                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-100 shadow-sm transition-all duration-300">
-                <div class="w-2 h-2 rounded-full bg-yellow-400" id="status-dot"></div>
-                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
-                    id="status-text">Connecting</span>
+                class="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-gray-100 shadow-sm">
+                <div class="flex flex-col items-end">
+                    <span class="text-[9px] uppercase font-black text-gray-400 leading-none mb-0.5">Network</span>
+                    <span class="text-[11px] font-bold text-gray-600" id="status-text">Synchronizing</span>
+                </div>
+                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]"
+                    id="status-dot"></div>
             </div>
         </div>
 
-        <!-- MAIN CARD -->
-        <div class="lg:col-span-7">
-            <div
-                class="glass-panel rounded-[3rem] p-12 text-center relative overflow-hidden h-full flex flex-col justify-center">
-                <p class="text-gray-400 font-bold uppercase tracking-[0.3em] text-sm mb-4">Now Serving</p>
+        <!-- LEFT COLUMN: Main Display -->
+        <div class="lg:col-span-8 space-y-6">
+            <!-- MAIN SERVING CARD -->
+            <div class="glass-panel rounded-[3.5rem] p-12 text-center relative overflow-hidden group">
+                <div
+                    class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-20 group-hover:opacity-100 transition-opacity duration-1000">
+                </div>
+
+                <p class="text-gray-400 font-bold uppercase tracking-[0.4em] text-xs mb-4">Now Serving</p>
                 <div id="serving-display"
-                    class="text-[12rem] font-extrabold leading-none tracking-tighter gradient-text">
+                    class="text-[14rem] font-black leading-none tracking-tighter gradient-text drop-shadow-sm select-none">
                     --
                 </div>
-                <div class="mt-8 flex items-center justify-center gap-4 text-gray-400 font-medium">
-                    <span class="px-4 py-1.5 bg-gray-100 rounded-full text-xs">Tickets Issued: <b id="last-issued"
-                            class="text-black ml-1">--</b></span>
+
+                <div class="mt-8 flex items-center justify-center gap-8">
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Total
+                            Issued</span>
+                        <div class="text-2xl font-bold bg-gray-100 px-4 py-1 rounded-full" id="last-issued">--</div>
+                    </div>
+                    <div class="w-px h-10 bg-gray-100"></div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Waiting</span>
+                        <div class="text-2xl font-bold text-indigo-600 bg-indigo-50 px-4 py-1 rounded-full"
+                            id="waiting-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTROLS CARD -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button id="btn-next"
+                    class="btn-action bg-black text-white p-8 rounded-[2.5rem] font-black text-2xl flex flex-col items-center justify-center gap-2 shadow-2xl group relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500 opacity-20">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span>NEXT CUSTOMER</span>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-8 w-8 group-hover:translate-x-1 transition-transform" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </div>
+                    <span class="text-[10px] font-bold text-gray-400 tracking-widest uppercase mt-2">Call next
+                        ticket</span>
+                </button>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <button id="btn-chime"
+                        class="btn-action bg-white border-2 border-transparent hover:border-gray-100 p-6 rounded-[2rem] font-bold text-gray-600 flex items-center justify-center gap-4 group">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-black font-bold">Audio Test</p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Verify chime</p>
+                        </div>
+                    </button>
+                    <button id="btn-reset"
+                        class="btn-action bg-white border-2 border-transparent hover:border-red-50 p-6 rounded-[2rem] font-bold text-gray-400 hover:text-red-500 flex items-center justify-center gap-4 group">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center group-hover:bg-red-50 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-bold">System Reset</p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Clear all data</p>
+                        </div>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT SIDE: CONTROLS & QR -->
-        <div class="lg:col-span-5 space-y-6">
-
-            <!-- QR CODE CARD -->
-            <div class="glass-panel rounded-[2.5rem] p-8 text-center space-y-6">
-                <div>
-                    <h3 class="font-bold text-lg">Join the Queue</h3>
-                    <p class="text-gray-400 text-xs">Scan the code on your phone</p>
+        <!-- RIGHT COLUMN: Activity & QR -->
+        <div class="lg:col-span-4 space-y-6 self-stretch">
+            <!-- QR CODE BOX -->
+            <div class="glass-panel rounded-[2.5rem] p-8 text-center flex flex-col items-center">
+                <div class="mb-4 text-left w-full px-2">
+                    <h3 class="font-black text-lg">Customer Portal</h3>
+                    <p class="text-gray-400 text-[11px] font-bold uppercase tracking-wider">Scan to get ticket</p>
                 </div>
-                <div class="flex justify-center">
-                    <div id="qrcode" class="transition-all duration-500 scale-95 hover:scale-100"></div>
+                <div id="qrcode"
+                    class="p-4 bg-white rounded-3xl shadow-inner mb-4 transition-transform hover:scale-[1.02] cursor-none">
                 </div>
-            </div>
-
-            <!-- BUTTONS -->
-            <div class="grid grid-cols-1 gap-4">
-                <button id="btn-next"
-                    class="btn-action w-full bg-black text-white py-6 rounded-[2rem] font-bold text-xl flex items-center justify-center gap-3 shadow-2xl">
-                    <span>Next Customer</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                            d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                </button>
-                <div class="grid grid-cols-2 gap-4">
-                    <button id="btn-chime"
-                        class="btn-action bg-white border border-gray-100 py-4 rounded-[1.5rem] font-bold text-gray-600 hover:text-black hover:bg-gray-50 flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        Test Audio
-                    </button>
-                    <button id="btn-reset"
-                        class="btn-action bg-white border border-gray-100 py-4 rounded-[1.5rem] font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center gap-2">
-                        Reset
-                    </button>
+                <div class="w-full bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center">Direct
+                        Link</p>
+                    <p id="client-link-text"
+                        class="text-[10px] font-medium text-indigo-600 break-all select-all text-center"></p>
                 </div>
             </div>
 
+            <!-- ACTIVITY FEED -->
+            <div class="glass-panel rounded-[2.5rem] p-8 flex-grow">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-black text-lg text-black">Live Feed</h3>
+                    <span
+                        class="px-2 py-1 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded-md uppercase tracking-widest">Live</span>
+                </div>
+                <div id="activity-feed" class="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div class="flex items-center gap-3 opacity-40 py-2 border-b border-gray-50 italic text-[11px]">
+                        Waiting for activity...
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -224,6 +288,7 @@
             }
 
             const clientUrl = getClientUrl();
+            $('#client-link-text').text(clientUrl);
 
             // Generate QR Code
             new QRCode(document.getElementById("qrcode"), {
@@ -255,10 +320,18 @@
                 if (data) {
                     const current = data.current_serving || 0;
                     const issued = data.last_issued || 0;
+                    const tickets = data.tickets || {};
 
-                    // Update UI with counting animation effect if possible
+                    // Update UI
                     updateDisplay('#serving-display', current === 0 ? '--' : current);
                     $('#last-issued').text(issued);
+
+                    // Update Waiting Count
+                    const waiting = Object.values(tickets).filter(t => t.status === 'waiting').length;
+                    $('#waiting-count').text(waiting);
+
+                    // Update Activity Feed
+                    updateActivityFeed(current, tickets);
 
                     if (lastServedValue !== null && current > lastServedValue) {
                         playChime();
@@ -276,8 +349,49 @@
             });
 
             function updateDisplay(el, val) {
-                $(el).fadeOut(100, function () {
-                    $(this).text(val).fadeIn(200);
+                const display = $(el);
+                if (display.text() !== val.toString()) {
+                    display.css('transform', 'scale(0.95)').css('opacity', '0');
+                    setTimeout(() => {
+                        display.text(val).css('transform', 'scale(1)').css('opacity', '1');
+                    }, 150);
+                }
+            }
+
+            function updateActivityFeed(current, tickets) {
+                const feed = $('#activity-feed');
+                feed.empty();
+
+                // Sort tickets by timestamp to show latest activity
+                const sortedTickets = Object.entries(tickets)
+                    .map(([id, data]) => ({ id, ...data, num: id.split('_')[1] }))
+                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .slice(0, 10);
+
+                if (sortedTickets.length === 0) {
+                    feed.append('<div class="text-[11px] text-gray-400 italic">No tickets issued yet.</div>');
+                    return;
+                }
+
+                sortedTickets.forEach(ticket => {
+                    const isServed = parseInt(ticket.num) <= parseInt(current);
+                    const isNow = parseInt(ticket.num) === parseInt(current);
+
+                    const item = $(`
+                        <div class="flex items-center justify-between p-3 rounded-2xl ${isNow ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-gray-50'} transition-all duration-500">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full ${isServed ? (isNow ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-400') : 'bg-emerald-50 text-emerald-600'} flex items-center justify-center font-black text-[10px]">
+                                    #${ticket.num}
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold ${isNow ? 'text-indigo-900' : 'text-gray-900'}">${ticket.name}</p>
+                                    <p class="text-[9px] uppercase font-black text-gray-400 tracking-wider">${isNow ? 'Now Serving' : (isServed ? 'Served' : 'Waiting')}</p>
+                                </div>
+                            </div>
+                            ${isNow ? '<div class="w-2 h-2 rounded-full bg-indigo-500 animate-ping"></div>' : ''}
+                        </div>
+                    `);
+                    feed.append(item);
                 });
             }
 
