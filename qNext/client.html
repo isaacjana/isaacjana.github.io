@@ -57,6 +57,13 @@
 <body class="min-h-screen p-6 flex flex-col justify-center items-center">
 
     <div id="app" class="w-full max-w-sm">
+        <!-- Connection Status -->
+        <div id="connection-status"
+            class="fixed top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-gray-100 shadow-sm transition-all duration-300 opacity-0">
+            <div class="w-2 h-2 rounded-full bg-yellow-400" id="status-dot"></div>
+            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
+                id="status-text">Connecting...</span>
+        </div>
 
         <!-- STATE A: JOIN QUEUE -->
         <div id="state-join" class="space-y-8 animate-in fade-in transition duration-500">
@@ -125,8 +132,33 @@
         import { db, ref, onValue, runTransaction, set, child, get } from './firebase-config.js';
 
         $(document).ready(function () {
+            // Check if running via file:// protocol
+            if (window.location.protocol === 'file:') {
+                alert("CRITICAL: You are opening this file directly. Modern browsers block Firebase modules when running via 'file://'. Please use a local web server (like VS Code Live Server or 'npx serve').");
+            }
+
             let myTicketNumber = localStorage.getItem('qNext_ticket');
             let myName = localStorage.getItem('qNext_name');
+
+            // Monitor Connection State
+            const connectedRef = ref(db, ".info/connected");
+            onValue(connectedRef, (snap) => {
+                const statusDot = $('#status-dot');
+                const statusText = $('#status-text');
+                const statusBox = $('#connection-status');
+
+                statusBox.css('opacity', '1');
+                if (snap.val() === true) {
+                    statusDot.removeClass('bg-yellow-400 bg-red-400').addClass('bg-green-500');
+                    statusText.text('Connected');
+                    // Hide after 3 seconds of connection
+                    setTimeout(() => statusBox.css('opacity', '0'), 3000);
+                } else {
+                    statusDot.removeClass('bg-yellow-400 bg-green-500').addClass('bg-red-400');
+                    statusText.text('Offline');
+                    statusBox.css('opacity', '1');
+                }
+            });
 
             if (myTicketNumber) {
                 showWaitingState(myTicketNumber);
