@@ -11,7 +11,7 @@ import { getDatabase, ref, set, update, onValue, runTransaction, push, child, ge
 const firebaseConfig = {
     apiKey: "AIzaSyDsGbfRlXxqUwLHXbGcwRYOvuygTPgTeMA",
     authDomain: "penny-wise-e482e.firebaseapp.com",
-    databaseURL: "https://penny-wise-e482e-default-rtdb.firebaseio.com",
+    databaseURL: "https://penny-wise-e482e.firebaseio.com",
     projectId: "penny-wise-e482e",
     storageBucket: "penny-wise-e482e.firebasestorage.app",
     messagingSenderId: "504425521894",

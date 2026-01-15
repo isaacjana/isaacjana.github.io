@@ -321,6 +321,12 @@
                         $('#turn-alert').addClass('hidden');
                         document.body.classList.remove('turn-bg');
                     }
+                }, (error) => {
+                    console.error("Database Connection Error:", error);
+                    $('#con-text').text("DB Error").addClass('text-red-600');
+                    if (error.message.includes('permission_denied')) {
+                        alert("Access Denied: Please check your Realtime Database Security Rules in the Firebase Console.");
+                    }
                 });
             }
 

@@ -40,6 +40,7 @@
         .gradient-text {
             background: linear-gradient(135deg, #000 0%, #444 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -265,6 +266,12 @@
                     lastServedValue = current;
                 } else {
                     initializeQueue();
+                }
+            }, (error) => {
+                console.error("Firebase Read Error:", error);
+                $('#status-text').text("DB Error").addClass('text-red-600');
+                if (error.message.includes('permission_denied')) {
+                    alert("Firebase Permission Denied. Please check your Database Rules.");
                 }
             });
 
