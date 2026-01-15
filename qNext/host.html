@@ -4,124 +4,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Q-Next | Business Dashboard</title>
+    <title>Q-Next Kiosk | Modern Queue Management</title>
+
+    <!-- SEO & Metadata -->
+    <meta name="description" content="Q-Next Business Kiosk - A modern digital queue management system.">
+    <meta name="theme-color" content="#000000">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <style>
+        :root {
+            --brand-primary: #000000;
+            --brand-accent: #6366f1;
+            --bg-canvas: #fbfbfd;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-canvas);
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: saturate(180%) blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
         }
 
-        .btn-primary {
-            background: #000;
-            color: #fff;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        .gradient-text {
+            background: linear-gradient(135deg, #000 0%, #444 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .btn-primary:active {
-            transform: scale(0.95);
+        .btn-action {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .btn-secondary {
-            background: #fff;
-            color: #000;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.15);
         }
 
-        .btn-secondary:active {
-            transform: scale(0.95);
+        .btn-action:active {
+            transform: translateY(0px) scale(0.98);
+        }
+
+        /* Pulse for Live Status */
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .live-dot::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
         }
 
         #qrcode img {
-            margin: 0 auto;
-        }
-
-        /* Pulse Animation for Serving */
-        @keyframes pulse-soft {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.02);
-            }
-        }
-
-        .serving-number {
-            animation: pulse-soft 2s infinite ease-in-out;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            background: white;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
         }
     </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-6">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="max-w-xl w-full space-y-8 text-center">
-        <!-- Connection Status -->
-        <div id="connection-status"
-            class="fixed top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-gray-100 shadow-sm transition-all duration-300 opacity-0">
-            <div class="w-2 h-2 rounded-full bg-yellow-400" id="status-dot"></div>
-            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
-                id="status-text">Connecting...</span>
+    <!-- Background Decoration -->
+    <div class="fixed inset-0 overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-50 rounded-full blur-[120px] opacity-60">
         </div>
-        <!-- Brand -->
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4">
-                <span class="text-white font-bold text-xl font-mono">Q</span>
-            </div>
-            <h1 class="text-sm font-medium tracking-widest text-gray-400 uppercase">Q-Next Kiosk</h1>
-        </div>
-
-        <!-- Serving Display -->
-        <div class="glass-card rounded-[2.5rem] p-12 space-y-4">
-            <h2 class="text-gray-500 font-medium text-lg">NOW SERVING</h2>
-            <div id="serving-display" class="serving-number text-9xl font-bold tracking-tighter text-black">
-                --
-            </div>
-            <p id="total-issued-label" class="text-gray-400 text-sm">Last ticket issued: #<span
-                    id="last-issued">--</span></p>
-        </div>
-
-        <!-- QR Code Section -->
-        <div class="glass-card rounded-[2rem] p-8 space-y-4">
-            <p class="text-sm text-gray-500 font-medium">Scan to join the queue</p>
-            <div id="qrcode" class="bg-white p-4 rounded-xl flex justify-center"></div>
-            <p id="client-url" class="text-[10px] text-gray-300 break-all"></p>
-        </div>
-
-        <!-- Controls -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button id="btn-next"
-                class="btn-primary py-4 px-6 rounded-2xl font-semibold shadow-xl flex items-center justify-center gap-2">
-                <span>NEXT</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                        clip-rule="evenodd" />
-                </svg>
-            </button>
-            <button id="btn-reset" class="btn-secondary py-4 px-6 rounded-2xl font-semibold">
-                RESET
-            </button>
-            <button id="btn-chime" class="btn-secondary py-4 px-6 rounded-2xl font-semibold">
-                CHIME
-            </button>
+        <div
+            class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-50 rounded-full blur-[120px] opacity-60">
         </div>
     </div>
 
-    <!-- Audio Element -->
+    <!-- Main Container -->
+    <div class="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Left Side: Serving Display -->
+        <div class="lg:col-span-12 flex justify-between items-center mb-4 px-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-lg">
+                    <span class="text-white font-bold text-lg">Q</span>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Q-Next</h1>
+                    <div class="flex items-center gap-1.5 opacity-60">
+                        <div class="live-dot"></div>
+                        <span class="text-[10px] uppercase font-bold tracking-wider">Kiosk Live</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="connection-status"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-100 shadow-sm transition-all duration-300">
+                <div class="w-2 h-2 rounded-full bg-yellow-400" id="status-dot"></div>
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
+                    id="status-text">Connecting</span>
+            </div>
+        </div>
+
+        <!-- MAIN CARD -->
+        <div class="lg:col-span-7">
+            <div
+                class="glass-panel rounded-[3rem] p-12 text-center relative overflow-hidden h-full flex flex-col justify-center">
+                <p class="text-gray-400 font-bold uppercase tracking-[0.3em] text-sm mb-4">Now Serving</p>
+                <div id="serving-display"
+                    class="text-[12rem] font-extrabold leading-none tracking-tighter gradient-text">
+                    --
+                </div>
+                <div class="mt-8 flex items-center justify-center gap-4 text-gray-400 font-medium">
+                    <span class="px-4 py-1.5 bg-gray-100 rounded-full text-xs">Tickets Issued: <b id="last-issued"
+                            class="text-black ml-1">--</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: CONTROLS & QR -->
+        <div class="lg:col-span-5 space-y-6">
+
+            <!-- QR CODE CARD -->
+            <div class="glass-panel rounded-[2.5rem] p-8 text-center space-y-6">
+                <div>
+                    <h3 class="font-bold text-lg">Join the Queue</h3>
+                    <p class="text-gray-400 text-xs">Scan the code on your phone</p>
+                </div>
+                <div class="flex justify-center">
+                    <div id="qrcode" class="transition-all duration-500 scale-95 hover:scale-100"></div>
+                </div>
+            </div>
+
+            <!-- BUTTONS -->
+            <div class="grid grid-cols-1 gap-4">
+                <button id="btn-next"
+                    class="btn-action w-full bg-black text-white py-6 rounded-[2rem] font-bold text-xl flex items-center justify-center gap-3 shadow-2xl">
+                    <span>Next Customer</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </button>
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="btn-chime"
+                        class="btn-action bg-white border border-gray-100 py-4 rounded-[1.5rem] font-bold text-gray-600 hover:text-black hover:bg-gray-50 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        Test Audio
+                    </button>
+                    <button id="btn-reset"
+                        class="btn-action bg-white border border-gray-100 py-4 rounded-[1.5rem] font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center gap-2">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Notification Audio -->
     <audio id="chime-audio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
         preload="auto"></audio>
 
@@ -131,94 +204,91 @@
         $(document).ready(function () {
             // Check if running via file:// protocol
             if (window.location.protocol === 'file:') {
-                alert("CRITICAL: You are opening this file directly. Modern browsers block Firebase modules when running via 'file://'. Please use a local web server (like VS Code Live Server or 'npx serve').");
+                alert("CRITICAL: Use a local web server (like VS Code Live Server) to run this app. Modern browsers block modules via 'file://'.");
             }
 
             const queueRef = ref(db, 'queue');
             let lastServedValue = null;
 
-            // Monitor Connection State
-            const connectedRef = ref(db, ".info/connected");
-            onValue(connectedRef, (snap) => {
-                const statusDot = $('#status-dot');
-                const statusText = $('#status-text');
-                const statusBox = $('#connection-status');
-
-                statusBox.css('opacity', '1');
-                if (snap.val() === true) {
-                    statusDot.removeClass('bg-yellow-400 bg-red-400').addClass('bg-green-500');
-                    statusText.text('Connected');
-                    setTimeout(() => statusBox.css('opacity', '0'), 3000);
-                } else {
-                    statusDot.removeClass('bg-yellow-400 bg-green-500').addClass('bg-red-400');
-                    statusText.text('Offline');
-                    statusBox.css('opacity', '1');
+            // Robust URL generation for GitHub Pages
+            function getClientUrl() {
+                const current = window.location.href;
+                // Works even for directory/base paths
+                if (current.includes('host.html')) {
+                    return current.replace('host.html', 'client.html');
+                } else if (current.endsWith('/')) {
+                    return current + 'client.html';
                 }
-            });
+                return current + '/client.html';
+            }
 
-            // Generate QR Code for client.html
-            // We use the current URL and replace host.html with client.html
-            const currentUrl = window.location.href;
-            const clientUrl = currentUrl.replace('host.html', 'client.html');
-            $('#client-url').text(clientUrl);
+            const clientUrl = getClientUrl();
 
+            // Generate QR Code
             new QRCode(document.getElementById("qrcode"), {
                 text: clientUrl,
-                width: 180,
-                height: 180,
+                width: 256,
+                height: 256,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
 
-            // Listen for changes in the queue
+            // Connection Status UI
+            const connectedRef = ref(db, ".info/connected");
+            onValue(connectedRef, (snap) => {
+                const dot = $('#status-dot');
+                const text = $('#status-text');
+                if (snap.val() === true) {
+                    dot.removeClass('bg-yellow-400 bg-red-400').addClass('bg-green-500');
+                    text.text('Online').addClass('text-green-600').removeClass('text-gray-500');
+                } else {
+                    dot.removeClass('bg-yellow-400 bg-green-500').addClass('bg-red-400');
+                    text.text('Offline').addClass('text-red-600').removeClass('text-gray-500');
+                }
+            });
+
+            // Listen for Queue Changes
             onValue(queueRef, (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     const current = data.current_serving || 0;
                     const issued = data.last_issued || 0;
 
-                    // Update UI
-                    $('#serving-display').text(current === 0 ? '--' : current);
+                    // Update UI with counting animation effect if possible
+                    updateDisplay('#serving-display', current === 0 ? '--' : current);
                     $('#last-issued').text(issued);
 
-                    // Play chime if number increased
                     if (lastServedValue !== null && current > lastServedValue) {
                         playChime();
                     }
                     lastServedValue = current;
                 } else {
-                    // Initialize DB if empty
                     initializeQueue();
                 }
             });
 
-            // "Next Customer" - Uses Transactions to avoid race conditions
+            function updateDisplay(el, val) {
+                $(el).fadeOut(100, function () {
+                    $(this).text(val).fadeIn(200);
+                });
+            }
+
+            // Controls
             $('#btn-next').on('click', function () {
                 const currentServingRef = ref(db, 'queue/current_serving');
                 runTransaction(currentServingRef, (currentValue) => {
-                    // Increment the number. If null (first time), start at 1.
                     return (currentValue || 0) + 1;
-                }).then((result) => {
-                    if (result.committed) {
-                        console.log("Queue updated to:", result.snapshot.val());
-                    }
-                }).catch((error) => {
-                    console.error("Transaction failed:", error);
                 });
             });
 
-            // "Reset Queue"
             $('#btn-reset').on('click', function () {
-                if (confirm("Are you sure you want to reset the entire queue?")) {
+                if (confirm("Reset the entire queue system?")) {
                     initializeQueue();
                 }
             });
 
-            // "Play Chime"
-            $('#btn-chime').on('click', function () {
-                playChime();
-            });
+            $('#btn-chime').on('click', () => playChime());
 
             function initializeQueue() {
                 set(ref(db, 'queue'), {
@@ -231,7 +301,7 @@
             function playChime() {
                 const audio = document.getElementById('chime-audio');
                 audio.currentTime = 0;
-                audio.play().catch(e => console.log("Audio play failed:", e));
+                audio.play().catch(e => console.log("Audio requires user interaction first."));
             }
         });
     </script>
