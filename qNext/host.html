@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-Next | Business Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .btn-primary {
+            background: #000;
+            color: #fff;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: #000;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.95);
+        }
+
+        #qrcode img {
+            margin: 0 auto;
+        }
+
+        /* Pulse Animation for Serving */
+        @keyframes pulse-soft {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        .serving-number {
+            animation: pulse-soft 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div class="max-w-xl w-full space-y-8 text-center">
+        <!-- Brand -->
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4">
+                <span class="text-white font-bold text-xl font-mono">Q</span>
+            </div>
+            <h1 class="text-sm font-medium tracking-widest text-gray-400 uppercase">Q-Next Kiosk</h1>
+        </div>
+
+        <!-- Serving Display -->
+        <div class="glass-card rounded-[2.5rem] p-12 space-y-4">
+            <h2 class="text-gray-500 font-medium text-lg">NOW SERVING</h2>
+            <div id="serving-display" class="serving-number text-9xl font-bold tracking-tighter text-black">
+                --
+            </div>
+            <p id="total-issued-label" class="text-gray-400 text-sm">Last ticket issued: #<span
+                    id="last-issued">--</span></p>
+        </div>
+
+        <!-- QR Code Section -->
+        <div class="glass-card rounded-[2rem] p-8 space-y-4">
+            <p class="text-sm text-gray-500 font-medium">Scan to join the queue</p>
+            <div id="qrcode" class="bg-white p-4 rounded-xl flex justify-center"></div>
+            <p id="client-url" class="text-[10px] text-gray-300 break-all"></p>
+        </div>
+
+        <!-- Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button id="btn-next"
+                class="btn-primary py-4 px-6 rounded-2xl font-semibold shadow-xl flex items-center justify-center gap-2">
+                <span>NEXT</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+            <button id="btn-reset" class="btn-secondary py-4 px-6 rounded-2xl font-semibold">
+                RESET
+            </button>
+            <button id="btn-chime" class="btn-secondary py-4 px-6 rounded-2xl font-semibold">
+                CHIME
+            </button>
+        </div>
+    </div>
+
+    <!-- Audio Element -->
+    <audio id="chime-audio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+        preload="auto"></audio>
+
+    <script type="module">
+        import { db, ref, onValue, runTransaction, set } from './firebase-config.js';
+
+        $(document).ready(function () {
+            const queueRef = ref(db, 'queue');
+            let lastServedValue = null;
+
+            // Generate QR Code for client.html
+            // We use the current URL and replace host.html with client.html
+            const currentUrl = window.location.href;
+            const clientUrl = currentUrl.replace('host.html', 'client.html');
+            $('#client-url').text(clientUrl);
+
+            new QRCode(document.getElementById("qrcode"), {
+                text: clientUrl,
+                width: 180,
+                height: 180,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Listen for changes in the queue
+            onValue(queueRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const current = data.current_serving || 0;
+                    const issued = data.last_issued || 0;
+
+                    // Update UI
+                    $('#serving-display').text(current === 0 ? '--' : current);
+                    $('#last-issued').text(issued);
+
+                    // Play chime if number increased
+                    if (lastServedValue !== null && current > lastServedValue) {
+                        playChime();
+                    }
+                    lastServedValue = current;
+                } else {
+                    // Initialize DB if empty
+                    initializeQueue();
+                }
+            });
+
+            // "Next Customer" - Uses Transactions to avoid race conditions
+            $('#btn-next').on('click', function () {
+                const currentServingRef = ref(db, 'queue/current_serving');
+                runTransaction(currentServingRef, (currentValue) => {
+                    // Increment the number. If null (first time), start at 1.
+                    return (currentValue || 0) + 1;
+                }).then((result) => {
+                    if (result.committed) {
+                        console.log("Queue updated to:", result.snapshot.val());
+                    }
+                }).catch((error) => {
+                    console.error("Transaction failed:", error);
+                });
+            });
+
+            // "Reset Queue"
+            $('#btn-reset').on('click', function () {
+                if (confirm("Are you sure you want to reset the entire queue?")) {
+                    initializeQueue();
+                }
+            });
+
+            // "Play Chime"
+            $('#btn-chime').on('click', function () {
+                playChime();
+            });
+
+            function initializeQueue() {
+                set(ref(db, 'queue'), {
+                    current_serving: 0,
+                    last_issued: 0,
+                    tickets: {}
+                });
+            }
+
+            function playChime() {
+                const audio = document.getElementById('chime-audio');
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("Audio play failed:", e));
+            }
+        });
+    </script>
+</body>
+
+</html>

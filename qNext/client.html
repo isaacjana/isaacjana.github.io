@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Q-Next | Get Your Ticket</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            transition: background-color 0.5s ease;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-join {
+            background: #000;
+            color: #fff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-join:active {
+            transform: scale(0.98);
+        }
+
+        .your-turn {
+            background-color: #22c55e !important;
+        }
+
+        .flash {
+            animation: flash-anim 0.8s infinite;
+        }
+
+        @keyframes flash-anim {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-6 flex flex-col justify-center items-center">
+
+    <div id="app" class="w-full max-w-sm">
+
+        <!-- STATE A: JOIN QUEUE -->
+        <div id="state-join" class="space-y-8 animate-in fade-in transition duration-500">
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-black rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                    <span class="text-white font-bold text-2xl font-mono">Q</span>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-gray-900">Join the Queue</h1>
+                <p class="text-gray-500">Enter your name to take a virtual ticket.</p>
+            </div>
+
+            <div class="glass-card p-8 rounded-[2.5rem] space-y-6">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 ml-1">Your
+                        Name</label>
+                    <input type="text" id="user-name"
+                        class="w-full px-5 py-4 rounded-2xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-black outline-none transition-all text-lg"
+                        placeholder="e.g. John Doe">
+                </div>
+                <button id="btn-join-queue" class="btn-join w-full py-5 rounded-2xl font-bold text-lg">
+                    JOIN QUEUE
+                </button>
+            </div>
+        </div>
+
+        <!-- STATE B: IN QUEUE -->
+        <div id="state-waiting" class="hidden space-y-6 animate-in fade-in transition duration-500">
+            <div class="glass-card p-10 rounded-[3rem] text-center space-y-8">
+                <div>
+                    <p class="text-xs font-bold text-indigo-500 uppercase tracking-[0.2em] mb-2">Your Ticket</p>
+                    <div class="text-8xl font-black tracking-tighter text-black">
+                        #<span id="display-my-ticket">--</span>
+                    </div>
+                </div>
+
+                <div class="pt-8 border-t border-gray-100 grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Now Serving</p>
+                        <p id="display-now-serving" class="text-2xl font-bold">--</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Ahead of You</p>
+                        <p id="display-ahead" class="text-2xl font-bold text-indigo-600">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="turn-alert"
+                class="hidden glass-card p-8 rounded-[2.5rem] bg-white border-2 border-green-500 text-center space-y-4">
+                <h2 class="text-2xl font-black text-green-600 flash tracking-tight">IT'S YOUR TURN!</h2>
+                <p class="text-gray-600 font-medium">Please proceed to the counter.</p>
+            </div>
+
+            <p class="text-center text-gray-400 text-xs px-4">Keep this page open. We'll notify you when it's your turn.
+            </p>
+
+            <button id="btn-leave"
+                class="w-full text-gray-400 text-xs font-medium hover:text-red-500 transition-colors">
+                Leave Queue
+            </button>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { db, ref, onValue, runTransaction, set, child, get } from './firebase-config.js';
+
+        $(document).ready(function () {
+            let myTicketNumber = localStorage.getItem('qNext_ticket');
+            let myName = localStorage.getItem('qNext_name');
+
+            if (myTicketNumber) {
+                showWaitingState(myTicketNumber);
+            }
+
+            // JOIN QUEUE LOGIC
+            $('#btn-join-queue').on('click', async function () {
+                const name = $('#user-name').val().trim();
+                if (!name) return alert("Please enter your name");
+
+                try {
+                    const lastIssuedRef = ref(db, 'queue/last_issued');
+
+                    // Transaction to safely increment the last issued ticket number
+                    const result = await runTransaction(lastIssuedRef, (currentValue) => {
+                        return (currentValue || 0) + 1;
+                    });
+
+                    if (result.committed) {
+                        const newTicketNum = result.snapshot.val();
+
+                        // Create the ticket record
+                        const ticketRef = ref(db, `queue/tickets/ticket_${newTicketNum}`);
+                        await set(ticketRef, {
+                            name: name,
+                            status: 'waiting',
+                            timestamp: Date.now()
+                        });
+
+                        // Persist in localStorage
+                        localStorage.setItem('qNext_ticket', newTicketNum);
+                        localStorage.setItem('qNext_name', name);
+
+                        showWaitingState(newTicketNum);
+                    }
+                } catch (error) {
+                    console.error("Join Queue Error:", error);
+                    alert("Failed to join queue. Try again.");
+                }
+            });
+
+            // MONITOR QUEUE STATE
+            function showWaitingState(ticketNum) {
+                $('#state-join').addClass('hidden');
+                $('#state-waiting').removeClass('hidden');
+                $('#display-my-ticket').text(ticketNum);
+
+                const queueRef = ref(db, 'queue');
+                onValue(queueRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data) return;
+
+                    const nowServing = data.current_serving || 0;
+                    $('#display-now-serving').text(`#${nowServing}`);
+
+                    const ahead = Math.max(0, ticketNum - nowServing);
+                    $('#display-ahead').text(ahead === 0 ? "You're Next!" : ahead);
+
+                    // CHECK IF IT'S MY TURN
+                    if (parseInt(nowServing) === parseInt(ticketNum)) {
+                        triggerTurnAlert();
+                    } else if (parseInt(nowServing) > parseInt(ticketNum)) {
+                        // Already served or missed
+                        $('#turn-alert').addClass('hidden');
+                        document.body.classList.remove('your-turn');
+                        $('#display-ahead').text("Completed");
+                    } else {
+                        // Still waiting
+                        $('#turn-alert').addClass('hidden');
+                        document.body.classList.remove('your-turn');
+                    }
+                });
+            }
+
+            function triggerTurnAlert() {
+                $('#turn-alert').removeClass('hidden');
+                document.body.classList.add('your-turn');
+
+                // Vibrate if supported
+                if ("vibrate" in navigator) {
+                    navigator.vibrate([500, 200, 500]);
+                }
+
+                // Simple alert if they might have missed the visual change
+                console.log("IT'S YOUR TURN!");
+            }
+
+            $('#btn-leave').on('click', function () {
+                if (confirm("Are you sure you want to leave the queue? Your spot will be lost.")) {
+                    localStorage.removeItem('qNext_ticket');
+                    localStorage.removeItem('qNext_name');
+                    window.location.reload();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
