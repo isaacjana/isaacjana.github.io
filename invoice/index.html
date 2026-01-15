@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MySarawak Invoice | LHDN Compliance 2026</title>
+    <meta name="description"
+        content="Professional Invoice Generator for Sarawak SMEs. LHDN E-Invoice 2026 Ready. Support for TIN, SST, and MSIC.">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#005035">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="favicon.ico">
+
+    <!-- Styles -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sarawak: {
+                            green: '#005035',
+                            yellow: '#FFCE00',
+                            black: '#1A1A1A',
+                            lightGreen: '#007A50'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 font-sans text-gray-900 pb-24">
+
+    <!-- Header -->
+    <header class="bg-sarawak-green text-white p-4 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                    <img src="logo.png" alt="MySarawak Logo" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-none">MySarawak Invoice</h1>
+                    <p class="text-[10px] text-sarawak-yellow uppercase tracking-widest font-semibold">LHDN Compliance
+                        2026</p>
+                </div>
+            </div>
+            <button id="resetForm" class="text-white/80 hover:text-white transition-colors">
+                <i class="fa-solid fa-rotate-right text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4 space-y-6">
+
+        <!-- Invoice Info Card -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div
+                class="bg-sarawak-black p-3 text-white text-xs font-bold uppercase tracking-wider flex justify-between">
+                <span>General Information</span>
+                <span class="text-sarawak-yellow">Phase 4 Ready</span>
+            </div>
+            <div class="p-4 grid grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase">Invoice No.</label>
+                    <input type="text" id="invoiceNo"
+                        class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green font-mono"
+                        placeholder="INV-2026-001">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase">Issue Date</label>
+                    <input type="date" id="invoiceDate"
+                        class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green">
+                </div>
+                <div class="col-span-2 flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+                    <input type="checkbox" id="isConsolidated"
+                        class="w-5 h-5 rounded border-gray-300 text-sarawak-green focus:ring-sarawak-green">
+                    <div>
+                        <label for="isConsolidated" class="text-sm font-semibold text-gray-800">Consolidated
+                            E-Invoice</label>
+                        <p class="text-[11px] text-gray-500">Enable for monthly summary transactions (LHDN compliance)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Supplier Details -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-sarawak-green p-3 text-white text-xs font-bold uppercase tracking-wider">
+                Supplier Details (My Business)
+            </div>
+            <div class="p-4 space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase">Business Name</label>
+                    <input type="text" id="supplierName"
+                        class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                        placeholder="e.g. Kuching Riverside Cafe">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase">TIN (Tax ID)</label>
+                        <input type="text" id="supplierTIN"
+                            class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green font-mono"
+                            placeholder="IG1234567890">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase">MSIC Code</label>
+                        <input type="text" id="supplierMSIC"
+                            class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                            placeholder="56101">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase">Contact Phone</label>
+                    <input type="tel" id="supplierPhone"
+                        class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                        placeholder="+6012-3456789">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase">Address</label>
+                    <textarea id="supplierAddress" rows="2"
+                        class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                        placeholder="No. 123, Jalan Main Bazaar, 93000 Kuching, Sarawak"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- Buyer Details -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gray-800 p-3 text-white text-xs font-bold uppercase tracking-wider">
+                Buyer Details (Client)
+            </div>
+            <div class="p-4 space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase">Client Name</label>
+                    <input type="text" id="buyerName"
+                        class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                        placeholder="Walk-in Customer / Business Name">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase">Buyer TIN</label>
+                        <input type="text" id="buyerTIN"
+                            class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green font-mono"
+                            placeholder="EI00000000000">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase">Buyer Phone</label>
+                        <input type="tel" id="buyerPhone"
+                            class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                            placeholder="+601X-XXXXXXX">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase">Address (Optional)</label>
+                    <textarea id="buyerAddress" rows="1"
+                        class="w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                        placeholder="Client delivery address"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- Line Items -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div
+                class="bg-sarawak-yellow p-3 text-sarawak-black text-xs font-bold uppercase tracking-wider flex justify-between items-center">
+                <span>Invoice Items</span>
+                <span class="bg-black text-white px-2 py-1 rounded text-[10px]">Currency: RM</span>
+            </div>
+
+            <div id="itemsContainer" class="divide-y divide-gray-100">
+                <!-- Template for item -->
+                <div class="item-row p-4 space-y-3 relative group">
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="flex-1 space-y-1">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Description</label>
+                            <input type="text"
+                                class="item-desc w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green"
+                                placeholder="Item/Service Name">
+                        </div>
+                        <button
+                            class="remove-item text-red-500 p-2 mt-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Qty</label>
+                            <input type="number"
+                                class="item-qty w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green text-center"
+                                value="1" min="1">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Price (RM)</label>
+                            <input type="number" step="0.01"
+                                class="item-price w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green text-right"
+                                placeholder="0.00">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">SST %</label>
+                            <select
+                                class="item-tax w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green">
+                                <option value="0">0%</option>
+                                <option value="6">6%</option>
+                                <option value="8" selected>8%</option>
+                                <option value="10">10%</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-dashed border-gray-200">
+                <button id="addItem"
+                    class="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-sarawak-green hover:text-sarawak-green transition-all flex items-center justify-center gap-2 font-semibold">
+                    <i class="fa-solid fa-plus-circle"></i> Add New Item
+                </button>
+            </div>
+        </section>
+
+        <!-- Summary -->
+        <section class="bg-sarawak-black text-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="p-6 space-y-3">
+                <div class="flex justify-between text-sm text-gray-400">
+                    <span>Subtotal (Excl. Tax)</span>
+                    <span id="subtotal">RM 0.00</span>
+                </div>
+                <div class="flex justify-between text-sm text-gray-400">
+                    <span>Total SST</span>
+                    <span id="taxTotal">RM 0.00</span>
+                </div>
+                <div class="h-px bg-white/10 my-2"></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold">Grand Total</span>
+                    <span class="text-2xl font-bold text-sarawak-yellow" id="grandTotal">RM 0.00</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Sticky Bottom Bar -->
+    <div
+        class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 flex gap-3 z-50">
+        <button id="generatePDF"
+            class="flex-1 bg-sarawak-green text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+            <i class="fa-solid fa-file-pdf"></i> PDF
+        </button>
+        <button id="shareWhatsApp"
+            class="flex-1 bg-[#25D366] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+        </button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+</body>
+
+</html>

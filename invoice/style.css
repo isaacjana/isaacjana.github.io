@@ -1,0 +1,86 @@
+/* Custom Styles for MySarawak Invoice */
+
+:root {
+    --sarawak-green: #005035;
+    --sarawak-yellow: #FFCE00;
+}
+
+body {
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.3s ease;
+}
+
+/* Smooth transitions for inputs */
+input, select, textarea {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 80, 53, 0.1);
+}
+
+/* Custom Checkbox */
+input[type="checkbox"] {
+    accent-color: var(--sarawak-green);
+}
+
+/* Animation for adding items */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.item-row {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Glassmorphism for specific elements */
+.glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--sarawak-green);
+    border-radius: 10px;
+}
+
+/* Button Pulse Effect */
+@keyframes pulse-soft {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 80, 53, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 80, 53, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 80, 53, 0);
+    }
+}
+
+#generatePDF {
+    animation: pulse-soft 2s infinite;
+}
+
+/* Mobile-Specific Tweaks */
+@media (max-width: 640px) {
+    input, select, textarea {
+        font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    }
+}
