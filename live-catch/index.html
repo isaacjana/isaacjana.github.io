@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveCatch | Real-Time Seafood Delivery</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#6366f1',
+                        accent: '#f59e0b',
+                        dark: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dark-glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 1rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-dark min-h-screen">
+
+    <!-- Global Sticky Role Switcher -->
+    <nav class="sticky top-0 z-50 w-full px-4 py-3 glass shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="bg-primary p-2 rounded-lg text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9V9a2 2 0 00-2-2H8a2 2 0 00-2 2v3h12z" />
+                    </svg>
+                </div>
+                <span class="text-2xl font-bold tracking-tight text-dark uppercase tracking-widest">LiveCatch</span>
+            </div>
+
+            <div class="flex items-center bg-gray-100 p-1 rounded-xl">
+                <button id="btn-client"
+                    class="role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-white shadow-sm text-primary">Client
+                    View</button>
+                <button id="btn-supplier"
+                    class="role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-dark">Supplier
+                    View</button>
+                <button id="btn-driver"
+                    class="role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-dark">Driver
+                    View</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+
+        <!-- Client View -->
+        <section id="client-view" class="view-section transition-opacity duration-300">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold">Fresh Catch Available</h1>
+                    <p class="text-gray-500">Real-time seafood inventory from Kuching's finest suppliers.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <span
+                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span class="w-2 h-2 mr-1.5 bg-green-500 rounded-full animate-pulse"></span> Live Updates
+                    </span>
+                </div>
+            </div>
+
+            <div id="stock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Stock cards will be injected here -->
+                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
+                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
+                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
+                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
+            </div>
+        </section>
+
+        <!-- Supplier View -->
+        <section id="supplier-view" class="view-section hidden transition-opacity duration-300">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-dark">Supplier Control Center</h1>
+                <p class="text-gray-500">Manage your live stock and update quantities in real-time.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Item Name
+                            </th>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Current
+                                Stock</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Update
+                                Quantity</th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
+                                Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="supplier-stock-list" class="divide-y divide-gray-100">
+                        <!-- Supplier items will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Driver View -->
+        <section id="driver-view" class="view-section hidden transition-opacity duration-300">
+            <div class="mb-8 flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-bold">Delivery Dashboard</h1>
+                    <p class="text-gray-500">Track active orders and navigate to delivery locations.</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border flex space-x-6">
+                    <div>
+                        <span class="block text-xs text-gray-400 uppercase font-bold mb-1">Active Orders</span>
+                        <span id="active-orders-count" class="text-2xl font-bold text-primary">0</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-gray-400 uppercase font-bold mb-1">Queue</span>
+                        <span id="queue-count" class="text-2xl font-bold text-accent">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <div id="map" class="shadow-inner border bg-gray-200"></div>
+                </div>
+                <div class="bg-white rounded-2xl border shadow-sm p-6 overflow-hidden flex flex-col h-[500px]">
+                    <h3 class="text-xl font-bold mb-4">Pending Deliveries</h3>
+                    <div id="orders-list" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                        <!-- Pending orders will be injected here -->
+                        <div class="text-center py-10 text-gray-400">
+                            <p>No active delivery requests at the moment.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

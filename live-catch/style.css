@@ -1,0 +1,55 @@
+/* Custom Scrollbar for the orders list */
+#orders-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+#orders-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#orders-list::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+#orders-list::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}
+
+/* Transitions */
+.view-section {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Table styling fixes */
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Map enhancement */
+.leaflet-container {
+    background: #f8fafc !important;
+    font-family: 'Outfit', sans-serif !important;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.leaflet-popup-tip {
+    box-shadow: none;
+}
