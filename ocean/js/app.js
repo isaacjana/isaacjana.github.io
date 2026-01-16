@@ -283,9 +283,12 @@ function renderShop($container) {
                     <p class="text-sm text-gray-500 mb-3">${p.supplier}</p>
                     <div class="flex justify-between items-center mt-auto">
                         <span class="text-lg font-bold text-gray-700">Available</span> 
-                        <button class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-lg font-medium text-sm transition-colors" onclick="addToCart('${p.id}', '${p.name}', ${p.price})">
-                            Add to List
-                        </button>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="qty-${p.id}" value="1" min="1" class="w-16 border rounded p-1 text-center text-sm" onclick="event.stopPropagation()">
+                            <button class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-lg font-medium text-sm transition-colors" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, parseInt($('#qty-${p.id}').val()))">
+                                Add
+                            </button>
+                        </div>
                     </div>
                     <div class="mt-2 text-xs text-green-600 font-semibold flex items-center gap-1">
                         <span class="w-2 h-2 bg-green-500 rounded-full"></span> ${p.quantity} in stock
@@ -352,10 +355,13 @@ window.openProcessOrderModal = async function (orderId, clientId) {
 
     // Fetch Products to get base prices + Names
     // Fetch Client Custom Prices
-    const [products, customPricesSnap] = await Promise.all([
-        new Promise(resolve => dbAPI.getProducts(resolve)()),
+    const [productsSnap, customPricesSnap] = await Promise.all([
+        db.collection('products').get(),
         db.collection('users').doc(clientId).collection('customPrices').get()
     ]);
+
+    const products = [];
+    productsSnap.forEach(d => products.push({ id: d.id, ...d.data() }));
 
     const customPrices = {};
     customPricesSnap.forEach(d => customPrices[d.id] = d.data().price);
@@ -629,10 +635,10 @@ function renderClients($container) {
 
 let cart = [];
 
-window.addToCart = function (id, name, price) {
+window.addToCart = function (id, name, price, qty = 1) {
     const existing = cart.find(i => i.id === id);
-    if (existing) existing.qty++;
-    else cart.push({ id, name, price, qty: 1 });
+    if (existing) existing.qty += qty;
+    else cart.push({ id, name, price, qty: qty });
 
     // Simple toast feedback
     const toast = $(`<div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg z-50">Added to cart</div>`);
