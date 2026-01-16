@@ -1,12 +1,44 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const firestore = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+// --- Auth Service ---
+
+export function loginWithGoogle() {
+    return signInWithPopup(auth, provider);
+}
+
+export function logout() {
+    return signOut(auth);
+}
+
+export function onAuth(callback) {
+    return onAuthStateChanged(auth, callback);
+}
+
+// --- Profile & Role Service ---
+
+export async function getUserProfile(uid) {
+    const docRef = doc(firestore, "users", uid);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() : null;
+}
+
+export async function updateUserProfile(uid, profileData) {
+    return setDoc(doc(firestore, "users", uid), {
+        ...profileData,
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+}
 
 // --- Realtime Database (Stock Management) ---
 

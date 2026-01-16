@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LiveCatch | Real-Time Seafood Delivery</title>
+    <title>Ocean | Premium Seafood Ecosystem</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -48,225 +48,335 @@
         }
 
         #map {
-            height: 500px;
-            border-radius: 1rem;
+            height: calc(100vh - 200px);
+            border-radius: 1.5rem;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
         }
     </style>
 </head>
 
-<body class="bg-gray-50 text-dark min-h-screen">
+<body class="bg-slate-50 text-dark min-h-screen">
 
-    <!-- Global Sticky Role Switcher -->
-    <nav class="sticky top-0 z-50 w-full px-4 py-3 glass shadow-sm">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <div class="bg-primary p-2 rounded-lg text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+    <!-- Auth Guard Layer -->
+    <div id="auth-screen" class="fixed inset-0 z-[100] bg-white flex items-center justify-center p-6">
+        <div class="max-w-md w-full text-center space-y-8">
+            <div class="flex justify-center flex-col items-center">
+                <div class="bg-primary p-4 rounded-3xl text-white shadow-xl shadow-primary/30 mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9V9a2 2 0 00-2-2H8a2 2 0 00-2 2v3h12z" />
                     </svg>
                 </div>
-                <span class="text-2xl font-bold tracking-tight text-dark uppercase tracking-widest">LiveCatch</span>
+                <h1 class="text-4xl font-black tracking-tight text-dark uppercase tracking-[0.2em]">Ocean</h1>
+                <p class="text-gray-500 mt-2">Premium Real-Time Seafood Ecosystem</p>
             </div>
+            <button id="btn-login-google"
+                class="w-full flex items-center justify-center space-x-3 bg-white border-2 border-gray-100 hover:border-primary px-8 py-4 rounded-2xl font-bold transition-all shadow-sm hover:shadow-md group">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6">
+                <span>Sign in with Google</span>
+            </button>
+        </div>
+    </div>
 
-            <div class="flex items-center bg-gray-100 p-1 rounded-xl">
-                <button id="btn-client"
-                    class="role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-white shadow-sm text-primary">Client
-                    View</button>
-                <button id="btn-supplier"
-                    class="role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-dark">Supplier
-                    View</button>
-                <button id="btn-driver"
-                    class="role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-dark">Driver
-                    View</button>
-                <button id="btn-setup"
-                    class="role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-dark">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+    <!-- Role Selection Layer -->
+    <div id="role-selection-screen"
+        class="fixed inset-0 z-[90] bg-slate-50 hidden p-6 flex items-center justify-center">
+        <div class="max-w-4xl w-full">
+            <h2 class="text-3xl font-bold text-center mb-12">Who are you today?</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <button data-role="client"
+                    class="role-selector text-left p-8 bg-white rounded-3xl border shadow-sm hover:border-primary group transition-all duration-300">
+                    <div
+                        class="bg-blue-50 text-blue-500 p-4 rounded-2xl w-fit mb-6 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Customer</h3>
+                    <p class="text-gray-500 text-sm">Browse fresh catch and order live for your doorstep.</p>
+                </button>
+                <button data-role="supplier"
+                    class="role-selector text-left p-8 bg-white rounded-3xl border shadow-sm hover:border-primary group transition-all duration-300">
+                    <div
+                        class="bg-amber-50 text-amber-500 p-4 rounded-2xl w-fit mb-6 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4a1 1 0 011-1h2a1 1 0 011 1v3M12 7h.01" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Supplier</h3>
+                    <p class="text-gray-500 text-sm">Manage inventory and broadcast stock in real-time.</p>
+                </button>
+                <button data-role="driver"
+                    class="role-selector text-left p-8 bg-white rounded-3xl border shadow-sm hover:border-primary group transition-all duration-300">
+                    <div
+                        class="bg-emerald-50 text-emerald-500 p-4 rounded-2xl w-fit mb-6 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Driver</h3>
+                    <p class="text-gray-500 text-sm">Accept delivery jobs and navigate to buyers.</p>
                 </button>
             </div>
+            <div class="mt-12 text-center">
+                <button id="btn-logout" class="text-gray-400 hover:text-red-500 font-semibold transition-colors">Sign
+                    Out</button>
+            </div>
         </div>
-    </nav>
+    </div>
 
-    <main class="max-w-7xl mx-auto px-4 py-8">
-
-        <!-- Client View -->
-        <section id="client-view" class="view-section transition-opacity duration-300">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-3xl font-bold">Fresh Catch Available</h1>
-                    <p class="text-gray-500">Real-time seafood inventory from Kuching's finest suppliers.</p>
-                </div>
-                <div class="flex space-x-2">
-                    <span
-                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <span class="w-2 h-2 mr-1.5 bg-green-500 rounded-full animate-pulse"></span> Live Updates
-                    </span>
-                </div>
-            </div>
-
-            <div id="stock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Stock cards will be injected here -->
-                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
-                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
-                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
-                <div class="animate-pulse bg-white border rounded-2xl p-6 h-64"></div>
-            </div>
-        </section>
-
-        <!-- Supplier View -->
-        <section id="supplier-view" class="view-section hidden transition-opacity duration-300">
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-dark">Supplier Control Center</h1>
-                <p class="text-gray-500">Manage your live stock and update quantities in real-time.</p>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                <table class="w-full text-left">
-                    <thead class="bg-gray-50 border-b">
-                        <tr>
-                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Item Name
-                            </th>
-                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Current
-                                Stock</th>
-                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Update
-                                Quantity</th>
-                            <th
-                                class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="supplier-stock-list" class="divide-y divide-gray-100">
-                        <!-- Supplier items will be injected here -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Driver View -->
-        <section id="driver-view" class="view-section hidden transition-opacity duration-300">
-            <div class="mb-8 flex justify-between items-end">
-                <div>
-                    <h1 class="text-3xl font-bold">Delivery Dashboard</h1>
-                    <p class="text-gray-500">Track active orders and navigate to delivery locations.</p>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border flex space-x-6">
-                    <div>
-                        <span class="block text-xs text-gray-400 uppercase font-bold mb-1">Active Orders</span>
-                        <span id="active-orders-count" class="text-2xl font-bold text-primary">0</span>
+    <!-- Main Shell -->
+    <div id="main-app" class="hidden">
+        <!-- Global Navigation -->
+        <nav class="sticky top-0 z-50 w-full px-4 py-3 glass shadow-sm">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="showRoleSelection()">
+                    <div class="bg-primary p-2 rounded-xl text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9V9a2 2 0 00-2-2H8a2 2 0 00-2 2v3h12z" />
+                        </svg>
                     </div>
                     <div>
-                        <span class="block text-xs text-gray-400 uppercase font-bold mb-1">Queue</span>
-                        <span id="queue-count" class="text-2xl font-bold text-accent">0</span>
+                        <span
+                            class="text-xl font-black text-dark uppercase tracking-widest block leading-none">Ocean</span>
+                        <span id="label-role"
+                            class="text-[10px] uppercase font-bold text-primary tracking-tighter">CLIENT VIEW</span>
                     </div>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2">
-                    <div id="map" class="shadow-inner border bg-gray-200"></div>
+                <div class="flex items-center space-x-4">
+                    <div id="nav-buttons" class="hidden md:flex items-center bg-gray-100 p-1 rounded-xl">
+                        <button id="nav-btn-client"
+                            class="nav-role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all">Client</button>
+                        <button id="nav-btn-supplier"
+                            class="nav-role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all">Supplier</button>
+                        <button id="nav-btn-driver"
+                            class="nav-role-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all">Driver</button>
+                    </div>
+                    <button id="btn-global-setup" class="p-2 text-gray-400 hover:text-dark transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <img id="user-avatar" class="w-10 h-10 rounded-full border shadow-sm"
+                        src="https://ui-avatars.com/api/?name=User">
                 </div>
-                <div class="bg-white rounded-2xl border shadow-sm p-6 overflow-hidden flex flex-col h-[500px]">
-                    <h3 class="text-xl font-bold mb-4">Pending Deliveries</h3>
-                    <div id="orders-list" class="flex-1 overflow-y-auto space-y-4 pr-2">
-                        <!-- Pending orders will be injected here -->
-                        <div class="text-center py-10 text-gray-400">
-                            <p>No active delivery requests at the moment.</p>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Client View -->
+            <section id="view-client" class="view-section transition-all duration-300">
+                <div class="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold">Premium Catch</h1>
+                        <p class="text-gray-500">Exclusively sourced from Sarawakian coasts.</p>
+                    </div>
+                    <div id="client-setup-summary"
+                        class="bg-white px-4 py-2 rounded-xl border shadow-sm text-sm font-semibold text-gray-600 cursor-pointer hover:border-primary transition-colors">
+                        📍 Set Delivery Address
+                    </div>
+                </div>
+                <div id="client-stock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                </div>
+            </section>
+
+            <!-- Supplier View -->
+            <section id="view-supplier" class="view-section hidden transition-all duration-300">
+                <div class="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold">Supplier Center</h1>
+                        <p class="text-gray-500">Update stock levels and manage catalogue.</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button
+                            class="px-6 py-2 bg-dark text-white rounded-xl font-bold text-sm shadow-lg shadow-dark/20"
+                            onclick="showSection('setup')">Add New Item</button>
+                        <a href="../bill-setup/"
+                            class="px-6 py-2 bg-secondary text-white rounded-xl font-bold text-sm shadow-lg shadow-secondary/20">Bill
+                            Setup</a>
+                    </div>
+                </div>
+                <div class="bg-white rounded-3xl overflow-hidden border shadow-sm">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th
+                                    class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
+                                    Product</th>
+                                <th
+                                    class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
+                                    Inventory</th>
+                                <th
+                                    class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
+                                    Update</th>
+                                <th
+                                    class="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-400">
+                                    Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplier-stock-list" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Driver View -->
+            <section id="view-driver" class="view-section hidden transition-all duration-300">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2">
+                        <div id="map" class="shadow-inner border-4 border-white bg-slate-200 shadow-xl overflow-hidden">
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-3xl border shadow-xl">
+                            <h3 class="text-xl font-bold mb-4">Active Deliveries</h3>
+                            <div id="driver-orders-list" class="space-y-4 max-h-[600px] overflow-y-auto pr-2"></div>
+                        </div>
+                        <div class="bg-emerald-500 p-6 rounded-3xl text-white shadow-xl shadow-emerald-500/20">
+                            <span class="text-xs uppercase font-bold tracking-widest opacity-80 mb-2 block">Today's
+                                Earnings</span>
+                            <div class="text-4xl font-black">RM 0.00</div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Setup View (Item Management) -->
-        <section id="setup-view" class="view-section hidden transition-opacity duration-300">
-            <div class="flex justify-between items-start mb-8">
-                <div>
-                    <h1 class="text-3xl font-bold">Catalogue Setup</h1>
-                    <p class="text-gray-500">Add or remove items from the live seafood list.</p>
-                </div>
-                <div class="flex space-x-3">
-                    <a href="../invoice/" target="_blank"
-                        class="flex items-center px-4 py-2 bg-secondary text-white rounded-lg font-semibold hover:bg-indigo-600 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Invoice Setup
-                    </a>
-                </div>
-            </div>
+            <!-- Setup View (Unified Role Configurations) -->
+            <section id="view-setup" class="view-section hidden transition-all duration-300">
+                <h1 class="text-3xl font-bold mb-8 text-center">Setup & Settings</h1>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Add New Item Form -->
-                <div class="lg:col-span-1">
-                    <div class="bg-white p-6 rounded-2xl border shadow-sm sticky top-24">
-                        <h3 class="text-xl font-bold mb-4">Add New Item</h3>
-                        <form id="form-add-item" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                                <input type="text" id="setup-name" required placeholder="e.g. Flower Crab"
-                                    class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                <div class="max-w-4xl mx-auto space-y-12">
+                    <!-- Client Profile Setup -->
+                    <div class="setup-card bg-white p-8 rounded-[2rem] border-2 border-slate-100 shadow-sm">
+                        <div class="flex items-center space-x-4 mb-8">
+                            <div class="bg-blue-100 text-blue-600 p-3 rounded-2xl">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Price (RM)</label>
-                                    <input type="number" id="setup-price" required placeholder="0.00"
-                                        class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-primary outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                                    <input type="text" id="setup-unit" required placeholder="kg / pcs"
-                                        class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-primary outline-none">
-                                </div>
+                            <h3 class="text-xl font-bold">Client Profile</h3>
+                        </div>
+                        <form id="setup-client-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold text-slate-500 mb-2">Delivery Address</label>
+                                <textarea id="setup-client-address"
+                                    class="w-full px-5 py-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-primary outline-none"
+                                    rows="3" placeholder="Jl. Raya Kuching No. 123..."></textarea>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                                <input type="url" id="setup-image" required placeholder="https://unsplash..."
-                                    class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                                <label class="block text-sm font-bold text-slate-500 mb-2">Contact Number</label>
+                                <input type="tel" id="setup-client-phone"
+                                    class="w-full px-5 py-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-primary outline-none"
+                                    placeholder="+60 123 4567">
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
-                                <input type="number" id="setup-stock" required value="10"
-                                    class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                            <div class="flex items-end">
+                                <button type="submit"
+                                    class="w-full py-4 bg-primary text-white rounded-2xl font-bold hover:shadow-lg transition-all">Save
+                                    Client Info</button>
                             </div>
-                            <button type="submit"
-                                class="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg shadow-primary/20">
-                                Add to Store
-                            </button>
                         </form>
                     </div>
-                </div>
 
-                <!-- Existing Items List -->
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 border-b">
-                                <tr>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Item</th>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Price</th>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">
-                                        Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="setup-item-list" class="divide-y divide-gray-100">
-                                <!-- Setup items will be injected here -->
-                            </tbody>
-                        </table>
+                    <!-- Supplier Settings -->
+                    <div class="setup-card bg-white p-8 rounded-[2rem] border-2 border-slate-100 shadow-sm">
+                        <div class="flex items-center space-x-4 mb-8">
+                            <div class="bg-amber-100 text-amber-600 p-3 rounded-2xl">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold">Supplier Management</h3>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <form id="form-add-item-ocean" class="space-y-4">
+                                <h4 class="font-bold text-slate-400 uppercase text-xs tracking-widest">Add Catalogue
+                                    Item</h4>
+                                <input type="text" id="ocean-item-name" placeholder="Item Name" required
+                                    class="w-full px-5 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="number" id="ocean-item-price" placeholder="Price" required
+                                        class="w-full px-5 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                                    <input type="text" id="ocean-item-unit" placeholder="Unit (kg/pcs)" required
+                                        class="w-full px-5 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                                </div>
+                                <input type="url" id="ocean-item-image" placeholder="Image URL"
+                                    class="w-full px-5 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                                <button type="submit" class="w-full py-4 bg-dark text-white rounded-xl font-bold">Add to
+                                    Ocean</button>
+                            </form>
+                            <div>
+                                <h4 class="font-bold text-slate-400 uppercase text-xs tracking-widest mb-4">Current
+                                    Catalogue</h4>
+                                <div id="ocean-catalogue-list" class="space-y-3 max-h-[300px] overflow-auto"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Driver Vehicle Info -->
+                    <div class="setup-card bg-white p-8 rounded-[2rem] border-2 border-slate-100 shadow-sm">
+                        <div class="flex items-center space-x-4 mb-8">
+                            <div class="bg-emerald-100 text-emerald-600 p-3 rounded-2xl">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold">Driver Identity</h3>
+                        </div>
+                        <form id="setup-driver-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 mb-2">Vehicle Plate Number</label>
+                                <input type="text" id="setup-driver-vehicle"
+                                    class="w-full px-5 py-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-primary outline-none"
+                                    placeholder="QAB 1234">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 mb-2">Vehicle Type</label>
+                                <select id="setup-driver-type"
+                                    class="w-full px-5 py-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-primary outline-none">
+                                    <option>Motorcycle</option>
+                                    <option>Small Car</option>
+                                    <option>Refrigerated Truck</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit"
+                                    class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold hover:shadow-lg transition-all">Verify
+                                    Driver Registration</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="text-center pt-8 pb-12">
+                        <button onclick="logout()" class="text-red-500 font-bold hover:underline">Log Out from Ocean
+                            Ecosystem</button>
                     </div>
                 </div>
-            </div>
-        </section>
-
-    </main>
+            </section>
+        </main>
+    </div>
 
     <!-- Scripts -->
     <script type="module" src="js/app.js"></script>

@@ -1,352 +1,376 @@
 import {
-    subscribeToStock,
-    updateStock,
-    initializeDefaultStock,
-    placeOrder,
-    subscribeToOrders,
-    createStockItem,
-    deleteStockItem
+    onAuth, loginWithGoogle, logout, getUserProfile, updateUserProfile,
+    subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
+    placeOrder, subscribeToOrders
 } from './firebase-service.js';
 import { initMap, updateOrderMarkers, focusMarker } from './map-service.js';
 
-// --- State Management ---
-let currentRole = 'client';
+/**
+ * --- OCEAN APP STATE ---
+ */
+let currentUser = null;
+let currentProfile = null;
+let activeRole = null;
 let stockData = {};
 let activeOrders = [];
 
-// --- DOM Elements ---
-const buttons = {
-    client: document.getElementById('btn-client'),
-    supplier: document.getElementById('btn-supplier'),
-    driver: document.getElementById('btn-driver'),
-    setup: document.getElementById('btn-setup')
+// --- DOM ELEMENTS ---
+const screens = {
+    auth: document.getElementById('auth-screen'),
+    roleSelect: document.getElementById('role-selection-screen'),
+    main: document.getElementById('main-app')
 };
 
-const sections = {
-    client: document.getElementById('client-view'),
-    supplier: document.getElementById('supplier-view'),
-    driver: document.getElementById('driver-view'),
-    setup: document.getElementById('setup-view')
+const views = {
+    client: document.getElementById('view-client'),
+    supplier: document.getElementById('view-supplier'),
+    driver: document.getElementById('view-driver'),
+    setup: document.getElementById('view-setup')
+};
+
+const navBtns = {
+    client: document.getElementById('nav-btn-client'),
+    supplier: document.getElementById('nav-btn-supplier'),
+    driver: document.getElementById('nav-btn-driver')
+};
+
+const labels = {
+    role: document.getElementById('label-role'),
+    avatar: document.getElementById('user-avatar')
 };
 
 const containers = {
-    stockGrid: document.getElementById('stock-grid'),
-    supplierStockList: document.getElementById('supplier-stock-list'),
-    ordersList: document.getElementById('orders-list'),
-    setupItemList: document.getElementById('setup-item-list'),
-    activeOrdersCount: document.getElementById('active-orders-count'),
-    queueCount: document.getElementById('queue-count')
+    clientStock: document.getElementById('client-stock-grid'),
+    supplierStock: document.getElementById('supplier-stock-list'),
+    driverOrders: document.getElementById('driver-orders-list'),
+    catalogueList: document.getElementById('ocean-catalogue-list')
 };
 
-// --- Initialization ---
-
+/**
+ * --- INITIALIZATION ---
+ */
 async function init() {
-    setupRoleSwitcher();
-    setupForms();
-    await initializeDefaultStock();
+    // 1. Auth Observer
+    onAuth(async (user) => {
+        if (user) {
+            currentUser = user;
+            labels.avatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`;
 
-    // Subscribe to stock updates
-    subscribeToStock((data) => {
-        stockData = data;
-        renderClientView();
-        renderSupplierView();
-        renderSetupView();
+            // 2. Fetch/Create Profile
+            currentProfile = await getUserProfile(user.uid);
+            if (!currentProfile) {
+                currentProfile = {
+                    name: user.displayName,
+                    email: user.email,
+                    role: null,
+                    address: '',
+                    phone: '',
+                    vehicle: '',
+                    vehicleType: ''
+                };
+                await updateUserProfile(user.uid, currentProfile);
+            }
+
+            // 3. Flow logic
+            showScreen('roleSelect');
+            if (currentProfile.role) {
+                switchToRole(currentProfile.role);
+            }
+        } else {
+            showScreen('auth');
+            currentUser = null;
+            currentProfile = null;
+        }
     });
 
-    // Subscribe to orders
+    // 4. Bind Events
+    document.getElementById('btn-login-google').onclick = () => loginWithGoogle();
+    document.getElementById('btn-logout').onclick = () => logout();
+    document.getElementById('btn-global-setup').onclick = () => showSection('setup');
+
+    document.querySelectorAll('.role-selector').forEach(btn => {
+        btn.onclick = async () => {
+            const role = btn.dataset.role;
+            await updateUserProfile(currentUser.uid, { role });
+            currentProfile.role = role;
+            switchToRole(role);
+        };
+    });
+
+    Object.keys(navBtns).forEach(role => {
+        navBtns[role].onclick = () => switchToRole(role);
+    });
+
+    setupSetupForms();
+
+    // 5. Data Subscriptions
+    subscribeToStock((data) => {
+        stockData = data || {};
+        renderAllViews();
+    });
+
     subscribeToOrders((orders) => {
         activeOrders = orders;
         renderDriverView();
         updateOrderMarkers(orders);
     });
 
-    // Initialize Map (only once when driver view might be shown)
+    // 6. Init Map
     initMap('map');
+    await initializeDefaultStock();
 }
 
-// --- UI Logic ---
+/**
+ * --- UI NAVIGATION ---
+ */
 
-function setupRoleSwitcher() {
-    Object.keys(buttons).forEach(role => {
-        buttons[role].addEventListener('click', () => {
-            switchRole(role);
-        });
+function showScreen(screenKey) {
+    Object.keys(screens).forEach(k => {
+        screens[k].classList.toggle('hidden', k !== screenKey);
     });
 }
 
-function switchRole(role) {
-    currentRole = role;
+function switchToRole(role) {
+    activeRole = role;
+    showScreen('main');
+    showSection(role);
+    labels.role.innerText = `${role.toUpperCase()} VIEW`;
 
-    // Update buttons
-    Object.keys(buttons).forEach(r => {
-        if (r === role) {
-            buttons[r].classList.add('bg-white', 'shadow-sm', 'text-primary');
-            buttons[r].classList.remove('text-gray-500');
-        } else {
-            buttons[r].classList.remove('bg-white', 'shadow-sm', 'text-primary');
-            buttons[r].classList.add('text-gray-500');
-        }
+    // Update Nav Buttons
+    Object.keys(navBtns).forEach(r => {
+        navBtns[r].classList.toggle('bg-white', r === role);
+        navBtns[r].classList.toggle('shadow-sm', r === role);
+        navBtns[r].classList.toggle('text-primary', r === role);
+        navBtns[r].classList.toggle('text-slate-500', r !== role);
     });
 
-    // Update sections
-    Object.keys(sections).forEach(r => {
-        if (r === role) {
-            sections[r].classList.remove('hidden');
-            // Trigger map resize if driver view is shown
-            if (role === 'driver') {
-                setTimeout(() => {
-                    window.dispatchEvent(new Event('resize'));
-                }, 100);
-            }
-        } else {
-            sections[r].classList.add('hidden');
-        }
-    });
+    // Refresh Profile fields in setup
+    populateSetupFields();
 }
 
-// --- Rendering Functions ---
+function showSection(sectionKey) {
+    Object.keys(views).forEach(k => {
+        views[k].classList.toggle('hidden', k !== sectionKey);
+    });
+
+    // Explicit map resize
+    if (sectionKey === 'driver') {
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+    }
+}
+
+/**
+ * --- RENDERING ---
+ */
+
+function renderAllViews() {
+    renderClientView();
+    renderSupplierView();
+    renderCatalogueList();
+}
 
 function renderClientView() {
-    containers.stockGrid.innerHTML = '';
+    containers.clientStock.innerHTML = '';
+    const addressLabel = document.getElementById('client-setup-summary');
+    addressLabel.innerText = currentProfile?.address ? `📍 ${currentProfile.address.substring(0, 20)}...` : '📍 Set Delivery Address';
+    addressLabel.onclick = () => showSection('setup');
 
     Object.entries(stockData).forEach(([id, item]) => {
         const isSoldOut = item.quantity <= 0;
-
         const card = document.createElement('div');
-        card.className = `bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group ${isSoldOut ? 'opacity-75' : ''}`;
-
+        card.className = `role-card bg-white p-4 rounded-[2rem] border shadow-sm transition-all group ${isSoldOut ? 'opacity-60' : ''}`;
         card.innerHTML = `
-            <div class="relative h-48 overflow-hidden bg-gray-100">
-                <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onerror="this.src='https://placehold.co/600x400?text=${encodeURIComponent(item.name)}'">
-                ${isSoldOut ? `
-                    <div class="absolute inset-0 bg-red-600/20 backdrop-blur-[2px] flex items-center justify-center">
-                        <span class="bg-red-600 text-white px-4 py-1 rounded-full font-bold text-sm tracking-widest uppercase">SOLD OUT</span>
-                    </div>
-                ` : ''}
+            <div class="relative h-48 rounded-[1.5rem] overflow-hidden bg-slate-100 mb-4">
+                <img src="${item.image}" class="w-full h-full object-cover transition-transform group-hover:scale-110" onerror="this.src='https://placehold.co/600x400?text=${encodeURIComponent(item.name)}'">
+                ${isSoldOut ? '<div class="absolute inset-0 bg-red-500/10 backdrop-blur-[1px] flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-1 rounded-full text-xs font-black">OUT OF STOCK</span></div>' : ''}
             </div>
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-xl font-bold text-dark leading-tight">${item.name}</h3>
+            <div class="px-2">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="font-bold text-lg leading-tight">${item.name}</h3>
                     <div class="text-right">
-                        <span class="text-lg font-bold text-primary block">RM ${item.price}</span>
-                        <span class="text-[10px] text-gray-400 uppercase font-bold">per ${item.unit}</span>
+                        <span class="text-primary font-black block leading-none">RM ${item.price}</span>
+                        <span class="text-[9px] uppercase font-bold text-slate-400">per ${item.unit}</span>
                     </div>
                 </div>
-                <p class="text-sm text-gray-500 mb-4">Stock: <span class="font-semibold ${item.quantity < 5 ? 'text-red-500' : 'text-green-600'}">${item.quantity} ${item.unit}</span> left</p>
-                
                 <button 
-                    onclick="handlePlaceOrder('${id}', '${item.name}')"
+                    onclick="handleOrder('${id}', '${item.name}')"
                     ${isSoldOut ? 'disabled' : ''}
-                    class="w-full py-3 px-4 rounded-xl font-bold transition-all duration-200 ${isSoldOut ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600 active:scale-95 shadow-lg shadow-primary/20'}"
+                    class="w-full py-3 rounded-2xl font-bold transition-all ${isSoldOut ? 'bg-slate-100 text-slate-400' : 'bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95'}"
                 >
                     Order Now
                 </button>
             </div>
         `;
-        containers.stockGrid.appendChild(card);
+        containers.clientStock.appendChild(card);
     });
 }
 
 function renderSupplierView() {
-    containers.supplierStockList.innerHTML = '';
-
+    containers.supplierStock.innerHTML = '';
     Object.entries(stockData).forEach(([id, item]) => {
         const tr = document.createElement('tr');
-        tr.className = "hover:bg-gray-50 transition-colors";
-
+        tr.className = "hover:bg-slate-50 transition-colors";
         tr.innerHTML = `
             <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
-                    <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover" onerror="this.src='https://placehold.co/100x100?text=IMG'">
-                    <span class="font-semibold text-dark">${item.name}</span>
+                    <img src="${item.image}" class="w-12 h-12 rounded-xl object-cover" onerror="this.src='https://placehold.co/100x100?text=IMG'">
+                    <span class="font-bold text-slate-700">${item.name}</span>
                 </div>
             </td>
             <td class="px-6 py-4">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.quantity > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                    ${item.quantity} ${item.unit}
-                </span>
+                <span class="px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-500">${item.quantity} ${item.unit}</span>
             </td>
             <td class="px-6 py-4">
-                <input type="number" id="input-${id}" value="${item.quantity}" 
-                    class="w-24 px-3 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                <input type="number" id="qty-${id}" value="${item.quantity}" class="w-20 px-3 py-2 bg-slate-50 rounded-lg text-sm border-0 focus:ring-2 focus:ring-primary outline-none">
             </td>
             <td class="px-6 py-4 text-right">
-                <button 
-                    onclick="handleUpdateStock('${id}')"
-                    class="bg-dark text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-black transition-colors"
-                >
-                    Update
-                </button>
+                <button onclick="handleStockUpdate('${id}')" class="bg-dark text-white text-xs font-bold px-4 py-2 rounded-lg hover:shadow-lg transition-all">SAVE</button>
             </td>
         `;
-        containers.supplierStockList.appendChild(tr);
+        containers.supplierStock.appendChild(tr);
     });
 }
 
 function renderDriverView() {
-    containers.ordersList.innerHTML = '';
-    const pending = activeOrders.filter(o => o.status === 'pending');
-
-    containers.activeOrdersCount.innerText = activeOrders.length;
-    containers.queueCount.innerText = pending.length;
-
-    if (activeOrders.length === 0) {
-        containers.ordersList.innerHTML = `
-            <div class="text-center py-10 text-gray-400">
-                <p>No active delivery requests.</p>
-            </div>
-        `;
-        return;
-    }
-
+    containers.driverOrders.innerHTML = '';
     activeOrders.forEach(order => {
-        const card = document.createElement('div');
-        card.className = "bg-gray-50 border rounded-xl p-4 cursor-pointer hover:border-primary transition-colors group";
-        card.onclick = () => focusMarker(order.id);
-
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-                <h4 class="font-bold text-dark group-hover:text-primary transition-colors">${order.itemName}</h4>
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-white border text-gray-500">${order.status}</span>
+        const div = document.createElement('div');
+        div.className = "bg-white p-5 rounded-3xl border shadow-sm cursor-pointer hover:border-primary transition-all group";
+        div.onclick = () => focusMarker(order.id);
+        div.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <h4 class="font-bold group-hover:text-primary transition-colors">${order.itemName}</h4>
+                <span class="text-[10px] font-black uppercase text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">${order.status}</span>
             </div>
-            <div class="flex items-center text-xs text-gray-500 space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>${order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}</span>
-                <span>•</span>
-                <span>Qty: 1</span>
+            <div class="text-xs text-slate-400 flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span>${order.address || 'Kuching Area'}</span>
             </div>
         `;
-        containers.ordersList.appendChild(card);
+        containers.driverOrders.appendChild(div);
     });
 }
 
-function renderSetupView() {
-    containers.setupItemList.innerHTML = '';
-
+function renderCatalogueList() {
+    containers.catalogueList.innerHTML = '';
     Object.entries(stockData).forEach(([id, item]) => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-gray-50 transition-colors";
-
-        tr.innerHTML = `
-            <td class="px-6 py-4">
-                <div class="flex items-center space-x-3">
-                    <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover" onerror="this.src='https://placehold.co/100x100?text=IMG'">
-                    <div>
-                        <div class="font-semibold text-dark">${item.name}</div>
-                        <div class="text-xs text-gray-400 capitalize">${id}</div>
-                    </div>
-                </div>
-            </td>
-            <td class="px-6 py-4">
-                <span class="font-medium text-dark">RM ${item.price} / ${item.unit}</span>
-            </td>
-            <td class="px-6 py-4 text-right">
-                <button 
-                    onclick="handleDeleteItem('${id}')"
-                    class="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-all"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
-            </td>
+        const div = document.createElement('div');
+        div.className = "flex items-center justify-between p-3 bg-slate-50 rounded-xl group";
+        div.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <img src="${item.image}" class="w-8 h-8 rounded-lg object-cover">
+                <span class="text-sm font-bold text-slate-600">${item.name}</span>
+            </div>
+            <button onclick="handleDeleteItem('${id}')" class="text-slate-300 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
         `;
-        containers.setupItemList.appendChild(tr);
+        containers.catalogueList.appendChild(div);
     });
 }
 
-function setupForms() {
-    const form = document.getElementById('form-add-item');
-    if (!form) return;
+/**
+ * --- SETUP & FORMS ---
+ */
 
-    form.onsubmit = async (e) => {
+function setupSetupForms() {
+    // Client Form
+    document.getElementById('setup-client-form').onsubmit = async (e) => {
         e.preventDefault();
-        const btn = form.querySelector('button');
-        btn.disabled = true;
-        btn.innerText = "Adding...";
+        const address = document.getElementById('setup-client-address').value;
+        const phone = document.getElementById('setup-client-phone').value;
+        await updateUserProfile(currentUser.uid, { address, phone });
+        currentProfile.address = address;
+        currentProfile.phone = phone;
+        alert("Client profile updated!");
+        renderClientView();
+    };
 
+    // Driver Form
+    document.getElementById('setup-driver-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const vehicle = document.getElementById('setup-driver-vehicle').value;
+        const vehicleType = document.getElementById('setup-driver-type').value;
+        await updateUserProfile(currentUser.uid, { vehicle, vehicleType });
+        alert("Driver identity verified!");
+    };
+
+    // Catalogue Form (Ocean)
+    document.getElementById('form-add-item-ocean').onsubmit = async (e) => {
+        e.preventDefault();
         const newItem = {
-            name: document.getElementById('setup-name').value,
-            price: parseFloat(document.getElementById('setup-price').value),
-            unit: document.getElementById('setup-unit').value,
-            image: document.getElementById('setup-image').value,
-            quantity: parseInt(document.getElementById('setup-stock').value)
+            name: document.getElementById('ocean-item-name').value,
+            price: parseFloat(document.getElementById('ocean-item-price').value),
+            unit: document.getElementById('ocean-item-unit').value,
+            image: document.getElementById('ocean-item-image').value,
+            quantity: 10 // Default initial stock
         };
-
-        try {
-            await createStockItem(newItem);
-            form.reset();
-            alert("Item added successfully!");
-        } catch (err) {
-            console.error(err);
-            alert("Error adding item.");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Add to Store";
-        }
+        await createStockItem(newItem);
+        e.target.reset();
+        alert("Added to Ocean!");
     };
 }
 
-// --- Action Handlers (Global scope for inline event handlers) ---
+function populateSetupFields() {
+    if (!currentProfile) return;
+    document.getElementById('setup-client-address').value = currentProfile.address || '';
+    document.getElementById('setup-client-phone').value = currentProfile.phone || '';
+    document.getElementById('setup-driver-vehicle').value = currentProfile.vehicle || '';
+    document.getElementById('setup-driver-type').value = currentProfile.vehicleType || 'Motorcycle';
+}
 
-window.handleDeleteItem = async (id) => {
-    if (confirm(`Are you sure you want to remove ${id}?`)) {
-        try {
-            await deleteStockItem(id);
-        } catch (err) {
-            console.error(err);
-            alert("Failed to delete item.");
-        }
-    }
-};
+/**
+ * --- GLOBAL HANDLERS ---
+ */
 
-window.handlePlaceOrder = async (itemId, itemName) => {
-    try {
-        const orderData = {
-            itemId,
-            itemName,
-            quantity: 1,
-            customerName: "Value Customer",
-        };
-
-        const currentQty = stockData[itemId].quantity;
-        if (currentQty > 0) {
-            await updateStock(itemId, currentQty - 1);
-            await placeOrder(orderData);
-            alert(`Order placed for ${itemName}!`);
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Failed to place order.");
-    }
-};
-
-window.handleUpdateStock = async (itemId) => {
-    const input = document.getElementById(`input-${itemId}`);
-    const newQty = parseInt(input.value);
-
-    if (isNaN(newQty) || newQty < 0) {
-        alert("Please enter a valid quantity.");
+window.handleOrder = async (id, name) => {
+    if (!currentProfile.address) {
+        alert("Please set your delivery address in Setup first!");
+        showSection('setup');
         return;
     }
 
     try {
-        await updateStock(itemId, newQty);
-        const btn = event.target;
-        const originalText = btn.innerText;
-        btn.innerText = "Saved!";
-        btn.classList.replace('bg-dark', 'bg-green-600');
-        setTimeout(() => {
-            btn.innerText = originalText;
-            btn.classList.replace('bg-green-600', 'bg-dark');
-        }, 1500);
+        const currentQty = stockData[id].quantity;
+        if (currentQty > 0) {
+            await updateStock(id, currentQty - 1);
+            await placeOrder({
+                itemId: id,
+                itemName: name,
+                customerName: currentProfile.name,
+                address: currentProfile.address,
+                phone: currentProfile.phone
+            });
+            alert(`Order successful! A driver will pick up your ${name} soon.`);
+        }
     } catch (err) {
         console.error(err);
-        alert("Failed to update stock.");
     }
 };
 
-// Start the app
+window.handleStockUpdate = async (id) => {
+    const qty = parseInt(document.getElementById(`qty-${id}`).value);
+    if (!isNaN(qty) && qty >= 0) {
+        await updateStock(id, qty);
+        const btn = event.target;
+        btn.innerText = "SAVED!";
+        btn.classList.add('bg-emerald-500');
+        setTimeout(() => {
+            btn.innerText = "SAVE";
+            btn.classList.remove('bg-emerald-500');
+        }, 1500);
+    }
+};
+
+window.handleDeleteItem = async (id) => {
+    if (confirm(`Remove ${id} from Ocean?`)) {
+        await deleteStockItem(id);
+    }
+};
+
+window.showRoleSelection = () => showScreen('roleSelect');
+window.logout = () => logout();
+window.showSection = (key) => showSection(key);
+
+// Start App
 init();
