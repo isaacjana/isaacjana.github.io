@@ -178,3 +178,45 @@ export function subscribeToOrders(callback) {
         callback(orders);
     });
 }
+// --- Auditing & Analytics ---
+
+/**
+ * Record a business action for auditing
+ */
+export async function recordAudit(uid, action, details) {
+    return addDoc(collection(firestore, "audit_log"), {
+        uid,
+        action,
+        details,
+        timestamp: serverTimestamp()
+    });
+}
+
+/**
+ * Manage wholesale B2B clients
+ */
+export async function addWholesaleClient(uid, clientData) {
+    return addDoc(collection(firestore, "clients"), {
+        ownerUid: uid,
+        ...clientData,
+        createdAt: serverTimestamp()
+    });
+}
+
+export function subscribeToClients(uid, callback) {
+    const q = query(collection(firestore, "clients"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+        const clients = [];
+        snapshot.forEach(doc => clients.push({ id: doc.id, ...doc.data() }));
+        callback(clients);
+    });
+}
+
+export function subscribeToAuditLog(callback) {
+    const q = query(collection(firestore, "audit_log"), orderBy("timestamp", "desc"));
+    return onSnapshot(q, (snapshot) => {
+        const logs = [];
+        snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
+        callback(logs.slice(0, 5));
+    });
+}

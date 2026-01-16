@@ -18,8 +18,9 @@ export function initMap(elementId) {
         zoomControl: false // We'll add it to top-right for cleaner mobile UI
     }).setView(kuchingCoords, 13);
 
-    L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap'
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -110,7 +111,12 @@ export function clearRoute() {
 
 export function focusMarker(orderId) {
     if (markers[orderId]) {
+        map.invalidateSize();
         map.setView(markers[orderId].getLatLng(), 16);
         markers[orderId].openPopup();
     }
+}
+
+export function refreshMap() {
+    if (map) map.invalidateSize();
 }

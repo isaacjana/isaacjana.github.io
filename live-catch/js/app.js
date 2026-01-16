@@ -1,9 +1,10 @@
 import {
     onAuth, loginWithGoogle, logout, getUserProfile, updateUserProfile,
     subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
-    placeOrder, subscribeToOrders, updateOrderStatus
+    placeOrder, subscribeToOrders, updateOrderStatus,
+    recordAudit, addWholesaleClient, subscribeToClients, subscribeToAuditLog
 } from './firebase-service.js';
-import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRoute, clearRoute } from './map-service.js';
+import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRoute, clearRoute, refreshMap } from './map-service.js';
 
 /**
  * --- OCEAN APP STATE ---
@@ -28,7 +29,8 @@ const views = {
     client: document.getElementById('view-client'),
     supplier: document.getElementById('view-supplier'),
     driver: document.getElementById('view-driver'),
-    setup: document.getElementById('view-setup')
+    setup: document.getElementById('view-setup'),
+    analytics: document.getElementById('view-analytics')
 };
 
 const buttons = {
@@ -118,7 +120,11 @@ async function init() {
     buttons.m_setup.onclick = () => showSection('setup');
 
 
+    // Analytics Tab
+    document.getElementById('nav-btn-analytics').onclick = () => showSection('analytics');
+
     setupSetupForms();
+    setupBusinessLogic();
 
     // 5. Data Subscriptions
     subscribeToStock((data) => {
@@ -215,8 +221,7 @@ function showSection(sectionKey) {
         // Use requestAnimationFrame for more robust map resizing, especially on mobile
         requestAnimationFrame(() => {
             setTimeout(() => {
-                const mapEl = document.getElementById('map');
-                if (mapEl) window.dispatchEvent(new Event('resize'));
+                refreshMap();
             }, 300);
         });
         startLocationTracking();
@@ -396,9 +401,95 @@ function setupSetupForms() {
         };
         await createStockItem(newItem);
         e.target.reset();
-        alert("Added to Ocean!");
     };
 }
+
+function setupBusinessLogic() {
+    // 1. Manage Wholesale Client Registry
+    document.getElementById('form-manage-client').onsubmit = async (e) => {
+        e.preventDefault();
+        const bizName = document.getElementById('client-biz-name').value;
+        const bizAddress = document.getElementById('client-biz-address').value;
+
+        if (!bizName || !bizAddress) return;
+
+        await addWholesaleClient(currentUser.uid, { name: bizName, address: bizAddress });
+        await recordAudit(currentUser.uid, 'ADD_CLIENT', `Registered wholesale client: ${bizName}`);
+
+        e.target.reset();
+    };
+
+    // 2. Client Registry Subscription
+    subscribeToClients(null, (clients) => {
+        const list = document.getElementById('registry-client-list');
+        if (!list) return;
+        list.innerHTML = '';
+        document.getElementById('stats-clients').innerText = clients.length;
+
+        clients.forEach(client => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-6 py-4 font-bold text-slate-800">${client.name}</td>
+                <td class="px-6 py-4 text-slate-500">${client.address}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="handleSelectClient('${client.name}', '${client.address}')" class="text-[10px] font-black uppercase text-indigo-600 hover:underline">Select Client</button>
+                </td>
+            `;
+            list.appendChild(tr);
+        });
+    });
+
+    // 3. Audit Log Subscription
+    subscribeToAuditLog((logs) => {
+        const list = document.getElementById('audit-log-list');
+        if (!list) return;
+        list.innerHTML = '';
+        logs.forEach(log => {
+            const time = log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString() : '...';
+            const div = document.createElement('div');
+            div.className = "flex items-start space-x-3 p-3 bg-slate-50 rounded-2xl border-l-4 border-slate-800";
+            div.innerHTML = `
+                <div class="flex-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${log.action}</span>
+                        <span class="text-[9px] font-bold text-slate-300">${time}</span>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-600 leading-tight">${log.details}</p>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    });
+}
+
+window.handleSelectClient = (name, address) => {
+    document.getElementById('setup-client-address').value = address;
+    alert(`Switched to Client: ${name}`);
+};
+
+window.refreshAnalytics = () => {
+    // Recalculate financial stats locally from activeOrders
+    let totalRevenue = 0;
+    let sstPool = 0;
+    let commission = 0;
+
+    activeOrders.forEach(o => {
+        if (o.status === 'delivered') {
+            const price = parseFloat(o.price || 0);
+            totalRevenue += price;
+            sstPool += price * 0.06;
+            commission += 5.00; // Mock Sarawak Rider commission RM 5 / trip
+        }
+    });
+
+    const revEl = document.getElementById('stats-revenue');
+    const sstEl = document.getElementById('stats-sst');
+    const comEl = document.getElementById('stats-commission');
+
+    if (revEl) revEl.innerText = `RM ${totalRevenue.toFixed(2)}`;
+    if (sstEl) sstEl.innerText = `RM ${sstPool.toFixed(2)}`;
+    if (comEl) comEl.innerText = `RM ${commission.toFixed(2)}`;
+};
 
 function populateSetupFields() {
     if (!currentProfile) return;
@@ -443,9 +534,45 @@ function stopLocationTracking() {
  * --- GLOBAL HANDLERS ---
  */
 
+window.handleOrder = async (id, name) => {
+    if (!currentProfile.address) {
+        alert("Please set your delivery address in Setup first!");
+        showSection('setup');
+        return;
+    }
+
+    try {
+        const item = stockData[id];
+        const subtotal = item.price;
+        const sst = subtotal * 0.06;
+        const total = subtotal + sst;
+
+        if (item.quantity > 0) {
+            await updateStock(id, item.quantity - 1);
+            await placeOrder({
+                itemId: id,
+                itemName: name,
+                price: item.price,
+                total: total,
+                customerName: currentProfile.name,
+                address: currentProfile.address,
+                phone: currentProfile.phone
+            });
+
+            await recordAudit(currentUser.uid, 'PLACE_ORDER', `Order placed: ${name} (Total: RM ${total.toFixed(2)})`);
+
+            alert(`Order successful! Total: RM ${total.toFixed(2)} (incl. 6% SST)`);
+            refreshAnalytics();
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
 window.handlePickup = async (orderId) => {
     try {
         await updateOrderStatus(orderId, 'picked_up');
+        await recordAudit(currentUser.uid, 'PICKUP_ORDER', `Driver picked up order ID: ${orderId.substring(0, 8)}`);
         currentNavOrderId = orderId;
 
         const order = activeOrders.find(o => o.id === orderId);
@@ -459,48 +586,25 @@ window.handlePickup = async (orderId) => {
 
 window.handleComplete = async (orderId) => {
     try {
-        const orderRef = doc(getFirestore(), "orders", orderId);
-        await setDoc(orderRef, { status: 'delivered' }, { merge: true });
+        await updateOrderStatus(orderId, 'delivered');
+        await recordAudit(currentUser.uid, 'DELIVER_ORDER', `Delivery completed for order ID: ${orderId.substring(0, 8)}`);
+
         if (currentNavOrderId === orderId) {
             currentNavOrderId = null;
             clearRoute();
         }
+        refreshAnalytics();
     } catch (err) {
         console.error(err);
     }
 };
 
 window.handleFocusOrder = (id) => focusMarker(id);
-
-window.handleOrder = async (id, name) => {
-    if (!currentProfile.address) {
-        alert("Please set your delivery address in Setup first!");
-        showSection('setup');
-        return;
-    }
-
-    try {
-        const currentQty = stockData[id].quantity;
-        if (currentQty > 0) {
-            await updateStock(id, currentQty - 1);
-            await placeOrder({
-                itemId: id,
-                itemName: name,
-                customerName: currentProfile.name,
-                address: currentProfile.address,
-                phone: currentProfile.phone
-            });
-            alert(`Order successful! A driver will pick up your ${name} soon.`);
-        }
-    } catch (err) {
-        console.error(err);
-    }
-};
-
 window.handleStockUpdate = async (id) => {
     const qty = parseInt(document.getElementById(`qty-${id}`).value);
     if (!isNaN(qty) && qty >= 0) {
         await updateStock(id, qty);
+        await recordAudit(currentUser.uid, 'UPDATE_STOCK', `Updated stock for ${id} to ${qty}`);
         const btn = event.target;
         btn.innerText = "SAVED!";
         btn.classList.add('bg-emerald-500');
@@ -514,6 +618,7 @@ window.handleStockUpdate = async (id) => {
 window.handleDeleteItem = async (id) => {
     if (confirm(`Remove ${id} from Ocean?`)) {
         await deleteStockItem(id);
+        await recordAudit(currentUser.uid, 'DELETE_STOCK', `Removed item from catalogue: ${id}`);
     }
 };
 
