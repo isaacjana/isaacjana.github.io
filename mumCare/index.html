@@ -1,748 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f43f5e">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2921/2921226.png">
-    <title>MamaJourney MY | Pink Book Companion</title>
-    
+    <meta name="theme-color" content="#EE1C25">
+    <link rel="apple-touch-icon" href="assets/img/logo_kenyalang.png">
+    <title>MamaJourney Sarawak | Pink Book Companion</title>
+
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="css/style.css">
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        soft: { 50: '#fff1f2', 100: '#ffe4e6', 500: '#f43f5e', 900: '#881337' },
-                        baby: { 50: '#f0f9ff', 500: '#0ea5e9' },
-                    },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    spacing: { 'safe-b': 'env(safe-area-inset-bottom)' }
+                        sarawak: {
+                            yellow: '#FFD700',
+                            red: '#EE1C25',
+                            black: '#1A1A1A'
+                        }
+                    }
                 }
             }
         }
     </script>
-    <style>
-        body { background-color: #fdfdfd; -webkit-tap-highlight-color: transparent; }
-        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .page-section { display: none; animation: fadeIn 0.3s ease-out; }
-        .page-section.active { display: block; }
-        .nav-active { color: #f43f5e; transform: translateY(-2px); }
-        .nav-btn span { font-size: 9px; margin-top: 2px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        /* Safe Area Fixes */
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-    </style>
 </head>
-<body class="text-slate-800 pb-24 md:pb-0 select-none">
 
-    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-rose-50 to-blue-50">
-        <div class="glass-panel p-8 rounded-[2rem] w-full max-w-sm text-center">
+<body class="pb-safe">
+
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-6 bg-[#fdfaf6]">
+        <div class="glass-card p-10 w-full max-w-sm text-center animate-fade-in">
             <div class="mb-10">
-                <div class="w-20 h-20 bg-rose-500 rounded-full mx-auto flex items-center justify-center text-4xl text-white mb-4 shadow-xl shadow-rose-200">🤰</div>
-                <h1 class="text-3xl font-black text-slate-800">MamaJourney</h1>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Malaysia Edition</p>
+                <img src="assets/img/logo_kenyalang.png" class="w-32 h-32 mx-auto mb-6 drop-shadow-2xl">
+                <h1 class="text-3xl font-black text-sarawak-black">MamaJourney</h1>
+                <p class="text-[10px] font-bold text-red-500 uppercase tracking-[0.2em] mt-2">Sarawak Edition</p>
             </div>
-            
-            <button id="google-btn" class="w-full bg-white border border-slate-200 text-slate-700 font-bold py-4 rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-3 relative overflow-hidden group">
+
+            <button id="google-btn"
+                class="w-full bg-white border border-slate-200 text-slate-700 font-bold py-4 rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-3 group">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6">
                 <span>Continue with Google</span>
-                <div class="absolute inset-0 bg-slate-50 opacity-0 group-hover:opacity-20 transition"></div>
             </button>
-            <p class="text-[10px] text-slate-400 mt-6 max-w-xs mx-auto">By continuing, you agree to track your journey responsibly.</p>
+            <p class="text-[10px] text-slate-400 mt-8">Safely tracking the next generation of Anak Sarawak.</p>
         </div>
     </div>
 
-    <main id="app-interface" class="hidden max-w-md mx-auto md:py-8 min-h-screen relative">
-        
-        <header class="flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 md:rounded-t-[2rem]">
+    <!-- Main App Interface -->
+    <main id="app-interface" class="hidden max-w-md mx-auto min-h-screen relative pb-24">
+
+        <!-- Sticky Header -->
+        <header
+            class="flex justify-between items-center px-6 py-5 bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 md:rounded-b-[2rem]">
             <div class="flex items-center gap-3">
-                <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-slate-200">
+                <div class="relative">
+                    <img id="user-avatar" src="assets/img/logo_kenyalang.png"
+                        class="w-10 h-10 rounded-full border-2 border-sarawak-yellow object-cover">
+                    <div class="absolute -bottom-1 -right-1 bg-sarawak-red w-4 h-4 rounded-full border-2 border-white">
+                    </div>
+                </div>
                 <div>
-                    <h2 class="text-lg font-black text-rose-500 tracking-tight leading-none">MamaJourney</h2>
-                    <p id="header-greeting" class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Hello</p>
+                    <h2 class="text-xl font-black text-sarawak-black tracking-tight leading-none">MamaJourney</h2>
+                    <p id="header-greeting" class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                        Selamat Datang</p>
                 </div>
             </div>
-            <div id="baby-pill" class="bg-rose-50 px-3 py-1 rounded-full flex items-center gap-2 border border-rose-100">
-                <span class="text-sm">👶</span>
-                <span id="header-week" class="text-[10px] font-bold text-rose-600">Week 0</span>
+            <div id="baby-pill"
+                class="bg-red-50 px-4 py-1.5 rounded-full flex items-center gap-2 border border-red-100 shadow-sm">
+                <span class="text-xs">👶</span>
+                <span id="header-week" class="text-[10px] font-black text-red-600">Week --</span>
             </div>
         </header>
 
-        <div id="tab-home" class="page-section active px-4 pt-6 space-y-6">
-            <div id="export-area" class="bg-gradient-to-br from-rose-400 to-orange-300 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <p class="text-[9px] font-bold uppercase tracking-widest opacity-80">Pregnancy Readiness</p>
-                        <h2 id="readiness-display" class="text-4xl font-black">0%</h2>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[9px] font-bold uppercase tracking-widest opacity-80">Time Left</p>
-                        <h2 id="days-left-display" class="text-2xl font-black">-- Days</h2>
-                    </div>
+        <!-- Home Tab -->
+        <div id="tab-home" class="page-section active px-5 pt-6 space-y-6">
+            <div id="export-area"
+                class="bg-gradient-to-br from-sarawak-black to-[#333] rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
+                <!-- Pua Kumbu subtle overlay -->
+                <div
+                    class="absolute inset-0 opacity-10 pointer-events-none bg-[url('../assets/img/pua_kumbu_pattern.png')] bg-repeat bg-[length:100px]">
                 </div>
-                <div class="space-y-1">
-                    <div class="flex justify-between text-[9px] font-bold uppercase tracking-widest opacity-90">
-                        <span id="tasks-fraction">0/0 Tasks</span>
-                        <span>Complete</span>
+
+                <div class="relative z-10">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <p
+                                class="text-[9px] font-bold uppercase tracking-widest text-sarawak-yellow opacity-80 mb-1">
+                                Pregnancy Progress</p>
+                            <h2 id="readiness-display" class="text-5xl font-black leading-none">0%</h2>
+                        </div>
+                        <div class="text-right">
+                            <p
+                                class="text-[9px] font-bold uppercase tracking-widest text-sarawak-yellow opacity-80 mb-1">
+                                Countdown</p>
+                            <h2 id="days-left-display" class="text-2xl font-black">-- Days</h2>
+                        </div>
                     </div>
-                    <div class="w-full bg-black/10 rounded-full h-3">
-                        <div id="progress-bar" class="bg-white h-full rounded-full transition-all duration-1000 w-0 shadow-sm"></div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                            <span id="tasks-fraction" class="text-white/60">0/0 Tasks</span>
+                            <span class="text-sarawak-yellow">Next Step</span>
+                        </div>
+                        <div class="progress-container">
+                            <div id="progress-bar" class="progress-fill w-0"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-panel p-5 rounded-[2rem]">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-base">To-Do List</h3>
-                    <span class="text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold uppercase">All Trimesters</span>
+            <div class="glass-card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-black text-lg text-sarawak-black">Misi & Checklist</h3>
+                    <span
+                        class="text-[9px] bg-slate-100 px-3 py-1 rounded-full text-slate-500 font-bold uppercase">Panduan
+                        KKM</span>
                 </div>
-                <div id="task-list" class="space-y-2"></div>
+                <div id="task-list" class="space-y-1">
+                    <!-- Tasks injected by app.js -->
+                </div>
             </div>
         </div>
 
-        <div id="tab-mom" class="page-section px-4 pt-6 space-y-6">
-            
-            <div class="glass-panel p-5 rounded-[2rem] bg-indigo-50/40 border-indigo-100">
-                 <h3 class="font-bold text-base flex items-center gap-2 mb-3 text-indigo-900"><i class="fas fa-pen-fancy text-indigo-500"></i> Mini Journal</h3>
-                 <textarea id="journal-input" placeholder="How are you feeling today, Mama?" class="w-full p-3 rounded-xl text-xs bg-white border border-indigo-100 outline-none h-20 resize-none mb-2"></textarea>
-                 <div class="flex justify-between items-center">
-                     <span class="text-[9px] text-slate-400 italic" id="last-journal-date">Drafting...</span>
-                     <button onclick="saveJournal()" class="bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-bold">Save Note</button>
-                 </div>
+        <!-- Mom Tab -->
+        <div id="tab-mom" class="page-section px-5 pt-6 space-y-6">
+            <div class="glass-card p-6 bg-amber-50/50 border-amber-100">
+                <h3 class="font-black text-lg flex items-center gap-2 mb-4 text-sarawak-black">
+                    <i class="fas fa-feather text-amber-600"></i> Diary Mama
+                </h3>
+                <textarea id="journal-input" placeholder="Apa khabar hari ini, Mama?"
+                    class="w-full p-4 rounded-2xl text-sm bg-white border border-amber-100 outline-none h-24 resize-none mb-3 shadow-inner focus:border-amber-400 transition"></textarea>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-slate-400 font-bold" id="last-journal-date">Tiada rekod...</span>
+                    <button onclick="saveJournal()"
+                        class="bg-sarawak-black text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-black/10 active:scale-95 transition">Simpan
+                        Nota</button>
+                </div>
             </div>
 
-            <div class="glass-panel p-5 rounded-[2rem]">
+            <div class="glass-card p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-base flex items-center gap-2"><i class="fas fa-calendar-check text-rose-500"></i> Temu Janji</h3>
-                    <button onclick="$('#appt-modal').fadeIn()" class="bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-lg">+</button>
+                    <h3 class="font-black text-lg flex items-center gap-2"><i
+                            class="fas fa-calendar-alt text-red-500"></i> Temu Janji</h3>
+                    <button onclick="$('#appt-modal').fadeIn()"
+                        class="bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg shadow-red-200 active:rotate-90 transition">+</button>
                 </div>
-                <div id="appt-list" class="space-y-2 max-h-40 overflow-y-auto no-scrollbar text-sm text-slate-500 italic text-center">No appointments yet.</div>
+                <div id="appt-list" class="space-y-3"></div>
             </div>
 
-            <div class="glass-panel p-5 rounded-[2rem] bg-orange-50/50 border-orange-100">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="font-bold text-base text-orange-800">Carta Gerak Bayi</h3>
-                    <span class="text-[9px] bg-orange-200 text-orange-700 px-2 py-1 rounded font-bold">TARGET: 10</span>
+            <div class="glass-card p-6 border-sarawak-yellow/20 bg-sarawak-yellow/5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-lg text-sarawak-black">Carta Gerak Bayi</h3>
+                    <span
+                        class="text-[10px] bg-sarawak-yellow text-sarawak-black px-3 py-1 rounded-full font-black uppercase">TARGET:
+                        10</span>
                 </div>
-                <div class="flex items-center gap-4 mb-4">
-                    <button id="btn-kick" class="w-20 h-20 bg-orange-400 rounded-full shadow-lg shadow-orange-200 text-3xl active:scale-90 transition border-4 border-white">👣</button>
+                <div class="flex items-center gap-6 mb-6">
+                    <button id="btn-kick" onclick="handleKick()"
+                        class="w-24 h-24 bg-sarawak-black rounded-full shadow-2xl text-4xl active:scale-90 transition border-4 border-sarawak-yellow flex items-center justify-center">👣</button>
                     <div>
-                        <div class="text-3xl font-black text-slate-800"><span id="kick-count">0</span><span class="text-sm font-medium text-slate-400">/10</span></div>
-                        <div id="kick-timer" class="text-xs font-mono text-slate-400">00:00:00</div>
-                        <button onclick="resetKick()" class="text-[9px] font-bold text-orange-500 underline mt-1">RESET</button>
+                        <div class="text-4xl font-black text-sarawak-black"><span id="kick-count">0</span><span
+                                class="text-base font-medium text-slate-400 ml-1">/10</span></div>
+                        <div id="kick-timer" class="text-xs font-mono font-bold text-red-500 mt-1 uppercase">00:00:00
+                        </div>
+                        <button onclick="resetKick()"
+                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 hover:text-red-500">Reset</button>
                     </div>
                 </div>
-                <div class="border-t border-orange-200 pt-3">
-                    <p class="text-[9px] font-bold text-orange-800 uppercase mb-2">Recent Sessions</p>
-                    <div id="kick-history" class="space-y-2 max-h-24 overflow-y-auto no-scrollbar text-[10px]"></div>
+                <div class="border-t border-slate-100 pt-4">
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Sesi Terakhir</p>
+                    <div id="kick-history" class="space-y-2 text-xs"></div>
                 </div>
             </div>
 
+            <!-- Health Logs Row -->
             <div class="grid grid-cols-2 gap-4">
-                <div class="glass-panel p-4 rounded-[1.5rem]">
-                    <h4 class="font-bold text-xs mb-2 flex items-center gap-1"><i class="fas fa-weight-scale text-slate-400"></i> Weight (kg)</h4>
-                    <div class="flex gap-1 mb-3">
-                        <input type="number" id="weight-in" class="w-full bg-slate-50 rounded-lg p-1 text-sm border focus:ring-1 focus:ring-rose-300">
-                        <button id="save-weight" class="bg-slate-800 text-white px-3 rounded-lg text-xs font-bold">OK</button>
+                <div class="glass-card p-5">
+                    <h4 class="font-black text-xs mb-3 flex items-center gap-2 text-slate-600">
+                        <i class="fas fa-weight-scale opacity-50"></i> Berat (kg)
+                    </h4>
+                    <div class="flex gap-2 mb-4">
+                        <input type="number" id="weight-in"
+                            class="w-full bg-slate-50 rounded-xl p-2.5 text-sm border-none focus:ring-2 focus:ring-sarawak-yellow transition">
+                        <button id="save-weight"
+                            class="bg-sarawak-black text-white px-3 rounded-xl text-xs font-bold">OK</button>
                     </div>
-                    <div id="weight-history" class="text-[9px] space-y-2 h-24 overflow-y-auto no-scrollbar"></div>
+                    <div id="weight-history" class="text-[10px] space-y-2 max-h-24 overflow-y-auto no-scrollbar"></div>
                 </div>
-                
-                <div class="glass-panel p-4 rounded-[1.5rem] bg-rose-50 border-rose-100">
-                    <h4 class="font-bold text-xs mb-1 text-rose-800 flex items-center gap-1"><i class="fas fa-stopwatch text-rose-400"></i> Contractions</h4>
-                    <div id="c-timer" class="text-xl font-mono font-black text-rose-600 mb-2">00:00</div>
-                    <button id="c-btn" class="w-full bg-rose-500 text-white py-2 rounded-lg text-[9px] font-bold shadow-md active:scale-95 transition">START</button>
-                    <div id="contraction-history" class="mt-3 pt-2 border-t border-rose-200 text-[9px] space-y-1 h-12 overflow-y-auto no-scrollbar text-rose-600"></div>
-                </div>
-            </div>
 
-            <div class="glass-panel p-5 rounded-[2rem] mt-4 border-red-100 bg-red-50/30">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="font-bold text-base flex items-center gap-2 text-red-900"><i class="fas fa-heart-pulse text-red-500"></i> BP Monitor</h3>
-                    <span class="text-[9px] bg-red-100 text-red-600 px-2 py-1 rounded font-bold uppercase">Normal: 120/80</span>
-                </div>
-                <div class="flex gap-2 mb-3">
-                    <input type="number" id="bp-sys" placeholder="SYS" class="w-1/3 p-3 rounded-xl border border-red-100 text-center font-bold text-sm outline-none focus:border-red-400">
-                    <div class="flex items-center text-slate-300">/</div>
-                    <input type="number" id="bp-dia" placeholder="DIA" class="w-1/3 p-3 rounded-xl border border-red-100 text-center font-bold text-sm outline-none focus:border-red-400">
-                    <button id="save-bp" class="w-1/3 bg-red-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-red-200 active:scale-95 transition">SAVE</button>
-                </div>
-                <div id="bp-history" class="space-y-2 max-h-32 overflow-y-auto no-scrollbar border-t border-red-100 pt-2"></div>
-            </div>
-        </div>
-
-        <div id="tab-baby" class="page-section px-4 pt-6 space-y-6">
-            <div class="bg-blue-500 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200">
-                <h3 class="font-bold text-base mb-4 flex items-center gap-2"><i class="fas fa-stopwatch"></i> Newborn Log</h3>
-                <div class="grid grid-cols-4 gap-2 mb-4">
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition active:scale-95" data-type="feed-l">🤱 L</button>
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition active:scale-95" data-type="feed-r">🤱 R</button>
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition active:scale-95" data-type="bottle">🍼 Bot</button>
-                    <button class="baby-act-btn bg-white/20 hover:bg-white/40 p-2 rounded-xl backdrop-blur-sm transition active:scale-95" data-type="diaper">💩 Diap</button>
-                </div>
-                <div class="bg-black/10 rounded-xl p-3">
-                    <p class="text-[9px] font-bold uppercase opacity-60 mb-1">Recent Activity</p>
-                    <div id="baby-log-list" class="space-y-1 text-xs font-mono">
-                        <div class="opacity-50">No activity recorded yet.</div>
-                    </div>
+                <div class="glass-card p-5 bg-red-50 border-red-100">
+                    <h4 class="font-black text-xs mb-2 text-red-800 flex items-center gap-2">
+                        <i class="fas fa-stopwatch opacity-50"></i> Kontraksi
+                    </h4>
+                    <div id="c-timer" class="text-2xl font-mono font-black text-red-600 mb-3 text-center">00:00</div>
+                    <button id="c-btn"
+                        class="w-full bg-red-600 text-white py-3 rounded-xl text-[10px] font-black shadow-lg shadow-red-200 active:scale-95 transition">MULA</button>
+                    <div id="contraction-history"
+                        class="mt-4 pt-3 border-t border-red-200 text-[9px] space-y-1 text-red-600"></div>
                 </div>
             </div>
 
-            
-
-[Image of Human Embryo Development]
-
-
-            <div class="glass-panel p-5 rounded-[2rem]">
-                <h3 class="font-bold text-base mb-4 text-slate-700">Imunisasi KKM 💉</h3>
-                <div id="vax-container" class="space-y-2"></div>
-            </div>
-            <div class="glass-panel p-5 rounded-[2rem]">
-                <h3 class="font-bold text-base mb-4 text-slate-700">Development Timeline</h3>
-                <div id="milestone-container" class="space-y-2"></div>
-            </div>
-        </div>
-
-        <div id="tab-guide" class="page-section px-4 pt-6 space-y-6">
-            <div class="glass-panel p-5 rounded-[2rem] mb-6 border-indigo-100 bg-indigo-50/30">
+            <!-- Blood Pressure Card -->
+            <div class="glass-card p-6 border-red-100 bg-red-50/30">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-base flex items-center gap-2 text-indigo-900">
+                    <h3 class="font-black text-lg flex items-center gap-2 text-red-900"><i
+                            class="fas fa-heart-pulse text-red-500"></i> Tekanan Darah</h3>
+                    <span class="text-[9px] bg-red-100 text-red-600 px-3 py-1 rounded-full font-black uppercase">Normal:
+                        120/80</span>
+                </div>
+                <div class="flex gap-3 mb-4">
+                    <input type="number" id="bp-sys" placeholder="SYS"
+                        class="w-1/3 p-4 rounded-2xl border-none bg-white shadow-inner text-center font-black text-sm focus:ring-2 focus:ring-red-400">
+                    <div class="flex items-center text-slate-300">/</div>
+                    <input type="number" id="bp-dia" placeholder="DIA"
+                        class="w-1/3 p-4 rounded-2xl border-none bg-white shadow-inner text-center font-black text-sm focus:ring-2 focus:ring-red-400">
+                    <button id="save-bp"
+                        class="w-1/3 bg-red-600 text-white rounded-2xl font-black text-xs shadow-lg shadow-red-200 active:scale-95 transition">SIMPAN</button>
+                </div>
+                <div id="bp-history" class="space-y-2 border-t border-red-100 pt-3"></div>
+            </div>
+        </div>
+
+        <!-- Baby Tab -->
+        <div id="tab-baby" class="page-section px-5 pt-6 space-y-6">
+            <!-- Newborn Log -->
+            <div class="bg-sarawak-black text-white p-7 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                <div
+                    class="absolute inset-0 opacity-10 pointer-events-none bg-[url('../assets/img/pua_kumbu_pattern.png')] bg-repeat bg-[length:100px] invert">
+                </div>
+                <div class="relative z-10">
+                    <h3 class="font-black text-lg mb-6 flex items-center gap-2"><i class="fas fa-baby"></i> Rekod Bayi
+                    </h3>
+                    <div class="grid grid-cols-4 gap-3 mb-6">
+                        <button
+                            class="baby-act-btn bg-white/10 hover:bg-white/20 p-4 rounded-2xl backdrop-blur-md transition active:scale-90"
+                            data-type="feed-l">🤱 L</button>
+                        <button
+                            class="baby-act-btn bg-white/10 hover:bg-white/20 p-4 rounded-2xl backdrop-blur-md transition active:scale-90"
+                            data-type="feed-r">🤱 R</button>
+                        <button
+                            class="baby-act-btn bg-white/10 hover:bg-white/20 p-4 rounded-2xl backdrop-blur-md transition active:scale-90"
+                            data-type="bottle">🍼 Bot</button>
+                        <button
+                            class="baby-act-btn bg-white/10 hover:bg-white/20 p-4 rounded-2xl backdrop-blur-md transition active:scale-90"
+                            data-type="diaper">💩 Diap</button>
+                    </div>
+                    <div class="bg-white/5 rounded-2xl p-4 border border-white/10">
+                        <p class="text-[10px] font-black uppercase text-sarawak-yellow mb-3 tracking-widest">Aktiviti
+                            Terakhir</p>
+                        <div id="baby-log-list" class="space-y-2 text-xs font-mono"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card p-6">
+                <h3 class="font-black text-lg mb-5 text-sarawak-black">Imunisasi KKM 💉</h3>
+                <div id="vax-container" class="space-y-1"></div>
+            </div>
+
+            <div class="glass-card p-6">
+                <h3 class="font-black text-lg mb-5 text-sarawak-black">Milestone & Tumbesaran</h3>
+                <div id="milestone-container" class="space-y-1"></div>
+            </div>
+        </div>
+
+        <!-- Guide Tab -->
+        <div id="tab-guide" class="page-section px-5 pt-6 space-y-6">
+            <div class="glass-card p-6 mb-6 border-indigo-100 bg-indigo-50/30">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-black text-lg flex items-center gap-2 text-indigo-900">
                         <i class="fas fa-suitcase-medical text-indigo-500"></i> Beg Hospital 👜
                     </h3>
-                    <span id="bag-progress" class="text-[9px] bg-indigo-100 text-indigo-600 px-2 py-1 rounded font-bold uppercase">0% Ready</span>
+                    <span id="bag-progress"
+                        class="text-[10px] bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full font-black">0%
+                        Ready</span>
                 </div>
-                <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
-                    <button class="bag-filter-btn bg-indigo-500 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-sm transition" onclick="filterBag('all')">All</button>
-                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('docs')">Docs</button>
-                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('mama')">Mama</button>
-                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('baby')">Baby</button>
-                    <button class="bag-filter-btn bg-white text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100" onclick="filterBag('dad')">Dad</button>
+                <div class="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+                    <button
+                        class="bag-filter-btn bg-sarawak-black text-white px-4 py-2 rounded-full text-[10px] font-black shadow-md transition"
+                        onclick="renderBagItems(bagCheckedIds, 'all')">Semua</button>
+                    <button
+                        class="bag-filter-btn bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-indigo-100"
+                        onclick="renderBagItems(bagCheckedIds, 'docs')">Dokumen</button>
+                    <button
+                        class="bag-filter-btn bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-indigo-100"
+                        onclick="renderBagItems(bagCheckedIds, 'mama')">Mama</button>
+                    <button
+                        class="bag-filter-btn bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-indigo-100"
+                        onclick="renderBagItems(bagCheckedIds, 'baby')">Bayi</button>
                 </div>
-                <div id="bag-list" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar"></div>
-            </div>            
-            <div class="glass-panel p-5 rounded-[2rem]">
-                <h3 class="font-bold text-base mb-3">Confinement Culture 🌸</h3>
-                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border" data-cul="malay">Malay</button>
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border" data-cul="chinese">Chinese</button>
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border" data-cul="indian">Indian</button>
-                    <button class="cul-btn bg-slate-50 text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border" data-cul="iban">Iban</button>
-                </div>
-                <ul id="confinement-list" class="mt-2 space-y-2 text-xs text-slate-600"></ul>
+                <div id="bag-list" class="space-y-1 max-h-80 overflow-y-auto no-scrollbar"></div>
             </div>
-            <div class="glass-panel p-5 rounded-[2rem] bg-emerald-50/50 border-emerald-100">
-                <h3 class="font-bold text-base mb-3 text-emerald-800">Postnatal Rehab 🌿</h3>
-                <div class="grid grid-cols-2 gap-2 text-[10px] font-bold text-emerald-700 uppercase">
-                    <div class="bg-white p-3 rounded-xl shadow-sm">🧘 Kegels</div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm">🫁 Breathing</div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm">🦶 Ankle Pumps</div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm">🛌 Rest</div>
+
+            <div class="glass-card p-6">
+                <h3 class="font-black text-lg mb-4">Adat Pantang 🌸</h3>
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-4">
+                    <button
+                        class="cul-btn bg-slate-50 text-slate-400 px-5 py-2.5 rounded-full text-[10px] font-black border uppercase tracking-wider"
+                        data-cul="iban">Iban</button>
+                    <button
+                        class="cul-btn bg-slate-50 text-slate-400 px-5 py-2.5 rounded-full text-[10px] font-black border uppercase tracking-wider"
+                        data-cul="malay">Melayu</button>
+                    <button
+                        class="cul-btn bg-slate-50 text-slate-400 px-5 py-2.5 rounded-full text-[10px] font-black border uppercase tracking-wider"
+                        data-cul="chinese">Cina</button>
+                    <button
+                        class="cul-btn bg-slate-50 text-slate-400 px-5 py-2.5 rounded-full text-[10px] font-black border uppercase tracking-wider"
+                        data-cul="indian">India</button>
                 </div>
+                <ul id="confinement-list" class="mt-2 space-y-3 text-sm text-slate-600 font-medium">
+                    <li class="p-4 bg-slate-50 rounded-2xl border border-slate-100">Pilih budaya di atas untuk melihat
+                        senarai...</li>
+                </ul>
             </div>
         </div>
 
-        <div id="tab-me" class="page-section px-4 pt-6 space-y-6">
-            <div class="glass-panel p-6 rounded-[2rem] text-center">
-                <img id="profile-img-lg" src="" class="w-20 h-20 rounded-full mx-auto mb-3 shadow-lg border-4 border-white">
-                <h3 id="profile-name" class="font-bold text-xl">Mama</h3>
-                <p id="profile-email" class="text-xs text-slate-400">user@email.com</p>
+        <!-- Profile Tab -->
+        <div id="tab-me" class="page-section px-5 pt-6 space-y-6">
+            <div class="glass-card p-8 text-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-sarawak-yellow/10 rounded-full -mr-16 -mt-16"></div>
+                <img id="profile-img-lg" src="assets/img/logo_kenyalang.png"
+                    class="w-24 h-24 rounded-full mx-auto mb-4 shadow-2xl border-4 border-white object-cover">
+                <h3 id="profile-name" class="font-black text-2xl text-sarawak-black">Mama</h3>
+                <p id="profile-email" class="text-xs text-slate-400 font-bold">user@email.com</p>
             </div>
-            <div class="glass-panel p-5 rounded-[2rem]">
-                <h4 class="font-bold text-xs text-slate-400 uppercase tracking-widest mb-4">Settings</h4>
-                <div class="space-y-3">
+
+            <div class="glass-card p-7">
+                <h4 class="font-black text-xs text-slate-400 uppercase tracking-[0.2em] mb-6">Tetapan Profil</h4>
+                <div class="space-y-5">
                     <div class="relative">
-                        <label class="text-[9px] font-bold text-rose-500 uppercase ml-1">Due Date</label>
-                        <input type="date" id="edit-date" class="w-full p-3 bg-slate-50 rounded-xl text-sm border outline-none">
+                        <label class="text-[10px] font-black text-red-500 uppercase ml-1 mb-2 block">Tarikh Jangkaan
+                            Bersalin</label>
+                        <input type="date" id="edit-date"
+                            class="w-full p-4 bg-slate-50 rounded-2xl text-sm border-none shadow-inner outline-none focus:ring-2 focus:ring-red-400 transition">
                     </div>
                     <div class="relative">
-                         <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Budget Preference</label>
-                        <select id="edit-budget" class="w-full p-3 bg-slate-50 rounded-xl text-sm border outline-none">
-                            <option value="minimal">Minimalist (Gov/KK Focus)</option>
-                            <option value="premium">Premium (Private Focus)</option>
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1 mb-2 block">Bajet
+                            Kelahiran</label>
+                        <select id="edit-budget"
+                            class="w-full p-4 bg-slate-50 rounded-2xl text-sm border-none shadow-inner outline-none focus:ring-2 focus:ring-sarawak-black transition">
+                            <option value="minimal">Minimalist (Hospital Kerajaan)</option>
+                            <option value="premium">Premium (Hospital Swasta)</option>
                         </select>
                     </div>
-                    <button onclick="updateProfile()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs uppercase shadow-lg">Save Changes</button>
+                    <button onclick="updateProfile()"
+                        class="w-full bg-sarawak-black text-white font-black py-4 rounded-2xl text-xs uppercase shadow-xl hover:bg-red-600 transition">Simpan
+                        Perubahan</button>
                 </div>
             </div>
-            <button onclick="auth.signOut()" class="w-full text-rose-500 font-bold text-xs py-4 bg-rose-50 rounded-xl mb-10 border border-rose-100">LOG OUT</button>
+            <button onclick="logout()"
+                class="w-full text-red-500 font-black text-xs py-5 bg-red-50 rounded-2xl border border-red-100 active:bg-red-100 transition">LOG
+                KELUAR</button>
         </div>
+
+        <!-- Navigation Bar -->
+        <nav class="fixed bottom-0 left-0 w-full z-50 no-print flex justify-between items-center px-6 py-2">
+            <button class="nav-btn nav-active flex flex-col items-center p-3 w-1/5 transition-all text-slate-400"
+                onclick="switchTab('home')"><i class="fas fa-home text-xl"></i><span
+                    class="text-[9px] font-black mt-1">Utama</span></button>
+            <button class="nav-btn flex flex-col items-center p-3 w-1/5 transition-all text-slate-400"
+                onclick="switchTab('mom')"><i class="fas fa-venus text-xl"></i><span
+                    class="text-[9px] font-black mt-1">Mama</span></button>
+            <button class="nav-btn flex flex-col items-center p-3 w-1/5 transition-all text-slate-400"
+                onclick="switchTab('baby')"><i class="fas fa-baby text-xl"></i><span
+                    class="text-[9px] font-black mt-1">Bayi</span></button>
+            <button class="nav-btn flex flex-col items-center p-3 w-1/5 transition-all text-slate-400"
+                onclick="switchTab('guide')"><i class="fas fa-book-open text-xl"></i><span
+                    class="text-[9px] font-black mt-1">Panduan</span></button>
+            <button class="nav-btn flex flex-col items-center p-3 w-1/5 transition-all text-slate-400"
+                onclick="switchTab('me')"><i class="fas fa-user text-xl"></i><span
+                    class="text-[9px] font-black mt-1">Profil</span></button>
+        </nav>
     </main>
 
-    <div id="onboarding-modal" class="fixed inset-0 bg-slate-900/80 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center">
-            <div class="text-4xl mb-2">🎉</div>
-            <h3 class="font-bold text-lg mb-2 text-slate-800">Welcome Mama!</h3>
-            <p class="text-xs text-slate-500 mb-6">Let's set up your journey. When is your baby due?</p>
-            <input type="date" id="onboard-date" class="w-full p-4 bg-slate-50 rounded-2xl text-sm outline-none border border-slate-200 mb-4 text-center font-bold text-slate-700">
-            <button onclick="finishOnboarding()" class="w-full bg-rose-500 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-rose-200">Start Journey</button>
+    <!-- Modals -->
+    <div id="onboarding-modal"
+        class="fixed inset-0 bg-sarawak-black/90 hidden z-[100] items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-white rounded-[3rem] p-10 w-full max-w-sm text-center shadow-2xl">
+            <img src="assets/img/logo_kenyalang.png" class="w-24 h-24 mx-auto mb-6">
+            <h3 class="font-black text-2xl mb-2 text-sarawak-black">Halo Mama!</h3>
+            <p class="text-xs text-slate-500 mb-8 leading-relaxed">Tahniah atas perjalanan ini. Sila nyatakan tarikh
+                jangkaan kelahiran untuk kami melaraskan panduan anda.</p>
+            <input type="date" id="onboard-date"
+                class="w-full p-5 bg-slate-50 rounded-[2rem] text-sm outline-none border-none shadow-inner mb-6 text-center font-black text-slate-700">
+            <button onclick="finishOnboarding()"
+                class="w-full bg-red-600 text-white py-5 rounded-[2rem] font-black text-sm shadow-xl shadow-red-200 hover:scale-[1.02] transition">Mula
+                Perjalanan</button>
         </div>
     </div>
 
-    <div id="appt-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm">
-            <h3 class="font-bold text-lg mb-4">Add Appointment</h3>
-            <input type="text" id="appt-title" placeholder="Clinic/Event" class="w-full p-3 bg-slate-50 rounded-xl mb-2 text-sm">
-            <input type="datetime-local" id="appt-date" class="w-full p-3 bg-slate-50 rounded-xl mb-4 text-sm">
-            <div class="flex gap-2">
-                <button onclick="$('#appt-modal').fadeOut()" class="flex-1 py-3 text-slate-400 font-bold text-xs">CANCEL</button>
-                <button onclick="saveAppointment()" class="flex-1 bg-rose-500 text-white rounded-xl font-bold text-xs">SAVE</button>
+    <div id="appt-modal"
+        class="fixed inset-0 bg-sarawak-black/60 hidden z-[100] items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl">
+            <h3 class="font-black text-xl mb-6 text-sarawak-black">Tambah Temu Janji</h3>
+            <div class="space-y-4">
+                <input type="text" id="appt-title" placeholder="Klinik / Peristiwa"
+                    class="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm shadow-inner">
+                <input type="datetime-local" id="appt-date"
+                    class="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm shadow-inner">
+            </div>
+            <div class="flex gap-4 mt-8">
+                <button onclick="$('#appt-modal').fadeOut()"
+                    class="flex-1 py-4 text-slate-400 font-black text-xs tracking-widest uppercase">Batal</button>
+                <button onclick="saveAppointment()"
+                    class="flex-1 bg-red-600 text-white rounded-2xl font-black text-xs shadow-lg shadow-red-200">Simpan</button>
             </div>
         </div>
     </div>
 
-    <nav class="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-slate-100 pb-safe pt-2 px-6 flex justify-between items-center z-50 no-print">
-        <button class="nav-btn nav-active flex flex-col items-center p-2 w-1/5" onclick="switchTab('home')"><i class="fas fa-home text-xl"></i><span>Home</span></button>
-        <button class="nav-btn text-slate-300 flex flex-col items-center p-2 w-1/5" onclick="switchTab('mom')"><i class="fas fa-heartbeat text-xl"></i><span>Mom</span></button>
-        <button class="nav-btn text-slate-300 flex flex-col items-center p-2 w-1/5" onclick="switchTab('baby')"><i class="fas fa-baby text-xl"></i><span>Baby</span></button>
-        <button class="nav-btn text-slate-300 flex flex-col items-center p-2 w-1/5" onclick="switchTab('guide')"><i class="fas fa-book-open text-xl"></i><span>Guide</span></button>
-        <button class="nav-btn text-slate-300 flex flex-col items-center p-2 w-1/5" onclick="switchTab('me')"><i class="fas fa-user text-xl"></i><span>Me</span></button>
-    </nav>
-
-    <script>
-        // CONFIG
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPn8ifAQiRuPpw02JvWdJCKv7KpQIAuXA",
-            authDomain: "mum-care.firebaseapp.com",
-            projectId: "mum-care",
-            storageBucket: "mum-care.firebasestorage.app",
-            messagingSenderId: "1011450259230",
-            appId: "1:1011450259230:web:6428b90fb4966e748a0b0f"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const googleProvider = new firebase.auth.GoogleAuthProvider();
-
-        // --- DATA CONSTANTS ---
-        const cultureCheck = {
-            malay: ["Tukang Urut", "Bengkung", "Air Selusuh", "Barut", "Ikan Haruan"],
-            chinese: ["Confinement Lady", "Red Dates Tea", "Ginger Vinegar", "Sesame Oil"],
-            indian: ["Vethu Kuli Bath", "Garlic Diet", "Thottil", "Omam Water"],
-            iban: ["Mandi Daun", "Betungku", "Berdiang", "Manuk Pansuh"]
-        };
-        const vaccineList = [
-            {id:'v1',t:"BCG & Hep B",age:"Birth"}, {id:'v2',t:"Hep B 2",age:"1m"}, 
-            {id:'v3',t:"6-in-1 Dose 1",age:"2m"}, {id:'v4',t:"6-in-1 Dose 2",age:"3m"},
-            {id:'v5',t:"PCV 1",age:"4m"}, {id:'v6',t:"6-in-1 Dose 3",age:"5m"},
-            {id:'v8',t:"Measles",age:"9m"}, {id:'v9',t:"MMR",age:"12m"}
-        ];
-        const babyMilestones = [
-            {id:'m1',t:"Social Smile",age:"2m"}, {id:'m2',t:"Rolls Over",age:"4m"},
-            {id:'m3',t:"Solids (Bubur)",age:"6m"}, {id:'m4',t:"Crawling",age:"8m"}
-        ];
-
-        // --- AUTH & ONBOARDING ---
-        $('#google-btn').click(() => {
-            auth.signInWithPopup(googleProvider).catch(error => alert(error.message));
-        });
-
-        auth.onAuthStateChanged(async user => {
-            if(user) {
-                $('#auth-screen').fadeOut(); 
-                // Check if user has profile data
-                const doc = await db.collection('users').doc(user.uid).get();
-                if(!doc.exists || !doc.data().dueDate) {
-                    // New user or missing data: Show Onboarding
-                    $('#onboarding-modal').fadeIn();
-                } else {
-                    $('#app-interface').fadeIn(); 
-                    initApp(user);
-                }
-            } else {
-                $('#app-interface').hide(); 
-                $('#auth-screen').fadeIn();
-            }
-        });
-
-        async function finishOnboarding() {
-            const date = $('#onboard-date').val();
-            if(!date) return alert("Please select a due date");
-            
-            const user = auth.currentUser;
-            await db.collection('users').doc(user.uid).set({
-                name: user.displayName,
-                email: user.email,
-                photoURL: user.photoURL,
-                dueDate: date,
-                budget: 'minimal' // Default
-            }, { merge: true });
-            
-            $('#onboarding-modal').fadeOut();
-            $('#app-interface').fadeIn();
-            initApp(user);
-        }
-
-        // --- APP INITIALIZATION ---
-        async function initApp(user) {
-            const doc = await db.collection('users').doc(user.uid).get();
-            const u = doc.data();
-            
-            // Set Header & Profile
-            $('#header-greeting').text(`Hi Mama ${u.name.split(' ')[0]}`);
-            $('#profile-name').text(u.name); 
-            $('#profile-email').text(u.email);
-            $('#user-avatar').attr('src', u.photoURL || 'https://cdn-icons-png.flaticon.com/512/2921/2921226.png');
-            $('#profile-img-lg').attr('src', u.photoURL || 'https://cdn-icons-png.flaticon.com/512/2921/2921226.png');
-            
-            // Set Settings Inputs
-            $('#edit-date').val(u.dueDate); 
-            $('#edit-budget').val(u.budget || 'minimal');
-
-            // Calcs
-            // --- INSIDE initApp(user) function ---
-
-            // 1. Get Dates
-            const today = new Date();
-            const due = new Date(u.dueDate);
-
-            // 2. Calculate Days Until Due (The Fix)
-            // We simply subtract Today from Due Date to get the remaining time
-            const diffTime = due - today;
-            const daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            // 3. Update "Days Left" Display
-            // If negative, it means baby is overdue or arrived
-            if (daysUntilDue < 0) {
-                $('#days-left-display').text("Overdue");
-                $('#days-left-display').addClass('text-rose-600'); // Make it red for alert
-            } else {
-                $('#days-left-display').text(`${daysUntilDue} Days`);
-                $('#days-left-display').removeClass('text-rose-600');
-            }
-
-            // 4. Calculate Current Week
-            // Standard pregnancy is 40 weeks (280 days).
-            // Days Gone = 280 - Days Left
-            const daysElapsed = 280 - daysUntilDue;
-            // We cap it at 40+ for overdue, and 0 for errors
-            const currentWeek = Math.max(0, Math.floor(daysElapsed / 7));
-
-            $('#header-week').text(`Week ${currentWeek}`);
-            
-            // Load Modules
-            const uid = user.uid;
-            loadChecklist(uid);
-            loadAppointments(uid);
-            loadKickHistory(uid);
-            loadBabyLog(uid);
-            loadModules(uid);
-            loadWeight(uid);
-            loadContractions(uid);
-            loadBP(uid);
-            loadHospitalBag(uid);
-            loadJournal(uid); // New feature
-        }
-
-        // --- 1. JOURNAL (NEW) ---
-        async function saveJournal() {
-            const txt = $('#journal-input').val();
-            if(!txt) return;
-            await db.collection('journal_logs').add({
-                uid: auth.currentUser.uid,
-                text: txt,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            $('#journal-input').val('');
-            loadJournal(auth.currentUser.uid);
-            alert("Journal saved!");
-        }
-        async function loadJournal(uid) {
-            const snap = await db.collection('journal_logs').where('uid','==',uid).orderBy('timestamp','desc').limit(1).get();
-            if(!snap.empty) {
-                const d = snap.docs[0].data();
-                const date = d.timestamp ? d.timestamp.toDate().toLocaleDateString() : 'Just now';
-                $('#last-journal-date').text(`Last entry: ${date}`);
-            }
-        }
-
-        // --- 2. CHECKLIST ---
-        async function loadChecklist(uid) {
-            let snap = await db.collection('checklists').orderBy('trimester').get();
-            if(snap.empty) { await fixDatabase(); return; }
-            const uTasks = await db.collection('user_tasks').where('uid', '==', uid).get();
-            const done = uTasks.docs.map(d => d.data().taskId);
-            
-            $('#task-list').empty();
-            let total=snap.size, checked=0, curTri=0;
-            snap.forEach(d => {
-                const t = d.data();
-                if(t.trimester !== curTri) {
-                    curTri = t.trimester;
-                    let triName = curTri === 4 ? "Post-Birth" : `Trimester ${curTri}`;
-                    $('#task-list').append(`<h4 class="text-[10px] font-bold text-rose-400 uppercase mt-4 mb-2 tracking-widest border-b pb-1">${triName}</h4>`);
-                }
-                const isDone = done.includes(d.id);
-                if(isDone) checked++;
-                let tc = "bg-slate-100 text-slate-500";
-                if(t.category==='Medical') tc="bg-rose-100 text-rose-500";
-                if(t.category==='Admin') tc="bg-blue-100 text-blue-500";
-                if(t.category==='Gear') tc="bg-orange-100 text-orange-500";
-
-                $('#task-list').append(`
-                    <label class="flex justify-between items-center p-3 bg-white border border-slate-50 rounded-xl mb-2">
-                        <div class="flex items-center gap-2"><input type="checkbox" class="task-check accent-rose-500" data-id="${d.id}" ${isDone?'checked':''}> <span class="text-xs font-bold text-slate-600">${t.task_name}</span></div>
-                        <span class="text-[9px] font-bold px-2 py-1 rounded ${tc}">${t.category}</span>
-                    </label>
-                `);
-            });
-            $('#readiness-display').text(`${total>0 ? Math.round((checked/total)*100) : 0}%`);
-            $('#tasks-fraction').text(`${checked}/${total} Tasks`);
-            $('#progress-bar').css('width', (total>0 ? (checked/total)*100 : 0) + '%');
-        }
-        $(document).on('change', '.task-check', async function() {
-            const uid = auth.currentUser.uid, id = $(this).data('id');
-            if($(this).is(':checked')) await db.collection('user_tasks').add({uid, taskId:id});
-            else { const s = await db.collection('user_tasks').where('uid','==',uid).where('taskId','==',id).get(); s.forEach(d=>d.ref.delete()); }
-            loadChecklist(uid);
-        });
-
-        // --- 3. MOM TAB ---
-        async function saveAppointment() {
-            const t = $('#appt-title').val(), d = $('#appt-date').val();
-            if(!t || !d) return;
-            await db.collection('appointments').add({uid:auth.currentUser.uid, title:t, date:d});
-            $('#appt-modal').fadeOut(); loadAppointments(auth.currentUser.uid);
-        }
-        async function loadAppointments(uid) {
-            const s = await db.collection('appointments').where('uid','==',uid).orderBy('date').get();
-            $('#appt-list').empty();
-            if(s.empty) $('#appt-list').html('<div class="text-xs text-slate-400 italic text-center py-2">No appointments.</div>');
-            s.forEach(d => {
-                const a = d.data();
-                const dateObj = new Date(a.date);
-                $('#appt-list').append(`
-                    <div class="flex justify-between items-center bg-rose-50 p-3 rounded-xl border border-rose-100">
-                        <div><div class="text-xs font-bold text-slate-700">${a.title}</div><div class="text-[10px] text-rose-500">${dateObj.toLocaleDateString()} @ ${dateObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div></div>
-                        <button onclick="db.collection('appointments').doc('${d.id}').delete().then(()=>loadAppointments('${uid}'))" class="text-rose-300 hover:text-rose-600 px-2">×</button>
-                    </div>
-                `);
-            });
-        }
-
-        let kCount = 0, kStart = null, kInt;
-        $('#btn-kick').click(async function() {
-            if(kCount===0) { kStart = new Date(); kInt = setInterval(() => {
-                const diff = Math.floor((new Date()-kStart)/1000);
-                $('#kick-timer').text(new Date(diff*1000).toISOString().substr(11,8));
-            },1000); }
-            kCount++; $('#kick-count').text(kCount);
-            // Visual feedback
-            $(this).addClass('scale-90 ring-4 ring-orange-200');
-            setTimeout(()=>$(this).removeClass('scale-90 ring-4 ring-orange-200'), 100);
-
-            if(kCount>=10) {
-                clearInterval(kInt);
-                const duration = $('#kick-timer').text();
-                await db.collection('kick_logs').add({uid:auth.currentUser.uid, duration:duration, timestamp:firebase.firestore.FieldValue.serverTimestamp()});
-                alert("10 Kicks Recorded!"); resetKick(); loadKickHistory(auth.currentUser.uid);
-            }
-        });
-        function resetKick() { clearInterval(kInt); kCount=0; kStart=null; $('#kick-count').text(0); $('#kick-timer').text("00:00:00"); }
-        async function loadKickHistory(uid) {
-            const snap = await db.collection('kick_logs').where('uid','==',uid).orderBy('timestamp','desc').limit(5).get();
-            $('#kick-history').empty();
-            snap.forEach(d => {
-                const data = d.data();
-                const date = data.timestamp ? data.timestamp.toDate().toLocaleDateString() : 'Just now';
-                $('#kick-history').append(`<div class="flex justify-between border-b border-orange-100 py-1"><span class="text-slate-500">${date}</span><span class="font-bold text-orange-500">10 kicks in ${data.duration}</span></div>`);
-            });
-        }
-
-        $('#save-weight').click(async () => {
-            const w = $('#weight-in').val();
-            if(!w) return;
-            await db.collection('weight_logs').add({uid: auth.currentUser.uid, weight: w, date: firebase.firestore.FieldValue.serverTimestamp()});
-            $('#weight-in').val(''); loadWeight(auth.currentUser.uid);
-        });
-        async function loadWeight(uid) {
-            const snap = await db.collection('weight_logs').where('uid', '==', uid).orderBy('date', 'desc').limit(5).get();
-            $('#weight-history').empty();
-            snap.forEach(d => {
-                const data = d.data();
-                const dateStr = data.date ? data.date.toDate().toLocaleDateString() : 'Just now';
-                $('#weight-history').append(`<div class="flex justify-between border-b border-slate-100 py-1"><span class="font-bold">${data.weight} kg</span><span class="text-slate-400 text-[9px]">${dateStr}</span></div>`);
-            });
-        }
-
-        $('#save-bp').click(async () => {
-            const sys = $('#bp-sys').val(), dia = $('#bp-dia').val();
-            if(!sys || !dia) return alert("Enter both numbers");
-            await db.collection('bp_logs').add({uid: auth.currentUser.uid, sys: sys, dia: dia, date: firebase.firestore.FieldValue.serverTimestamp()});
-            if(sys > 140 || dia > 90) alert("⚠️ Warning: High BP. Consult a doctor.");
-            $('#bp-sys').val(''); $('#bp-dia').val(''); loadBP(auth.currentUser.uid);
-        });
-        async function loadBP(uid) {
-            const snap = await db.collection('bp_logs').where('uid', '==', uid).orderBy('date', 'desc').limit(5).get();
-            $('#bp-history').empty();
-            snap.forEach(d => {
-                const dt = d.data();
-                const date = dt.date ? dt.date.toDate().toLocaleDateString() : '';
-                let clr = "text-slate-700";
-                if(dt.sys > 140 || dt.dia > 90) clr = "text-red-600 font-black";
-                $('#bp-history').append(`<div class="flex justify-between items-center py-1"><span class="font-mono text-xs ${clr}">${dt.sys}/${dt.dia}</span><span class="text-[9px] text-slate-400">${date}</span></div>`);
-            });
-        }
-
-        let cInt, cStart, cRun = false;
-        $('#c-btn').click(async function() {
-            if(!cRun) {
-                cRun = true; cStart = new Date();
-                $(this).text("STOP").removeClass('bg-rose-500').addClass('bg-slate-800');
-                cInt = setInterval(() => {
-                    const diff = Math.floor((new Date() - cStart) / 1000);
-                    const m = String(Math.floor(diff / 60)).padStart(2, '0');
-                    const s = String(diff % 60).padStart(2, '0');
-                    $('#c-timer').text(`${m}:${s}`);
-                }, 1000);
-            } else {
-                cRun = false; clearInterval(cInt);
-                $(this).text("START").removeClass('bg-slate-800').addClass('bg-rose-500');
-                const duration = $('#c-timer').text();
-                await db.collection('contraction_logs').add({uid: auth.currentUser.uid, duration: duration, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
-                $('#c-timer').text("00:00");
-                loadContractions(auth.currentUser.uid);
-            }
-        });
-        async function loadContractions(uid) {
-            const snap = await db.collection('contraction_logs').where('uid', '==', uid).orderBy('timestamp', 'desc').limit(3).get();
-            $('#contraction-history').empty();
-            snap.forEach(d => {
-                const data = d.data();
-                const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Just now';
-                $('#contraction-history').append(`<div class="flex justify-between"><span class="opacity-70">${time}</span><span class="font-bold">${data.duration}</span></div>`);
-            });
-        }
-
-        // --- 4. BABY LOGS (IMPROVED) ---
-        $('.baby-act-btn').click(async function() {
-            const type = $(this).data('type');
-            await db.collection('baby_logs').add({uid:auth.currentUser.uid, type:type, timestamp:firebase.firestore.FieldValue.serverTimestamp()});
-            loadBabyLog(auth.currentUser.uid);
-        });
-        async function loadBabyLog(uid) {
-            const s = await db.collection('baby_logs').where('uid','==',uid).orderBy('timestamp','desc').limit(3).get();
-            $('#baby-log-list').empty();
-            if(s.empty) { $('#baby-log-list').html('<div class="opacity-50">No activity recorded yet.</div>'); return; }
-            s.forEach(doc => {
-                const l = doc.data();
-                const time = l.timestamp ? l.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Now';
-                let icon = '👶';
-                if(l.type.includes('feed')) icon = '🤱';
-                if(l.type === 'bottle') icon = '🍼';
-                if(l.type === 'diaper') icon = '💩';
-                $('#baby-log-list').append(`<div class="flex justify-between items-center border-b border-white/10 pb-1"><span>${icon} ${l.type.toUpperCase()}</span><span>${time}</span></div>`);
-            });
-        }
-        
-        async function loadModules(uid) {
-            const vSnap = await db.collection('baby_vaccines').where('uid','==',uid).get();
-            const vDone = vSnap.docs.map(d=>d.data().vaxId);
-            $('#vax-container').empty();
-            vaccineList.forEach(v => {
-                const done = vDone.includes(v.id);
-                $('#vax-container').append(`<label class="flex justify-between p-2 bg-white rounded-lg border items-center"><span class="text-xs font-bold">${v.t} <span class="text-[9px] text-slate-400">(${v.age})</span></span><input type="checkbox" class="vax-check" data-id="${v.id}" ${done?'checked':''}></label>`);
-            });
-            const mSnap = await db.collection('baby_milestones').where('uid','==',uid).get();
-            const mDone = mSnap.docs.map(d=>d.data().milestoneId);
-            $('#milestone-container').empty();
-            babyMilestones.forEach(m => {
-                const done = mDone.includes(m.id);
-                $('#milestone-container').append(`<label class="flex justify-between p-2 bg-white rounded-lg border items-center"><span class="text-xs font-bold">${m.t} <span class="text-[9px] text-slate-400">(${m.age})</span></span><input type="checkbox" class="milestone-check" data-id="${m.id}" ${done?'checked':''}></label>`);
-            });
-        }
-        $(document).on('change', '.vax-check', async function() {
-            const id = $(this).data('id'), uid = auth.currentUser.uid;
-            if($(this).is(':checked')) await db.collection('baby_vaccines').add({uid, vaxId:id});
-            else { const s=await db.collection('baby_vaccines').where('uid','==',uid).where('vaxId','==',id).get(); s.forEach(d=>d.ref.delete()); }
-        });
-        $(document).on('change', '.milestone-check', async function() {
-            const id = $(this).data('id'), uid = auth.currentUser.uid;
-            if($(this).is(':checked')) await db.collection('baby_milestones').add({uid, milestoneId:id});
-            else { const s=await db.collection('baby_milestones').where('uid','==',uid).where('milestoneId','==',id).get(); s.forEach(d=>d.ref.delete()); }
-        });
-
-        // --- 5. HOSPITAL BAG ---
-        const hospitalBagItems = [
-            {id:'b1', t:"IC / MyKad", cat:"docs", imp:true}, {id:'b2', t:"Pink Book", cat:"docs", imp:true},
-            {id:'b3', t:"Marriage Cert", cat:"docs", imp:false}, {id:'b4', t:"GL / Insurance", cat:"docs", imp:false},
-            {id:'b5', t:"Kain Batik", cat:"mama", imp:true}, {id:'b6', t:"Maternity Pads", cat:"mama", imp:true},
-            {id:'b7', t:"Nursing Bras", cat:"mama", imp:false}, {id:'b8', t:"Toiletries", cat:"mama", imp:false},
-            {id:'b10', t:"Socks/Sweater", cat:"mama", imp:true}, {id:'b14', t:"Newborn Diapers", cat:"baby", imp:true},
-            {id:'b15', t:"Baby Clothes", cat:"baby", imp:true}, {id:'b16', t:"Swaddle", cat:"baby", imp:true},
-            {id:'b20', t:"Powerbank", cat:"dad", imp:true}, {id:'b22', t:"Snacks/Water", cat:"dad", imp:false}
-        ];
-        let bagCheckedIds = []; let currentBagFilter = 'all';
-        async function loadHospitalBag(uid) {
-            const snap = await db.collection('user_bag').where('uid', '==', uid).get();
-            bagCheckedIds = snap.docs.map(d => d.data().itemId);
-            updateBagProgress(); renderBagItems();
-        }
-        function renderBagItems() {
-            $('#bag-list').empty();
-            hospitalBagItems.forEach(item => {
-                if(currentBagFilter !== 'all' && item.cat !== currentBagFilter) return;
-                const isChecked = bagCheckedIds.includes(item.id);
-                const impBadge = item.imp ? '<span class="text-[9px] text-red-500 font-bold bg-red-50 px-1 rounded ml-2">MUST</span>' : '';
-                $('#bag-list').append(`
-                    <label class="flex justify-between items-center p-3 bg-white border border-indigo-50 rounded-xl hover:shadow-sm transition cursor-pointer">
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" class="bag-check w-4 h-4 rounded border-2 border-slate-300 checked:bg-indigo-500 checked:border-indigo-500 appearance-none transition" data-id="${item.id}" ${isChecked ? 'checked' : ''}>
-                            <div class="leading-tight"><span class="text-xs font-bold text-slate-700">${item.t}</span>${impBadge}</div>
-                        </div>
-                    </label>
-                `);
-            });
-        }
-        function updateBagProgress() {
-            const percent = hospitalBagItems.length > 0 ? Math.round((bagCheckedIds.length / hospitalBagItems.length) * 100) : 0;
-            $('#bag-progress').text(`${percent}% Ready`);
-            if(percent === 100) $('#bag-progress').removeClass('bg-indigo-100 text-indigo-600').addClass('bg-green-100 text-green-600');
-        }
-        $(document).on('change', '.bag-check', async function() {
-            const uid = auth.currentUser.uid, itemId = $(this).data('id'), isChecked = $(this).is(':checked');
-            if(isChecked) { if(!bagCheckedIds.includes(itemId)) bagCheckedIds.push(itemId); await db.collection('user_bag').add({ uid, itemId }); }
-            else { bagCheckedIds = bagCheckedIds.filter(id => id !== itemId); const s = await db.collection('user_bag').where('uid','==',uid).where('itemId','==',itemId).get(); s.forEach(d => d.ref.delete()); }
-            updateBagProgress();
-        });
-        window.filterBag = function(category) {
-            currentBagFilter = category;
-            $('.bag-filter-btn').removeClass('bg-indigo-500 text-white').addClass('bg-white text-slate-400 border border-indigo-100');
-            $(`.bag-filter-btn[onclick="filterBag('${category}')"]`).removeClass('bg-white text-slate-400 border-indigo-100').addClass('bg-indigo-500 text-white border-transparent');
-            renderBagItems();
-        }
-
-        // --- HELPERS ---
-        $('.cul-btn').click(function() {
-            $('.cul-btn').removeClass('bg-rose-500 text-white').addClass('bg-slate-50 text-slate-400'); $(this).removeClass('bg-slate-50 text-slate-400').addClass('bg-rose-500 text-white');
-            const c = $(this).data('cul'); $('#confinement-list').empty(); cultureCheck[c].forEach(x => $('#confinement-list').append(`<li>✨ ${x}</li>`));
-        });
-        window.switchTab = function(t) { $('.page-section').removeClass('active'); $(`#tab-${t}`).addClass('active'); $('.nav-btn').removeClass('nav-active text-rose-500').addClass('text-slate-300'); $(event.currentTarget).addClass('nav-active text-rose-500').removeClass('text-slate-300'); window.scrollTo(0,0); }
-        async function updateProfile() { await db.collection('users').doc(auth.currentUser.uid).update({dueDate:$('#edit-date').val(), budget:$('#edit-budget').val()}); location.reload(); }
-        
-        async function fixDatabase() {
-            if(!confirm("Initialize database?")) return;
-            const checklistData = [
-                { task_name: "Open Pink Book", category: "Medical", trimester: 1 }, { task_name: "Dating Scan", category: "Medical", trimester: 1 },
-                { task_name: "Review Leave", category: "Admin", trimester: 1 }, { task_name: "Detail Scan (20w)", category: "Medical", trimester: 2 },
-                { task_name: "Drink Air Gula", category: "Medical", trimester: 2 }, { task_name: "Confinement Lady", category: "Admin", trimester: 2 },
-                { task_name: "Buy Nursery Gear", category: "Gear", trimester: 2 }, { task_name: "Start Kick Counter", category: "Medical", trimester: 3 },
-                { task_name: "Pack Hospital Bag", category: "Gear", trimester: 3 }, { task_name: "Register Birth", category: "Admin", trimester: 4 }
-            ];
-            const batch = db.batch();
-            checklistData.forEach(item => { const ref = db.collection('checklists').doc(); batch.set(ref, item); });
-            await batch.commit(); alert("Database Ready!"); location.reload();
-        }
-    </script>
+    <!-- Main Entry Script -->
+    <script type="module" src="js/app.js"></script>
 </body>
+
 </html>

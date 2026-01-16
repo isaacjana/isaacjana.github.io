@@ -1,0 +1,145 @@
+/* Sarawak Theme Design System */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@400;700&display=swap');
+
+:root {
+    --sarawak-yellow: #FFD700;
+    --sarawak-red: #EE1C25;
+    --sarawak-black: #1A1A1A;
+    --sarawak-gold-soft: #fcf3cf;
+    --sarawak-red-soft: #fdeaea;
+    --bg-cream: #fdfaf6;
+    --glass: rgba(255, 255, 255, 0.85);
+    --border: rgba(0, 0, 0, 0.05);
+    --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    background-color: var(--bg-cream);
+    font-family: 'Outfit', sans-serif;
+    color: var(--sarawak-black);
+    -webkit-tap-highlight-color: transparent;
+    background-image: url('../assets/img/pua_kumbu_pattern.png');
+    background-size: 800px;
+    background-attachment: fixed;
+    background-blend-mode: overlay;
+    background-color: rgba(253, 250, 246, 0.97);
+}
+
+/* Glassmorphism */
+.glass-card {
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 2rem;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.glass-card:active {
+    transform: scale(0.98);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Navigation */
+nav {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(15px);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-active {
+    color: var(--sarawak-red) !important;
+}
+
+.nav-active i {
+    transform: translateY(-4px);
+    color: var(--sarawak-red);
+}
+
+/* Progress Bars */
+.progress-container {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 1rem;
+    height: 12px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sarawak-red), var(--sarawak-yellow));
+    transition: width 1s ease-in-out;
+}
+
+/* Tab Sections */
+.page-section {
+    display: none;
+    padding-bottom: 100px;
+}
+
+.page-section.active {
+    display: block;
+    animation: fadeInUp 0.4s ease-out;
+}
+
+/* Custom Buttons */
+.btn-primary {
+    background: var(--sarawak-black);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 1.5rem;
+    font-weight: 700;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+    background: var(--sarawak-red);
+    transform: translateY(-2px);
+}
+
+/* Scrollbar Hide */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Typography Enhancements */
+h1,
+h2,
+h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
+}
+
+.text-gold {
+    color: #b8860b;
+}
+
+.bg-sarawak-gold {
+    background-color: var(--sarawak-yellow);
+}
+
+.bg-sarawak-red {
+    background-color: var(--sarawak-red);
+}
