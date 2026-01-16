@@ -35,10 +35,11 @@ let unsubscribeExpenses = null;
 
 // --- UTILITIES ---
 const formatRM = (amount) => {
+    const val = parseFloat(amount) || 0;
     return new Intl.NumberFormat('en-MY', {
-        style: 'currency',
-        currency: 'MYR',
-    }).format(amount).replace('MYR', 'RM');
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(val);
 };
 
 // --- LOGIC: INCOME CALCULATION ---
@@ -84,41 +85,44 @@ function calculateNetIncome(gross) {
 
 // --- CORE UI UPDATES ---
 function updateUI() {
+    // Ensure grossSalary is a valid number
+    const gross = parseFloat(state.grossSalary) || 0;
+
     // 1. Calculate Deductions & Net
-    const result = calculateNetIncome(state.grossSalary);
-    state.netSalary = result.net;
+    const result = calculateNetIncome(gross);
+    state.netSalary = parseFloat(result.net) || 0;
 
     // Update Income Section
-    $('#total-deductions').text(formatRM(result.totalDeductions));
-    $('#net-salary').text(formatRM(result.netSalary));
+    $('#total-deductions').text('RM ' + formatRM(result.totalDeductions || 0));
+    $('#net-salary').text('RM ' + formatRM(state.netSalary));
 
-    if (state.grossSalary > 0) {
+    if (gross > 0) {
         const b = result.breakdown;
         $('#statutory-breakdown').html(`
-            <span>EPF (11%): ${formatRM(b.epf)}</span>
-            <span>SOCSO: ${formatRM(b.socso)}</span>
-            <span>EIS: ${formatRM(b.eis)}</span>
-            <span>PCB (2%): ${formatRM(b.pcb)}</span>
+            <span class="bg-red-50 text-red-700 px-2 py-1 rounded-md text-[9px]">KWSP: RM ${formatRM(b.epf)}</span>
+            <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-[9px]">SOCSO: RM ${formatRM(b.socso)}</span>
+            <span class="bg-purple-50 text-purple-700 px-2 py-1 rounded-md text-[9px]">EIS: RM ${formatRM(b.eis)}</span>
+            <span class="bg-orange-50 text-orange-700 px-2 py-1 rounded-md text-[9px]">PCB: RM ${formatRM(b.pcb)}</span>
         `);
     } else {
         $('#statutory-breakdown').empty();
     }
 
     // 2. Budget Allocations
-    const needsBudget = state.netSalary * (state.budget.needs / 100);
-    const wantsBudget = state.netSalary * (state.budget.wants / 100);
-    const savingsBudget = state.netSalary * (state.budget.savings / 100);
+    const needsBudget = state.netSalary * ((parseFloat(state.budget.needs) || 0) / 100);
+    const wantsBudget = state.netSalary * ((parseFloat(state.budget.wants) || 0) / 100);
+    const savingsBudget = state.netSalary * ((parseFloat(state.budget.savings) || 0) / 100);
 
-    $('#needs-amount').text(formatRM(needsBudget));
-    $('#wants-amount').text(formatRM(wantsBudget));
-    $('#savings-amount').text(formatRM(savingsBudget));
+    $('#needs-amount').text('RM ' + formatRM(needsBudget));
+    $('#wants-amount').text('RM ' + formatRM(wantsBudget));
+    $('#savings-amount').text('RM ' + formatRM(savingsBudget));
 
     // 3. Spending Progress
-    const needsSpent = state.expenses.filter(e => e.category === 'Needs').reduce((acc, curr) => acc + curr.amount, 0);
-    const wantsSpent = state.expenses.filter(e => e.category === 'Wants').reduce((acc, curr) => acc + curr.amount, 0);
+    const needsSpent = state.expenses.filter(e => e.category === 'Needs').reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+    const wantsSpent = state.expenses.filter(e => e.category === 'Wants').reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-    $('#needs-spending-stat').text(`${formatRM(needsSpent)} / ${formatRM(needsBudget)}`);
-    $('#wants-spending-stat').text(`${formatRM(wantsSpent)} / ${formatRM(wantsBudget)}`);
+    $('#needs-spending-stat').text(`RM ${formatRM(needsSpent)} / RM ${formatRM(needsBudget)}`);
+    $('#wants-spending-stat').text(`RM ${formatRM(wantsSpent)} / RM ${formatRM(wantsBudget)}`);
 
     // Progress Bars
     const needsPerc = needsBudget > 0 ? (needsSpent / needsBudget) * 100 : 0;
@@ -135,7 +139,7 @@ function updateUI() {
     }
 
     // 4. Remaining Balance
-    const totalSpent = state.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalSpent = state.expenses.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
     const remainingVal = state.netSalary - totalSpent;
     $('#total-balance').text(formatRM(remainingVal));
 
@@ -147,7 +151,11 @@ function updateUI() {
 }
 
 function updateChart() {
-    const data = [state.budget.needs, state.budget.wants, state.budget.savings];
+    const data = [
+        parseFloat(state.budget.needs) || 0,
+        parseFloat(state.budget.wants) || 0,
+        parseFloat(state.budget.savings) || 0
+    ];
 
     if (!budgetChart) {
         const ctx = document.getElementById('budgetChart').getContext('2d');
@@ -203,7 +211,7 @@ function renderExpenseList() {
                         <p class="text-[10px] text-gray-400 capitalize">${new Date(exp.timestamp).toLocaleDateString()} • ${exp.category}</p>
                     </div>
                 </div>
-                <p class="font-bold text-gray-700">-${formatRM(exp.amount)}</p>
+                <p class="font-bold text-gray-700">-RM ${formatRM(exp.amount)}</p>
             </div>
         `);
     });
