@@ -269,6 +269,36 @@ function showSection(sectionKey) {
 }
 
 /**
+ * --- LOCATION TRACKING ---
+ */
+
+function startLocationTracking() {
+    if (!navigator.geolocation) return;
+    if (watchId) return;
+
+    watchId = navigator.geolocation.watchPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            driverLocation = [latitude, longitude];
+            updateDriverLocation(latitude, longitude);
+
+            if (currentNavOrderId) {
+                updateOrderDriverLocation(currentNavOrderId, latitude, longitude);
+            }
+        },
+        (error) => console.error("Location tracking error:", error),
+        { enableHighAccuracy: true }
+    );
+}
+
+function stopLocationTracking() {
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+}
+
+/**
  * --- SETUP TAB LOGIC ---
  */
 
