@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean | Client Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#6366f1',
+                        accent: '#f59e0b',
+                        dark: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+
+        #tracking-map {
+            height: 400px;
+            border-radius: 1.5rem;
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen">
+
+    <!-- Access Code Screen -->
+    <div id="access-screen" class="fixed inset-0 z-50 bg-white flex items-center justify-center p-6">
+        <div class="max-w-md w-full text-center space-y-8">
+            <div class="bg-slate-800 p-6 rounded-[2.5rem] text-white mx-auto w-fit shadow-2xl shadow-slate-800/30">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9V9a2 2 0 00-2-2H8a2 2 0 00-2 2v3h12z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-4xl font-black tracking-tight text-slate-800 uppercase">Ocean</h1>
+                <p class="text-slate-400 font-semibold mt-1">Client Order Tracking Portal</p>
+            </div>
+
+            <div class="space-y-4">
+                <input type="text" id="input-access-code" placeholder="Enter Access Code"
+                    class="w-full px-6 py-4 text-center text-2xl font-black tracking-[0.5em] uppercase border-2 border-slate-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
+                    maxlength="6">
+                <button id="btn-access"
+                    class="w-full py-4 bg-slate-800 text-white font-black uppercase tracking-widest rounded-2xl hover:bg-slate-900 transition-all shadow-xl shadow-slate-800/20">
+                    Track My Order
+                </button>
+            </div>
+
+            <p id="access-error" class="text-rose-500 font-bold text-sm hidden">Invalid access code. Please try again.
+            </p>
+
+            <p class="text-xs text-slate-300 pt-8">Your access code was provided by your Ocean supplier.</p>
+        </div>
+    </div>
+
+    <!-- Tracking Dashboard -->
+    <div id="tracking-dashboard" class="hidden">
+        <nav class="sticky top-0 z-40 glass border-b px-6 py-4">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-slate-800 p-2 rounded-xl text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9V9a2 2 0 00-2-2H8a2 2 0 00-2 2v3h12z" />
+                        </svg>
+                    </div>
+                    <span class="font-black text-slate-800 uppercase tracking-widest">Ocean</span>
+                </div>
+                <button onclick="location.reload()" class="text-xs font-bold text-slate-400 hover:text-slate-600">Exit
+                    Tracking</button>
+            </div>
+        </nav>
+
+        <main class="max-w-4xl mx-auto p-6 space-y-8">
+            <!-- Order Status Card -->
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Order Status</p>
+                        <h2 id="order-item-name" class="text-3xl font-black text-slate-800">Loading...</h2>
+                    </div>
+                    <div id="order-status-badge"
+                        class="mt-4 md:mt-0 px-5 py-2 rounded-full bg-amber-100 text-amber-600 text-xs font-black uppercase tracking-widest">
+                        Pending
+                    </div>
+                </div>
+
+                <!-- Progress Steps -->
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex flex-col items-center">
+                        <div id="step-1"
+                            class="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-sm">
+                            1</div>
+                        <span class="text-[9px] font-bold text-slate-400 mt-2 uppercase">Order Placed</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-slate-200 mx-2">
+                        <div id="progress-1" class="h-full bg-emerald-500 w-0 transition-all duration-500"></div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div id="step-2"
+                            class="w-10 h-10 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center font-black text-sm">
+                            2</div>
+                        <span class="text-[9px] font-bold text-slate-400 mt-2 uppercase">Picked Up</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-slate-200 mx-2">
+                        <div id="progress-2" class="h-full bg-emerald-500 w-0 transition-all duration-500"></div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div id="step-3"
+                            class="w-10 h-10 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center font-black text-sm">
+                            3</div>
+                        <span class="text-[9px] font-bold text-slate-400 mt-2 uppercase">Delivered</span>
+                    </div>
+                </div>
+
+                <!-- Order Details -->
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[9px] font-black text-slate-300 uppercase mb-1">Delivery To</p>
+                        <p id="order-address" class="font-bold text-slate-700">...</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[9px] font-black text-slate-300 uppercase mb-1">Total Amount</p>
+                        <p id="order-total" class="font-black text-slate-800 text-xl">RM 0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Map -->
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-black text-slate-800">Live Delivery Tracking</h3>
+                    <span id="driver-status" class="text-[9px] font-black text-slate-300 uppercase pulse">Waiting for
+                        driver...</span>
+                </div>
+                <div id="tracking-map" class="border rounded-2xl"></div>
+            </div>
+
+            <!-- Contact & Help -->
+            <div class="text-center text-xs text-slate-400 pb-10">
+                <p>Need help? Contact your supplier directly or email <b>support@ocean.my</b></p>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { firebaseConfig } from "./js/firebase-config.js";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let trackingMap = null;
+        let orderMarker = null;
+        let driverMarker = null;
+        let routeLine = null;
+
+        // DOM Elements
+        const accessScreen = document.getElementById('access-screen');
+        const dashboard = document.getElementById('tracking-dashboard');
+        const accessCodeInput = document.getElementById('input-access-code');
+        const accessBtn = document.getElementById('btn-access');
+        const accessError = document.getElementById('access-error');
+
+        // Initialize tracking map
+        function initTrackingMap(orderLocation) {
+            if (trackingMap) return;
+            trackingMap = L.map('tracking-map').setView([orderLocation.lat, orderLocation.lng], 14);
+            L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            }).addTo(trackingMap);
+
+            orderMarker = L.marker([orderLocation.lat, orderLocation.lng], {
+                icon: L.icon({
+                    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                    iconSize: [35, 35]
+                })
+            }).addTo(trackingMap).bindPopup('Delivery Destination');
+        }
+
+        function updateOrderUI(order) {
+            document.getElementById('order-item-name').textContent = order.itemName;
+            document.getElementById('order-address').textContent = order.address;
+            document.getElementById('order-total').textContent = `RM ${(order.total || order.price || 0).toFixed(2)}`;
+
+            const statusBadge = document.getElementById('order-status-badge');
+            const step2 = document.getElementById('step-2');
+            const step3 = document.getElementById('step-3');
+            const progress1 = document.getElementById('progress-1');
+            const progress2 = document.getElementById('progress-2');
+            const driverStatus = document.getElementById('driver-status');
+
+            if (order.status === 'pending') {
+                statusBadge.className = 'mt-4 md:mt-0 px-5 py-2 rounded-full bg-amber-100 text-amber-600 text-xs font-black uppercase tracking-widest';
+                statusBadge.textContent = 'Preparing';
+                driverStatus.textContent = 'Waiting for driver...';
+            } else if (order.status === 'picked_up') {
+                statusBadge.className = 'mt-4 md:mt-0 px-5 py-2 rounded-full bg-indigo-100 text-indigo-600 text-xs font-black uppercase tracking-widest';
+                statusBadge.textContent = 'On The Way';
+                step2.className = 'w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-black text-sm';
+                progress1.style.width = '100%';
+                driverStatus.textContent = 'Driver en route...';
+            } else if (order.status === 'delivered') {
+                statusBadge.className = 'mt-4 md:mt-0 px-5 py-2 rounded-full bg-emerald-100 text-emerald-600 text-xs font-black uppercase tracking-widest';
+                statusBadge.textContent = 'Delivered';
+                step2.className = 'w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-sm';
+                step3.className = 'w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-sm';
+                progress1.style.width = '100%';
+                progress2.style.width = '100%';
+                driverStatus.textContent = 'Delivery complete!';
+                driverStatus.classList.remove('pulse');
+                if (driverMarker) trackingMap.removeLayer(driverMarker);
+                if (routeLine) trackingMap.removeLayer(routeLine);
+            }
+
+            if (order.location && trackingMap) {
+                if (!orderMarker) {
+                    orderMarker = L.marker([order.location.lat, order.location.lng], {
+                        icon: L.icon({
+                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                            iconSize: [35, 35]
+                        })
+                    }).addTo(trackingMap).bindPopup('Destination');
+                }
+
+                // Handling Live Driver Tracking
+                if (order.driverLat && order.driverLng && order.status === 'picked_up') {
+                    const driverPos = [order.driverLat, order.driverLng];
+
+                    if (!driverMarker) {
+                        driverMarker = L.marker(driverPos, {
+                            icon: L.icon({
+                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',
+                                iconSize: [45, 45],
+                                iconAnchor: [22, 22]
+                            })
+                        }).addTo(trackingMap).bindPopup('Your Driver');
+                    } else {
+                        driverMarker.setLatLng(driverPos);
+                    }
+
+                    // Update Route Line
+                    const destPos = [order.location.lat, order.location.lng];
+                    if (routeLine) trackingMap.removeLayer(routeLine);
+                    routeLine = L.polyline([driverPos, destPos], {
+                        color: '#6366f1',
+                        weight: 4,
+                        opacity: 0.6,
+                        dashArray: '5, 10'
+                    }).addTo(trackingMap);
+
+                    // Fit bounds to show both
+                    trackingMap.fitBounds(L.latLngBounds([driverPos, destPos]), { padding: [50, 50] });
+                }
+            }
+        }
+
+        // Access Code Validation
+        accessBtn.onclick = async () => {
+            const code = accessCodeInput.value.trim().toUpperCase();
+            if (code.length < 4) {
+                accessError.classList.remove('hidden');
+                return;
+            }
+
+            // Listen for order with matching access code (using order ID prefix)
+            const q = query(collection(db, 'orders'));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                let found = false;
+                snapshot.forEach(doc => {
+                    const order = { id: doc.id, ...doc.data() };
+                    // Match by first 6 chars of order ID
+                    if (order.id.substring(0, 6).toUpperCase() === code) {
+                        found = true;
+                        accessScreen.classList.add('hidden');
+                        dashboard.classList.remove('hidden');
+
+                        if (order.location) {
+                            setTimeout(() => initTrackingMap(order.location), 100);
+                        }
+                        updateOrderUI(order);
+                    }
+                });
+
+                if (!found) {
+                    accessError.classList.remove('hidden');
+                }
+            });
+        };
+
+        accessCodeInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') accessBtn.click();
+        });
+    </script>
+</body>
+
+</html>

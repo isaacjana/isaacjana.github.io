@@ -1,7 +1,7 @@
 import {
     onAuth, loginWithGoogle, logout, getUserProfile, updateUserProfile,
     subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
-    placeOrder, subscribeToOrders, updateOrderStatus,
+    placeOrder, subscribeToOrders, updateOrderStatus, updateOrderDriverLocation,
     recordAudit, addWholesaleClient, subscribeToClients, subscribeToAuditLog,
     subscribeToClientStock, createClientStockItem, cancelOrder
 } from './firebase-service.js';
@@ -57,6 +57,7 @@ const labels = {
 
 const containers = {
     clientStock: document.getElementById('client-stock-grid'),
+    clientOrders: document.getElementById('client-active-orders'),
     supplierStock: document.getElementById('supplier-stock-list'),
     driverOrders: document.getElementById('driver-orders-list'),
     catalogueList: document.getElementById('ocean-catalogue-list')
@@ -237,6 +238,7 @@ function showSection(sectionKey) {
 
 function renderAllViews() {
     renderClientView();
+    renderClientOrders();
     renderSupplierView();
     renderCatalogueList();
 }
@@ -274,6 +276,37 @@ function renderClientView() {
             </div>
         `;
         containers.clientStock.appendChild(card);
+    });
+}
+
+function renderClientOrders() {
+    if (!containers.clientOrders) return;
+    containers.clientOrders.innerHTML = '';
+
+    const myOrders = activeOrders.filter(o => o.customerName === currentProfile.name && o.status !== 'delivered' && o.status !== 'cancelled');
+
+    if (myOrders.length === 0) {
+        containers.clientOrders.innerHTML = '<p class="text-xs text-slate-500 italic">No active orders found.</p>';
+        return;
+    }
+
+    myOrders.forEach(order => {
+        const div = document.createElement('div');
+        div.className = 'p-4 bg-white/5 rounded-2xl border border-white/10 hover:border-white/20 transition-all';
+        const accessCode = order.id.substring(0, 6).toUpperCase();
+
+        div.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-[10px] font-black uppercase text-indigo-400 tracking-widest">${order.status}</span>
+                <span class="text-[10px] font-black text-slate-500">CODE: <b class="text-white">${accessCode}</b></span>
+            </div>
+            <h4 class="text-sm font-bold text-white mb-1">${order.itemName}</h4>
+            <div class="flex items-center justify-between mt-3">
+                <span class="text-[9px] text-slate-400">Total: RM ${order.total.toFixed(2)}</span>
+                <button onclick="navigator.clipboard.writeText('${accessCode}'); alert('Access Code copied!')" class="text-[8px] font-black uppercase text-slate-500 hover:text-white transition-colors">Copy Code</button>
+            </div>
+        `;
+        containers.clientOrders.appendChild(div);
     });
 }
 
@@ -559,16 +592,23 @@ function startLocationTracking() {
     }
 
     watchId = navigator.geolocation.watchPosition(
-        (position) => {
+        async (position) => {
             const { latitude, longitude } = position.coords;
             driverLocation = [latitude, longitude];
             updateDriverLocation(latitude, longitude);
 
-            // If navigating, update route
+            // If navigating, update route and sync with Firestore for client tracking
             if (currentNavOrderId) {
                 const order = activeOrders.find(o => o.id === currentNavOrderId);
                 if (order && order.location) {
                     drawRoute(driverLocation, [order.location.lat, order.location.lng]);
+
+                    // NEW: Update Firestore so client can see live tracking
+                    try {
+                        await updateOrderDriverLocation(currentNavOrderId, latitude, longitude);
+                    } catch (e) {
+                        console.warn("Failed to sync location to order doc", e);
+                    }
                 }
             }
         },
@@ -603,7 +643,7 @@ window.handleOrder = async (id, name) => {
 
         if (item.quantity > 0) {
             await updateStock(id, item.quantity - 1, activeClientId);
-            await placeOrder({
+            const orderId = await placeOrder({
                 itemId: id,
                 itemName: name,
                 price: item.price,
@@ -614,9 +654,10 @@ window.handleOrder = async (id, name) => {
                 clientId: activeClientId || 'retail'
             });
 
+            const accessCode = orderId.substring(0, 6).toUpperCase();
             await recordAudit(currentUser.uid, 'PLACE_ORDER', `Order placed: ${name} (Total: RM ${total.toFixed(2)}) for ${activeClientId || 'Retail'}`);
 
-            alert(`Order successful! Total: RM ${total.toFixed(2)} (incl. 6% SST)`);
+            alert(`Order successful!\n\nAccess Code: ${accessCode}\nTotal: RM ${total.toFixed(2)} (incl. 6% SST)\n\nGive this code to others to track your order!`);
             refreshAnalytics();
         }
     } catch (err) {

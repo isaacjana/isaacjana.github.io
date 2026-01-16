@@ -163,6 +163,14 @@ export async function updateOrderStatus(orderId, status) {
     return setDoc(orderRef, { status }, { merge: true });
 }
 
+export async function updateOrderDriverLocation(orderId, lat, lng) {
+    const orderRef = doc(firestore, "orders", orderId);
+    return setDoc(orderRef, {
+        driverLat: lat,
+        driverLng: lng
+    }, { merge: true });
+}
+
 export async function cancelOrder(orderId) {
     const orderRef = doc(firestore, "orders", orderId);
     return setDoc(orderRef, { status: 'cancelled' }, { merge: true });
