@@ -141,19 +141,21 @@ function renderStockManagement($container) {
             <button onclick="openAddProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Add Stock</button>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th class="p-4 font-semibold text-gray-600">Product</th>
-                        <th class="p-4 font-semibold text-gray-600">Supplier</th>
-                        <th class="p-4 font-semibold text-gray-600">Price (RM)</th>
-                        <th class="p-4 font-semibold text-gray-600">Qty</th>
-                        <th class="p-4 font-semibold text-gray-600">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="stock-table-body">
-                </tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm min-w-[600px]">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="p-4 font-semibold text-gray-600">Product</th>
+                            <th class="p-4 font-semibold text-gray-600">Supplier</th>
+                            <th class="p-4 font-semibold text-gray-600">Price (RM)</th>
+                            <th class="p-4 font-semibold text-gray-600">Qty</th>
+                            <th class="p-4 font-semibold text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table-body">
+                    </tbody>
+                </table>
+            </div>
         </div>
     `);
 
@@ -218,20 +220,22 @@ function renderOrdersAdmin($container) {
     $container.html(`
         <h2 class="text-2xl font-bold mb-6">Order Management</h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th class="p-4">Order ID</th>
-                        <th class="p-4">Client</th>
-                        <th class="p-4">Items</th>
-                        <th class="p-4">Total</th>
-                        <th class="p-4">Status</th>
-                        <th class="p-4">Driver</th>
-                        <th class="p-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="orders-table-body"></tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm min-w-[800px]">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="p-4">Order ID</th>
+                            <th class="p-4">Client</th>
+                            <th class="p-4">Items</th>
+                            <th class="p-4">Total</th>
+                            <th class="p-4">Status</th>
+                            <th class="p-4">Driver</th>
+                            <th class="p-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body"></tbody>
+                </table>
+            </div>
         </div>
     `);
 
@@ -334,19 +338,21 @@ function renderDriverDeliveries($container) {
 function renderInvoices($container) {
     $container.html(`
         <h2 class="text-2xl font-bold mb-6">Invoices (LHDN)</h2>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-             <table class="w-full text-left text-sm">
-                <thead class="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th class="p-4">Invoice ID</th>
-                        <th class="p-4">Order Ref</th>
-                        <th class="p-4">Amount</th>
-                        <th class="p-4">Date</th>
-                        <th class="p-4">LHDN Status</th>
-                    </tr>
-                </thead>
-                <tbody id="invoice-table-body"></tbody>
-            </table>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                 <table class="w-full text-left text-sm min-w-[600px]">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="p-4">Invoice ID</th>
+                            <th class="p-4">Order Ref</th>
+                            <th class="p-4">Amount</th>
+                            <th class="p-4">Date</th>
+                            <th class="p-4">LHDN Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoice-table-body"></tbody>
+                </table>
+            </div>
         </div>
     `);
 
