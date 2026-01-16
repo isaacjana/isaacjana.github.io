@@ -280,7 +280,38 @@ window.showSetupTab = (tabId) => {
     document.querySelectorAll('.setup-tab-view').forEach(view => {
         view.classList.toggle('hidden', view.id !== `setup-tab-${tabId}`);
     });
+
+    // If switching TO profile, ensure we show the active node status
+    if (tabId === 'profile') {
+        renderNodeStatus();
+    }
 };
+
+function renderNodeStatus() {
+    const summary = document.getElementById('client-setup-summary');
+    const nodeBadge = document.getElementById('active-node-badge');
+
+    if (activeClientId) {
+        const nodeName = activeClientId.replace(/_/g, ' ').toUpperCase();
+        const statusHTML = `
+            <div class="flex items-center space-x-2 text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                <span class="text-[10px] font-black uppercase tracking-wider">Linked Node: ${nodeName}</span>
+            </div>
+        `;
+        if (summary) summary.innerHTML = statusHTML;
+        if (nodeBadge) nodeBadge.innerHTML = statusHTML;
+    } else {
+        const retailHTML = `
+            <div class="flex items-center space-x-2 text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                <span class="text-[10px] font-black uppercase tracking-wider">Independent Retail</span>
+            </div>
+        `;
+        if (summary) summary.innerHTML = retailHTML;
+        if (nodeBadge) nodeBadge.innerHTML = retailHTML;
+    }
+}
 
 /**
  * --- RENDERING ---
@@ -563,32 +594,21 @@ function setupBusinessLogic() {
 }
 
 window.handleSelectClient = (name, address) => {
-    // Note: In this simple implementation, name is used as the link ID
+    // Note: Link the session to this Wholesale Node
     const clientId = name.replace(/\s+/g, '_').toLowerCase();
     activeClientId = clientId;
-    showSetupTab('profile'); // Switch back to profile view
 
-    const addressInput = document.getElementById('setup-client-address');
-    if (addressInput) addressInput.value = address;
+    // UI Feedback: Show connection status instead of overwriting profile
+    renderNodeStatus();
 
-    const summary = document.getElementById('client-setup-summary');
-    if (summary) {
-        summary.innerHTML = `
-            <div class="flex items-center space-x-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Active Wholesale: <b class="text-indigo-600">${name}</b></span>
-            </div>
-        `;
-    }
-
-    // Switch stock subscription
+    // Switch stock subscription to show B2B exclusive items/pricing
     if (clientStockUnsubscribe) clientStockUnsubscribe();
     clientStockUnsubscribe = subscribeToClientStock(clientId, (data) => {
         clientStockData = data || {};
         renderClientView();
     });
 
-    alert(`Ecosystem synchronized with wholesale partner: ${name}`);
+    alert(`Ecosystem Dynamic: Session linked to wholesale node [${name.toUpperCase()}]. B2B pricing and exclusive inventory enabled.`);
 };
 
 window.handleManageItems = (id, name) => {
@@ -656,6 +676,8 @@ function populateSetupFields() {
     document.getElementById('setup-client-phone').value = currentProfile.phone || '';
     document.getElementById('setup-driver-vehicle').value = currentProfile.vehicle || '';
     document.getElementById('setup-driver-type').value = currentProfile.vehicleType || 'Motorcycle';
+
+    renderNodeStatus();
 }
 
 function startLocationTracking() {
