@@ -18,6 +18,7 @@ let activeClientAddress = null;
 let clientStockData = {};
 let activeOrders = [];
 let driverLocation = null;
+let currentNavOrderId = null;
 let watchId = null;
 let stockData = {};
 let currentRole = null;
@@ -690,6 +691,24 @@ function renderCatalogueList() {
 /**
  * --- SETUP & FORMS ---
  */
+
+function populateSetupFields() {
+    if (!currentProfile) return;
+
+    // Personal/Client Profile
+    const clientAddress = document.getElementById('setup-client-address');
+    const clientPhone = document.getElementById('setup-client-phone');
+    if (clientAddress) clientAddress.value = currentProfile.address || '';
+    if (clientPhone) clientPhone.value = currentProfile.phone || '';
+
+    // Driver Logistics
+    const driverVehicle = document.getElementById('setup-driver-vehicle');
+    const driverType = document.getElementById('setup-driver-type');
+    if (driverVehicle) driverVehicle.value = currentProfile.vehicle || '';
+    if (driverType) driverType.value = currentProfile.vehicleType || 'Small Car (Standard Catch)';
+
+    renderNodeStatus();
+}
 
 function setupSetupForms() {
     // Client Form
