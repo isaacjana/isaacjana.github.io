@@ -424,7 +424,7 @@ function renderSupplierView() {
                 <input type="number" id="qty-${id}" value="${item.quantity}" class="w-20 px-3 py-2 bg-slate-50 rounded-lg text-sm border-0 focus:ring-2 focus:ring-primary outline-none">
             </td>
             <td class="px-6 py-4 text-right">
-                <button onclick="handleStockUpdate('${id}')" class="bg-dark text-white text-xs font-bold px-4 py-2 rounded-lg hover:shadow-lg transition-all">SAVE</button>
+                <button onclick="handleStockUpdate('${id}', this)" class="bg-dark text-white text-xs font-bold px-4 py-2 rounded-lg hover:shadow-lg transition-all">SAVE</button>
             </td>
         `;
         containers.supplierStock.appendChild(tr);
@@ -808,12 +808,12 @@ window.handleComplete = async (orderId) => {
 };
 
 window.handleFocusOrder = (id) => focusMarker(id);
-window.handleStockUpdate = async (id) => {
+window.handleStockUpdate = async (id, btn) => {
     const qty = parseInt(document.getElementById(`qty-${id}`).value);
     if (!isNaN(qty) && qty >= 0) {
         await updateStock(id, qty);
         await recordAudit(currentUser.uid, 'UPDATE_STOCK', `Updated stock for ${id} to ${qty}`);
-        const btn = event.target;
+        if (!btn) return;
         btn.innerText = "SAVED!";
         btn.classList.add('bg-emerald-500');
         setTimeout(() => {
