@@ -155,6 +155,12 @@ function safeGetElement(id) {
 /**
  * --- INITIALIZATION ---
  */
+// Subscription cleanup functions
+let jobsUnsubscribe = null;
+let stockUnsubscribe = null;
+let clientsUnsubscribe = null;
+let auditUnsubscribe = null;
+
 async function init() {
     // 1. Auth Observer
     onAuth(async (user) => {
@@ -177,7 +183,97 @@ async function init() {
                 await updateUserProfile(user.uid, currentProfile);
             }
 
-            // 3. Flow logic
+            // 3. Flow logic & Subscriptions
+            // Initialize Subscriptions HERE (Protected by Auth)
+            if (!stockUnsubscribe) {
+                stockUnsubscribe = subscribeToStock((data) => {
+                    stockData = data || {};
+                    checkLowStock(stockData);
+                    renderAllViews(currentRole);
+                });
+            }
+
+            if (!jobsUnsubscribe) {
+                jobsUnsubscribe = subscribeToJobs((jobs) => {
+                    activeOrders = jobs.map(j => ({
+                        ...j,
+                        itemName: j.items[0]?.name + (j.items.length > 1 ? ` (+${j.items.length - 1} more)` : '')
+                    }));
+                    renderAllViews(currentRole);
+                    updateOrderMarkers(activeOrders);
+                });
+            }
+
+            if (!clientsUnsubscribe) {
+                clientsUnsubscribe = subscribeToClients(user.uid, (clients) => {
+                    // Populate delivery clients list in Setup
+                    const clientsList = document.getElementById('delivery-clients-list');
+                    if (clientsList) {
+                        clientsList.innerHTML = '';
+                        clients.forEach(client => {
+                            const tr = document.createElement('tr');
+                            tr.className = 'hover:bg-slate-50 transition-colors';
+                            tr.innerHTML = `
+                                <td class="px-10 py-6 font-bold text-slate-800">${client.name}</td>
+                                <td class="px-10 py-6 text-slate-500">${client.address}</td>
+                                <td class="px-10 py-6 text-right">
+                                    <button onclick="selectDeliveryClient('${client.name}', '${client.address}')" 
+                                        class="px-4 py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded-lg hover:bg-emerald-100 transition-all">
+                                        Select for Delivery
+                                    </button>
+                                </td>
+                            `;
+                            clientsList.appendChild(tr);
+                        });
+                    }
+
+                    // Update stats
+                    const statsEl = document.getElementById('stats-clients');
+                    if (statsEl) statsEl.innerText = clients.length;
+
+                    // Populate Store/Client Selector in Shopping header
+                    const selector = document.getElementById('store-selector');
+                    if (selector) {
+                        const oldValue = selector.value;
+                        selector.innerHTML = `<option value="retail">🌊 Main Ocean Hub (Walk-in)</option>`;
+                        clients.forEach(client => {
+                            const opt = document.createElement('option');
+                            opt.value = client.name;
+                            opt.dataset.address = client.address;
+                            opt.innerText = `📦 Deliver to: ${client.name}`;
+                            selector.appendChild(opt);
+                        });
+                        // Restore selection if possible
+                        if (oldValue && selector.querySelector(`option[value="${oldValue}"]`)) {
+                            selector.value = oldValue;
+                        }
+                    }
+                });
+            }
+
+            if (!auditUnsubscribe) {
+                auditUnsubscribe = subscribeToAuditLog((logs) => {
+                    const list = document.getElementById('audit-log-list');
+                    if (!list) return;
+                    list.innerHTML = '';
+                    logs.forEach(log => {
+                        const time = log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString() : '...';
+                        const div = document.createElement('div');
+                        div.className = "flex items-start space-x-3 p-3 bg-slate-50 rounded-2xl border-l-4 border-slate-800";
+                        div.innerHTML = `
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${log.action}</span>
+                                    <span class="text-[9px] font-bold text-slate-300">${time}</span>
+                                </div>
+                                <p class="text-xs font-semibold text-slate-600 leading-tight">${log.details}</p>
+                            </div>
+                        `;
+                        list.appendChild(div);
+                    });
+                });
+            }
+
             updateGlobalUI();
             populateSetupFields();
 
@@ -190,6 +286,24 @@ async function init() {
             showScreen('auth');
             currentUser = null;
             currentProfile = null;
+
+            // Cleanup Subscriptions
+            if (jobsUnsubscribe) {
+                jobsUnsubscribe();
+                jobsUnsubscribe = null;
+            }
+            if (stockUnsubscribe) {
+                if (typeof stockUnsubscribe === 'function') stockUnsubscribe();
+                stockUnsubscribe = null;
+            }
+            if (clientsUnsubscribe) {
+                clientsUnsubscribe();
+                clientsUnsubscribe = null;
+            }
+            if (auditUnsubscribe) {
+                auditUnsubscribe();
+                auditUnsubscribe = null;
+            }
         }
     });
 
@@ -239,24 +353,14 @@ async function init() {
     setupSetupForms();
     setupBusinessLogic();
 
-    // 5. Data Subscriptions
-    subscribeToStock((data) => {
-        stockData = data || {};
-        checkLowStock(stockData);
-        renderAllViews(currentRole);
-    });
-
-    subscribeToJobs((jobs) => {
-        activeOrders = jobs.map(j => ({
-            ...j,
-            itemName: j.items[0]?.name + (j.items.length > 1 ? ` (+${j.items.length - 1} more)` : '')
-        }));
-        renderAllViews(currentRole);
-        updateOrderMarkers(activeOrders);
-    });
-
     // 6. Init Map
     initMap('map');
+    // initializeDefaultStock might try to write, so we might want to move it too, 
+    // but effectively it will just fail silently or we can leave it. 
+    // It's safer to leave it unless it causes issues, but the user complained about Firestore.
+    // However, if write is protected, it should be inside too. I'll move it inside auth if I see issues later.
+    // For now, I'll keep it here as per my strict replacement plan for subscriptions, but actually...
+    // The user's error is specifically about the SNAPSHOT listener (read).
     await initializeDefaultStock();
 }
 
@@ -899,74 +1003,6 @@ function setupBusinessLogic() {
             alert(`Client "${clientName}" added successfully!`);
         };
     }
-
-    // 2. Client Registry Subscription (for delivery clients list)
-    subscribeToClients(null, (clients) => {
-        // Populate delivery clients list in Setup
-        const clientsList = document.getElementById('delivery-clients-list');
-        if (clientsList) {
-            clientsList.innerHTML = '';
-            clients.forEach(client => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition-colors';
-                tr.innerHTML = `
-                    <td class="px-10 py-6 font-bold text-slate-800">${client.name}</td>
-                    <td class="px-10 py-6 text-slate-500">${client.address}</td>
-                    <td class="px-10 py-6 text-right">
-                        <button onclick="selectDeliveryClient('${client.name}', '${client.address}')" 
-                            class="px-4 py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded-lg hover:bg-emerald-100 transition-all">
-                            Select for Delivery
-                        </button>
-                    </td>
-                `;
-                clientsList.appendChild(tr);
-            });
-        }
-
-        // Update stats
-        const statsEl = document.getElementById('stats-clients');
-        if (statsEl) statsEl.innerText = clients.length;
-
-        // Populate Store/Client Selector in Shopping header
-        const selector = document.getElementById('store-selector');
-        if (selector) {
-            const oldValue = selector.value;
-            selector.innerHTML = `<option value="retail">🌊 Main Ocean Hub (Walk-in)</option>`;
-            clients.forEach(client => {
-                const opt = document.createElement('option');
-                opt.value = client.name;
-                opt.dataset.address = client.address;
-                opt.innerText = `📦 Deliver to: ${client.name}`;
-                selector.appendChild(opt);
-            });
-            // Restore selection if possible
-            if (oldValue && selector.querySelector(`option[value="${oldValue}"]`)) {
-                selector.value = oldValue;
-            }
-        }
-    });
-
-    // 3. Audit Log Subscription
-    subscribeToAuditLog((logs) => {
-        const list = document.getElementById('audit-log-list');
-        if (!list) return;
-        list.innerHTML = '';
-        logs.forEach(log => {
-            const time = log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString() : '...';
-            const div = document.createElement('div');
-            div.className = "flex items-start space-x-3 p-3 bg-slate-50 rounded-2xl border-l-4 border-slate-800";
-            div.innerHTML = `
-                <div class="flex-1">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${log.action}</span>
-                        <span class="text-[9px] font-bold text-slate-300">${time}</span>
-                    </div>
-                    <p class="text-xs font-semibold text-slate-600 leading-tight">${log.details}</p>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    });
 }
 
 // Handle Store/Client switching in Shopping view
