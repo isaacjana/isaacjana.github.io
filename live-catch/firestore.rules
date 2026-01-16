@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: Check if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. User Profiles
+    // Strict: Users can only read/write their own profile
+    // Relaxed (current): Auth users can read profiles (needed for names/avatars in UI), write own
+    match /users/{userId} {
+      allow read: if isAuthenticated(); 
+      allow write: if isOwner(userId);
+    }
+
+    // 2. Jobs & Orders
+    // Allows creation and reading of jobs by authenticated users
+    match /jobs/{jobId} {
+      allow create: if isAuthenticated();
+      allow read, update: if isAuthenticated();
+    }
+    
+    // "orders" collection appears to be used for status updates
+    match /orders/{orderId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 3. Stock & Inventory (If migrated to Firestore)
+    match /seafood_stock/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // TODO: lock this down to 'admin' role
+    }
+
+    // 4. Clients Registry
+    match /clients/{clientId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 5. Audit Logs
+    match /audit_log/{logId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated(); // Maybe restrict to admins
+    }
+
+    // 6. Metadata (Invoice Counters)
+    match /metadata/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

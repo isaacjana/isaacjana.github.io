@@ -1,0 +1,15 @@
+{
+    "rules": {
+        "seafood_stock": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+        },
+        "client_stock": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+        },
+        "$other": {
+            ".validate": false
+        }
+    }
+}
