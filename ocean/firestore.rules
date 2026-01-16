@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User Profiles
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Products (Stocks)
+    match /products/{productId} {
+      allow read: if request.auth != null; // Everyone can see stock
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      // Clients see their own, Admins see all, Drivers see all (simplification for MVP)
+      allow read: if request.auth != null; 
+      allow create: if request.auth != null; // Clients create orders
+      allow update: if request.auth != null; // Status updates by admin/driver
+    }
+
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
