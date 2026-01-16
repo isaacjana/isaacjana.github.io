@@ -134,6 +134,14 @@ export async function initializeDefaultStock() {
 // --- Firestore (Order Management) ---
 
 /**
+ * Update the status of an order
+ */
+export async function updateOrderStatus(orderId, status) {
+    const orderRef = doc(firestore, "orders", orderId);
+    return setDoc(orderRef, { status }, { merge: true });
+}
+
+/**
  * Place a new order
  * @param {Object} orderData - Order details
  */

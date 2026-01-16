@@ -1,9 +1,9 @@
 import {
     onAuth, loginWithGoogle, logout, getUserProfile, updateUserProfile,
     subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
-    placeOrder, subscribeToOrders
+    placeOrder, subscribeToOrders, updateOrderStatus
 } from './firebase-service.js';
-import { initMap, updateOrderMarkers, focusMarker } from './map-service.js';
+import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRoute, clearRoute } from './map-service.js';
 
 /**
  * --- OCEAN APP STATE ---
@@ -13,6 +13,9 @@ let currentProfile = null;
 let activeRole = null;
 let stockData = {};
 let activeOrders = [];
+let watchId = null;
+let driverLocation = null;
+let currentNavOrderId = null;
 
 // --- DOM ELEMENTS ---
 const screens = {
@@ -211,8 +214,14 @@ function showSection(sectionKey) {
     if (sectionKey === 'driver') {
         // Use requestAnimationFrame for more robust map resizing, especially on mobile
         requestAnimationFrame(() => {
-            setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+            setTimeout(() => {
+                const mapEl = document.getElementById('map');
+                if (mapEl) window.dispatchEvent(new Event('resize'));
+            }, 300);
         });
+        startLocationTracking();
+    } else {
+        stopLocationTracking();
     }
 }
 
@@ -291,17 +300,40 @@ function renderSupplierView() {
 function renderDriverView() {
     containers.driverOrders.innerHTML = '';
     activeOrders.forEach(order => {
+        const isPickedUp = order.status === 'picked_up';
+        const isNavigating = currentNavOrderId === order.id;
+
         const div = document.createElement('div');
-        div.className = "bg-white p-5 rounded-3xl border shadow-sm cursor-pointer hover:border-primary transition-all group";
-        div.onclick = () => focusMarker(order.id);
+        div.className = `p-5 rounded-3xl border shadow-sm transition-all group ${isPickedUp ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}`;
+
         div.innerHTML = `
             <div class="flex justify-between items-start mb-3">
-                <h4 class="font-bold group-hover:text-primary transition-colors">${order.itemName}</h4>
-                <span class="text-[10px] font-black uppercase text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">${order.status}</span>
+                <div onclick="handleFocusOrder('${order.id}')" class="cursor-pointer">
+                    <h4 class="font-bold group-hover:text-primary transition-colors">${order.itemName}</h4>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">${order.customerName}</p>
+                </div>
+                <span class="text-[10px] font-black uppercase ${isPickedUp ? 'text-indigo-600' : 'text-emerald-500'} ${isPickedUp ? 'bg-indigo-100' : 'bg-emerald-50'} px-2 py-1 rounded-md">
+                    ${order.status}
+                </span>
             </div>
-            <div class="text-xs text-slate-400 flex items-center space-x-2">
+            <div class="text-xs text-slate-400 flex items-center space-x-2 mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 <span>${order.address || 'Kuching Area'}</span>
+            </div>
+            
+            <div class="flex space-x-2">
+                ${!isPickedUp ? `
+                    <button onclick="handlePickup('${order.id}')" class="flex-1 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 shadow-md shadow-emerald-500/20 transition-all">
+                        PICKUP
+                    </button>
+                ` : `
+                    <button onclick="handleComplete('${order.id}')" class="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all">
+                        COMPLETE
+                    </button>
+                `}
+                <button onclick="handleFocusOrder('${order.id}')" class="p-2 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                </button>
             </div>
         `;
         containers.driverOrders.appendChild(div);
@@ -376,9 +408,69 @@ function populateSetupFields() {
     document.getElementById('setup-driver-type').value = currentProfile.vehicleType || 'Motorcycle';
 }
 
+function startLocationTracking() {
+    if (!navigator.geolocation) {
+        console.error("Geolocation is not supported by this browser.");
+        return;
+    }
+
+    watchId = navigator.geolocation.watchPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            driverLocation = [latitude, longitude];
+            updateDriverLocation(latitude, longitude);
+
+            // If navigating, update route
+            if (currentNavOrderId) {
+                const order = activeOrders.find(o => o.id === currentNavOrderId);
+                if (order && order.location) {
+                    drawRoute(driverLocation, [order.location.lat, order.location.lng]);
+                }
+            }
+        },
+        (error) => console.error(error),
+        { enableHighAccuracy: true }
+    );
+}
+
+function stopLocationTracking() {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    clearRoute();
+}
+
 /**
  * --- GLOBAL HANDLERS ---
  */
+
+window.handlePickup = async (orderId) => {
+    try {
+        await updateOrderStatus(orderId, 'picked_up');
+        currentNavOrderId = orderId;
+
+        const order = activeOrders.find(o => o.id === orderId);
+        if (order && order.location && driverLocation) {
+            drawRoute(driverLocation, [order.location.lat, order.location.lng]);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+window.handleComplete = async (orderId) => {
+    try {
+        const orderRef = doc(getFirestore(), "orders", orderId);
+        await setDoc(orderRef, { status: 'delivered' }, { merge: true });
+        if (currentNavOrderId === orderId) {
+            currentNavOrderId = null;
+            clearRoute();
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+window.handleFocusOrder = (id) => focusMarker(id);
 
 window.handleOrder = async (id, name) => {
     if (!currentProfile.address) {
