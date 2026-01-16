@@ -1,46 +1,86 @@
-# Ocean - Live Seafood Logistics Platform
-## User Manual & System Documentation
+# Ocean Ecosystem - Premium B2B Seafood Platform
+## Complete System Documentation v2.1
 
 ---
 
 ## 📋 Table of Contents
 
 1. [System Overview](#system-overview)
-2. [Getting Started](#getting-started)
-3. [User Roles](#user-roles)
-4. [Client Portal (Access Code System)](#client-portal)
-5. [Map & Navigation](#map-navigation)
-6. [Business Analytics](#business-analytics)
-7. [Database Security Rules](#database-rules)
-8. [Troubleshooting](#troubleshooting)
+2. [Architecture](#architecture)
+3. [Getting Started](#getting-started)
+4. [User Roles](#user-roles)
+5. [LHDN E-Invoice Compliance](#lhdn-compliance)
+6. [Multi-Item Jobs System](#jobs-system)
+7. [Wholesale B2B Management](#b2b-management)
+8. [Client Portal](#client-portal)
+9. [Map & Navigation](#map-navigation)
+10. [Mobile Responsiveness](#mobile-features)
+11. [Security Rules](#security-rules)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## 🌊 System Overview {#system-overview}
 
-**Ocean** is a premium live seafood logistics platform designed for Sarawakian suppliers, drivers, and wholesale clients. The system provides:
+**Ocean** is a premium B2B seafood logistics platform designed for Sarawakian suppliers, drivers, and wholesale clients. Built with LHDN e-invoice compliance in mind.
 
-- **Real-time inventory management** with Firebase sync
-- **Live GPS tracking** for deliveries using Leaflet/OpenStreetMap
-- **Multi-role access** (Client, Supplier, Driver, Analytics)
-- **B2B wholesale client registry** with custom pricing
-- **Comprehensive audit logging** for business compliance (SST @ 6%)
-- **Client tracking portal** with access code authentication
+### Key Features
+- ✅ **Multi-item Job Creation** with shopping cart workflow
+- ✅ **LHDN-compliant E-Invoicing** with SST 6% calculation
+- ✅ **Real-time Inventory Management** via Firebase
+- ✅ **Live GPS Tracking** for deliveries
+- ✅ **Wholesale B2B Registry** with custom pricing
+- ✅ **Mobile-first Responsive Design**
+- ✅ **Comprehensive Audit Trail**
+
+---
+
+## 🏗️ Architecture {#architecture}
 
 ### Technology Stack
-- **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript
-- **Backend**: Firebase (Firestore + Realtime Database + Auth)
-- **Maps**: Leaflet.js with Google Map tiles (No API key required)
-- **Hosting**: GitHub Pages compatible
+| Layer | Technology |
+|-------|------------|
+| Frontend | HTML5, Tailwind CSS, Vanilla ES6+ JavaScript |
+| Backend | Firebase (Auth + Firestore + Realtime DB) |
+| Maps | Leaflet.js with Google/OSM tiles |
+| Hosting | GitHub Pages compatible (static) |
+
+### File Structure
+```
+live-catch/
+├── index.html              # Main application
+├── client.html             # Client tracking portal
+├── style.css               # Design system & animations
+├── js/
+│   ├── app.js              # Core application logic (~1000 lines)
+│   ├── firebase-config.js  # Firebase credentials
+│   ├── firebase-service.js # Database operations
+│   └── map-service.js      # Leaflet map handling
+└── USER_MANUAL.md          # This documentation
+```
+
+### Data Flow
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Client    │────▶│   Firebase   │◀────│   Driver    │
+│  (Browser)  │     │  (Backend)   │     │  (Browser)  │
+└─────────────┘     └──────────────┘     └─────────────┘
+                           │
+                    ┌──────┴──────┐
+                    │             │
+              ┌─────▼─────┐ ┌─────▼─────┐
+              │ Firestore │ │ Realtime  │
+              │  (Jobs)   │ │   (Stock) │
+              └───────────┘ └───────────┘
+```
 
 ---
 
 ## 🚀 Getting Started {#getting-started}
 
-### 1. Firebase Configuration
-Update `js/firebase-config.js` with your Firebase project credentials:
-
+### 1. Firebase Setup
 ```javascript
+// js/firebase-config.js
 export const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -52,143 +92,233 @@ export const firebaseConfig = {
 };
 ```
 
-### 2. Deploy Database Rules
-Copy the rules from [Database Security Rules](#database-rules) section below.
+### 2. Enable Services
+1. **Authentication** → Sign-in method → Enable Google
+2. **Firestore** → Create database → Start in test mode
+3. **Realtime Database** → Create database → Enable
 
-### 3. Enable Google Authentication
-In Firebase Console → Authentication → Sign-in method → Enable Google.
+### 3. Deploy Rules
+Copy security rules from [Security Rules](#security-rules) section.
 
 ---
 
 ## 👥 User Roles {#user-roles}
 
-### 🛒 Client (Shopping)
-- Browse live seafood inventory
-- Place orders with automatic SST calculation (6%)
-- View delivery address and order history
-- Access B2B exclusive items when linked to a wholesale client
+### 🛒 Shopping (Client)
+| Feature | Description |
+|---------|-------------|
+| Browse Products | View real-time seafood inventory with images |
+| Add to Cart | Multi-item selection with quantity adjustment |
+| Store Switching | Switch between Ocean Hub and B2B partners |
+| Checkout | Generate LHDN-compliant e-invoices |
+| Order Tracking | Monitor delivery status in real-time |
 
-### 🏢 Supplier (Inventory)
-- Manage seafood stock levels in real-time
-- Add/remove items from the Ocean catalogue
-- Register wholesale B2B clients
-- View order pipeline and analytics
+### 📦 Inventory (Supplier)
+| Feature | Description |
+|---------|-------------|
+| Stock Management | Update quantities in real-time |
+| Low Stock Alerts | Visual warnings when stock < 5 units |
+| Catalogue CRUD | Add/edit/delete products |
+| Price Management | Set prices per unit |
 
-### 🚚 Driver (Delivery)
-- View pending orders on interactive map
-- **Pickup** orders to claim them
-- **Undo Pickup** if needed (returns to pool)
-- **Complete** orders to mark as delivered
-- **Cancel** problematic orders
-- **Navigate** using Google Maps directions (one-tap)
-- Real-time GPS tracking visible to clients
+### 🚚 Delivery (Driver)
+| Feature | Description |
+|---------|-------------|
+| Job Queue | View pending pickups on map |
+| Pickup/Complete | Claim and fulfill orders |
+| GPS Tracking | Real-time location sharing |
+| Navigation | One-tap Google Maps integration |
+| Earnings | Track daily commission (RM 5/trip) |
 
-### � Analytics (Business Intelligence)
-- Total Revenue tracking (RM)
-- SST Pool for LHDN reporting
-- Driver commission tracking (RM 5.00/trip)
-- Live audit log of all business actions
-- B2B client registry count
+### ⚙️ Setup
+| Feature | Description |
+|---------|-------------|
+| Personal Profile | Address, phone, TIN configuration |
+| Ocean Catalogue | Manage global product database |
+| Wholesale Registry | B2B client management |
+| Driver Identity | Vehicle registration |
 
 ---
 
-## 🔐 Client Portal (Access Code System) {#client-portal}
+## 🧾 LHDN E-Invoice Compliance {#lhdn-compliance}
 
-### For Clients
-1. Navigate to `client.html`
-2. Enter your **6-character Access Code** (provided by supplier)
-3. View real-time order status and live map tracking
+### Invoice Number Format
+```
+INV-{YEAR}-{RUNNING_NUMBER}
+Example: INV-2026-00042
+```
 
-### Access Code Format
-The access code is the **first 6 characters of the Order ID** (case-insensitive).
+### Tax Calculation
+```javascript
+const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+const sst = subtotal * 0.06;  // 6% SST
+const grandTotal = subtotal + sst;
+```
 
-Example:
-- Order ID: `ABC123xyz456`
-- Access Code: `ABC123`
+### Invoice Data Structure
+```javascript
+{
+    invoiceNo: "INV-2026-00042",
+    items: [
+        { name: "Tiger Prawn", qty: 5, price: 45, total: 225 },
+        { name: "Mud Crab", qty: 3, price: 85, total: 255 }
+    ],
+    subtotal: 480.00,
+    tax: 28.80,
+    grandTotal: 508.80,
+    customer: {
+        name: "Restaurant ABC",
+        address: "123 Jalan Padungan, Kuching",
+        phone: "+60 82-123456",
+        tin: "C12345678000"
+    },
+    createdAt: Timestamp
+}
+```
 
-### For Suppliers
-When an order is placed, share the access code with your client:
-- Find the order in the Driver view
-- The Order ID prefix is the access code
-- Client can track at: `https://your-domain.com/live-catch/client.html`
+---
+
+## � Multi-Item Jobs System {#jobs-system}
+
+### Cart Workflow
+1. **Browse** products in the Shopping view
+2. **Add to Cart** with quantity selection
+3. **Review** items in Job Cart sidebar
+4. **Finalize** to create job with e-invoice
+5. **Download** or print invoice
+
+### Cart State
+```javascript
+cart = [
+    { id: "tiger_prawn", name: "Tiger Prawn", price: 45, qty: 5, total: 225, unit: "kg" },
+    { id: "mud_crab", name: "Mud Crab", price: 85, qty: 3, total: 255, unit: "kg" }
+];
+```
+
+### Mobile Cart Drawer
+On mobile devices (<1024px), the cart transforms into a bottom sheet:
+- **FAB Button** - Floating cart icon with badge
+- **Swipe Up** - Opens cart drawer
+- **Swipe Down** - Closes drawer
+
+---
+
+## 🏢 Wholesale B2B Management {#b2b-management}
+
+### Client Registry
+Register wholesale partners with custom pricing:
+```javascript
+{
+    name: "Restoran Sri Sarawak",
+    address: "Lot 456, Commercial Centre",
+    ownerUid: "firebase-uid-123",
+    createdAt: Timestamp
+}
+```
+
+### Custom Stock per Client
+Each B2B client can have unique pricing:
+```
+/client_stock/{clientId}/{itemId}
+```
+
+### Store Switching
+Users can switch between:
+1. **🌊 Main Ocean Hub** - Default retail pricing
+2. **B2B Partners** - Client-specific wholesale rates
+
+---
+
+## 🔐 Client Portal {#client-portal}
+
+### Access Code System
+Clients track orders without login using a 6-character code.
+
+| Component | Value |
+|-----------|-------|
+| Full Order ID | `ABC123xyz456789` |
+| Access Code | `ABC123` |
+| Portal URL | `/live-catch/client.html` |
+
+### Features
+- Real-time order status updates
+- Live driver location on map
+- Estimated arrival countdown
+- No authentication required
 
 ---
 
 ## 🗺️ Map & Navigation {#map-navigation}
 
-### Map Layers Available
-- **Google Streets**: Clean vector map (default)
-- **Google Satellite**: High-res aerial imagery
-- **OpenStreetMap**: Community-maintained alternative
+### Available Layers
+| Layer | Description |
+|-------|-------------|
+| Google Streets | Clean vector map (default) |
+| Google Satellite | Aerial imagery |
+| OpenStreetMap | Community-maintained |
 
-### Driver Navigation
-1. **Locate**: Focus map on order location
-2. **Pickup**: Claim the order
-3. **Navigate**: Opens Google Maps with turn-by-turn directions
-4. **Complete**: Mark delivery as successful
-
-### Live Tracking Features
-- Driver location updates every 5 seconds
-- Order markers: 🔴 Red = Pending, 🔵 Blue = Picked Up
-- Route line drawn between driver and destination
-- Clients see real-time updates on `client.html`
-
----
-
-## 📈 Business Analytics {#business-analytics}
-
-### KPI Dashboard
-| Metric | Description |
-|--------|-------------|
-| Total Revenue | Sum of all delivered orders (RM) |
-| Commission Paid | Driver payments @ RM 5.00/trip |
-| Active Clients | B2B registry count |
-| SST (6%) Pool | Tax collected for LHDN |
-
-### Audit Log Actions
-- `PLACE_ORDER` - New order created
-- `PICKUP_ORDER` - Driver claimed order
-- `DELIVER_ORDER` - Delivery completed
-- `UNDO_PICKUP` - Driver returned order to pool
-- `CANCEL_ORDER` - Order cancelled
-- `ADD_CLIENT` - New B2B client registered
-- `ADD_CLIENT_ITEM` - Custom item added to client
-- `UPDATE_STOCK` - Inventory adjusted
-- `DELETE_STOCK` - Item removed from catalogue
+### Driver Controls
+| Button | Action |
+|--------|--------|
+| 📍 Focus | Center map on order |
+| ✅ Pickup | Claim the job |
+| 🧭 Navigate | Open Google Maps |
+| ✓ Complete | Mark delivered |
+| ↩️ Undo | Return to queue |
+| ❌ Cancel | Remove job |
 
 ---
 
-## 🔒 Database Security Rules {#database-rules}
+## � Mobile Responsiveness {#mobile-features}
+
+### Breakpoints
+| Screen | Width | Layout |
+|--------|-------|--------|
+| Mobile | <640px | Single column, bottom nav |
+| Tablet | 640-1024px | Two columns |
+| Desktop | >1024px | Sidebar + main content |
+
+### Mobile-Specific Features
+- **Bottom Navigation** - 4-button fixed footer
+- **Cart Drawer** - Swipeable bottom sheet
+- **FAB** - Floating cart button with badge
+- **Stacked Forms** - Vertical input layout
+- **Touch Targets** - Minimum 44px tap areas
+
+---
+
+## 🔒 Security Rules {#security-rules}
 
 ### Firestore Rules
-Copy and paste into **Firebase Console → Firestore → Rules**:
-
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // User Profiles - Owner can write, authenticated can read
+    // Users - Owner write, authenticated read
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth.uid == userId;
     }
 
-    // Orders - Full CRUD for authenticated, read for tracking
-    match /orders/{orderId} {
-      allow read: if true; // Allow client tracking without login
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
+    // Jobs - Authenticated CRUD
+    match /jobs/{jobId} {
+      allow read: if true; // Public for tracking
+      allow create, update: if request.auth != null;
       allow delete: if false;
     }
 
-    // Wholesale Client Registry
+    // Clients Registry
     match /clients/{clientId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
 
-    // Audit Log - Immutable (create only)
+    // Invoice Counter
+    match /metadata/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Audit Log - Append only
     match /audit_log/{logId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
@@ -199,18 +329,28 @@ service cloud.firestore {
 ```
 
 ### Realtime Database Rules
-Copy and paste into **Firebase Console → Realtime Database → Rules**:
-
 ```json
 {
   "rules": {
     "seafood_stock": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": "auth != null",
+      "$item": {
+        "quantity": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        }
+      }
     },
     "client_stock": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      "$clientId": {
+        "$item": {
+          "price": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          }
+        }
+      }
     }
   }
 }
@@ -220,52 +360,44 @@ Copy and paste into **Firebase Console → Realtime Database → Rules**:
 
 ## 🛠️ Troubleshooting {#troubleshooting}
 
-### Map Not Loading
-- Ensure you're connected to the internet
-- Check browser console for errors
-- Try switching to OpenStreetMap layer
+### Common Issues
 
-### Orders Not Appearing
-- Verify Firebase configuration in `firebase-config.js`
-- Check Firestore rules allow read access
-- Ensure you're logged in with Google
+| Problem | Solution |
+|---------|----------|
+| Map not loading | Check internet, try OSM layer |
+| Login failed | Verify Firebase Auth settings |
+| Orders missing | Check Firestore rules |
+| GPS not working | Grant location permissions, use HTTPS |
+| Cart not updating | Hard refresh (Ctrl+Shift+R) |
+| Invoice blank | Ensure all cart items have prices |
 
-### Access Code Not Working
-- Codes are case-insensitive
-- Must be exactly 6 characters
-- Ensure the order exists in the system
+### Console Debugging
+```javascript
+// Check app state
+console.log({ currentUser, currentProfile, stockData, cart });
 
-### GPS Tracking Not Working
-- Grant location permissions when prompted
-- Ensure HTTPS is enabled (required for geolocation)
-- Check if device location services are on
-
----
-
-## � File Structure
-
+// Test Firebase connection
+import { db } from './firebase-service.js';
+console.log('Firebase connected:', !!db);
 ```
-live-catch/
-├── index.html          # Main application (Admin/Driver)
-├── client.html         # Client tracking portal
-├── style.css           # Custom styles
-├── js/
-│   ├── app.js          # Main application logic
-│   ├── firebase-config.js  # Firebase credentials
-│   ├── firebase-service.js # Database operations
-│   └── map-service.js  # Leaflet map handling
-└── USER_MANUAL.md      # This documentation
-```
+
+### Performance Tips
+- Clear browser cache periodically
+- Use Chrome DevTools Network tab for slow requests
+- Check Firebase Usage dashboard for quota limits
 
 ---
 
 ## 📞 Support
 
-For technical support or business inquiries:
-- **Email**: support@ocean.my
-- **Location**: Kuching, Sarawak, Malaysia
+**Ocean Ecosystem**  
+Premium B2B Seafood Logistics  
+Kuching, Sarawak, Malaysia
+
+📧 support@ocean.my  
+🌐 https://isaacjana.github.io/live-catch
 
 ---
 
-*Last Updated: January 2026*
-*Version: 2.0.0*
+*Last Updated: January 16, 2026*  
+*Version: 2.1.0*

@@ -1,3 +1,22 @@
+/**
+ * ============================================
+ * OCEAN ECOSYSTEM - MAIN APPLICATION
+ * Premium B2B Seafood Logistics Platform
+ * Version: 2.0.0
+ * ============================================
+ * 
+ * Architecture:
+ * - Firebase Auth for user management
+ * - Firestore for jobs/orders/clients
+ * - Realtime DB for stock inventory
+ * - Leaflet for map visualization
+ * 
+ * LHDN Compliance:
+ * - SST 6% calculation
+ * - Running invoice numbers
+ * - Full audit trail
+ */
+
 import {
     onAuth, loginWithGoogle, logout, getUserProfile, updateUserProfile,
     subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
@@ -6,11 +25,39 @@ import {
     subscribeToClientStock, createClientStockItem, cancelOrder,
     createJob, subscribeToJobs
 } from './firebase-service.js';
-import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRoute, clearRoute, refreshMap } from './map-service.js';
 
-/**
- * --- OCEAN APP STATE ---
- */
+import {
+    initMap, updateOrderMarkers, focusMarker, updateDriverLocation,
+    drawRoute, clearRoute, refreshMap
+} from './map-service.js';
+
+// ============================================
+// CONSTANTS
+// ============================================
+const SST_RATE = 0.06; // 6% SST
+const LOW_STOCK_THRESHOLD = 5;
+const DEFAULT_AVATAR_API = 'https://ui-avatars.com/api/';
+
+// ============================================
+// APPLICATION STATE
+// ============================================
+const AppState = {
+    user: null,
+    profile: null,
+    role: null,
+    activeClientId: null,
+    activeClientAddress: null,
+    stockData: {},
+    clientStockData: {},
+    orders: [],
+    cart: [],
+    driverLocation: null,
+    currentNavOrderId: null,
+    watchId: null,
+    clientStockUnsubscribe: null
+};
+
+// Legacy variable mapping (for backward compatibility)
 let currentUser = null;
 let currentProfile = null;
 let activeClientId = null;
@@ -23,48 +70,87 @@ let watchId = null;
 let stockData = {};
 let currentRole = null;
 let clientStockUnsubscribe = null;
-let cart = []; // [{id, name, price, qty, total, unit}]
+let cart = [];
 
-// --- DOM ELEMENTS ---
+// ============================================
+// DOM ELEMENT CACHE
+// ============================================
+const $ = (id) => document.getElementById(id);
+const $$ = (selector) => document.querySelectorAll(selector);
+
 const screens = {
-    auth: document.getElementById('auth-screen'),
-    roleSelect: document.getElementById('role-selection-screen'),
-    main: document.getElementById('main-app')
+    auth: $('auth-screen'),
+    roleSelect: $('role-selection-screen'),
+    main: $('main-app')
 };
 
 const views = {
-    client: document.getElementById('view-client'),
-    supplier: document.getElementById('view-supplier'),
-    driver: document.getElementById('view-driver'),
-    setup: document.getElementById('view-setup'),
-    analytics: document.getElementById('view-analytics')
+    client: $('view-client'),
+    supplier: $('view-supplier'),
+    driver: $('view-driver'),
+    setup: $('view-setup'),
+    analytics: $('view-analytics')
 };
 
 const buttons = {
-    client: document.getElementById('side-btn-client'),
-    supplier: document.getElementById('side-btn-supplier'),
-    driver: document.getElementById('side-btn-driver'),
-    analytics: document.getElementById('side-btn-analytics'),
-    setup: document.getElementById('side-btn-setup'),
-    // Mobile buttons
-    m_client: document.getElementById('mobile-btn-client'),
-    m_supplier: document.getElementById('mobile-btn-supplier'),
-    m_driver: document.getElementById('mobile-btn-driver'),
-    m_setup: document.getElementById('mobile-btn-setup')
+    client: $('side-btn-client'),
+    supplier: $('side-btn-supplier'),
+    driver: $('side-btn-driver'),
+    analytics: $('side-btn-analytics'),
+    setup: $('side-btn-setup'),
+    m_client: $('mobile-btn-client'),
+    m_supplier: $('mobile-btn-supplier'),
+    m_driver: $('mobile-btn-driver'),
+    m_setup: $('mobile-btn-setup')
 };
 
 const labels = {
-    role: document.getElementById('label-role'),
-    avatar: document.getElementById('user-avatar')
+    role: $('label-role'),
+    avatar: $('user-avatar')
 };
 
 const containers = {
-    clientStock: document.getElementById('client-stock-grid'),
-    clientOrders: document.getElementById('client-active-orders'),
-    supplierStock: document.getElementById('supplier-stock-list'),
-    driverOrders: document.getElementById('driver-orders-list'),
-    catalogueList: document.getElementById('ocean-catalogue-list')
+    clientStock: $('client-stock-grid'),
+    clientOrders: $('client-active-orders'),
+    supplierStock: $('supplier-stock-list'),
+    driverOrders: $('driver-orders-list'),
+    catalogueList: $('ocean-catalogue-list')
 };
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Format currency in Malaysian Ringgit
+ * @param {number} amount - Amount to format
+ * @returns {string} Formatted currency string
+ */
+function formatCurrency(amount) {
+    return `RM ${(amount || 0).toFixed(2)}`;
+}
+
+/**
+ * Show a toast notification (placeholder for future implementation)
+ * @param {string} message - Message to display
+ * @param {string} type - 'success' | 'error' | 'info'
+ */
+function showToast(message, type = 'info') {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    // TODO: Implement visual toast notifications
+}
+
+/**
+ * Safely get element by ID with null check
+ * @param {string} id - Element ID
+ * @returns {HTMLElement|null}
+ */
+function safeGetElement(id) {
+    const el = document.getElementById(id);
+    if (!el) console.warn(`Element not found: ${id}`);
+    return el;
+}
+
 
 /**
  * --- INITIALIZATION ---

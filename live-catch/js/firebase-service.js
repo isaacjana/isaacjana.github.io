@@ -1,15 +1,40 @@
+/**
+ * ============================================
+ * OCEAN ECOSYSTEM - FIREBASE SERVICE
+ * Database Operations & Authentication
+ * ============================================
+ * 
+ * This module provides all Firebase interactions:
+ * - Authentication (Google OAuth)
+ * - User Profiles (Firestore)
+ * - Stock Management (Realtime Database)
+ * - Jobs/Orders (Firestore)
+ * - Audit Logging (Firestore)
+ * - Wholesale Client Registry (Firestore)
+ * 
+ * Database Structure:
+ * - Firestore: users, jobs, clients, audit_log, metadata
+ * - Realtime DB: seafood_stock, client_stock
+ */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
-// Initialize Firebase
+// ============================================
+// FIREBASE INITIALIZATION
+// ============================================
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const firestore = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+
+// Export for debugging
+export { db, firestore, auth };
+
 
 // --- Auth Service ---
 

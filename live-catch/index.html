@@ -3,8 +3,20 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description"
+        content="Ocean Ecosystem - Premium B2B Seafood Logistics Platform for Sarawak. LHDN-compliant e-invoicing, real-time tracking, and wholesale management.">
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <title>Ocean | Premium Seafood Ecosystem</title>
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -13,90 +25,34 @@
                 extend: {
                     colors: {
                         primary: '#0ea5e9',
+                        'primary-dark': '#0284c7',
                         secondary: '#6366f1',
                         accent: '#f59e0b',
                         dark: '#0f172a'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'system-ui', 'sans-serif']
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                        'bounce-subtle': 'bounceSubtle 2s infinite'
                     }
                 }
             }
         }
     </script>
+
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Leaflet Maps (No API Key Required) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css">
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-        }
-
-        .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .dark-glass {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        #map {
-            height: calc(100vh - 280px);
-            border-radius: 1.5rem;
-        }
-
-        @media (max-width: 768px) {
-            #map {
-                height: 400px;
-            }
-
-            .role-card {
-                border-radius: 1.5rem;
-            }
-        }
-
-        .role-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 60;
-        }
-
-        /* Mobile Job Cart Slider */
-        @media (max-width: 1023px) {
-            #job-cart-container {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                z-index: 70;
-                transform: translateY(100%);
-                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                border-radius: 2.5rem 2.5rem 0 0;
-                max-height: 80vh;
-                box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
-            }
-
-            #job-cart-container.active {
-                transform: translateY(0);
-            }
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-    </style>
 </head>
 
 <body class="bg-slate-50 text-dark min-h-screen">
@@ -396,131 +352,136 @@
 
             <main class="flex-1 overflow-y-auto px-4 py-6 md:py-8 pb-32 md:pb-8 bg-slate-50">
                 <!-- Client View -->
-                <div
-                    class="mb-8 flex flex-col xl:flex-row justify-between items-start xl:items-center space-y-6 xl:space-y-0">
-                    <div class="w-full xl:w-auto">
-                        <div class="flex items-center space-x-3 mb-2">
-                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Shopping</h1>
-                            <div id="active-node-badge"
-                                class="hidden px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-200">
-                                Independent Retail</div>
+                <section id="view-client" class="view-section animate-in fade-in duration-500">
+                    <div
+                        class="mb-8 flex flex-col xl:flex-row justify-between items-start xl:items-center space-y-6 xl:space-y-0">
+                        <div class="w-full xl:w-auto">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Shopping</h1>
+                                <div id="active-node-badge"
+                                    class="hidden px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-200">
+                                    Independent Retail</div>
+                            </div>
+                            <p class="text-slate-500 font-medium text-sm lg:text-base">Sourcing the freshest Sarawakian
+                                catch directly to you.</p>
                         </div>
-                        <p class="text-slate-500 font-medium text-sm lg:text-base">Sourcing the freshest Sarawakian
-                            catch directly to you.</p>
-                    </div>
-                    <div class="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-                        <!-- Store Selector -->
-                        <div class="relative group w-full sm:w-64">
-                            <select id="store-selector" onchange="handleStoreSwitch(this.value)"
-                                class="w-full appearance-none bg-white pl-10 pr-12 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-700 focus:border-primary transition-all cursor-pointer outline-none">
-                                <option value="retail">🌊 Main Ocean Hub</option>
-                                <!-- Options populated from Registry -->
-                            </select>
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <div id="client-setup-summary"
-                            class="w-full sm:w-auto bg-white px-6 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-600 cursor-pointer hover:border-primary transition-all hover:shadow-lg flex items-center justify-center space-x-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <div class="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+                            <!-- Store Selector -->
+                            <div class="relative group w-full sm:w-64">
+                                <select id="store-selector" onchange="handleStoreSwitch(this.value)"
+                                    class="w-full appearance-none bg-white pl-10 pr-12 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-700 focus:border-primary transition-all cursor-pointer outline-none">
+                                    <option value="retail">🌊 Main Ocean Hub</option>
+                                    <!-- Options populated from Registry -->
+                                </select>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
+                                        clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <span>Set Address</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    <div class="lg:col-span-3">
-                        <div id="client-stock-grid"
-                            class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                        </div>
-                    </div>
-                    <div class="space-y-6">
-                        <!-- Job Cart (Desktop Inline / Mobile Bottom Fixed) -->
-                        <div id="job-cart-container"
-                            class="bg-white rounded-[2.5rem] p-6 lg:p-8 border shadow-xl shadow-slate-200/50">
-                            <div class="flex items-center justify-between mb-6">
-                                <div class="flex items-center space-x-2">
-                                    <h3 class="text-xs lg:text-sm font-black uppercase tracking-[0.3em] text-slate-400">
-                                        Job Cart</h3>
-                                    <span id="cart-count"
-                                        class="bg-primary text-white text-[10px] font-black px-2 py-1 rounded-md">0</span>
+                            <div id="client-setup-summary"
+                                class="w-full sm:w-auto bg-white px-6 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-600 cursor-pointer hover:border-primary transition-all hover:shadow-lg flex items-center justify-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
                                 </div>
-                                <!-- Mobile Close btn -->
-                                <button class="lg:hidden p-2 text-slate-400" onclick="toggleMobileCart()">
+                                <span>Set Address</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div class="lg:col-span-3">
+                            <div id="client-stock-grid"
+                                class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <!-- Job Cart (Desktop Inline / Mobile Bottom Fixed) -->
+                            <div id="job-cart-container"
+                                class="bg-white rounded-[2.5rem] p-6 lg:p-8 border shadow-xl shadow-slate-200/50">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div class="flex items-center space-x-2">
+                                        <h3
+                                            class="text-xs lg:text-sm font-black uppercase tracking-[0.3em] text-slate-400">
+                                            Job Cart</h3>
+                                        <span id="cart-count"
+                                            class="bg-primary text-white text-[10px] font-black px-2 py-1 rounded-md">0</span>
+                                    </div>
+                                    <!-- Mobile Close btn -->
+                                    <button class="lg:hidden p-2 text-slate-400" onclick="toggleMobileCart()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div id="cart-items"
+                                    class="space-y-4 mb-6 max-h-[250px] lg:max-h-[300px] overflow-y-auto">
+                                    <p class="text-[10px] text-slate-400 italic text-center py-4">Your cart is empty.
+                                    </p>
+                                </div>
+                                <div class="pt-6 border-t border-dashed space-y-3">
+                                    <div class="flex justify-between text-[10px] font-black text-slate-400">
+                                        <span>SUBTOTAL</span>
+                                        <span id="cart-subtotal">RM 0.00</span>
+                                    </div>
+                                    <div class="flex justify-between text-[10px] font-black text-slate-400">
+                                        <span>SST (6%)</span>
+                                        <span id="cart-sst">RM 0.00</span>
+                                    </div>
+                                    <div
+                                        class="flex justify-between text-base lg:text-lg font-black text-slate-800 pt-2 border-t">
+                                        <span>GRAND TOTAL</span>
+                                        <span id="cart-total" class="text-primary">RM 0.00</span>
+                                    </div>
+                                </div>
+                                <button onclick="handleCheckout()" id="btn-checkout" disabled
+                                    class="w-full mt-8 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/20 disabled:opacity-30 disabled:cursor-not-allowed">
+                                    Finalize Job
+                                </button>
+                            </div>
+
+                            <!-- Mobile Floating Cart Button -->
+                            <button onclick="toggleMobileCart()" id="mobile-cart-fab"
+                                class="lg:hidden fixed bottom-24 right-6 z-[65] bg-slate-900 text-white p-5 rounded-full shadow-2xl shadow-slate-900/40 border border-slate-700 active:scale-95 transition-all">
+                                <div class="relative">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7" />
+                                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                     </svg>
-                                </button>
-                            </div>
-                            <div id="cart-items" class="space-y-4 mb-6 max-h-[250px] lg:max-h-[300px] overflow-y-auto">
-                                <p class="text-[10px] text-slate-400 italic text-center py-4">Your cart is empty.</p>
-                            </div>
-                            <div class="pt-6 border-t border-dashed space-y-3">
-                                <div class="flex justify-between text-[10px] font-black text-slate-400">
-                                    <span>SUBTOTAL</span>
-                                    <span id="cart-subtotal">RM 0.00</span>
+                                    <span id="cart-count-fab"
+                                        class="absolute -top-2 -right-2 bg-primary text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border-2 border-slate-900">0</span>
                                 </div>
-                                <div class="flex justify-between text-[10px] font-black text-slate-400">
-                                    <span>SST (6%)</span>
-                                    <span id="cart-sst">RM 0.00</span>
-                                </div>
-                                <div
-                                    class="flex justify-between text-base lg:text-lg font-black text-slate-800 pt-2 border-t">
-                                    <span>GRAND TOTAL</span>
-                                    <span id="cart-total" class="text-primary">RM 0.00</span>
-                                </div>
-                            </div>
-                            <button onclick="handleCheckout()" id="btn-checkout" disabled
-                                class="w-full mt-8 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/20 disabled:opacity-30 disabled:cursor-not-allowed">
-                                Finalize Job
                             </button>
-                        </div>
 
-                        <!-- Mobile Floating Cart Button -->
-                        <button onclick="toggleMobileCart()" id="mobile-cart-fab"
-                            class="lg:hidden fixed bottom-24 right-6 z-[65] bg-slate-900 text-white p-5 rounded-full shadow-2xl shadow-slate-900/40 border border-slate-700 active:scale-95 transition-all">
-                            <div class="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                                </svg>
-                                <span id="cart-count-fab"
-                                    class="absolute -top-2 -right-2 bg-primary text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border-2 border-slate-900">0</span>
+                            <div class="bg-slate-800 rounded-[2rem] p-6 text-white shadow-2xl shadow-slate-800/20">
+                                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">My
+                                    Dashboard
+                                </h3>
+                                <div id="client-active-orders" class="space-y-4">
+                                    <p class="text-xs text-slate-500 italic">No active jobs found.</p>
+                                </div>
                             </div>
-                        </button>
-
-                        <div class="bg-slate-800 rounded-[2rem] p-6 text-white shadow-2xl shadow-slate-800/20">
-                            <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">My Dashboard
-                            </h3>
-                            <div id="client-active-orders" class="space-y-4">
-                                <p class="text-xs text-slate-500 italic">No active jobs found.</p>
+                            <div class="bg-indigo-600 rounded-[2rem] p-6 text-white shadow-2xl shadow-indigo-600/20">
+                                <h3 class="text-sm font-black uppercase tracking-widest mb-2">Track Portal</h3>
+                                <p class="text-[10px] text-indigo-200 mb-4 leading-relaxed">Give your access code to
+                                    others to track your delivery live.</p>
+                                <a href="client.html" target="_blank"
+                                    class="block w-full text-center py-3 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">Open
+                                    Portal</a>
                             </div>
-                        </div>
-                        <div class="bg-indigo-600 rounded-[2rem] p-6 text-white shadow-2xl shadow-indigo-600/20">
-                            <h3 class="text-sm font-black uppercase tracking-widest mb-2">Track Portal</h3>
-                            <p class="text-[10px] text-indigo-200 mb-4 leading-relaxed">Give your access code to
-                                others to track your delivery live.</p>
-                            <a href="client.html" target="_blank"
-                                class="block w-full text-center py-3 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">Open
-                                Portal</a>
                         </div>
                     </div>
-                </div>
                 </section>
 
                 <!-- Inventory (Supplier) View -->
