@@ -18,6 +18,13 @@ const dbAPI = {
     updateUserProfile: (uid, data) => {
         return db.collection('users').doc(uid).update(data);
     },
+    addUser: (data) => {
+        return db.collection('users').add({
+            role: 'client',
+            ...data,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    },
 
     // --- Products (Live Stock) ---
     getProducts: (callback) => {

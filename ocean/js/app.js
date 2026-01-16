@@ -465,7 +465,10 @@ function renderInvoices($container) {
 
 function renderClients($container) {
     $container.html(`
-        <h2 class="text-2xl font-bold mb-6">Client Management</h2>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Client Management</h2>
+            <button onclick="openAddClientModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Add Client</button>
+        </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
                  <table class="w-full text-left text-sm min-w-[600px]">
@@ -682,6 +685,52 @@ function openEditClientModal(uid, name, storeName, address) {
 }
 window.openEditClientModal = openEditClientModal;
 window.openAddProductModal = openAddProductModal;
+window.openAddClientModal = openAddClientModal;
+
+function openAddClientModal() {
+    const html = `
+     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Add New Client</h3>
+            <form id="add-client-form" class="space-y-4">
+                <div>
+                     <label class="block text-sm font-medium text-gray-700">Client Name</label>
+                     <input type="text" class="w-full border p-2 rounded" name="name" required>
+                </div>
+                <div>
+                     <label class="block text-sm font-medium text-gray-700">Email (Optional)</label>
+                     <input type="email" class="w-full border p-2 rounded" name="email">
+                </div>
+                <div>
+                     <label class="block text-sm font-medium text-gray-700">Store Name</label>
+                     <input type="text" class="w-full border p-2 rounded" name="storeName" required>
+                </div>
+                <div>
+                     <label class="block text-sm font-medium text-gray-700">Address (Delivery)</label>
+                     <textarea class="w-full border p-2 rounded" name="address" rows="3" required></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+                </div>
+            </form>
+        </div>
+     </div>
+    `;
+    $('body').append(html);
+
+    $('#add-client-form').submit(async (e) => {
+        e.preventDefault();
+        const data = {
+            name: $('input[name="name"]').val(),
+            email: $('input[name="email"]').val(),
+            storeName: $('input[name="storeName"]').val(),
+            address: $('textarea[name="address"]').val()
+        };
+        await dbAPI.addUser(data);
+        $('#modal-bg').remove();
+    });
+}
 
 function openRestockModal(id, name, currentSupplier) {
     const html = `
