@@ -12,14 +12,14 @@ import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRou
  */
 let currentUser = null;
 let currentProfile = null;
-let activeRole = null;
-let stockData = {};
-let activeOrders = [];
-let watchId = null;
-let driverLocation = null;
-let currentNavOrderId = null;
 let activeClientId = null;
 let clientStockData = {};
+let activeOrders = [];
+let driverLocation = null;
+let watchId = null;
+let currentNavOrderId = null;
+let currentRole = 'client'; // Default
+let stockData = {};
 let clientStockUnsubscribe = null;
 
 // --- DOM ELEMENTS ---
@@ -89,9 +89,13 @@ async function init() {
             }
 
             // 3. Flow logic
-            showScreen('roleSelect');
+            updateGlobalUI();
+            populateSetupFields();
+
             if (currentProfile.role) {
                 switchToRole(currentProfile.role);
+            } else {
+                showScreen('roleSelect');
             }
         } else {
             showScreen('auth');
@@ -109,6 +113,12 @@ async function init() {
 
     if (buttons.setup) buttons.setup.onclick = () => showSection('setup');
     if (buttons.analytics) buttons.analytics.onclick = () => showSection('analytics');
+
+    const clientSetupBtn = document.getElementById('client-setup-summary');
+    if (clientSetupBtn) clientSetupBtn.onclick = () => {
+        showSection('setup');
+        showSetupTab('profile');
+    };
 
     document.querySelectorAll('.role-selector').forEach(btn => {
         btn.onclick = async () => {
@@ -148,7 +158,7 @@ async function init() {
 
     subscribeToOrders((orders) => {
         activeOrders = orders;
-        renderDriverView();
+        renderAllViews(); // Render all views to update active order lists
         updateOrderMarkers(orders);
     });
 
@@ -168,48 +178,41 @@ function showScreen(screenKey) {
 }
 
 function switchToRole(role) {
-    activeRole = role;
+    currentRole = role;
     showScreen('main');
     showSection(role);
-    labels.role.innerText = `${role.toUpperCase()} VIEW`;
-
-    // Update Sidebar Buttons
-    const sideBtnKeys = ['client', 'supplier', 'driver', 'analytics', 'setup'];
-    sideBtnKeys.forEach(key => {
-        const btn = document.getElementById(`side-btn-${key}`);
-        if (btn) {
-            const isActive = (key === role);
-            btn.classList.toggle('bg-slate-100', isActive);
-            btn.classList.toggle('text-slate-800', isActive);
-            btn.classList.toggle('text-slate-500', !isActive);
-            btn.classList.toggle('bg-transparent', !isActive);
-        }
-    });
-
-    // Update Mobile Nav Buttons
-    const mobileKeys = { client: 'm_client', supplier: 'm_supplier', driver: 'm_driver' };
-    Object.entries(mobileKeys).forEach(([key, btnKey]) => {
-        const btn = buttons[btnKey];
-        if (btn) {
-            if (key === role) {
-                btn.classList.add('text-indigo-600');
-                btn.classList.remove('text-slate-400');
-            } else {
-                btn.classList.remove('text-indigo-600');
-                btn.classList.add('text-slate-400');
-            }
-        }
-    });
-
-    populateSetupFields();
 }
+
+function updateGlobalUI() {
+    if (!currentUser || !currentProfile) return;
+
+    // Update Global Navigation Info
+    const navName = document.getElementById('user-display-name');
+    const navEmail = document.getElementById('user-display-email');
+    if (navName) navName.innerText = currentProfile.name || currentUser.displayName || 'Ocean User';
+    if (navEmail) navEmail.innerText = currentProfile.email || currentUser.email || 'user@ocean.my';
+
+    const navAvatar = document.getElementById('user-avatar');
+    if (navAvatar && (currentProfile.avatar || currentUser.photoURL)) {
+        navAvatar.src = currentProfile.avatar || currentUser.photoURL;
+    }
+}
+
 
 function showSection(sectionKey) {
     Object.keys(views).forEach(k => {
-        views[k].classList.toggle('hidden', k !== sectionKey);
+        if (views[k]) views[k].classList.toggle('hidden', k !== sectionKey);
     });
 
-    // Highlight Side Button
+    if (sectionKey === 'setup') {
+        const activeTab = document.querySelector('.setup-tab-btn.bg-white');
+        if (!activeTab) showSetupTab('profile');
+    }
+
+    // Update Global UI (Name, Avatar, Sidebar)
+    updateGlobalUI();
+
+    // Side Navigation Highlighting
     const sideBtnKeys = ['client', 'supplier', 'driver', 'analytics', 'setup'];
     sideBtnKeys.forEach(key => {
         const btn = document.getElementById(`side-btn-${key}`);
@@ -222,6 +225,30 @@ function showSection(sectionKey) {
         }
     });
 
+    // Dynamic Role Label in Header
+    const roleLabel = document.getElementById('nav-current-role');
+    if (roleLabel) {
+        if (sectionKey === 'setup') roleLabel.innerText = "System Config";
+        else if (sectionKey === 'analytics') roleLabel.innerText = "Audit & Intel";
+        else roleLabel.innerText = `${sectionKey.toUpperCase()} VIEW`;
+    }
+
+    // Role Label in Sidebar
+    if (labels.role) {
+        labels.role.innerText = `${sectionKey.toUpperCase()} VIEW`;
+    }
+
+    // Update Mobile Nav Highlighting
+    const mobileKeys = { client: 'm_client', supplier: 'm_supplier', driver: 'm_driver', setup: 'm_setup' };
+    Object.entries(mobileKeys).forEach(([key, btnKey]) => {
+        const btn = buttons[btnKey];
+        if (btn) {
+            const isActive = (key === sectionKey);
+            btn.classList.toggle('text-indigo-600', isActive);
+            btn.classList.toggle('text-slate-400', !isActive);
+        }
+    });
+
     if (sectionKey === 'driver') {
         requestAnimationFrame(() => {
             setTimeout(() => refreshMap(), 300);
@@ -230,17 +257,52 @@ function showSection(sectionKey) {
     } else {
         stopLocationTracking();
     }
+
+    renderAllViews(sectionKey);
 }
+
+/**
+ * --- SETUP TAB LOGIC ---
+ */
+
+window.showSetupTab = (tabId) => {
+    // Buttons
+    document.querySelectorAll('.setup-tab-btn').forEach(btn => {
+        const isTarget = btn.id === `setup-tab-btn-${tabId}`;
+        btn.classList.toggle('bg-white', isTarget);
+        btn.classList.toggle('text-slate-800', isTarget);
+        btn.classList.toggle('shadow-sm', isTarget);
+        btn.classList.toggle('text-slate-500', !isTarget);
+        btn.classList.toggle('hover:bg-white/50', !isTarget);
+    });
+
+    // Sections
+    document.querySelectorAll('.setup-tab-view').forEach(view => {
+        view.classList.toggle('hidden', view.id !== `setup-tab-${tabId}`);
+    });
+};
 
 /**
  * --- RENDERING ---
  */
 
-function renderAllViews() {
-    renderClientView();
-    renderClientOrders();
-    renderSupplierView();
-    renderCatalogueList();
+function renderAllViews(currentView = null) {
+    // Role-specific renders
+    if (!currentView || currentView === 'client') {
+        renderClientView();
+        renderClientOrders();
+    }
+    if (!currentView || currentView === 'supplier') {
+        renderSupplierView();
+    }
+    if (!currentView || currentView === 'driver') {
+        renderDriverView();
+    }
+
+    // Always render global catalogue if in setup
+    if (!currentView || currentView === 'setup') {
+        renderCatalogueList();
+    }
 }
 
 function renderClientView() {
@@ -498,24 +560,33 @@ function setupBusinessLogic() {
     });
 }
 
-window.handleSelectClient = (id, name, address) => {
-    activeClientId = id;
-    document.getElementById('setup-client-address').value = address;
-    document.getElementById('client-setup-summary').innerHTML = `
-        <div class="flex items-center space-x-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Active Client: <b>${name}</b></span>
-        </div>
-    `;
+window.handleSelectClient = (name, address) => {
+    // Note: In this simple implementation, name is used as the link ID
+    const clientId = name.replace(/\s+/g, '_').toLowerCase();
+    activeClientId = clientId;
+    showSetupTab('profile'); // Switch back to profile view
+
+    const addressInput = document.getElementById('setup-client-address');
+    if (addressInput) addressInput.value = address;
+
+    const summary = document.getElementById('client-setup-summary');
+    if (summary) {
+        summary.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Active Wholesale: <b class="text-indigo-600">${name}</b></span>
+            </div>
+        `;
+    }
 
     // Switch stock subscription
     if (clientStockUnsubscribe) clientStockUnsubscribe();
-    clientStockUnsubscribe = subscribeToClientStock(id, (data) => {
+    clientStockUnsubscribe = subscribeToClientStock(clientId, (data) => {
         clientStockData = data || {};
         renderClientView();
     });
 
-    alert(`Ecosystem synchronized with ${name}`);
+    alert(`Ecosystem synchronized with wholesale partner: ${name}`);
 };
 
 window.handleManageItems = (id, name) => {
