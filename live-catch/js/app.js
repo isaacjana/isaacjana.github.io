@@ -287,6 +287,8 @@ window.showSetupTab = (tabId) => {
  */
 
 function renderAllViews(currentView = null) {
+    if (!currentProfile) return; // Wait for profile before rendering data-dependent views
+
     // Role-specific renders
     if (!currentView || currentView === 'client') {
         renderClientView();
@@ -342,7 +344,7 @@ function renderClientView() {
 }
 
 function renderClientOrders() {
-    if (!containers.clientOrders) return;
+    if (!containers.clientOrders || !currentProfile) return;
     containers.clientOrders.innerHTML = '';
 
     const myOrders = activeOrders.filter(o => o.customerName === currentProfile.name && o.status !== 'delivered' && o.status !== 'cancelled');
