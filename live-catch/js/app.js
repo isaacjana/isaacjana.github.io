@@ -38,10 +38,11 @@ const views = {
 };
 
 const buttons = {
-    client: document.getElementById('nav-btn-client'),
-    supplier: document.getElementById('nav-btn-supplier'),
-    driver: document.getElementById('nav-btn-driver'),
-    setup: document.getElementById('btn-global-setup'),
+    client: document.getElementById('side-btn-client'),
+    supplier: document.getElementById('side-btn-supplier'),
+    driver: document.getElementById('side-btn-driver'),
+    analytics: document.getElementById('side-btn-analytics'),
+    setup: document.getElementById('side-btn-setup'),
     // Mobile buttons
     m_client: document.getElementById('mobile-btn-client'),
     m_supplier: document.getElementById('mobile-btn-supplier'),
@@ -99,9 +100,14 @@ async function init() {
     });
 
     // 4. Bind Events
-    document.getElementById('btn-login-google').onclick = () => loginWithGoogle();
-    document.getElementById('btn-logout').onclick = () => logout();
-    buttons.setup.onclick = () => showSection('setup'); // Use the new buttons object
+    const loginBtn = document.getElementById('btn-login-google');
+    if (loginBtn) loginBtn.onclick = () => loginWithGoogle();
+
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) logoutBtn.onclick = () => logout();
+
+    if (buttons.setup) buttons.setup.onclick = () => showSection('setup');
+    if (buttons.analytics) buttons.analytics.onclick = () => showSection('analytics');
 
     document.querySelectorAll('.role-selector').forEach(btn => {
         btn.onclick = async () => {
@@ -112,20 +118,23 @@ async function init() {
         };
     });
 
-    // Desktop nav buttons
+    // Desktop side nav buttons
     ['client', 'supplier', 'driver'].forEach(role => {
-        buttons[role].onclick = () => switchToRole(role);
+        if (buttons[role]) {
+            buttons[role].onclick = () => switchToRole(role);
+        }
     });
 
     // Mobile nav buttons
-    ['m_client', 'm_supplier', 'm_driver'].forEach(btnKey => {
-        buttons[btnKey].onclick = () => switchToRole(btnKey.substring(2)); // Extract role from 'm_role'
+    ['m_client', 'm_supplier', 'm_driver', 'm_setup'].forEach(btnKey => {
+        if (buttons[btnKey]) {
+            buttons[btnKey].onclick = () => {
+                const target = btnKey === 'm_setup' ? 'setup' : btnKey.substring(2);
+                if (target === 'setup') showSection('setup');
+                else switchToRole(target);
+            };
+        }
     });
-    buttons.m_setup.onclick = () => showSection('setup');
-
-
-    // Analytics Tab
-    document.getElementById('nav-btn-analytics').onclick = () => showSection('analytics');
 
     setupSetupForms();
     setupBusinessLogic();
