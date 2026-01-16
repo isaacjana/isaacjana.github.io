@@ -83,3 +83,5 @@ const dbAPI = {
         });
     }
 };
+
+window.dbAPI = dbAPI;
