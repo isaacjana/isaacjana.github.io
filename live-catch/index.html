@@ -204,9 +204,9 @@
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4a1 1 0 011-1h2a1 1 0 011 1v3M12 7h.01" />
                         </svg>
                     </div>
-                    <h3 class="text-3xl font-black text-white mb-3">Supplier</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Broadcast live inventory, manage wholesale
-                        clients, and monitor stock volumes across nodes.</p>
+                    <h3 class="text-3xl font-black text-white mb-3">Inventory</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Manage store stock levels, monitor low-inventory
+                        alerts, and finalize e-invoices.</p>
                 </button>
                 <!-- Driver Role -->
                 <button data-role="driver"
@@ -306,7 +306,7 @@
                     </div>
                     <span id="label-role"
                         class="text-[9px] uppercase font-black text-indigo-600 tracking-tighter mt-1 block px-1">CLIENT
-                        VIEW</span>
+                        SYSTEM</span>
                 </div>
 
                 <nav class="space-y-1 flex-1">
@@ -324,9 +324,11 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4a1 1 0 011-1h2a1 1 0 011 1v3M12 7h.01" />
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
-                        <span>Inventory</span>
+                        <span>Inventory Mgmt</span>
+                        <span id="low-stock-alert-badge"
+                            class="hidden w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
                     </button>
                     <button id="side-btn-driver" onclick="switchToRole('driver')"
                         class="nav-role-btn w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center space-x-3 transition-all hover:bg-slate-50">
@@ -363,77 +365,136 @@
 
             <main class="flex-1 overflow-y-auto px-4 py-6 md:py-8 pb-32 md:pb-8 bg-slate-50">
                 <!-- Client View -->
-                <section id="view-client" class="view-section transition-all duration-300">
-                    <div
-                        class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-                        <div>
-                            <h1 class="text-3xl font-black text-slate-800">Premium Catch</h1>
-                            <p class="text-slate-500 font-medium">Exclusively sourced from Sarawakian coasts.</p>
+                <div
+                    class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
+                    <div>
+                        <div class="flex items-center space-x-3 mb-2">
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tight">Shopping</h1>
+                            <div id="active-node-badge"
+                                class="hidden px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-200">
+                                Independent Retail</div>
+                        </div>
+                        <p class="text-slate-500 font-medium">Sourcing the freshest Sarawakian catch directly to you.
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-4 w-full md:w-auto">
+                        <!-- Store Selector -->
+                        <div class="relative group">
+                            <select id="store-selector" onchange="handleStoreSwitch(this.value)"
+                                class="appearance-none bg-white pl-10 pr-12 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-700 focus:border-primary transition-all cursor-pointer outline-none">
+                                <option value="retail">🌊 Main Ocean Hub</option>
+                                <!-- Options populated from Registry -->
+                            </select>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                                viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
+                                    clip-rule="evenodd" />
+                            </svg>
                         </div>
                         <div id="client-setup-summary"
-                            class="bg-white px-5 py-3 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-bold text-slate-600 cursor-pointer hover:border-primary transition-all hover:shadow-md w-full md:w-auto flex items-center justify-center space-x-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <span>Set Delivery Address</span>
+                            class="bg-white px-6 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-600 cursor-pointer hover:border-primary transition-all hover:shadow-lg flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <span>Set Address</span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div class="lg:col-span-3">
-                            <div id="client-stock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            </div>
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <div class="lg:col-span-3">
+                        <div id="client-stock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         </div>
-                        <div class="space-y-6">
-                            <div class="bg-slate-800 rounded-[2rem] p-6 text-white shadow-2xl shadow-slate-800/20">
-                                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">My Active
-                                    Orders</h3>
-                                <div id="client-active-orders" class="space-y-4">
-                                    <p class="text-xs text-slate-500 italic">No active orders found.</p>
+                    </div>
+                    <div class="space-y-6">
+                        <!-- Job Cart -->
+                        <div class="bg-white rounded-[2.5rem] p-8 border shadow-xl shadow-slate-200/50">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Job Cart</h3>
+                                <span id="cart-count"
+                                    class="bg-primary text-white text-[10px] font-black px-2 py-1 rounded-md">0</span>
+                            </div>
+                            <div id="cart-items" class="space-y-4 mb-6 max-h-[300px] overflow-y-auto">
+                                <p class="text-[10px] text-slate-400 italic text-center py-4">Your cart is empty.</p>
+                            </div>
+                            <div class="pt-6 border-t border-dashed space-y-2">
+                                <div class="flex justify-between text-[10px] font-black text-slate-400">
+                                    <span>SUBTOTAL</span>
+                                    <span id="cart-subtotal">RM 0.00</span>
+                                </div>
+                                <div class="flex justify-between text-[10px] font-black text-slate-400">
+                                    <span>SST (6%)</span>
+                                    <span id="cart-sst">RM 0.00</span>
+                                </div>
+                                <div class="flex justify-between text-base font-black text-slate-800 pt-2">
+                                    <span>GRAND TOTAL</span>
+                                    <span id="cart-total">RM 0.00</span>
                                 </div>
                             </div>
-                            <div class="bg-indigo-600 rounded-[2rem] p-6 text-white shadow-2xl shadow-indigo-600/20">
-                                <h3 class="text-sm font-black uppercase tracking-widest mb-2">Track Portal</h3>
-                                <p class="text-[10px] text-indigo-200 mb-4 leading-relaxed">Give your access code to
-                                    others to track your delivery live.</p>
-                                <a href="client.html" target="_blank"
-                                    class="block w-full text-center py-3 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">Open
-                                    Portal</a>
+                            <button onclick="handleCheckout()" id="btn-checkout" disabled
+                                class="w-full mt-8 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/20 disabled:opacity-30 disabled:cursor-not-allowed">
+                                Finalize Job
+                            </button>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-[2rem] p-6 text-white shadow-2xl shadow-slate-800/20">
+                            <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">My Dashboard
+                            </h3>
+                            <div id="client-active-orders" class="space-y-4">
+                                <p class="text-xs text-slate-500 italic">No active jobs found.</p>
+                            </div>
+                        </div>
+                        <div class="bg-indigo-600 rounded-[2rem] p-6 text-white shadow-2xl shadow-indigo-600/20">
+                            <h3 class="text-sm font-black uppercase tracking-widest mb-2">Track Portal</h3>
+                            <p class="text-[10px] text-indigo-200 mb-4 leading-relaxed">Give your access code to
+                                others to track your delivery live.</p>
+                            <a href="client.html" target="_blank"
+                                class="block w-full text-center py-3 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">Open
+                                Portal</a>
+                        </div>
+                    </div>
+                </div>
+                </section>
+
+                <!-- Inventory (Supplier) View -->
+                <section id="view-supplier" class="view-section hidden animate-in fade-in duration-700">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+                        <div>
+                            <h2 class="text-4xl font-black text-slate-800 tracking-tight">Store Inventory</h2>
+                            <p class="text-slate-400 font-medium">Monitoring real-time stock levels & ecosystem health.
+                            </p>
+                        </div>
+                        <div id="low-stock-warning"
+                            class="hidden bg-rose-50 border-2 border-rose-100 p-4 rounded-3xl flex items-center space-x-4 animate-bounce">
+                            <div class="bg-rose-500 text-white p-2 rounded-xl">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-black uppercase text-rose-500 tracking-widest">Inventory
+                                    Alert</p>
+                                <p class="text-xs font-bold text-rose-700">Some items are critically low!</p>
                             </div>
                         </div>
                     </div>
-                </section>
 
-                <!-- Supplier View -->
-                <section id="view-supplier" class="view-section hidden transition-all duration-300">
-                    <div class="mb-8 flex justify-between items-center">
-                        <div>
-                            <h1 class="text-3xl font-bold">Supplier Center</h1>
-                            <p class="text-gray-500">Update stock levels and manage catalogue.</p>
-                        </div>
-                        <div class="flex space-x-3">
-                            <button
-                                class="px-6 py-2 bg-dark text-white rounded-xl font-bold text-sm shadow-lg shadow-dark/20"
-                                onclick="showSection('setup')">Add New Item</button>
-                            <a href="../bill-setup/"
-                                class="px-6 py-2 bg-secondary text-white rounded-xl font-bold text-sm shadow-lg shadow-secondary/20">Bill
-                                Setup</a>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-3xl overflow-x-auto border shadow-sm">
-                        <table class="w-full min-w-[600px]">
-                            <thead class="bg-slate-50 border-b">
+                    <div class="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">
                                 <tr>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
-                                        Product</th>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
-                                        Inventory</th>
+                                    Inventory</th>
                                     <th
                                         class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
                                         Update</th>
@@ -864,6 +925,103 @@
 
         <!-- Scripts -->
         <script type="module" src="js/app.js"></script>
+        <!-- E-Invoice Modal (LHDN Registry) -->
+        <div id="invoice-modal"
+            class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+            <div
+                class="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div class="bg-slate-900 p-10 text-white flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-4">
+                            <svg viewBox="0 0 100 100" class="h-8 w-8 text-primary" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M50 90 C25 90 10 70 10 50 C10 30 25 10 50 10 C75 10 90 30 90 50 C90 70 75 90 50 90 Z"
+                                    stroke-width="8" stroke-linecap="round" />
+                                <path d="M20 60 Q40 30 60 50 T90 50" stroke-width="6" stroke-linecap="round" />
+                                <path d="M70 20 L85 10 Q90 20 85 30" stroke-width="4" stroke-linecap="round" />
+                                <circle cx="70" cy="42" r="3" fill="currentColor" />
+                            </svg>
+                            <span class="text-2xl font-black uppercase tracking-[-0.05em]">cean Ecosystem</span>
+                        </div>
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Digital E-Invoice</p>
+                        <h2 id="modal-invoice-no" class="text-3xl font-black text-white">INV-2026-XXXXX</h2>
+                    </div>
+                    <button onclick="closeInvoice()"
+                        class="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-10">
+                    <div class="grid grid-cols-2 gap-10 mb-10 pb-10 border-b border-dashed">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Service
+                                Provider</p>
+                            <p class="text-sm font-bold text-slate-700">OCEAN LOGISTICS SDN BHD</p>
+                            <p class="text-xs text-slate-500">TIN: C2102938400</p>
+                            <p class="text-xs text-slate-500">Reg: 202401012345</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Customer
+                                Recipient</p>
+                            <p id="modal-customer-name" class="text-sm font-bold text-slate-700">Loading...</p>
+                            <p id="modal-customer-address" class="text-xs text-slate-500">Loading...</p>
+                        </div>
+                    </div>
+
+                    <table class="w-full text-sm mb-10">
+                        <thead class="text-slate-400 font-bold text-[10px] uppercase">
+                            <tr>
+                                <th class="py-2 text-left">Description</th>
+                                <th class="py-2 text-right">Qty</th>
+                                <th class="py-2 text-right">Price</th>
+                                <th class="py-2 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-invoice-items" class="divide-y divide-slate-50">
+                            <!-- Items -->
+                        </tbody>
+                    </table>
+
+                    <div class="flex justify-end pt-6">
+                        <div class="w-64 space-y-2">
+                            <div class="flex justify-between text-xs font-bold text-slate-400">
+                                <span>Subtotal</span>
+                                <span id="modal-subtotal">RM 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-xs font-bold text-slate-400">
+                                <span>SST (6%)</span>
+                                <span id="modal-tax">RM 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-xl font-black text-slate-900 pt-4 border-t">
+                                <span>Total</span>
+                                <span id="modal-grand-total">RM 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 flex space-x-4">
+                        <button onclick="window.print()"
+                            class="flex-1 py-4 bg-slate-100 text-slate-800 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            <span>Print Invoice</span>
+                        </button>
+                        <button onclick="closeInvoice()"
+                            class="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20">
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 </body>
 
 </html>

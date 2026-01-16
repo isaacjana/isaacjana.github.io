@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -176,56 +176,91 @@ export async function cancelOrder(orderId) {
     return setDoc(orderRef, { status: 'cancelled' }, { merge: true });
 }
 
+// --- Jobs & E-Invoicing (LHDN Compliant) ---
+
 /**
- * Place a new order
- * @param {Object} orderData - Order details
+ * Generates an LHDN-compliant running number for invoices
  */
-export async function placeOrder(orderData) {
-    // Validate data to prevent Firebase crashes (undefined values)
-    const requiredFields = ['itemId', 'itemName', 'price', 'total', 'customerName', 'address'];
-    requiredFields.forEach(field => {
-        if (typeof orderData[field] === 'undefined') {
-            throw new Error(`Critical Field Missing: ${field}`);
-        }
-    });
+async function generateInvoiceNumber() {
+    const year = new Date().getFullYear();
+    const counterRef = doc(firestore, "metadata", "invoice_counter");
 
     try {
-        const docRef = await addDoc(collection(firestore, "orders"), {
-            itemId: orderData.itemId,
-            itemName: orderData.itemName,
-            price: Number(orderData.price),
-            total: Number(orderData.total),
-            customerName: orderData.customerName,
-            address: orderData.address,
-            phone: orderData.phone || "",
-            clientId: orderData.clientId || "retail",
+        const counterDoc = await getDoc(counterRef);
+        let nextNumber = 1;
+
+        if (counterDoc.exists() && counterDoc.data().year === year) {
+            nextNumber = counterDoc.data().lastNumber + 1;
+        }
+
+        await setDoc(counterRef, { year, lastNumber: nextNumber }, { merge: true });
+        return `INV-${year}-${nextNumber.toString().padStart(5, '0')}`;
+    } catch (e) {
+        console.error("Counter fail, utilizing timestamp", e);
+        return `INV-${year}-${Date.now().toString().slice(-5)}`;
+    }
+}
+
+/**
+ * Creates a centralized multi-item Job (Order) with E-Invoice
+ */
+export async function createJob(jobData) {
+    const { items, customer, clientId } = jobData;
+
+    // items: [{id, name, price, qty, total}]
+    const invoiceNo = await generateInvoiceNumber();
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    const tax = subtotal * 0.06; // SST 6%
+    const grandTotal = subtotal + tax;
+
+    try {
+        const docRef = await addDoc(collection(firestore, "jobs"), {
+            invoiceNo,
+            items,
+            subtotal,
+            tax,
+            grandTotal,
+            customer, // {name, address, phone, tin}
+            clientId: clientId || "retail",
             status: 'pending',
             createdAt: serverTimestamp(),
-            // Mock location for Kuching area
             location: {
-                lat: 1.5533 + (Math.random() - 0.5) * 0.05,
-                lng: 110.3592 + (Math.random() - 0.5) * 0.05
+                lat: 1.5533 + (Math.random() - 0.5) * 0.02,
+                lng: 110.3592 + (Math.random() - 0.5) * 0.02
             }
         });
-        return docRef.id;
+        return { id: docRef.id, invoiceNo };
     } catch (error) {
-        console.error("Error adding document: ", error);
+        console.error("Critical Job Creation Failure:", error);
         throw error;
     }
+}
+
+export function subscribeToJobs(callback) {
+    const q = query(collection(firestore, "jobs"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (querySnapshot) => {
+        const jobs = [];
+        querySnapshot.forEach((doc) => {
+            jobs.push({ id: doc.id, ...doc.data() });
+        });
+        callback(jobs);
+    });
 }
 
 /**
  * Subscribe to active orders
  * @param {Function} callback - Function called with orders array
  */
+// --- Subscriptions ---
 export function subscribeToOrders(callback) {
-    const q = query(collection(firestore, "orders"), orderBy("createdAt", "desc"));
+    // Legacy support for orders map
+    const q = query(collection(firestore, "jobs"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (querySnapshot) => {
-        const orders = [];
+        const jobs = [];
         querySnapshot.forEach((doc) => {
-            orders.push({ id: doc.id, ...doc.data() });
+            jobs.push({ id: doc.id, ...doc.data(), itemName: doc.data().items?.[0]?.name || "Multi-item Job" });
         });
-        callback(orders);
+        callback(jobs);
     });
 }
 // --- Auditing & Analytics ---

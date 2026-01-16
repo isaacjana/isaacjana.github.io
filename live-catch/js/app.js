@@ -3,7 +3,8 @@ import {
     subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
     placeOrder, subscribeToOrders, updateOrderStatus, updateOrderDriverLocation,
     recordAudit, addWholesaleClient, subscribeToClients, subscribeToAuditLog,
-    subscribeToClientStock, createClientStockItem, cancelOrder
+    subscribeToClientStock, createClientStockItem, cancelOrder,
+    createJob, subscribeToJobs
 } from './firebase-service.js';
 import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRoute, clearRoute, refreshMap } from './map-service.js';
 
@@ -13,14 +14,14 @@ import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRou
 let currentUser = null;
 let currentProfile = null;
 let activeClientId = null;
+let activeClientAddress = null;
 let clientStockData = {};
 let activeOrders = [];
 let driverLocation = null;
 let watchId = null;
-let currentNavOrderId = null;
-let currentRole = 'client'; // Default
 let stockData = {};
 let clientStockUnsubscribe = null;
+let cart = []; // [{id, name, price, qty, total, unit}]
 
 // --- DOM ELEMENTS ---
 const screens = {
@@ -153,13 +154,17 @@ async function init() {
     // 5. Data Subscriptions
     subscribeToStock((data) => {
         stockData = data || {};
-        renderAllViews(currentRole); // Only render relevant view on stock change
+        checkLowStock(stockData);
+        renderAllViews(currentRole);
     });
 
-    subscribeToOrders((orders) => {
-        activeOrders = orders;
-        renderAllViews(currentRole); // Only render relevant view on order change
-        updateOrderMarkers(orders);
+    subscribeToJobs((jobs) => {
+        activeOrders = jobs.map(j => ({
+            ...j,
+            itemName: j.items[0]?.name + (j.items.length > 1 ? ` (+${j.items.length - 1} more)` : '')
+        }));
+        renderAllViews(currentRole);
+        updateOrderMarkers(activeOrders);
     });
 
     // 6. Init Map
@@ -376,16 +381,171 @@ function renderClientView() {
                     </div>
                 </div>
                 <button 
-                    onclick="handleOrder('${id}', '${itemName.replace(/'/g, "\\'")}')"
+                    onclick="handleAddToCart('${id}')"
                     ${isSoldOut ? 'disabled' : ''}
                     class="w-full py-4 rounded-2xl font-black transition-all ${isSoldOut ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-white shadow-xl shadow-slate-900/10 hover:bg-slate-900 active:scale-95'}"
                 >
-                    PLACE ORDER
+                    ADD TO CART
                 </button>
             </div>
         `;
         containers.clientStock.appendChild(card);
     });
+}
+
+/**
+ * --- SHOPPING CART LOGIC ---
+ */
+
+window.handleAddToCart = (id) => {
+    // Determine item data (with B2B override if active)
+    const baseItem = stockData[id];
+    const override = clientStockData[id];
+    const item = { ...baseItem, ...override };
+
+    const existing = cart.find(i => i.id === id);
+    if (existing) {
+        existing.qty++;
+        existing.total = existing.qty * existing.price;
+    } else {
+        cart.push({
+            id: id,
+            name: item.name,
+            price: item.price,
+            qty: 1,
+            unit: item.unit,
+            total: item.price
+        });
+    }
+    renderCart();
+};
+
+window.removeFromCart = (id) => {
+    cart = cart.filter(i => i.id !== id);
+    renderCart();
+};
+
+function renderCart() {
+    const list = document.getElementById('cart-items');
+    if (!list) return;
+
+    if (cart.length === 0) {
+        list.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center py-4">Your cart is empty.</p>`;
+    } else {
+        list.innerHTML = cart.map(item => `
+            <div class="flex items-center justify-between bg-slate-50 p-3 rounded-2xl group">
+                <div class="flex-1">
+                    <p class="text-xs font-black text-slate-800">${item.name}</p>
+                    <p class="text-[10px] font-bold text-slate-400">${item.qty} ${item.unit} x RM ${item.price}</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs font-black text-slate-800">RM ${item.total.toFixed(2)}</span>
+                    <button onclick="removeFromCart('${item.id}')" class="p-1.5 bg-rose-50 text-rose-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    const subtotal = cart.reduce((sum, i) => sum + i.total, 0);
+    const sst = subtotal * 0.06;
+    const total = subtotal + sst;
+
+    document.getElementById('cart-count').innerText = cart.length;
+    document.getElementById('cart-subtotal').innerText = `RM ${subtotal.toFixed(2)}`;
+    document.getElementById('cart-sst').innerText = `RM ${sst.toFixed(2)}`;
+    document.getElementById('cart-total').innerText = `RM ${total.toFixed(2)}`;
+    document.getElementById('btn-checkout').disabled = cart.length === 0;
+}
+
+window.handleCheckout = async () => {
+    const deliveryAddress = activeClientAddress || (currentProfile ? currentProfile.address : null);
+
+    if (!deliveryAddress) {
+        alert("Action Required: Please set your delivery address in Profile or Link a Wholesale Node first!");
+        showSection('setup');
+        return;
+    }
+
+    try {
+        const job = await createJob({
+            items: cart,
+            customer: {
+                name: currentProfile.name || "Guest",
+                address: deliveryAddress,
+                phone: currentProfile.phone || "",
+                tin: currentProfile.tin || "N/A"
+            },
+            clientId: activeClientId || 'retail'
+        });
+
+        // Audit & Feedback
+        await recordAudit(currentUser.uid, 'CREATE_JOB', `Finalized job with ${cart.length} items. Invoice: ${job.invoiceNo}`);
+
+        // Clear Cart
+        const finalizedCart = [...cart];
+        const subtotal = cart.reduce((sum, i) => sum + i.total, 0);
+        const sst = subtotal * 0.06;
+        const total = subtotal + sst;
+
+        cart = [];
+        renderCart();
+
+        // Show Invoice
+        showInvoice({
+            invoiceNo: job.invoiceNo,
+            items: finalizedCart,
+            subtotal,
+            tax: sst,
+            grandTotal: total,
+            customer: currentProfile
+        });
+
+    } catch (err) {
+        console.error(err);
+        alert("E-Invoice Generation Failed. Please check logs.");
+    }
+};
+
+function showInvoice(data) {
+    document.getElementById('modal-invoice-no').innerText = data.invoiceNo;
+    document.getElementById('modal-customer-name').innerText = data.customer.name || "Guest";
+    document.getElementById('modal-customer-address').innerText = data.customer.address || "N/A";
+
+    const itemsTbody = document.getElementById('modal-invoice-items');
+    itemsTbody.innerHTML = data.items.map(item => `
+        <tr>
+            <td class="py-3 font-bold text-slate-700">${item.name}</td>
+            <td class="py-3 text-right">${item.qty} ${item.unit}</td>
+            <td class="py-3 text-right">RM ${item.price}</td>
+            <td class="py-3 text-right font-bold">RM ${item.total.toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    document.getElementById('modal-subtotal').innerText = `RM ${data.subtotal.toFixed(2)}`;
+    document.getElementById('modal-tax').innerText = `RM ${data.tax.toFixed(2)}`;
+    document.getElementById('modal-grand-total').innerText = `RM ${data.grandTotal.toFixed(2)}`;
+
+    document.getElementById('invoice-modal').classList.remove('hidden');
+}
+
+window.closeInvoice = () => {
+    document.getElementById('invoice-modal').classList.add('hidden');
+};
+
+function checkLowStock(data) {
+    const lowItems = Object.values(data).filter(i => i.quantity <= 5);
+    const badge = document.getElementById('low-stock-alert-badge');
+    const warning = document.getElementById('low-stock-warning');
+
+    if (lowItems.length > 0) {
+        badge.classList.remove('hidden');
+        if (warning) warning.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+        if (warning) warning.classList.add('hidden');
+    }
 }
 
 function renderClientOrders() {
@@ -411,7 +571,7 @@ function renderClientOrders() {
             </div>
             <h4 class="text-sm font-bold text-white mb-1">${order.itemName}</h4>
             <div class="flex items-center justify-between mt-3">
-                <span class="text-[9px] text-slate-400">Total: RM ${order.total.toFixed(2)}</span>
+                <span class="text-[9px] text-slate-400">Total: RM ${(order.grandTotal || order.total || 0).toFixed(2)}</span>
                 <button onclick="navigator.clipboard.writeText('${accessCode}'); alert('Access Code copied!')" class="text-[8px] font-black uppercase text-slate-500 hover:text-white transition-colors">Copy Code</button>
             </div>
         `;
@@ -458,8 +618,9 @@ function renderDriverView() {
         div.innerHTML = `
             <div class="flex justify-between items-start mb-3">
                 <div onclick="handleFocusOrder('${order.id}')" class="cursor-pointer">
-                    <h4 class="font-bold group-hover:text-primary transition-colors">${order.itemName}</h4>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">${order.customerName}</p>
+                    <h4 class="font-bold group-hover:text-primary transition-colors text-sm">${order.itemName}</h4>
+                    <p class="text-[9px] text-slate-400 font-black uppercase mb-1">Total: RM ${(order.grandTotal || order.total || 0).toFixed(2)}</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">${order.customer?.name || "Client"}</p>
                 </div>
                 <span class="text-[10px] font-black uppercase ${isPickedUp ? 'text-indigo-600' : 'text-emerald-500'} ${isPickedUp ? 'bg-indigo-100' : 'bg-emerald-50'} px-2 py-1 rounded-md">
                     ${order.status}
@@ -467,7 +628,7 @@ function renderDriverView() {
             </div>
             <div class="text-xs text-slate-400 flex items-center space-x-2 mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                <span>${order.address || 'Kuching Area'}</span>
+                <span>${order.customer?.address || order.address || 'Kuching Area'}</span>
             </div>
             
             <div class="grid grid-cols-2 gap-2">
@@ -565,7 +726,23 @@ function setupBusinessLogic() {
     };
 
     // 2. Client Registry Subscription
+    // Populate Store Selector in Header
+    const selector = document.getElementById('store-selector');
+    // 2. Client Registry Subscription
     subscribeToClients(null, (clients) => {
+        // Populate Store Selector in Header
+        const selector = document.getElementById('store-selector');
+        if (selector) {
+            selector.innerHTML = `<option value="retail">🌊 Main Ocean Hub</option>`;
+            clients.forEach(client => {
+                const opt = document.createElement('option');
+                opt.value = client.name;
+                opt.dataset.address = client.address;
+                opt.innerText = `🏬 ${client.name.toUpperCase()}`;
+                selector.appendChild(opt);
+            });
+        }
+
         const list = document.getElementById('registry-client-list');
         if (!list) return;
         list.innerHTML = '';
@@ -613,6 +790,7 @@ window.handleSelectClient = (name, address) => {
     // Note: Link the session to this Wholesale Node
     const clientId = name.replace(/\s+/g, '_').toLowerCase();
     activeClientId = clientId;
+    activeClientAddress = address;
 
     // UI Feedback: Show connection status instead of overwriting profile
     renderNodeStatus();
@@ -625,6 +803,30 @@ window.handleSelectClient = (name, address) => {
     });
 
     alert(`Ecosystem Dynamic: Session linked to wholesale node [${name.toUpperCase()}]. B2B pricing and exclusive inventory enabled.`);
+};
+
+window.handleStoreSwitch = (storeName) => {
+    if (storeName === 'retail') {
+        activeClientId = null;
+        activeClientAddress = null;
+        clientStockData = {};
+        if (clientStockUnsubscribe) clientStockUnsubscribe();
+        const badge = document.getElementById('active-node-badge');
+        if (badge) badge.classList.add('hidden');
+        renderClientView();
+        return;
+    }
+
+    const selector = document.getElementById('store-selector');
+    const selectedOpt = Array.from(selector.options).find(o => o.value === storeName);
+    const address = selectedOpt?.dataset.address;
+
+    window.handleSelectClient(storeName, address);
+    const badge = document.getElementById('active-node-badge');
+    if (badge) {
+        badge.classList.remove('hidden');
+        badge.innerText = `Linked: ${storeName}`;
+    }
 };
 
 window.handleManageItems = (id, name) => {
@@ -642,152 +844,6 @@ window.handleManageItems = (id, name) => {
     });
 
     recordAudit(currentUser.uid, 'ADD_CLIENT_ITEM', `Set special price RM ${price} for ${itemName} at ${name}.`);
-};
-
-window.handleUndoPickup = async (orderId) => {
-    if (confirm("Revert pickup and return order to pending local pool?")) {
-        await updateOrderStatus(orderId, 'pending');
-        await recordAudit(currentUser.uid, 'UNDO_PICKUP', `Driver reverted pickup for order ${orderId.substring(0, 8)}`);
-        if (currentNavOrderId === orderId) {
-            currentNavOrderId = null;
-            clearRoute();
-        }
-    }
-};
-
-window.handleCancelOrder = async (orderId) => {
-    if (confirm("Cancel this order permanently?")) {
-        await cancelOrder(orderId);
-        await recordAudit(currentUser.uid, 'CANCEL_ORDER', `Order ${orderId.substring(0, 8)} was cancelled.`);
-    }
-};
-
-window.refreshAnalytics = () => {
-    // Recalculate financial stats locally from activeOrders
-    let totalRevenue = 0;
-    let sstPool = 0;
-    let commission = 0;
-
-    activeOrders.forEach(o => {
-        if (o.status === 'delivered') {
-            const price = parseFloat(o.price || 0);
-            totalRevenue += price;
-            sstPool += price * 0.06;
-            commission += 5.00; // Mock Sarawak Rider commission RM 5 / trip
-        }
-    });
-
-    const revEl = document.getElementById('stats-revenue');
-    const sstEl = document.getElementById('stats-sst');
-    const comEl = document.getElementById('stats-commission');
-
-    if (revEl) revEl.innerText = `RM ${totalRevenue.toFixed(2)}`;
-    if (sstEl) sstEl.innerText = `RM ${sstPool.toFixed(2)}`;
-    if (comEl) comEl.innerText = `RM ${commission.toFixed(2)}`;
-};
-
-function populateSetupFields() {
-    if (!currentProfile) return;
-    document.getElementById('setup-client-address').value = currentProfile.address || '';
-    document.getElementById('setup-client-phone').value = currentProfile.phone || '';
-    document.getElementById('setup-driver-vehicle').value = currentProfile.vehicle || '';
-    document.getElementById('setup-driver-type').value = currentProfile.vehicleType || 'Motorcycle';
-
-    renderNodeStatus();
-}
-
-function startLocationTracking() {
-    if (!navigator.geolocation) {
-        console.error("Geolocation is not supported by this browser.");
-        return;
-    }
-
-    watchId = navigator.geolocation.watchPosition(
-        async (position) => {
-            const { latitude, longitude } = position.coords;
-            driverLocation = [latitude, longitude];
-            updateDriverLocation(latitude, longitude);
-
-            // If navigating, update route and sync with Firestore for client tracking
-            if (currentNavOrderId) {
-                const order = activeOrders.find(o => o.id === currentNavOrderId);
-                if (order && order.location) {
-                    drawRoute(driverLocation, [order.location.lat, order.location.lng]);
-
-                    // NEW: Update Firestore so client can see live tracking
-                    try {
-                        await updateOrderDriverLocation(currentNavOrderId, latitude, longitude);
-                    } catch (e) {
-                        console.warn("Failed to sync location to order doc", e);
-                    }
-                }
-            }
-        },
-        (error) => console.error(error),
-        { enableHighAccuracy: true }
-    );
-}
-
-function stopLocationTracking() {
-    if (watchId) navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-    clearRoute();
-}
-
-/**
- * --- GLOBAL HANDLERS ---
- */
-
-window.handleOrder = async (id, name) => {
-    if (!currentProfile.address) {
-        alert("Please set your delivery address in Setup first!");
-        showSection('setup');
-        return;
-    }
-
-    try {
-        // Robust item source selection (Merged Strategy)
-        const baseItem = stockData[id] || {};
-        const overrideItem = (activeClientId && clientStockData) ? (clientStockData[id] || {}) : {};
-        const item = { ...baseItem, ...overrideItem };
-
-        if (!item.name || !item.price) {
-            alert("Error: Item data incomplete. Please refresh.");
-            return;
-        }
-
-        const subtotal = parseFloat(item.price);
-        if (isNaN(subtotal)) {
-            console.error("Invalid price for item:", id, item);
-            alert("Error: Item price is invalid. Please contact support.");
-            return;
-        }
-
-        const sst = subtotal * 0.06;
-        const total = subtotal + sst;
-
-        if (item.quantity > 0) {
-            await updateStock(id, item.quantity - 1, activeClientId);
-            const orderId = await placeOrder({
-                itemId: id,
-                itemName: name || item.name || "Unknown Item",
-                price: subtotal,
-                total: total,
-                customerName: currentProfile.name || "Guest",
-                address: currentProfile.address,
-                phone: currentProfile.phone || "",
-                clientId: activeClientId || 'retail'
-            });
-
-            const accessCode = orderId.substring(0, 6).toUpperCase();
-            await recordAudit(currentUser.uid, 'PLACE_ORDER', `Order placed: ${name} (Total: RM ${total.toFixed(2)}) for ${activeClientId || 'Retail'}`);
-
-            alert(`Order successful!\n\nAccess Code: ${accessCode}\nTotal: RM ${total.toFixed(2)} (incl. 6% SST)\n\nGive this code to others to track your order!`);
-            refreshAnalytics();
-        }
-    } catch (err) {
-        console.error(err);
-    }
 };
 
 window.handlePickup = async (orderId) => {
@@ -820,7 +876,26 @@ window.handleComplete = async (orderId) => {
     }
 };
 
+window.handleUndoPickup = async (orderId) => {
+    if (confirm("Revert pickup and return order to pending local pool?")) {
+        await updateOrderStatus(orderId, 'pending');
+        await recordAudit(currentUser.uid, 'UNDO_PICKUP', `Driver reverted pickup for order ${orderId.substring(0, 8)}`);
+        if (currentNavOrderId === orderId) {
+            currentNavOrderId = null;
+            clearRoute();
+        }
+    }
+};
+
+window.handleCancelOrder = async (orderId) => {
+    if (confirm("Cancel this order permanently?")) {
+        await cancelOrder(orderId);
+        await recordAudit(currentUser.uid, 'CANCEL_ORDER', `Order ${orderId.substring(0, 8)} was cancelled.`);
+    }
+};
+
 window.handleFocusOrder = (id) => focusMarker(id);
+
 window.handleStockUpdate = async (id, btn) => {
     const qty = parseInt(document.getElementById(`qty-${id}`).value);
     if (!isNaN(qty) && qty >= 0) {
@@ -843,22 +918,27 @@ window.handleDeleteItem = async (id) => {
     }
 };
 
-window.handleUndoPickup = async (orderId) => {
-    if (confirm("Revert pickup and return order to pending local pool?")) {
-        await updateOrderStatus(orderId, 'pending');
-        await recordAudit(currentUser.uid, 'UNDO_PICKUP', `Driver reverted pickup for order ${orderId.substring(0, 8)}`);
-        if (currentNavOrderId === orderId) {
-            currentNavOrderId = null;
-            clearRoute();
-        }
-    }
-};
+window.refreshAnalytics = () => {
+    let totalRevenue = 0;
+    let sstPool = 0;
+    let commission = 0;
 
-window.handleCancelOrder = async (orderId) => {
-    if (confirm("Cancel this order permanently?")) {
-        await cancelOrder(orderId);
-        await recordAudit(currentUser.uid, 'CANCEL_ORDER', `Order ${orderId.substring(0, 8)} was cancelled.`);
-    }
+    activeOrders.forEach(o => {
+        if (o.status === 'delivered') {
+            const total = parseFloat(o.grandTotal || o.total || 0);
+            totalRevenue += total;
+            sstPool += parseFloat(o.tax || 0);
+            commission += 5.00;
+        }
+    });
+
+    const revEl = document.getElementById('stats-revenue');
+    const sstEl = document.getElementById('stats-sst');
+    const comEl = document.getElementById('stats-commission');
+
+    if (revEl) revEl.innerText = `RM ${totalRevenue.toFixed(2)}`;
+    if (sstEl) sstEl.innerText = `RM ${sstPool.toFixed(2)}`;
+    if (comEl) comEl.innerText = `RM ${commission.toFixed(2)}`;
 };
 
 window.showRoleSelection = () => showScreen('roleSelect');
