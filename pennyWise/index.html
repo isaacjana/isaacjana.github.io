@@ -106,6 +106,23 @@
             </div>
 
             <div class="text-center">
+                <div class="flex items-center justify-center gap-4 mb-4">
+                    <button id="prev-month"
+                        class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <div class="text-center">
+                        <p id="current-period-label"
+                            class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300 mb-0.5">January 2026
+                        </p>
+                        <p class="text-[8px] text-white/40 uppercase font-black tracking-widest">Budget Period</p>
+                    </div>
+                    <button id="next-month"
+                        class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+
                 <p class="text-jungle-200 text-[10px] font-bold uppercase tracking-[0.3em] mb-3 opacity-60">Baki
                     Tersedia</p>
                 <div class="flex items-center justify-center gap-3">
@@ -128,7 +145,53 @@
 
         <!-- Tab Switcher (Optional) - Using a simple stacked scroll for now -->
 
-        <!-- Section 1: Gross Salary & Net Income -->
+        <!-- Section 1.5: Financial Health Score (NEW) -->
+        <section
+            class="glass-card rounded-3xl p-6 overflow-hidden relative border-none bg-gradient-to-br from-white to-jungle-50">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-jungle-100 rounded-full opacity-30"></div>
+            <div class="flex justify-between items-center relative z-10">
+                <div class="space-y-1">
+                    <p class="text-[10px] font-bold text-jungle-600 uppercase tracking-widest">Savings Health</p>
+                    <h3 id="health-score-text" class="text-2xl font-black text-gray-800">Steady Gidup!</h3>
+                    <p class="text-[10px] text-gray-400">Your budget is looking healthy.</p>
+                </div>
+                <div class="relative w-16 h-16 flex items-center justify-center">
+                    <svg class="w-full h-full transform -rotate-90">
+                        <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="6" fill="transparent"
+                            class="text-gray-100"></circle>
+                        <circle id="health-score-circle" cx="32" cy="32" r="28" stroke="currentColor" stroke-width="6"
+                            fill="transparent" stroke-dasharray="176" stroke-dashoffset="176"
+                            class="text-emerald-500 transition-all duration-1000"></circle>
+                    </svg>
+                    <span id="health-score-number" class="absolute text-xs font-bold text-gray-700">0%</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Existing Section 1: Gross Salary (Already there, but let's wrap it for consistency) -->
+
+        <!-- Section 2.5: Savings Goals (Tabung) - NEW -->
+        <section class="glass-card rounded-3xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="font-bold text-gray-800">Tabung Saya</h3>
+                    <p class="text-xs text-gray-400">Savings Goals</p>
+                </div>
+                <button id="btn-add-goal"
+                    class="w-8 h-8 bg-jungle-100 text-jungle-900 rounded-xl flex items-center justify-center hover:bg-jungle-200 transition-colors">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                </button>
+            </div>
+
+            <div id="goals-list" class="space-y-4">
+                <!-- Goals will be rendered here -->
+                <div class="text-center py-4 border-2 border-dashed border-gray-100 rounded-2xl">
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">No goals set yet</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Expense Progress (Existing) -->
         <section class="glass-card rounded-3xl p-6">
             <div class="flex items-center gap-3 mb-4">
                 <div
@@ -309,19 +372,43 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Category</label>
-                    <div class="grid grid-cols-2 gap-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Category & Type</label>
+                    <div class="grid grid-cols-3 gap-2">
                         <button type="button"
-                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
-                            data-cat="Needs">
+                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50 focus:border-jungle-500"
+                            data-cat="Needs" data-icon="fa-house-chimney">
                             <i class="fa-solid fa-house-chimney text-blue-500"></i>
-                            <span class="text-[10px] font-bold">NEEDS</span>
+                            <span class="text-[8px] font-bold">BILLS</span>
                         </button>
                         <button type="button"
                             class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
-                            data-cat="Wants">
+                            data-cat="Needs" data-icon="fa-cart-shopping">
+                            <i class="fa-solid fa-cart-shopping text-blue-500"></i>
+                            <span class="text-[8px] font-bold">DAPUR</span>
+                        </button>
+                        <button type="button"
+                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
+                            data-cat="Needs" data-icon="fa-car">
+                            <i class="fa-solid fa-car text-blue-500"></i>
+                            <span class="text-[8px] font-bold">PETROL</span>
+                        </button>
+                        <button type="button"
+                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
+                            data-cat="Wants" data-icon="fa-utensils">
                             <i class="fa-solid fa-utensils text-orange-500"></i>
-                            <span class="text-[10px] font-bold">WANTS</span>
+                            <span class="text-[8px] font-bold">MAKAN</span>
+                        </button>
+                        <button type="button"
+                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
+                            data-cat="Wants" data-icon="fa-bag-shopping">
+                            <i class="fa-solid fa-bag-shopping text-orange-500"></i>
+                            <span class="text-[8px] font-bold">SHOPPING</span>
+                        </button>
+                        <button type="button"
+                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
+                            data-cat="Wants" data-icon="fa-gamepad">
+                            <i class="fa-solid fa-gamepad text-orange-500"></i>
+                            <span class="text-[8px] font-bold">ENTERTAIN</span>
                         </button>
                     </div>
                 </div>

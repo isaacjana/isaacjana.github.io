@@ -17,6 +17,9 @@ const provider = new firebase.auth.GoogleAuthProvider();
 
 // --- STATE MANAGEMENT ---
 let currentUser = null;
+let currentMonth = new Date().getMonth(); // 0-11
+let currentYear = new Date().getFullYear();
+
 let state = {
     grossSalary: 0,
     netSalary: 0,
@@ -25,15 +28,24 @@ let state = {
         wants: 30,
         savings: 20
     },
-    expenses: []
+    expenses: [],
+    goals: []
 };
 
 let budgetChart = null;
 let selectedCategory = null;
+let selectedIcon = 'fa-tag';
 let unsubscribeBudget = null;
 let unsubscribeExpenses = null;
+let unsubscribeGoals = null;
 
 // --- UTILITIES ---
+const getPeriodKey = () => `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}`;
+
+const getPeriodLabel = () => {
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return `${months[currentMonth]} ${currentYear}`;
+};
 const formatRM = (amount) => {
     const val = parseFloat(amount) || 0;
     return new Intl.NumberFormat('en-MY', {
@@ -148,6 +160,76 @@ function updateUI() {
 
     // 6. Update Expense List (Last 5)
     renderExpenseList();
+
+    // 7. Update Goals
+    renderGoalsList();
+
+    // 8. Financial Health Score
+    updateHealthScore();
+}
+
+function updateHealthScore() {
+    // Score based on Savings Target vs Actual Spendable Baki
+    const totalSpent = state.expenses.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+    const savingsTarget = state.netSalary * (state.budget.savings / 100);
+    const actualSavings = state.netSalary - totalSpent;
+
+    let score = 0;
+    if (state.netSalary > 0) {
+        score = Math.min(Math.round((actualSavings / (savingsTarget || 1)) * 100), 100);
+    }
+    if (score < 0) score = 0;
+
+    $('#health-score-number').text(score + '%');
+
+    // Circular progress
+    const offset = 176 - (176 * score / 100);
+    $('#health-score-circle').css('stroke-dashoffset', offset);
+
+    // Dynamic Text
+    let statusText = "Steady Gidup!";
+    let statusMsg = "Your budget is looking healthy.";
+    if (score > 90) {
+        statusText = "Sangat Power!";
+        statusMsg = "You are a Sarawak Savings Pro!";
+    } else if (score < 50) {
+        statusText = "Kacak-Kacak Sik?";
+        statusMsg = "Careful, you're dipping into savings.";
+        $('#health-score-circle').removeClass('text-emerald-500').addClass('text-red-500');
+    } else {
+        $('#health-score-circle').removeClass('text-red-500').addClass('text-emerald-500');
+    }
+
+    $('#health-score-text').text(statusText);
+    $('#health-score-text').next('p').text(statusMsg);
+}
+
+function renderGoalsList() {
+    const list = $('#goals-list');
+    list.empty();
+
+    if (state.goals.length === 0) {
+        list.append('<div class="text-center py-4 border-2 border-dashed border-gray-100 rounded-2xl"><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">No goals set yet</p></div>');
+        return;
+    }
+
+    state.goals.forEach(goal => {
+        const perc = Math.min((goal.current / goal.target) * 100, 100);
+        list.append(`
+            <div class="space-y-2">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <p class="text-xs font-bold text-gray-800">${goal.name}</p>
+                        <p class="text-[10px] text-gray-400">Target: RM ${formatRM(goal.target)}</p>
+                    </div>
+                    <p class="text-[10px] font-bold text-jungle-700">RM ${formatRM(goal.current)}</p>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-jungle-500 h-full rounded-full transition-all duration-1000" style="width: ${perc}%"></div>
+                </div>
+            </div>
+        `);
+    });
 }
 
 function updateChart() {
@@ -199,15 +281,17 @@ function renderExpenseList() {
     const latest = [...state.expenses].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
 
     latest.forEach(exp => {
-        const icon = exp.category === 'Needs' ? 'fa-house-chimney text-blue-500' : 'fa-utensils text-orange-500';
+        const icon = exp.icon || (exp.category === 'Needs' ? 'fa-house-chimney' : 'fa-utensils');
+        const color = exp.category === 'Needs' ? 'text-blue-500' : 'text-orange-500';
+
         list.append(`
             <div class="flex items-center justify-between p-3 bg-white border border-gray-50 rounded-2xl shadow-sm">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center">
-                        <i class="fa-solid ${icon}"></i>
+                        <i class="fa-solid ${icon} ${color}"></i>
                     </div>
                     <div>
-                        <p class="font-bold text-gray-800 text-sm">${exp.name}</p>
+                        <p class="font-bold text-gray-800 text-sm capitalize">${exp.name}</p>
                         <p class="text-[10px] text-gray-400 capitalize">${new Date(exp.timestamp).toLocaleDateString()} • ${exp.category}</p>
                     </div>
                 </div>
@@ -221,14 +305,18 @@ function renderExpenseList() {
 function initDataSync() {
     if (!currentUser) return;
 
+    const period = getPeriodKey();
+    $('#current-period-label').text(getPeriodLabel());
+
     // Unsubscribe from previous listeners if any
     if (unsubscribeBudget) unsubscribeBudget();
     if (unsubscribeExpenses) unsubscribeExpenses();
+    if (unsubscribeGoals) unsubscribeGoals();
 
     const userDocRef = db.collection('users').doc(currentUser.uid);
 
-    // Listen to Budget Settings (Specific to User)
-    unsubscribeBudget = userDocRef.collection('settings').doc('currentMonth').onSnapshot((doc) => {
+    // Listen to Budget Settings (Specific to User and Period)
+    unsubscribeBudget = userDocRef.collection('settings').doc(period).onSnapshot((doc) => {
         if (doc.exists) {
             const data = doc.data();
             state.grossSalary = data.grossSalary || 0;
@@ -243,19 +331,32 @@ function initDataSync() {
             updateLabels();
             updateUI();
         } else {
-            // Initial setup for new user
-            userDocRef.collection('settings').doc('currentMonth').set({
-                grossSalary: 0,
-                budget: { needs: 50, wants: 30, savings: 20 }
+            // Initial setup for new month - fallback to last known or 50/30/20
+            userDocRef.collection('settings').doc(period).set({
+                grossSalary: state.grossSalary || 0,
+                budget: state.budget || { needs: 50, wants: 30, savings: 20 }
             });
         }
     });
 
-    // Listen to Expenses (Specific to User)
-    unsubscribeExpenses = userDocRef.collection('expenses').orderBy('timestamp', 'desc').limit(20).onSnapshot((snapshot) => {
-        state.expenses = [];
+    // Listen to Expenses (Specific to Period)
+    unsubscribeExpenses = userDocRef.collection('expenses')
+        .where('period', '==', period)
+        .orderBy('timestamp', 'desc')
+        .limit(20)
+        .onSnapshot((snapshot) => {
+            state.expenses = [];
+            snapshot.forEach(doc => {
+                state.expenses.push({ id: doc.id, ...doc.data() });
+            });
+            updateUI();
+        });
+
+    // Listen to Goals (Goals are persistent across months)
+    unsubscribeGoals = userDocRef.collection('goals').orderBy('timestamp', 'asc').onSnapshot((snapshot) => {
+        state.goals = [];
         snapshot.forEach(doc => {
-            state.expenses.push({ id: doc.id, ...doc.data() });
+            state.goals.push({ id: doc.id, ...doc.data() });
         });
         updateUI();
     });
@@ -263,10 +364,11 @@ function initDataSync() {
 
 function updateBudgetFirestore() {
     if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).collection('settings').doc('currentMonth').update({
+    const period = getPeriodKey();
+    db.collection('users').doc(currentUser.uid).collection('settings').doc(period).set({
         grossSalary: state.grossSalary,
         budget: state.budget
-    });
+    }, { merge: true });
 }
 
 function updateLabels() {
@@ -314,6 +416,27 @@ $(document).ready(function () {
 
     $('#btn-logout').on('click', () => {
         auth.signOut();
+    });
+
+    // Month Navigation
+    $('#prev-month').on('click', () => {
+        if (currentMonth === 0) {
+            currentMonth = 11;
+            currentYear--;
+        } else {
+            currentMonth--;
+        }
+        initDataSync();
+    });
+
+    $('#next-month').on('click', () => {
+        if (currentMonth === 11) {
+            currentMonth = 0;
+            currentYear++;
+        } else {
+            currentMonth++;
+        }
+        initDataSync();
     });
 
     // Gross Salary Input
@@ -393,7 +516,32 @@ $(document).ready(function () {
         $('.cat-btn').removeClass('border-jungle-500 bg-jungle-50 text-jungle-700').addClass('border-gray-100');
         $(this).removeClass('border-gray-100').addClass('border-jungle-500 bg-jungle-50 text-jungle-700');
         selectedCategory = $(this).data('cat');
+        selectedIcon = $(this).data('icon');
         checkSaveStatus();
+    });
+
+    // Add Goal
+    $('#btn-add-goal').on('click', async function () {
+        if (!currentUser) return;
+        const name = prompt("Matlamat Tabung (e.g. Dream Phone, Trip Mulu):");
+        if (!name) return;
+        const targetStr = prompt("Berapa Target RM?");
+        const target = parseFloat(targetStr);
+        if (isNaN(target) || target <= 0) {
+            alert("Sila masukkan jumlah yang sah.");
+            return;
+        }
+
+        try {
+            await db.collection('users').doc(currentUser.uid).collection('goals').add({
+                name,
+                target,
+                current: 0,
+                timestamp: Date.now()
+            });
+        } catch (e) {
+            console.error(e);
+        }
     });
 
     // Save Expense
@@ -418,14 +566,19 @@ $(document).ready(function () {
                 name,
                 amount,
                 category: selectedCategory,
+                icon: selectedIcon,
+                period: getPeriodKey(),
                 timestamp: Date.now()
             });
+
+            // Check if it's a "Savings" type (optional logic for auto-funding goals could be here)
 
             // Reset & Close
             $('#exp-amount').val('');
             $('#exp-name').val('');
             $('.cat-btn').removeClass('border-jungle-500 bg-jungle-50 text-jungle-700').addClass('border-gray-100');
             selectedCategory = null;
+            selectedIcon = 'fa-tag';
             closeModal();
         } catch (error) {
             console.error("Error adding expense: ", error);
