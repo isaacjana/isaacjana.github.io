@@ -71,6 +71,31 @@
             right: 0;
             z-index: 60;
         }
+
+        /* Mobile Job Cart Slider */
+        @media (max-width: 1023px) {
+            #job-cart-container {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 70;
+                transform: translateY(100%);
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 2.5rem 2.5rem 0 0;
+                max-height: 80vh;
+                box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+            }
+
+            #job-cart-container.active {
+                transform: translateY(0);
+            }
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 
@@ -163,10 +188,10 @@
                 <p class="text-slate-400 mt-4 font-medium max-w-lg mx-auto leading-relaxed">Select your operational role
                     to enter the Ocean live seafood logistics platform.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
                 <!-- Client Role -->
                 <button data-role="client"
-                    class="role-selector group relative overflow-hidden text-left p-10 bg-slate-800 rounded-[3rem] border-2 border-slate-700 hover:border-primary transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
+                    class="role-selector group relative overflow-hidden text-left p-6 lg:p-10 bg-slate-800 rounded-[2.5rem] lg:rounded-[3rem] border-2 border-slate-700 hover:border-primary transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
                     <div
                         class="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32 text-white" fill="none"
@@ -175,20 +200,22 @@
                                 d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
                     </div>
-                    <div class="bg-blue-500 text-white p-5 rounded-3xl w-fit mb-8 shadow-xl shadow-blue-500/30">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
+                    <div
+                        class="bg-primary text-white p-4 lg:p-5 rounded-2xl lg:rounded-3xl w-fit mb-6 lg:mb-8 shadow-xl shadow-primary/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 lg:h-8 w-6 lg:w-8" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
                     </div>
-                    <h3 class="text-3xl font-black text-white mb-3">Consumer</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Browse the freshest catch direct from Sarawakian
-                        shores and order live to your door.</p>
+                    <h3 class="text-2xl lg:text-3xl font-black text-white mb-3">Shopping</h3>
+                    <p class="text-slate-400 text-xs lg:text-sm leading-relaxed">Source the freshest Sarawakian catch,
+                        manage your
+                        order cart, and download LHDN e-invoices.</p>
                 </button>
-                <!-- Supplier Role -->
+                <!-- Supplier/Inventory Role -->
                 <button data-role="supplier"
-                    class="role-selector group relative overflow-hidden text-left p-10 bg-slate-800 rounded-[3rem] border-2 border-slate-700 hover:border-amber-500 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-amber-500/20">
+                    class="role-selector group relative overflow-hidden text-left p-6 lg:p-10 bg-slate-800 rounded-[2.5rem] lg:rounded-[3rem] border-2 border-slate-700 hover:border-amber-500 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-amber-500/20">
                     <div
                         class="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32 text-white" fill="none"
@@ -197,20 +224,22 @@
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4a1 1 0 011-1h2a1 1 0 011 1v3M12 7h.01" />
                         </svg>
                     </div>
-                    <div class="bg-amber-500 text-white p-5 rounded-3xl w-fit mb-8 shadow-xl shadow-amber-500/30">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
+                    <div
+                        class="bg-amber-500 text-white p-4 lg:p-5 rounded-2xl lg:rounded-3xl w-fit mb-6 lg:mb-8 shadow-xl shadow-amber-500/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 lg:h-8 w-6 lg:w-8" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4a1 1 0 011-1h2a1 1 0 011 1v3M12 7h.01" />
                         </svg>
                     </div>
-                    <h3 class="text-3xl font-black text-white mb-3">Inventory</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Manage store stock levels, monitor low-inventory
+                    <h3 class="text-2xl lg:text-3xl font-black text-white mb-3">Inventory</h3>
+                    <p class="text-slate-400 text-xs lg:text-sm leading-relaxed">Manage store stock levels, monitor
+                        low-inventory
                         alerts, and finalize e-invoices.</p>
                 </button>
                 <!-- Driver Role -->
                 <button data-role="driver"
-                    class="role-selector group relative overflow-hidden text-left p-10 bg-slate-800 rounded-[3rem] border-2 border-slate-700 hover:border-emerald-500 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-emerald-500/20">
+                    class="role-selector group relative overflow-hidden text-left p-6 lg:p-10 bg-slate-800 rounded-[2.5rem] lg:rounded-[3rem] border-2 border-slate-700 hover:border-emerald-500 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-emerald-500/20 md:col-span-2 lg:col-span-1">
                     <div
                         class="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32 text-white" fill="none"
@@ -219,15 +248,17 @@
                                 d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
-                    <div class="bg-emerald-500 text-white p-5 rounded-3xl w-fit mb-8 shadow-xl shadow-emerald-500/30">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
+                    <div
+                        class="bg-emerald-500 text-white p-4 lg:p-5 rounded-2xl lg:rounded-3xl w-fit mb-6 lg:mb-8 shadow-xl shadow-emerald-500/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 lg:h-8 w-6 lg:w-8" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
-                    <h3 class="text-3xl font-black text-white mb-3">Driver</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Fulfill logistics requests, track routes live, and
+                    <h3 class="text-2xl lg:text-3xl font-black text-white mb-3">Driver</h3>
+                    <p class="text-slate-400 text-xs lg:text-sm leading-relaxed">Fulfill logistics requests, track
+                        routes live, and
                         earn with every successful delivery in Kuching.</p>
                 </button>
             </div>
@@ -366,22 +397,22 @@
             <main class="flex-1 overflow-y-auto px-4 py-6 md:py-8 pb-32 md:pb-8 bg-slate-50">
                 <!-- Client View -->
                 <div
-                    class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
-                    <div>
+                    class="mb-8 flex flex-col xl:flex-row justify-between items-start xl:items-center space-y-6 xl:space-y-0">
+                    <div class="w-full xl:w-auto">
                         <div class="flex items-center space-x-3 mb-2">
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tight">Shopping</h1>
+                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Shopping</h1>
                             <div id="active-node-badge"
                                 class="hidden px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-200">
                                 Independent Retail</div>
                         </div>
-                        <p class="text-slate-500 font-medium">Sourcing the freshest Sarawakian catch directly to you.
-                        </p>
+                        <p class="text-slate-500 font-medium text-sm lg:text-base">Sourcing the freshest Sarawakian
+                            catch directly to you.</p>
                     </div>
-                    <div class="flex items-center space-x-4 w-full md:w-auto">
+                    <div class="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
                         <!-- Store Selector -->
-                        <div class="relative group">
+                        <div class="relative group w-full sm:w-64">
                             <select id="store-selector" onchange="handleStoreSwitch(this.value)"
-                                class="appearance-none bg-white pl-10 pr-12 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-700 focus:border-primary transition-all cursor-pointer outline-none">
+                                class="w-full appearance-none bg-white pl-10 pr-12 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-700 focus:border-primary transition-all cursor-pointer outline-none">
                                 <option value="retail">🌊 Main Ocean Hub</option>
                                 <!-- Options populated from Registry -->
                             </select>
@@ -394,7 +425,7 @@
                             </svg>
                         </div>
                         <div id="client-setup-summary"
-                            class="bg-white px-6 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-600 cursor-pointer hover:border-primary transition-all hover:shadow-lg flex items-center space-x-3">
+                            class="w-full sm:w-auto bg-white px-6 py-4 rounded-2xl border-2 border-slate-100 shadow-sm text-sm font-black text-slate-600 cursor-pointer hover:border-primary transition-all hover:shadow-lg flex items-center justify-center space-x-3">
                             <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
@@ -411,21 +442,34 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     <div class="lg:col-span-3">
-                        <div id="client-stock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div id="client-stock-grid"
+                            class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                         </div>
                     </div>
                     <div class="space-y-6">
-                        <!-- Job Cart -->
-                        <div class="bg-white rounded-[2.5rem] p-8 border shadow-xl shadow-slate-200/50">
+                        <!-- Job Cart (Desktop Inline / Mobile Bottom Fixed) -->
+                        <div id="job-cart-container"
+                            class="bg-white rounded-[2.5rem] p-6 lg:p-8 border shadow-xl shadow-slate-200/50">
                             <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Job Cart</h3>
-                                <span id="cart-count"
-                                    class="bg-primary text-white text-[10px] font-black px-2 py-1 rounded-md">0</span>
+                                <div class="flex items-center space-x-2">
+                                    <h3 class="text-xs lg:text-sm font-black uppercase tracking-[0.3em] text-slate-400">
+                                        Job Cart</h3>
+                                    <span id="cart-count"
+                                        class="bg-primary text-white text-[10px] font-black px-2 py-1 rounded-md">0</span>
+                                </div>
+                                <!-- Mobile Close btn -->
+                                <button class="lg:hidden p-2 text-slate-400" onclick="toggleMobileCart()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
                             </div>
-                            <div id="cart-items" class="space-y-4 mb-6 max-h-[300px] overflow-y-auto">
+                            <div id="cart-items" class="space-y-4 mb-6 max-h-[250px] lg:max-h-[300px] overflow-y-auto">
                                 <p class="text-[10px] text-slate-400 italic text-center py-4">Your cart is empty.</p>
                             </div>
-                            <div class="pt-6 border-t border-dashed space-y-2">
+                            <div class="pt-6 border-t border-dashed space-y-3">
                                 <div class="flex justify-between text-[10px] font-black text-slate-400">
                                     <span>SUBTOTAL</span>
                                     <span id="cart-subtotal">RM 0.00</span>
@@ -434,9 +478,10 @@
                                     <span>SST (6%)</span>
                                     <span id="cart-sst">RM 0.00</span>
                                 </div>
-                                <div class="flex justify-between text-base font-black text-slate-800 pt-2">
+                                <div
+                                    class="flex justify-between text-base lg:text-lg font-black text-slate-800 pt-2 border-t">
                                     <span>GRAND TOTAL</span>
-                                    <span id="cart-total">RM 0.00</span>
+                                    <span id="cart-total" class="text-primary">RM 0.00</span>
                                 </div>
                             </div>
                             <button onclick="handleCheckout()" id="btn-checkout" disabled
@@ -444,6 +489,20 @@
                                 Finalize Job
                             </button>
                         </div>
+
+                        <!-- Mobile Floating Cart Button -->
+                        <button onclick="toggleMobileCart()" id="mobile-cart-fab"
+                            class="lg:hidden fixed bottom-24 right-6 z-[65] bg-slate-900 text-white p-5 rounded-full shadow-2xl shadow-slate-900/40 border border-slate-700 active:scale-95 transition-all">
+                            <div class="relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                </svg>
+                                <span id="cart-count-fab"
+                                    class="absolute -top-2 -right-2 bg-primary text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border-2 border-slate-900">0</span>
+                            </div>
+                        </button>
 
                         <div class="bg-slate-800 rounded-[2rem] p-6 text-white shadow-2xl shadow-slate-800/20">
                             <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">My Dashboard
@@ -491,20 +550,22 @@
                     </div>
 
                     <div class="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">
-                                <tr>
-                                    Inventory</th>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">
-                                        Update</th>
-                                    <th
-                                        class="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-400">
-                                        Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="supplier-stock-list" class="divide-y divide-slate-100"></tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="w-full text-left">
+                                <thead
+                                    class="bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">
+                                    <tr>
+                                        <th class="px-8 py-6">Product Entity</th>
+                                        <th class="px-8 py-6">Current Holding</th>
+                                        <th class="px-8 py-6">Dynamic Adjustment</th>
+                                        <th class="px-8 py-6 text-right">Operations</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="supplier-stock-list" class="divide-y divide-slate-50">
+                                    <!-- Stock rows -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -705,19 +766,23 @@
                                                     Node</button>
                                             </div>
                                         </form>
-                                        <div class="overflow-hidden rounded-[2.5rem] border-2 border-slate-50">
-                                            <table class="w-full text-sm">
-                                                <thead
-                                                    class="bg-slate-50 text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]">
-                                                    <tr>
-                                                        <th class="px-10 py-6 text-left">Partner Entity</th>
-                                                        <th class="px-10 py-6 text-left">Location</th>
-                                                        <th class="px-10 py-6 text-right">Operational Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="registry-client-list" class="divide-y divide-slate-50">
-                                                </tbody>
-                                            </table>
+                                        <div
+                                            class="bg-white rounded-[2.5rem] border shadow-xl shadow-slate-200/50 overflow-hidden">
+                                            <div class="table-responsive">
+                                                <table class="w-full text-left">
+                                                    <thead
+                                                        class="bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">
+                                                        <tr>
+                                                            <th class="px-10 py-6">Entity Name</th>
+                                                            <th class="px-10 py-6">Hub Location</th>
+                                                            <th class="px-10 py-6 text-right">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="registry-client-list" class="divide-y divide-slate-50">
+                                                        <!-- Clients -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -914,7 +979,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -930,11 +995,11 @@
             class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
             <div
                 class="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                <div class="bg-slate-900 p-10 text-white flex justify-between items-start">
+                <div class="bg-slate-900 p-6 lg:p-10 text-white flex justify-between items-start">
                     <div>
                         <div class="flex items-center space-x-2 mb-4">
-                            <svg viewBox="0 0 100 100" class="h-8 w-8 text-primary" fill="none" stroke="currentColor"
-                                stroke-width="2">
+                            <svg viewBox="0 0 100 100" class="h-6 lg:h-8 w-6 lg:w-8 text-primary" fill="none"
+                                stroke="currentColor" stroke-width="2">
                                 <path
                                     d="M50 90 C25 90 10 70 10 50 C10 30 25 10 50 10 C75 10 90 30 90 50 C90 70 75 90 50 90 Z"
                                     stroke-width="8" stroke-linecap="round" />
@@ -942,22 +1007,25 @@
                                 <path d="M70 20 L85 10 Q90 20 85 30" stroke-width="4" stroke-linecap="round" />
                                 <circle cx="70" cy="42" r="3" fill="currentColor" />
                             </svg>
-                            <span class="text-2xl font-black uppercase tracking-[-0.05em]">cean Ecosystem</span>
+                            <span class="text-xl lg:text-2xl font-black uppercase tracking-[-0.05em]">cean
+                                Ecosystem</span>
                         </div>
-                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Digital E-Invoice</p>
-                        <h2 id="modal-invoice-no" class="text-3xl font-black text-white">INV-2026-XXXXX</h2>
+                        <p class="text-[8px] lg:text-[10px] font-black text-slate-500 uppercase tracking-widest">Digital
+                            E-Invoice</p>
+                        <h2 id="modal-invoice-no" class="text-xl lg:text-3xl font-black text-white">INV-2026-XXXXX</h2>
                     </div>
                     <button onclick="closeInvoice()"
-                        class="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
+                        class="p-2 lg:p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 lg:h-6 w-5 lg:w-6" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
-                <div class="p-10">
-                    <div class="grid grid-cols-2 gap-10 mb-10 pb-10 border-b border-dashed">
+                <div class="p-6 lg:p-10">
+                    <div
+                        class="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-10 mb-8 lg:mb-10 pb-8 lg:pb-10 border-b border-dashed">
                         <div>
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Service
                                 Provider</p>
@@ -1004,7 +1072,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-12 flex space-x-4">
+                    <div class="mt-8 lg:mt-12 flex flex-col sm:flex-row gap-4">
                         <button onclick="window.print()"
                             class="flex-1 py-4 bg-slate-100 text-slate-800 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center space-x-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"

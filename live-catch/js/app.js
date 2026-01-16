@@ -1,7 +1,7 @@
 import {
     onAuth, loginWithGoogle, logout, getUserProfile, updateUserProfile,
     subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
-    placeOrder, subscribeToOrders, updateOrderStatus, updateOrderDriverLocation,
+    subscribeToOrders, updateOrderStatus, updateOrderDriverLocation,
     recordAudit, addWholesaleClient, subscribeToClients, subscribeToAuditLog,
     subscribeToClientStock, createClientStockItem, cancelOrder,
     createJob, subscribeToJobs
@@ -20,6 +20,7 @@ let activeOrders = [];
 let driverLocation = null;
 let watchId = null;
 let stockData = {};
+let currentRole = null;
 let clientStockUnsubscribe = null;
 let cart = []; // [{id, name, price, qty, total, unit}]
 
@@ -456,8 +457,25 @@ function renderCart() {
     document.getElementById('cart-subtotal').innerText = `RM ${subtotal.toFixed(2)}`;
     document.getElementById('cart-sst').innerText = `RM ${sst.toFixed(2)}`;
     document.getElementById('cart-total').innerText = `RM ${total.toFixed(2)}`;
-    document.getElementById('btn-checkout').disabled = cart.length === 0;
+
+    const checkoutBtn = document.getElementById('btn-checkout');
+    if (checkoutBtn) checkoutBtn.disabled = cart.length === 0;
+
+    // Mobile FAB Sync
+    const fabBadge = document.getElementById('cart-count-fab');
+    if (fabBadge) fabBadge.innerText = cart.length;
+
+    const fab = document.getElementById('mobile-cart-fab');
+    if (fab) {
+        if (cart.length > 0) fab.classList.remove('hidden');
+        else fab.classList.add('hidden');
+    }
 }
+
+window.toggleMobileCart = () => {
+    const cartEl = document.getElementById('job-cart-container');
+    if (cartEl) cartEl.classList.toggle('active');
+};
 
 window.handleCheckout = async () => {
     const deliveryAddress = activeClientAddress || (currentProfile ? currentProfile.address : null);
