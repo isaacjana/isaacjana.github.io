@@ -124,28 +124,28 @@ export async function initializeDefaultStock() {
                     quantity: 25,
                     price: 45,
                     unit: 'kg',
-                    image: 'https://images.unsplash.com/photo-1559737558-2f57377f6b98?q=80&w=600&auto=format&fit=crop'
+                    image: 'https://images.pexels.com/photos/19598204/pexels-photo-19598204.jpeg?auto=compress&cs=tinysrgb&w=800'
                 },
                 'mud_crab': {
                     name: 'Sarawak Mud Crab',
                     quantity: 12,
                     price: 85,
                     unit: 'kg',
-                    image: 'https://images.unsplash.com/photo-1551460395-829d6d76bb87?q=80&w=600&auto=format&fit=crop'
+                    image: 'https://images.pexels.com/photos/19602052/pexels-photo-19602052.jpeg?auto=compress&cs=tinysrgb&w=800'
                 },
                 'seabass': {
                     name: 'Live Seabass',
                     quantity: 8,
                     price: 35,
                     unit: 'pcs',
-                    image: 'https://images.unsplash.com/photo-1534123206718-7389a9f0a2ba?q=80&w=600&auto=format&fit=crop'
+                    image: 'https://images.pexels.com/photos/9246197/pexels-photo-9246197.jpeg?auto=compress&cs=tinysrgb&w=800'
                 },
                 'lobster': {
                     name: 'Rock Lobster',
                     quantity: 5,
                     price: 180,
                     unit: 'kg',
-                    image: 'https://images.unsplash.com/photo-1559742811-82410b49c038?q=80&w=600&auto=format&fit=crop'
+                    image: 'https://images.pexels.com/photos/3333523/pexels-photo-3333523.jpeg?auto=compress&cs=tinysrgb&w=800'
                 }
             };
             set(stockRef, defaults);

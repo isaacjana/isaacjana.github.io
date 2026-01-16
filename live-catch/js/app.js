@@ -153,12 +153,12 @@ async function init() {
     // 5. Data Subscriptions
     subscribeToStock((data) => {
         stockData = data || {};
-        renderAllViews();
+        renderAllViews(currentRole); // Only render relevant view on stock change
     });
 
     subscribeToOrders((orders) => {
         activeOrders = orders;
-        renderAllViews(); // Render all views to update active order lists
+        renderAllViews(currentRole); // Only render relevant view on order change
         updateOrderMarkers(orders);
     });
 
@@ -318,22 +318,19 @@ function renderNodeStatus() {
  */
 
 function renderAllViews(currentView = null) {
-    if (!currentProfile) return; // Wait for profile before rendering data-dependent views
+    if (!currentProfile) return;
 
-    // Role-specific renders
-    if (!currentView || currentView === 'client') {
+    // Targeted rendering: only update what's visible to prevent image flickering/aborts
+    const target = currentView || currentRole || 'client';
+
+    if (target === 'client') {
         renderClientView();
         renderClientOrders();
-    }
-    if (!currentView || currentView === 'supplier') {
+    } else if (target === 'supplier') {
         renderSupplierView();
-    }
-    if (!currentView || currentView === 'driver') {
+    } else if (target === 'driver') {
         renderDriverView();
-    }
-
-    // Always render global catalogue if in setup
-    if (!currentView || currentView === 'setup') {
+    } else if (target === 'setup') {
         renderCatalogueList();
     }
 }
@@ -349,7 +346,7 @@ function renderClientView() {
         card.className = `role-card bg-white p-4 rounded-[2rem] border shadow-sm transition-all group ${isSoldOut ? 'opacity-60' : ''}`;
         card.innerHTML = `
             <div class="relative h-48 rounded-[1.5rem] overflow-hidden bg-slate-100 mb-4">
-                <img src="${item.image}" class="w-full h-full object-cover transition-transform group-hover:scale-110" onerror="this.src='https://placehold.co/600x400?text=${encodeURIComponent(item.name)}'">
+                <img src="${item.image}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-110" onerror="this.src='https://placehold.co/600x400/f8fafc/64748b?text=${encodeURIComponent(item.name)}'">
                 ${isSoldOut ? '<div class="absolute inset-0 bg-red-500/10 backdrop-blur-[1px] flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-1 rounded-full text-xs font-black">OUT OF STOCK</span></div>' : ''}
                 ${activeClientId && clientStockData[id] ? '<div class="absolute top-3 left-3 bg-indigo-600 text-[8px] font-black text-white px-2 py-1 rounded-md uppercase">B2B Exclusive</div>' : ''}
             </div>
@@ -413,7 +410,7 @@ function renderSupplierView() {
         tr.innerHTML = `
             <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
-                    <img src="${item.image}" class="w-12 h-12 rounded-xl object-cover" onerror="this.src='https://placehold.co/100x100?text=IMG'">
+                    <img src="${item.image}" loading="lazy" class="w-12 h-12 rounded-xl object-cover" onerror="this.src='https://placehold.co/100x100/f8fafc/64748b?text=${encodeURIComponent(item.name[0])}'">
                     <span class="font-bold text-slate-700">${item.name}</span>
                 </div>
             </td>
@@ -483,7 +480,7 @@ function renderCatalogueList() {
         div.className = "flex items-center justify-between p-3 bg-slate-50 rounded-xl group";
         div.innerHTML = `
             <div class="flex items-center space-x-3">
-                <img src="${item.image}" class="w-8 h-8 rounded-lg object-cover">
+                <img src="${item.image}" loading="lazy" class="w-8 h-8 rounded-lg object-cover" onerror="this.src='https://placehold.co/50x50/f8fafc/64748b?text=${encodeURIComponent(item.name[0])}'">
                 <span class="text-sm font-bold text-slate-600">${item.name}</span>
             </div>
             <button onclick="handleDeleteItem('${id}')" class="text-slate-300 hover:text-red-500 transition-colors">
