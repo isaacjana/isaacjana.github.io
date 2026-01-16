@@ -4,7 +4,7 @@ const dbAPI = {
     // --- Users ---
     getUserProfile: async (uid) => {
         const doc = await db.collection('users').doc(uid).get();
-        return doc.exists ? doc.data() : null;
+        return doc.exists ? { uid: doc.id, ...doc.data() } : null;
     },
 
     // --- Products (Live Stock) ---
