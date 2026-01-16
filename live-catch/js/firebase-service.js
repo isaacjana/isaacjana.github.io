@@ -81,10 +81,32 @@ export function subscribeToStock(callback) {
  * @param {string} itemId - ID of the item
  * @param {number} quantity - New stock count
  */
-export async function updateStock(itemId, quantity) {
-    const itemRef = ref(db, `seafood_stock/${itemId}`);
+export async function updateStock(itemId, quantity, clientId = null) {
+    const path = clientId ? `client_stock/${clientId}/${itemId}` : `seafood_stock/${itemId}`;
+    const itemRef = ref(db, path);
     return update(itemRef, {
         quantity: parseInt(quantity),
+        lastUpdated: Date.now()
+    });
+}
+
+/**
+ * Subscribe to client-specific stock
+ */
+export function subscribeToClientStock(clientId, callback) {
+    if (!clientId) return callback({});
+    const stockRef = ref(db, `client_stock/${clientId}`);
+    return onValue(stockRef, (snapshot) => {
+        const data = snapshot.val();
+        callback(data || {});
+    });
+}
+
+export async function createClientStockItem(clientId, itemData) {
+    const id = itemData.name.toLowerCase().replace(/\s+/g, '_');
+    const itemRef = ref(db, `client_stock/${clientId}/${id}`);
+    return set(itemRef, {
+        ...itemData,
         lastUpdated: Date.now()
     });
 }
@@ -139,6 +161,11 @@ export async function initializeDefaultStock() {
 export async function updateOrderStatus(orderId, status) {
     const orderRef = doc(firestore, "orders", orderId);
     return setDoc(orderRef, { status }, { merge: true });
+}
+
+export async function cancelOrder(orderId) {
+    const orderRef = doc(firestore, "orders", orderId);
+    return setDoc(orderRef, { status: 'cancelled' }, { merge: true });
 }
 
 /**

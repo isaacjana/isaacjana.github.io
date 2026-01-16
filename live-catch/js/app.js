@@ -2,7 +2,8 @@ import {
     onAuth, loginWithGoogle, logout, getUserProfile, updateUserProfile,
     subscribeToStock, updateStock, initializeDefaultStock, createStockItem, deleteStockItem,
     placeOrder, subscribeToOrders, updateOrderStatus,
-    recordAudit, addWholesaleClient, subscribeToClients, subscribeToAuditLog
+    recordAudit, addWholesaleClient, subscribeToClients, subscribeToAuditLog,
+    subscribeToClientStock, createClientStockItem, cancelOrder
 } from './firebase-service.js';
 import { initMap, updateOrderMarkers, focusMarker, updateDriverLocation, drawRoute, clearRoute, refreshMap } from './map-service.js';
 
@@ -17,6 +18,9 @@ let activeOrders = [];
 let watchId = null;
 let driverLocation = null;
 let currentNavOrderId = null;
+let activeClientId = null;
+let clientStockData = {};
+let clientStockUnsubscribe = null;
 
 // --- DOM ELEMENTS ---
 const screens = {
@@ -159,12 +163,17 @@ function switchToRole(role) {
     showSection(role);
     labels.role.innerText = `${role.toUpperCase()} VIEW`;
 
-    // Update Desktop Nav Buttons
-    ['client', 'supplier', 'driver'].forEach(r => {
-        buttons[r].classList.toggle('bg-white', r === role);
-        buttons[r].classList.toggle('shadow-sm', r === role);
-        buttons[r].classList.toggle('text-primary', r === role);
-        buttons[r].classList.toggle('text-slate-500', r !== role);
+    // Update Sidebar Buttons
+    const sideBtnKeys = ['client', 'supplier', 'driver', 'analytics', 'setup'];
+    sideBtnKeys.forEach(key => {
+        const btn = document.getElementById(`side-btn-${key}`);
+        if (btn) {
+            const isActive = (key === role);
+            btn.classList.toggle('bg-slate-100', isActive);
+            btn.classList.toggle('text-slate-800', isActive);
+            btn.classList.toggle('text-slate-500', !isActive);
+            btn.classList.toggle('bg-transparent', !isActive);
+        }
     });
 
     // Update Mobile Nav Buttons
@@ -181,13 +190,7 @@ function switchToRole(role) {
             }
         }
     });
-    // Ensure mobile setup button is not highlighted when switching roles
-    if (buttons.m_setup) {
-        buttons.m_setup.classList.remove('text-indigo-600');
-        buttons.m_setup.classList.add('text-slate-400');
-    }
 
-    // Refresh Profile fields in setup
     populateSetupFields();
 }
 
@@ -196,33 +199,22 @@ function showSection(sectionKey) {
         views[k].classList.toggle('hidden', k !== sectionKey);
     });
 
-    // Special case for mobile setup button highlighting
-    if (sectionKey === 'setup') {
-        const mSetup = buttons['m_setup'];
-        if (mSetup) {
-            mSetup.classList.add('text-indigo-600');
-            mSetup.classList.remove('text-slate-400');
-            // Deactivate other mobile role buttons
-            ['m_client', 'm_supplier', 'm_driver'].forEach(k => {
-                buttons[k]?.classList.remove('text-indigo-600');
-                buttons[k]?.classList.add('text-slate-400');
-            });
+    // Highlight Side Button
+    const sideBtnKeys = ['client', 'supplier', 'driver', 'analytics', 'setup'];
+    sideBtnKeys.forEach(key => {
+        const btn = document.getElementById(`side-btn-${key}`);
+        if (btn) {
+            const isActive = (key === sectionKey);
+            btn.classList.toggle('bg-slate-100', isActive);
+            btn.classList.toggle('text-slate-800', isActive);
+            btn.classList.toggle('text-slate-500', !isActive);
+            btn.classList.toggle('bg-transparent', !isActive);
         }
-    } else {
-        // If not setup, ensure mobile setup button is not highlighted
-        if (buttons.m_setup) {
-            buttons.m_setup.classList.remove('text-indigo-600');
-            buttons.m_setup.classList.add('text-slate-400');
-        }
-    }
+    });
 
-    // Explicit map resize
     if (sectionKey === 'driver') {
-        // Use requestAnimationFrame for more robust map resizing, especially on mobile
         requestAnimationFrame(() => {
-            setTimeout(() => {
-                refreshMap();
-            }, 300);
+            setTimeout(() => refreshMap(), 300);
         });
         startLocationTracking();
     } else {
@@ -242,11 +234,10 @@ function renderAllViews() {
 
 function renderClientView() {
     containers.clientStock.innerHTML = '';
-    const addressLabel = document.getElementById('client-setup-summary');
-    addressLabel.innerText = currentProfile?.address ? `📍 ${currentProfile.address.substring(0, 20)}...` : '📍 Set Delivery Address';
-    addressLabel.onclick = () => showSection('setup');
+    // Use client specific stock if available, else primary
+    const displayStock = (activeClientId && Object.keys(clientStockData).length > 0) ? clientStockData : stockData;
 
-    Object.entries(stockData).forEach(([id, item]) => {
+    Object.entries(displayStock).forEach(([id, item]) => {
         const isSoldOut = item.quantity <= 0;
         const card = document.createElement('div');
         card.className = `role-card bg-white p-4 rounded-[2rem] border shadow-sm transition-all group ${isSoldOut ? 'opacity-60' : ''}`;
@@ -254,21 +245,22 @@ function renderClientView() {
             <div class="relative h-48 rounded-[1.5rem] overflow-hidden bg-slate-100 mb-4">
                 <img src="${item.image}" class="w-full h-full object-cover transition-transform group-hover:scale-110" onerror="this.src='https://placehold.co/600x400?text=${encodeURIComponent(item.name)}'">
                 ${isSoldOut ? '<div class="absolute inset-0 bg-red-500/10 backdrop-blur-[1px] flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-1 rounded-full text-xs font-black">OUT OF STOCK</span></div>' : ''}
+                ${activeClientId && clientStockData[id] ? '<div class="absolute top-3 left-3 bg-indigo-600 text-[8px] font-black text-white px-2 py-1 rounded-md uppercase">B2B Exclusive</div>' : ''}
             </div>
             <div class="px-2">
                 <div class="flex justify-between items-start mb-3">
-                    <h3 class="font-bold text-lg leading-tight">${item.name}</h3>
+                    <h3 class="font-bold text-lg leading-tight text-slate-800">${item.name}</h3>
                     <div class="text-right">
-                        <span class="text-primary font-black block leading-none">RM ${item.price}</span>
+                        <span class="text-primary font-black block leading-none text-xl">RM ${item.price}</span>
                         <span class="text-[9px] uppercase font-bold text-slate-400">per ${item.unit}</span>
                     </div>
                 </div>
                 <button 
                     onclick="handleOrder('${id}', '${item.name}')"
                     ${isSoldOut ? 'disabled' : ''}
-                    class="w-full py-3 rounded-2xl font-bold transition-all ${isSoldOut ? 'bg-slate-100 text-slate-400' : 'bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95'}"
+                    class="w-full py-4 rounded-2xl font-black transition-all ${isSoldOut ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-white shadow-xl shadow-slate-900/10 hover:bg-slate-900 active:scale-95'}"
                 >
-                    Order Now
+                    PLACE ORDER
                 </button>
             </div>
         `;
@@ -304,9 +296,10 @@ function renderSupplierView() {
 
 function renderDriverView() {
     containers.driverOrders.innerHTML = '';
-    activeOrders.forEach(order => {
+    activeOrders.filter(o => o.status !== 'cancelled').forEach(order => {
         const isPickedUp = order.status === 'picked_up';
-        const isNavigating = currentNavOrderId === order.id;
+        const isDelivered = order.status === 'delivered';
+        if (isDelivered) return;
 
         const div = document.createElement('div');
         div.className = `p-5 rounded-3xl border shadow-sm transition-all group ${isPickedUp ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}`;
@@ -326,19 +319,20 @@ function renderDriverView() {
                 <span>${order.address || 'Kuching Area'}</span>
             </div>
             
-            <div class="flex space-x-2">
+            <div class="grid grid-cols-2 gap-2">
                 ${!isPickedUp ? `
-                    <button onclick="handlePickup('${order.id}')" class="flex-1 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 shadow-md shadow-emerald-500/20 transition-all">
-                        PICKUP
-                    </button>
+                    <button onclick="handlePickup('${order.id}')" class="col-span-2 py-3 bg-slate-800 text-white rounded-xl text-xs font-black uppercase hover:shadow-lg transition-all">PICKUP</button>
+                    <button onclick="handleCancelOrder('${order.id}')" class="py-2 bg-rose-50 text-rose-500 rounded-xl text-[10px] font-bold">CANCEL</button>
+                    <button onclick="handleFocusOrder('${order.id}')" class="py-2 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-bold">LOCATE</button>
                 ` : `
-                    <button onclick="handleComplete('${order.id}')" class="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all">
-                        COMPLETE
-                    </button>
+                    <button onclick="handleComplete('${order.id}')" class="col-span-2 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase hover:shadow-lg transition-all tracking-widest">COMPLETE</button>
+                    <button onclick="handleUndoPickup('${order.id}')" class="py-2 bg-slate-100 text-slate-400 rounded-xl text-[10px] font-bold">UNDO PICKUP</button>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${order.location.lat},${order.location.lng}&travelmode=driving" target="_blank" 
+                       class="py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold text-center flex items-center justify-center space-x-1">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                       <span>NAVIGATE</span>
+                    </a>
                 `}
-                <button onclick="handleFocusOrder('${order.id}')" class="p-2 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                </button>
             </div>
         `;
         containers.driverOrders.appendChild(div);
@@ -462,9 +456,59 @@ function setupBusinessLogic() {
     });
 }
 
-window.handleSelectClient = (name, address) => {
+window.handleSelectClient = (id, name, address) => {
+    activeClientId = id;
     document.getElementById('setup-client-address').value = address;
-    alert(`Switched to Client: ${name}`);
+    document.getElementById('client-setup-summary').innerHTML = `
+        <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Active Client: <b>${name}</b></span>
+        </div>
+    `;
+
+    // Switch stock subscription
+    if (clientStockUnsubscribe) clientStockUnsubscribe();
+    clientStockUnsubscribe = subscribeToClientStock(id, (data) => {
+        clientStockData = data || {};
+        renderClientView();
+    });
+
+    alert(`Ecosystem synchronized with ${name}`);
+};
+
+window.handleManageItems = (id, name) => {
+    const itemName = prompt(`Add Custom Item for ${name}:`);
+    if (!itemName) return;
+    const price = parseFloat(prompt(`Price for ${name} (RM):`));
+    if (isNaN(price)) return;
+
+    createClientStockItem(id, {
+        name: itemName,
+        price: price,
+        unit: 'kg',
+        image: 'https://images.unsplash.com/photo-1559737558-2f57377f6b98?q=80&w=200&auto=format&fit=crop',
+        quantity: 100
+    });
+
+    recordAudit(currentUser.uid, 'ADD_CLIENT_ITEM', `Added ${itemName} to ${name} catalog.`);
+};
+
+window.handleUndoPickup = async (orderId) => {
+    if (confirm("Revert pickup and return order to pending local pool?")) {
+        await updateOrderStatus(orderId, 'pending');
+        await recordAudit(currentUser.uid, 'UNDO_PICKUP', `Driver reverted pickup for order ${orderId.substring(0, 8)}`);
+        if (currentNavOrderId === orderId) {
+            currentNavOrderId = null;
+            clearRoute();
+        }
+    }
+};
+
+window.handleCancelOrder = async (orderId) => {
+    if (confirm("Cancel this order permanently?")) {
+        await cancelOrder(orderId);
+        await recordAudit(currentUser.uid, 'CANCEL_ORDER', `Order ${orderId.substring(0, 8)} was cancelled.`);
+    }
 };
 
 window.refreshAnalytics = () => {
@@ -542,13 +586,14 @@ window.handleOrder = async (id, name) => {
     }
 
     try {
-        const item = stockData[id];
+        const source = (activeClientId && clientStockData[id]) ? clientStockData : stockData;
+        const item = source[id];
         const subtotal = item.price;
         const sst = subtotal * 0.06;
         const total = subtotal + sst;
 
         if (item.quantity > 0) {
-            await updateStock(id, item.quantity - 1);
+            await updateStock(id, item.quantity - 1, activeClientId);
             await placeOrder({
                 itemId: id,
                 itemName: name,
@@ -556,10 +601,11 @@ window.handleOrder = async (id, name) => {
                 total: total,
                 customerName: currentProfile.name,
                 address: currentProfile.address,
-                phone: currentProfile.phone
+                phone: currentProfile.phone,
+                clientId: activeClientId || 'retail'
             });
 
-            await recordAudit(currentUser.uid, 'PLACE_ORDER', `Order placed: ${name} (Total: RM ${total.toFixed(2)})`);
+            await recordAudit(currentUser.uid, 'PLACE_ORDER', `Order placed: ${name} (Total: RM ${total.toFixed(2)}) for ${activeClientId || 'Retail'}`);
 
             alert(`Order successful! Total: RM ${total.toFixed(2)} (incl. 6% SST)`);
             refreshAnalytics();
@@ -619,6 +665,24 @@ window.handleDeleteItem = async (id) => {
     if (confirm(`Remove ${id} from Ocean?`)) {
         await deleteStockItem(id);
         await recordAudit(currentUser.uid, 'DELETE_STOCK', `Removed item from catalogue: ${id}`);
+    }
+};
+
+window.handleUndoPickup = async (orderId) => {
+    if (confirm("Revert pickup and return order to pending local pool?")) {
+        await updateOrderStatus(orderId, 'pending');
+        await recordAudit(currentUser.uid, 'UNDO_PICKUP', `Driver reverted pickup for order ${orderId.substring(0, 8)}`);
+        if (currentNavOrderId === orderId) {
+            currentNavOrderId = null;
+            clearRoute();
+        }
+    }
+};
+
+window.handleCancelOrder = async (orderId) => {
+    if (confirm("Cancel this order permanently?")) {
+        await cancelOrder(orderId);
+        await recordAudit(currentUser.uid, 'CANCEL_ORDER', `Order ${orderId.substring(0, 8)} was cancelled.`);
     }
 };
 
