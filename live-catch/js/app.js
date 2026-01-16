@@ -706,9 +706,26 @@ window.handleOrder = async (id, name) => {
     }
 
     try {
-        const source = (activeClientId && clientStockData[id]) ? clientStockData : stockData;
-        const item = source[id];
-        const subtotal = item.price;
+        // Robust item source selection
+        let item = null;
+        if (activeClientId && clientStockData && clientStockData[id]) {
+            item = clientStockData[id];
+        } else if (stockData && stockData[id]) {
+            item = stockData[id];
+        }
+
+        if (!item) {
+            alert("Error: Item no longer available. Please refresh.");
+            return;
+        }
+
+        const subtotal = parseFloat(item.price);
+        if (isNaN(subtotal)) {
+            console.error("Invalid price for item:", id, item);
+            alert("Error: Item price is invalid. Please contact support.");
+            return;
+        }
+
         const sst = subtotal * 0.06;
         const total = subtotal + sst;
 
@@ -716,12 +733,12 @@ window.handleOrder = async (id, name) => {
             await updateStock(id, item.quantity - 1, activeClientId);
             const orderId = await placeOrder({
                 itemId: id,
-                itemName: name,
-                price: item.price,
+                itemName: name || item.name || "Unknown Item",
+                price: subtotal,
                 total: total,
-                customerName: currentProfile.name,
+                customerName: currentProfile.name || "Guest",
                 address: currentProfile.address,
-                phone: currentProfile.phone,
+                phone: currentProfile.phone || "",
                 clientId: activeClientId || 'retail'
             });
 

@@ -181,9 +181,24 @@ export async function cancelOrder(orderId) {
  * @param {Object} orderData - Order details
  */
 export async function placeOrder(orderData) {
+    // Validate data to prevent Firebase crashes (undefined values)
+    const requiredFields = ['itemId', 'itemName', 'price', 'total', 'customerName', 'address'];
+    requiredFields.forEach(field => {
+        if (typeof orderData[field] === 'undefined') {
+            throw new Error(`Critical Field Missing: ${field}`);
+        }
+    });
+
     try {
         const docRef = await addDoc(collection(firestore, "orders"), {
-            ...orderData,
+            itemId: orderData.itemId,
+            itemName: orderData.itemName,
+            price: Number(orderData.price),
+            total: Number(orderData.total),
+            customerName: orderData.customerName,
+            address: orderData.address,
+            phone: orderData.phone || "",
+            clientId: orderData.clientId || "retail",
             status: 'pending',
             createdAt: serverTimestamp(),
             // Mock location for Kuching area
