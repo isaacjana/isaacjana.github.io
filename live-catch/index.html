@@ -569,14 +569,14 @@
                         <div
                             class="flex space-x-1 bg-slate-200/50 p-1.5 rounded-[1.5rem] mb-10 overflow-x-auto no-scrollbar">
                             <button onclick="showSetupTab('profile')" id="setup-tab-btn-profile"
-                                class="setup-tab-btn flex-1 py-3.5 px-6 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all bg-white text-slate-800 shadow-sm border border-transparent">Personal
-                                Profile</button>
+                                class="setup-tab-btn flex-1 py-3.5 px-6 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all bg-white text-slate-800 shadow-sm border border-transparent">My
+                                Shop</button>
                             <button onclick="showSetupTab('catalog')" id="setup-tab-btn-catalog"
                                 class="setup-tab-btn flex-1 py-3.5 px-6 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-white/50">Ocean
                                 Catalog</button>
-                            <button onclick="showSetupTab('wholesale')" id="setup-tab-btn-wholesale"
-                                class="setup-tab-btn flex-1 py-3.5 px-6 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-white/50">Wholesale
-                                Registry</button>
+                            <button onclick="showSetupTab('clients')" id="setup-tab-btn-clients"
+                                class="setup-tab-btn flex-1 py-3.5 px-6 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-white/50">Delivery
+                                Clients</button>
                             <button onclick="showSetupTab('driver')" id="setup-tab-btn-driver"
                                 class="setup-tab-btn flex-1 py-3.5 px-6 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-white/50">Driver
                                 Identity</button>
@@ -597,10 +597,10 @@
                                             </svg>
                                         </div>
                                         <div>
-                                            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Identity &
-                                                Logistics</h3>
-                                            <p class="text-slate-400 text-sm font-medium">Your primary delivery and
-                                                contact credentials.</p>
+                                            <h3 class="text-2xl font-black text-slate-800 tracking-tight">My Shop
+                                                Details</h3>
+                                            <p class="text-slate-400 text-sm font-medium">Your shop location and contact
+                                                info (where orders come FROM).</p>
                                         </div>
                                         <div id="active-node-badge" class="ml-auto">
                                             <!-- Dynamic Badge: B2B Node Status -->
@@ -609,11 +609,11 @@
                                     <form id="setup-client-form" class="grid grid-cols-1 md:grid-cols-12 gap-8">
                                         <div class="md:col-span-8">
                                             <label
-                                                class="block text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3 ml-1">HQ
-                                                Distribution Address</label>
+                                                class="block text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3 ml-1">My
+                                                Shop Address</label>
                                             <input type="text" id="setup-client-address" required
                                                 class="w-full px-7 py-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:border-primary focus:bg-white transition-all outline-none font-bold text-slate-700 shadow-inner"
-                                                placeholder="Enter full address in Kuching...">
+                                                placeholder="Your shop/warehouse address...">
                                         </div>
                                         <div class="md:col-span-4">
                                             <label
@@ -688,43 +688,43 @@
                                 </div>
                             </div>
 
-                            <!-- Tab: Wholesale -->
-                            <div id="setup-tab-wholesale"
+                            <!-- Tab: Delivery Clients -->
+                            <div id="setup-tab-clients"
                                 class="setup-tab-view hidden space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div
                                     class="bg-white p-10 rounded-[3.5rem] border-2 border-slate-100 shadow-xl shadow-slate-200/20">
                                     <div class="flex items-center space-x-5 mb-10">
-                                        <div class="bg-indigo-100 text-indigo-600 p-5 rounded-3xl">
+                                        <div class="bg-emerald-100 text-emerald-600 p-5 rounded-3xl">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none"
                                                 viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4a1 1 0 011-1h2a1 1 0 011 1v3M12 7h.01" />
+                                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                             </svg>
                                         </div>
                                         <div>
-                                            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Wholesale
-                                                Partners</h3>
-                                            <p class="text-slate-400 text-sm font-medium">Manage B2B client nodes and
-                                                custom pricing.</p>
+                                            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Delivery
+                                                Clients</h3>
+                                            <p class="text-slate-400 text-sm font-medium">Manage customers who receive
+                                                deliveries from your shop.</p>
                                         </div>
                                     </div>
                                     <div class="space-y-8">
-                                        <form id="form-manage-client"
+                                        <form id="form-add-client"
                                             class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-50 p-8 rounded-[2.5rem]">
-                                            <div class="md:col-span-5">
-                                                <input type="text" id="client-biz-name" required
-                                                    placeholder="Partner Entity Name"
-                                                    class="w-full px-6 py-4 bg-white border-2 border-transparent rounded-2xl focus:border-indigo-500 transition-all font-bold">
-                                            </div>
                                             <div class="md:col-span-4">
-                                                <input type="text" id="client-biz-address" required
-                                                    placeholder="Node Location"
-                                                    class="w-full px-6 py-4 bg-white border-2 border-transparent rounded-2xl focus:border-indigo-500 transition-all font-bold">
+                                                <input type="text" id="new-client-name" required
+                                                    placeholder="Client Name (e.g. Restaurant ABC)"
+                                                    class="w-full px-6 py-4 bg-white border-2 border-transparent rounded-2xl focus:border-emerald-500 transition-all font-bold">
+                                            </div>
+                                            <div class="md:col-span-5">
+                                                <input type="text" id="new-client-address" required
+                                                    placeholder="Delivery Address"
+                                                    class="w-full px-6 py-4 bg-white border-2 border-transparent rounded-2xl focus:border-emerald-500 transition-all font-bold">
                                             </div>
                                             <div class="md:col-span-3">
                                                 <button type="submit"
-                                                    class="w-full py-4 bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-indigo-600/20">Link
-                                                    Node</button>
+                                                    class="w-full py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all">Add
+                                                    Client</button>
                                             </div>
                                         </form>
                                         <div
@@ -734,13 +734,13 @@
                                                     <thead
                                                         class="bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">
                                                         <tr>
-                                                            <th class="px-10 py-6">Entity Name</th>
-                                                            <th class="px-10 py-6">Hub Location</th>
-                                                            <th class="px-10 py-6 text-right">Actions</th>
+                                                            <th class="px-10 py-6">Client Name</th>
+                                                            <th class="px-10 py-6">Delivery Address</th>
+                                                            <th class="px-10 py-6 text-right">Select</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody id="registry-client-list" class="divide-y divide-slate-50">
-                                                        <!-- Clients -->
+                                                    <tbody id="delivery-clients-list" class="divide-y divide-slate-50">
+                                                        <!-- Clients will be populated here -->
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -940,7 +940,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>

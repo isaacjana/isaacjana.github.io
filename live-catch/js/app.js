@@ -595,28 +595,41 @@ window.toggleMobileCart = () => {
 };
 
 window.handleCheckout = async () => {
-    const deliveryAddress = activeClientAddress || (currentProfile ? currentProfile.address : null);
-
-    if (!deliveryAddress) {
-        alert("Action Required: Please set your delivery address in Profile or Link a Wholesale Node first!");
-        showSection('setup');
+    if (cart.length === 0) {
+        alert("Your cart is empty!");
         return;
+    }
+
+    // Determine delivery address
+    let deliveryAddress = activeClientAddress;
+    let customerName = activeClientId ? activeClientId.replace(/_/g, ' ') : null;
+
+    // If no client selected (walk-in), prompt for address
+    if (!deliveryAddress) {
+        deliveryAddress = prompt("Enter delivery address for this order:", "");
+        if (!deliveryAddress) {
+            alert("Delivery address is required to create a job.");
+            return;
+        }
+        customerName = prompt("Enter customer name:", "Walk-in Customer") || "Walk-in Customer";
     }
 
     try {
         const job = await createJob({
             items: cart,
             customer: {
-                name: currentProfile.name || "Guest",
+                name: customerName || "Walk-in Customer",
                 address: deliveryAddress,
-                phone: currentProfile.phone || "",
-                tin: currentProfile.tin || "N/A"
+                phone: currentProfile?.phone || "",
+                tin: currentProfile?.tin || "N/A"
             },
-            clientId: activeClientId || 'retail'
+            clientId: activeClientId || 'walk-in',
+            createdBy: currentUser.uid,
+            shopAddress: currentProfile?.address || "Ocean HQ"
         });
 
         // Audit & Feedback
-        await recordAudit(currentUser.uid, 'CREATE_JOB', `Finalized job with ${cart.length} items. Invoice: ${job.invoiceNo}`);
+        await recordAudit(currentUser.uid, 'CREATE_JOB', `Created job for ${customerName} with ${cart.length} items. Invoice: ${job.invoiceNo}`);
 
         // Clear Cart
         const finalizedCart = [...cart];
@@ -634,12 +647,17 @@ window.handleCheckout = async () => {
             subtotal,
             tax: sst,
             grandTotal: total,
-            customer: currentProfile
+            customer: {
+                name: customerName,
+                address: deliveryAddress
+            }
         });
 
+        console.log("Job created successfully:", job);
+
     } catch (err) {
-        console.error(err);
-        alert("E-Invoice Generation Failed. Please check logs.");
+        console.error("Job creation failed:", err);
+        alert("E-Invoice Generation Failed: " + err.message);
     }
 };
 
@@ -864,56 +882,68 @@ function setupSetupForms() {
 }
 
 function setupBusinessLogic() {
-    // 1. Manage Wholesale Client Registry
-    document.getElementById('form-manage-client').onsubmit = async (e) => {
-        e.preventDefault();
-        const bizName = document.getElementById('client-biz-name').value;
-        const bizAddress = document.getElementById('client-biz-address').value;
+    // 1. Delivery Clients Form
+    const clientForm = document.getElementById('form-add-client');
+    if (clientForm) {
+        clientForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const clientName = document.getElementById('new-client-name').value;
+            const clientAddress = document.getElementById('new-client-address').value;
 
-        if (!bizName || !bizAddress) return;
+            if (!clientName || !clientAddress) return;
 
-        await addWholesaleClient(currentUser.uid, { name: bizName, address: bizAddress });
-        await recordAudit(currentUser.uid, 'ADD_CLIENT', `Registered wholesale client: ${bizName}`);
+            await addWholesaleClient(currentUser.uid, { name: clientName, address: clientAddress });
+            await recordAudit(currentUser.uid, 'ADD_CLIENT', `Added delivery client: ${clientName}`);
 
-        e.target.reset();
-    };
+            e.target.reset();
+            alert(`Client "${clientName}" added successfully!`);
+        };
+    }
 
-    // 2. Client Registry Subscription
-    // Populate Store Selector in Header
-    const selector = document.getElementById('store-selector');
-    // 2. Client Registry Subscription
+    // 2. Client Registry Subscription (for delivery clients list)
     subscribeToClients(null, (clients) => {
-        // Populate Store Selector in Header
+        // Populate delivery clients list in Setup
+        const clientsList = document.getElementById('delivery-clients-list');
+        if (clientsList) {
+            clientsList.innerHTML = '';
+            clients.forEach(client => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-10 py-6 font-bold text-slate-800">${client.name}</td>
+                    <td class="px-10 py-6 text-slate-500">${client.address}</td>
+                    <td class="px-10 py-6 text-right">
+                        <button onclick="selectDeliveryClient('${client.name}', '${client.address}')" 
+                            class="px-4 py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded-lg hover:bg-emerald-100 transition-all">
+                            Select for Delivery
+                        </button>
+                    </td>
+                `;
+                clientsList.appendChild(tr);
+            });
+        }
+
+        // Update stats
+        const statsEl = document.getElementById('stats-clients');
+        if (statsEl) statsEl.innerText = clients.length;
+
+        // Populate Store/Client Selector in Shopping header
         const selector = document.getElementById('store-selector');
         if (selector) {
-            selector.innerHTML = `<option value="retail">🌊 Main Ocean Hub</option>`;
+            const oldValue = selector.value;
+            selector.innerHTML = `<option value="retail">🌊 Main Ocean Hub (Walk-in)</option>`;
             clients.forEach(client => {
                 const opt = document.createElement('option');
                 opt.value = client.name;
                 opt.dataset.address = client.address;
-                opt.innerText = `🏬 ${client.name.toUpperCase()}`;
+                opt.innerText = `📦 Deliver to: ${client.name}`;
                 selector.appendChild(opt);
             });
+            // Restore selection if possible
+            if (oldValue && selector.querySelector(`option[value="${oldValue}"]`)) {
+                selector.value = oldValue;
+            }
         }
-
-        const list = document.getElementById('registry-client-list');
-        if (!list) return;
-        list.innerHTML = '';
-        document.getElementById('stats-clients').innerText = clients.length;
-
-        clients.forEach(client => {
-            const tr = document.createElement('tr');
-            const clientId = client.name.replace(/\s+/g, '_').toLowerCase();
-            tr.innerHTML = `
-                <td class="px-10 py-6 font-bold text-slate-800">${client.name}</td>
-                <td class="px-10 py-6 text-slate-500">${client.address}</td>
-                <td class="px-10 py-6 text-right space-x-4">
-                    <button onclick="handleManageItems('${clientId}', '${client.name}')" class="text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-600 transition-colors">Manage B2B</button>
-                    <button onclick="handleSelectClient('${client.name}', '${client.address}')" class="px-4 py-2 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase rounded-lg hover:bg-indigo-100 transition-all">Select Client</button>
-                </td>
-            `;
-            list.appendChild(tr);
-        });
     });
 
     // 3. Audit Log Subscription
@@ -939,48 +969,41 @@ function setupBusinessLogic() {
     });
 }
 
-window.handleSelectClient = (name, address) => {
-    // Note: Link the session to this Wholesale Node
-    const clientId = name.replace(/\s+/g, '_').toLowerCase();
-    activeClientId = clientId;
-    activeClientAddress = address;
+// Handle Store/Client switching in Shopping view
+window.handleStoreSwitch = (value) => {
+    const selector = document.getElementById('store-selector');
+    const selectedOption = selector.querySelector(`option[value="${value}"]`);
 
-    // UI Feedback: Show connection status instead of overwriting profile
-    renderNodeStatus();
-
-    // Switch stock subscription to show B2B exclusive items/pricing
-    if (clientStockUnsubscribe) clientStockUnsubscribe();
-    clientStockUnsubscribe = subscribeToClientStock(clientId, (data) => {
-        clientStockData = data || {};
-        renderClientView();
-    });
-
-    alert(`Ecosystem Dynamic: Session linked to wholesale node [${name.toUpperCase()}]. B2B pricing and exclusive inventory enabled.`);
-};
-
-window.handleStoreSwitch = (storeName) => {
-    if (storeName === 'retail') {
+    if (value === 'retail') {
+        // Walk-in customer - will need to enter address at checkout
         activeClientId = null;
         activeClientAddress = null;
-        clientStockData = {};
-        if (clientStockUnsubscribe) clientStockUnsubscribe();
-        const badge = document.getElementById('active-node-badge');
-        if (badge) badge.classList.add('hidden');
-        renderClientView();
-        return;
+    } else if (selectedOption) {
+        // Delivery to a saved client
+        activeClientId = value.replace(/\s+/g, '_').toLowerCase();
+        activeClientAddress = selectedOption.dataset.address;
     }
 
-    const selector = document.getElementById('store-selector');
-    const selectedOpt = Array.from(selector.options).find(o => o.value === storeName);
-    const address = selectedOpt?.dataset.address;
-
-    window.handleSelectClient(storeName, address);
-    const badge = document.getElementById('active-node-badge');
-    if (badge) {
-        badge.classList.remove('hidden');
-        badge.innerText = `Linked: ${storeName}`;
-    }
+    renderClientView();
 };
+
+// Select client from Setup > Delivery Clients
+window.selectDeliveryClient = (name, address) => {
+    activeClientId = name.replace(/\s+/g, '_').toLowerCase();
+    activeClientAddress = address;
+
+    // Update the selector in Shopping view
+    const selector = document.getElementById('store-selector');
+    if (selector) {
+        selector.value = name;
+    }
+
+    alert(`Delivery destination set: ${name}\nAddress: ${address}`);
+    showSection('client'); // Go back to Shopping
+};
+
+
+
 
 window.handleManageItems = (id, name) => {
     const itemName = prompt(`Add/Override Item for "${name}":`, "Tiger Prawn (L)");
