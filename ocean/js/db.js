@@ -25,6 +25,16 @@ const dbAPI = {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
     },
+    setCustomPrice: (userId, productId, price) => {
+        return db.collection('users').doc(userId).collection('customPrices').doc(productId).set({
+            price: parseFloat(price),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    },
+    getCustomPrice: async (userId, productId) => {
+        const doc = await db.collection('users').doc(userId).collection('customPrices').doc(productId).get();
+        return doc.exists ? doc.data().price : null;
+    },
 
     // --- Products (Live Stock) ---
     getProducts: (callback) => {

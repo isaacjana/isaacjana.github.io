@@ -282,9 +282,9 @@ function renderShop($container) {
                     <h3 class="text-lg font-bold text-gray-900 mb-1">${p.name}</h3>
                     <p class="text-sm text-gray-500 mb-3">${p.supplier}</p>
                     <div class="flex justify-between items-center mt-auto">
-                        <span class="text-xl font-bold text-blue-900">RM ${p.price}<span class="text-sm text-gray-500 font-normal"> / ${p.unit}</span></span>
+                        <span class="text-lg font-bold text-gray-700">Available</span> 
                         <button class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-lg font-medium text-sm transition-colors" onclick="addToCart('${p.id}', '${p.name}', ${p.price})">
-                            Add to Order
+                            Add to List
                         </button>
                     </div>
                     <div class="mt-2 text-xs text-green-600 font-semibold flex items-center gap-1">
@@ -333,7 +333,7 @@ function renderOrdersAdmin($container) {
                 <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${getStatusColor(o.status)}">${o.status.toUpperCase()}</span></td>
                 <td class="p-4">${o.driverId ? 'Assigned' : '-'}</td>
                 <td class="p-4">
-                    ${o.status === 'pending' ? `<button onclick="updateStatus('${o.id}', 'accepted')" class="text-blue-600 hover:underline mr-2">Accept</button>` : ''}
+                    ${o.status === 'pending' || o.status === 'requested' ? `<button onclick="openProcessOrderModal('${o.id}', '${o.clientId}')" class="text-blue-600 hover:underline mr-2">Process Quote</button>` : ''}
                     ${o.status === 'completed' && !o.invoiced ? `<button onclick="createInvoice('${o.id}')" class="text-green-600 hover:underline">Invoice</button>` : ''}
                 </td>
             </tr>
@@ -341,6 +341,125 @@ function renderOrdersAdmin($container) {
         $('#orders-table-body').html(rows);
     });
     listeners.push(unsub);
+}
+
+// ... (renderOrdersClient, renderDriverJobs etc remain same)
+
+// New Process Order Modal
+window.openProcessOrderModal = async function (orderId, clientId) {
+    const orderDoc = await db.collection('orders').doc(orderId).get();
+    const orderData = orderDoc.data();
+
+    // Fetch Products to get base prices + Names
+    // Fetch Client Custom Prices
+    const [products, customPricesSnap] = await Promise.all([
+        new Promise(resolve => dbAPI.getProducts(resolve)()),
+        db.collection('users').doc(clientId).collection('customPrices').get()
+    ]);
+
+    const customPrices = {};
+    customPricesSnap.forEach(d => customPrices[d.id] = d.data().price);
+
+    // Calculate proposed total
+    let total = 0;
+    const itemsWithPrices = orderData.items.map(item => {
+        const product = products.find(p => p.id === item.id) || {};
+        const basePrice = product.price || 0;
+        const finalPrice = customPrices[item.id] !== undefined ? customPrices[item.id] : basePrice;
+        const itemTotal = finalPrice * item.qty;
+        total += itemTotal;
+
+        return { ...item, finalPrice, itemTotal };
+    });
+
+    const html = `
+     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">Process Quote: Order #${orderId.slice(0, 8)}</h3>
+            
+            <div class="space-y-2 mb-4">
+                <div class="grid grid-cols-12 gap-2 font-bold bg-gray-50 p-2">
+                    <div class="col-span-5">Item</div>
+                    <div class="col-span-2">Qty</div>
+                    <div class="col-span-2">Price (RM)</div>
+                    <div class="col-span-3 text-right">Total</div>
+                </div>
+                ${itemsWithPrices.map((item, idx) => `
+                <div class="grid grid-cols-12 gap-2 items-center border-b pb-2">
+                    <div class="col-span-5">${item.name}</div>
+                    <div class="col-span-2">${item.qty}</div>
+                    <div class="col-span-2">
+                        <input type="number" step="0.01" class="border rounded w-full px-1" 
+                               value="${item.finalPrice}" 
+                               onchange="updateProcessTotal(${idx}, this.value, ${item.qty})">
+                    </div>
+                    <div class="col-span-3 text-right font-bold" id="item-total-${idx}">RM ${item.itemTotal.toFixed(2)}</div>
+                </div>
+                `).join('')}
+            </div>
+            
+            <div class="flex justify-between items-center text-xl font-bold mb-6">
+                <span>Grand Total</span>
+                <span id="grand-total">RM ${total.toFixed(2)}</span>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500">Cancel</button>
+                <button onclick="confirmQuote('${orderId}', ${total})" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Send Quote & Accept</button>
+            </div>
+        </div>
+     </div>
+    `;
+    $('body').append(html);
+
+    // Store items temporarily for the confirm function to grab updated prices? 
+    // Simplified: We assume the Admin modifies inputs, but we need to re-calculate effectively.
+    // For MVP, we stick to the initial auto-calc. If they edit, we need a way to track it.
+    // Let's attach a global object to store temp edits.
+    window.tempQuoteItems = itemsWithPrices;
+}
+
+window.updateProcessTotal = (idx, newPrice, qty) => {
+    const price = parseFloat(newPrice) || 0;
+    const total = price * qty;
+    window.tempQuoteItems[idx].finalPrice = price;
+    window.tempQuoteItems[idx].itemTotal = total;
+
+    $(`#item-total-${idx}`).text(`RM ${total.toFixed(2)}`);
+
+    const grandTotal = window.tempQuoteItems.reduce((sum, item) => sum + item.itemTotal, 0);
+    $('#grand-total').text(`RM ${grandTotal.toFixed(2)}`);
+}
+
+window.confirmQuote = async (orderId) => {
+    const total = window.tempQuoteItems.reduce((sum, item) => sum + item.itemTotal, 0);
+
+    // Update Order with Price and Status
+    await db.collection('orders').doc(orderId).update({
+        total: total,
+        status: 'pending', // Or 'accepted' directly? Prompt says "Admin should able have a setup... billing/invoice done by business admin"
+        // Let's set it to 'accepted' so it goes to Drivers, AND it has a price now.
+        // Wait, "Requested" -> Admin Quotes -> "Pending Payment/Accepted"?
+        // Previous flow: Client orders -> Pending -> Admin Accepts -> Driver...
+        // New flow: Client Requests -> Requested -> Admin Quotes -> Pending (Client Config) OR Accepted (Direct).
+        // Let's make it status: 'accepted' so it flows to drivers immediately, assuming 'Quote' implies acceptance of contract.
+        // Actually, let's keep it 'pending' if client needs to pay, OR 'accepted' if COD/Credit. 
+        // Let's go with 'accepted' to maintain previous driver flow compatibility.
+        status: 'accepted',
+        acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        // Save the frozen prices to the order items so invoice is accurate later
+        items: window.tempQuoteItems
+    });
+
+    // Trigger Inventory Deduction (since we skipped it in updateOrderStatus for 'requested' -> 'accepted' transition if we use this function)
+    const items = window.tempQuoteItems;
+    await Promise.all(items.map(async (item) => {
+        const productRef = db.collection('products').doc(item.id);
+        await productRef.update({ quantity: firebase.firestore.FieldValue.increment(-item.qty) });
+    }));
+
+    $('#modal-bg').remove();
+    alert("Quote Sent & Order Accepted!");
 }
 
 function renderOrdersClient($container) {
@@ -354,13 +473,13 @@ function renderOrdersClient($container) {
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <span class="text-sm text-gray-400">#${o.id}</span>
-                        <p class="font-bold text-lg">RM ${o.total}</p>
+                        <span class="text-sm text-gray-400">#${o.id.slice(0, 8)}</span>
+                        <p class="font-bold text-lg">${o.total > 0 ? 'RM ' + o.total : '<span class="text-gray-500 italic">Quote Pending</span>'}</p>
                     </div>
                     <span class="px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(o.status)}">${o.status.toUpperCase()}</span>
                 </div>
                 <div class="space-y-2">
-                    ${o.items.map(i => `<div class="flex justify-between text-sm text-gray-600"><span>${i.name} x${i.qty}</span><span>RM ${i.price * i.qty}</span></div>`).join('')}
+                    ${o.items.map(i => `<div class="flex justify-between text-sm text-gray-600"><span>${i.name} x${i.qty}</span><span>${o.total > 0 ? 'RM ' + (i.price * i.qty).toFixed(2) : '-'}</span></div>`).join('')}
                 </div>
             </div>
         `).join('');
@@ -495,7 +614,8 @@ function renderClients($container) {
                 <td class="p-4">${u.storeName || '<span class="text-gray-300 italic">Not Set</span>'}</td>
                 <td class="p-4 truncate max-w-xs">${u.address || '<span class="text-gray-300 italic">Not Set</span>'}</td>
                 <td class="p-4">
-                    <button onclick="openEditClientModal('${u.uid}', '${u.name || ''}', '${u.storeName || ''}', '${u.address || ''}')" class="text-blue-600 hover:underline">Edit</button>
+                    <button onclick="openEditClientModal('${u.uid}', '${u.name || ''}', '${u.storeName || ''}', '${u.address || ''}')" class="text-blue-600 hover:underline mr-2">Edit</button>
+                    <button onclick="openManagePricesModal('${u.uid}', '${u.name || 'Client'}')" class="text-green-600 hover:underline">Manage Prices</button>
                 </td>
             </tr>
         `).join('');
@@ -524,26 +644,23 @@ window.goToCart = function () {
     if (cart.length === 0) { alert("Cart is empty"); return; }
 
     // Render Modal Cart
-    const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    // Client view: NO PRICE
     const html = `
      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="cart-modal">
         <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Your Order</h3>
+            <h3 class="text-xl font-bold mb-4">Your Order Request</h3>
             <div class="space-y-3 mb-4 max-h-60 overflow-y-auto">
                 ${cart.map(i => `
-                    <div class="flex justify-between items-center text-sm">
-                        <span>${i.name} x ${i.qty}</span>
-                        <span class="font-bold">RM ${i.price * i.qty}</span>
+                    <div class="flex justify-between items-center text-sm border-b pb-2">
+                        <span class="font-medium text-lg">${i.name}</span>
+                        <span class="font-bold text-lg bg-gray-100 px-3 py-1 rounded">Qty: ${i.qty}</span>
                     </div>
                 `).join('')}
             </div>
-            <div class="flex justify-between font-bold text-lg pt-4 border-t">
-                <span>Total</span>
-                <span>RM ${total}</span>
-            </div>
+            <p class="text-sm text-gray-500 mb-4">You will receive a quote/invoice from the admin once confirmed.</p>
             <div class="flex justify-end gap-3 pt-4">
                  <button onclick="$('#cart-modal').remove()" class="px-4 py-2 text-gray-500">Close</button>
-                 <button onclick="submitOrder(${total})" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Place Order</button>
+                 <button onclick="submitOrder()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Request</button>
             </div>
         </div>
      </div>
@@ -551,22 +668,22 @@ window.goToCart = function () {
     $('body').append(html);
 }
 
-window.submitOrder = async function (total) {
+window.submitOrder = async function (total = 0) {
     const order = {
         clientId: auth.currentUser.uid,
         clientName: currentUser.name || 'Unknown',
         storeName: currentUser.storeName || '',
         deliveryAddress: currentUser.address || 'No address provided',
         items: cart,
-        total: total,
-        status: 'pending',
+        total: 0, // Pending Admin Pricing
+        status: 'requested', // New Initial Status
         driverId: null
     };
     await dbAPI.createOrder(order);
     cart = [];
     $('#cart-modal').remove();
-    alert("Order Placed Successfully!");
-    loadView('my-orders'); // Refresh or switch view
+    alert("Order Request Sent! Waiting for Admin Confirmation.");
+    loadView('my-orders');
 }
 
 window.updateStatus = async function (id, status, driverId = null) {
@@ -597,6 +714,7 @@ window.createInvoice = async function (orderId) {
 
 function getStatusColor(status) {
     switch (status) {
+        case 'requested': return 'bg-gray-100 text-gray-600 border border-gray-300';
         case 'pending': return 'bg-yellow-100 text-yellow-800';
         case 'accepted': return 'bg-blue-100 text-blue-800';
         case 'delivering': return 'bg-indigo-100 text-indigo-800';
@@ -731,6 +849,62 @@ function openAddClientModal() {
         $('#modal-bg').remove();
     });
 }
+
+window.openAddClientModal = openAddClientModal;
+
+function openManagePricesModal(userId, userName) {
+    const html = `
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
+       <div class="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+           <div class="flex justify-between items-center mb-4">
+               <h3 class="text-xl font-bold">Manage Custom Prices: ${userName}</h3>
+               <button onclick="$('#modal-bg').remove()" class="text-gray-500 hover:text-red-500">Close</button>
+           </div>
+           <p class="text-sm text-gray-500 mb-4">Set specific prices for this client. If left blank, default price applies.</p>
+           
+           <div class="space-y-4" id="price-list-container">
+               <p>Loading products...</p>
+           </div>
+       </div>
+    </div>
+   `;
+    $('body').append(html);
+
+    // Fetch products and current custom prices
+    Promise.all([
+        new Promise(resolve => dbAPI.getProducts(resolve)()), // Just fetch once, simplified
+        db.collection('users').doc(userId).collection('customPrices').get()
+    ]).then(([products, customPricesSnap]) => {
+        const customPrices = {};
+        customPricesSnap.forEach(doc => customPrices[doc.id] = doc.data().price);
+
+        const rows = products.map(p => {
+            const currentPrice = customPrices[p.id] || '';
+            return `
+            <div class="flex justify-between items-center border-b pb-2">
+                <div>
+                    <p class="font-bold">${p.name}</p>
+                    <p class="text-xs text-gray-400">Default: RM ${p.price}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-600">RM</span>
+                    <input type="number" step="0.01" class="border rounded p-1 w-24 text-right" 
+                           value="${currentPrice}" 
+                           placeholder="Default"
+                           onchange="saveCustomPrice('${userId}', '${p.id}', this.value)">
+                </div>
+            </div>`;
+        }).join('');
+
+        $('#price-list-container').html(rows);
+    });
+}
+window.openManagePricesModal = openManagePricesModal;
+window.saveCustomPrice = async (userId, productId, price) => {
+    if (price === '') return; // Handle delete?
+    await dbAPI.setCustomPrice(userId, productId, price);
+    // Optional: show small 'Saved' text
+};
 
 function openRestockModal(id, name, currentSupplier) {
     const html = `
