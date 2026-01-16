@@ -1,12 +1,35 @@
 /**
- * Map Service for Ocean
- * Handles Leaflet with Google Maps Tile Skins (No API Key Required)
+ * ============================================
+ * OCEAN ECOSYSTEM - MAP SERVICE
+ * Leaflet Integration for Delivery Tracking
+ * ============================================
+ * 
+ * Features:
+ * - Google Maps tiles (no API key required)
+ * - Order markers with status colors
+ * - Live driver location tracking
+ * - Route visualization
+ * - Interactive popups
+ * 
+ * Map Layers:
+ * - Google Streets (default)
+ * - Google Satellite/Hybrid
+ * - OpenStreetMap fallback
+ * 
+ * Center: Kuching, Sarawak (1.5533, 110.3592)
  */
 
-let map;
+// ============================================
+// MAP STATE
+// ============================================
+let map = null;
 let markers = {};
 let driverMarker = null;
 let routingLine = null;
+
+// ============================================
+// TILE LAYERS
+// ============================================
 
 // Google Maps Tile Layers
 const googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
