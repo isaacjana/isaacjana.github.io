@@ -6,6 +6,18 @@ const dbAPI = {
         const doc = await db.collection('users').doc(uid).get();
         return doc.exists ? { uid: doc.id, ...doc.data() } : null;
     },
+    getUsers: (role, callback) => {
+        let query = db.collection('users');
+        if (role) query = query.where('role', '==', role);
+        return query.onSnapshot((snapshot) => {
+            const users = [];
+            snapshot.forEach(doc => users.push({ uid: doc.id, ...doc.data() }));
+            callback(users);
+        });
+    },
+    updateUserProfile: (uid, data) => {
+        return db.collection('users').doc(uid).update(data);
+    },
 
     // --- Products (Live Stock) ---
     getProducts: (callback) => {
@@ -55,10 +67,26 @@ const dbAPI = {
             callback(orders);
         });
     },
-    updateOrderStatus: (orderId, status, driverId = null) => {
+    updateOrderStatus: async (orderId, status, driverId = null) => {
         const update = { status };
         if (driverId) update.driverId = driverId;
         if (status === 'completed') update.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+        // If accepting, deduct stock (inventory logic)
+        if (status === 'accepted') {
+            const orderDoc = await db.collection('orders').doc(orderId).get();
+            if (orderDoc.exists) {
+                const items = orderDoc.data().items || [];
+                // Process in parallel
+                await Promise.all(items.map(async (item) => {
+                    // Use a transaction or decrement increment
+                    const productRef = db.collection('products').doc(item.id);
+                    await productRef.update({
+                        quantity: firebase.firestore.FieldValue.increment(-item.qty)
+                    });
+                }));
+            }
+        }
 
         return db.collection('orders').doc(orderId).update(update);
     },

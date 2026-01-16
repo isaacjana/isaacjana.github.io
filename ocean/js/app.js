@@ -55,6 +55,7 @@ function renderNav(role) {
         items.push({ id: 'stock', label: 'Live Stock', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' });
         items.push({ id: 'orders', label: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' });
         items.push({ id: 'invoices', label: 'Invoices (LHDN)', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' });
+        items.push({ id: 'clients', label: 'Clients', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' });
     } else if (role === 'client') {
         items.push({ id: 'shop', label: 'Live Seafood', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' });
         items.push({ id: 'my-orders', label: 'My Orders', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' });
@@ -104,6 +105,7 @@ function loadView(viewId) {
             case 'jobs': renderDriverJobs($main); break;
             case 'my-deliveries': renderDriverDeliveries($main); break;
             case 'invoices': renderInvoices($main); break;
+            case 'clients': renderClients($main); break;
             default: $main.html('<p>View not implemented</p>');
         }
     }, 300);
@@ -113,42 +115,80 @@ function loadView(viewId) {
 
 function renderAnalytics($container) {
     $container.html(`
-        <h2 class="text-2xl font-bold mb-6">Monthly Analytics</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <h2 class="text-2xl font-bold mb-6">Sales Analytics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-gray-500 text-sm">Total Revenue (Month)</p>
-                <h3 class="text-3xl font-bold text-blue-900 mt-2">RM 12,450</h3>
+                <p class="text-gray-500 text-sm">Today's Sales</p>
+                <h3 class="text-2xl font-bold text-blue-900 mt-2" id="sales-today">RM 0</h3>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-gray-500 text-sm">Active Orders</p>
-                <h3 class="text-3xl font-bold text-orange-600 mt-2">8</h3>
+                <p class="text-gray-500 text-sm">Weekly Sales</p>
+                <h3 class="text-2xl font-bold text-blue-900 mt-2" id="sales-weekly">RM 0</h3>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-gray-500 text-sm">Live Stock Items</p>
-                <h3 class="text-3xl font-bold text-green-600 mt-2">145</h3>
+                <p class="text-gray-500 text-sm">Monthly Sales</p>
+                <h3 class="text-2xl font-bold text-blue-900 mt-2" id="sales-monthly">RM 0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-gray-500 text-sm">Yearly Sales</p>
+                <h3 class="text-2xl font-bold text-green-600 mt-2" id="sales-yearly">RM 0</h3>
             </div>
         </div>
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-64 flex items-center justify-center text-gray-400">
-            [Chart Placeholder: Sales by Product Category]
+            [Chart Placeholder: Sales Trend Line]
         </div>
     `);
+
+    // Calculate Sales
+    // We fetch ALL orders for Admin to calculate (or limit to last year if optimization needed)
+    const unsub = dbAPI.getOrders('admin', null, (orders) => {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const tempDate = new Date(now);
+        const startOfWeek = new Date(tempDate.setDate(tempDate.getDate() - tempDate.getDay())); // Start of week (Sunday)
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+        let today = 0, weekly = 0, monthly = 0, yearly = 0;
+
+        orders.forEach(o => {
+            if (o.status === 'completed' || o.status === 'accepted' || o.status === 'delivering') {
+                const date = o.createdAt ? new Date(o.createdAt.seconds * 1000) : new Date();
+                const total = parseFloat(o.total);
+
+                if (date >= startOfDay) today += total;
+                if (date >= startOfWeek) weekly += total;
+                if (date >= startOfMonth) monthly += total;
+                if (date >= startOfYear) yearly += total;
+            }
+        });
+
+        $('#sales-today').text(`RM ${today.toFixed(2)}`);
+        $('#sales-weekly').text(`RM ${weekly.toFixed(2)}`);
+        $('#sales-monthly').text(`RM ${monthly.toFixed(2)}`);
+        $('#sales-yearly').text(`RM ${yearly.toFixed(2)}`);
+    });
+    listeners.push(unsub);
 }
 
 function renderStockManagement($container) {
     $container.html(`
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">Live Stock Management</h2>
-            <button onclick="openAddProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Add Stock</button>
+            <h2 class="text-2xl font-bold">Stock & Procurement</h2>
+            <button onclick="openAddProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Add New Product</button>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm min-w-[600px]">
+                <table class="w-full text-left text-sm min-w-[800px]">
                     <thead class="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th class="p-4 font-semibold text-gray-600">Product</th>
-                            <th class="p-4 font-semibold text-gray-600">Supplier</th>
-                            <th class="p-4 font-semibold text-gray-600">Price (RM)</th>
-                            <th class="p-4 font-semibold text-gray-600">Qty</th>
+                            <th class="p-4 font-semibold text-gray-600">Current Supplier</th>
+                            <th class="p-4 font-semibold text-gray-600">Stock (Physical)</th>
+                            <th class="p-4 font-semibold text-gray-600">Pending Requests</th>
+                            <th class="p-4 font-semibold text-gray-600">Status</th>
                             <th class="p-4 font-semibold text-gray-600">Actions</th>
                         </tr>
                     </thead>
@@ -159,22 +199,66 @@ function renderStockManagement($container) {
         </div>
     `);
 
-    const unsub = dbAPI.getProducts((products) => {
-        const rows = products.map(p => `
+    // Fetch Products AND Orders to calculate demand
+    // Nested listeners are tricky, so we'll fetch orders once per product update or independently?
+    // Independent listeners updating a shared state or re-rendering is properly reactive.
+    // For simplicity: specific render function that takes both.
+
+    let localProducts = [];
+    let localOrders = [];
+
+    const renderTable = () => {
+        // Calculate Demand
+        const demand = {};
+        localOrders.forEach(o => {
+            if (o.status === 'pending') {
+                o.items.forEach(i => {
+                    demand[i.id] = (demand[i.id] || 0) + i.qty;
+                });
+            }
+        });
+
+        const rows = localProducts.map(p => {
+            const pendingQty = demand[p.id] || 0;
+            const status = p.quantity >= pendingQty ?
+                '<span class="text-green-600 font-bold">Sufficient</span>' :
+                `<span class="text-red-600 font-bold">Deficit (${p.quantity - pendingQty})</span>`;
+
+            return `
             <tr class="border-b border-gray-50 hover:bg-gray-50">
-                <td class="p-4 font-medium">${p.name}</td>
-                <td class="p-4 text-gray-500">${p.supplier}</td>
-                <td class="p-4">${p.price}/${p.unit}</td>
-                <td class="p-4 ${p.quantity < 10 ? 'text-red-500 font-bold' : ''}">${p.quantity}</td>
                 <td class="p-4">
-                    <button class="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
-                    <button class="text-red-600 hover:text-red-800" onclick="deleteProduct('${p.id}')">Delete</button>
+                    <div class="font-medium text-gray-900">${p.name}</div>
+                    <div class="text-xs text-gray-500">Sell: RM ${p.price}/${p.unit}</div>
+                </td>
+                <td class="p-4 text-gray-500">${p.supplier || '-'}</td>
+                <td class="p-4 font-bold text-lg">${p.quantity} <span class="text-xs font-normal text-gray-400">${p.unit}</span></td>
+                <td class="p-4">
+                    ${pendingQty > 0 ? `<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded font-bold">${pendingQty} ${p.unit}</span>` : '-'}
+                </td>
+                <td class="p-4">${status}</td>
+                <td class="p-4 flex gap-2">
+                    <button onclick="openRestockModal('${p.id}', '${p.name}', '${p.supplier || ''}')" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded hover:bg-indigo-100 border border-indigo-200">Restock</button>
+                    <button class="text-gray-400 hover:text-red-600 ml-2" onclick="deleteProduct('${p.id}')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
         $('#stock-table-body').html(rows);
+    };
+
+    const unsubProducts = dbAPI.getProducts((products) => {
+        localProducts = products;
+        renderTable();
     });
-    listeners.push(unsub);
+    const unsubOrders = dbAPI.getOrders('admin', null, (orders) => {
+        localOrders = orders;
+        renderTable();
+    });
+
+    listeners.push(unsubProducts);
+    listeners.push(unsubOrders);
 }
 
 function renderShop($container) {
@@ -300,7 +384,10 @@ function renderDriverJobs($container) {
                      <h3 class="font-bold text-lg">Order #${o.id.slice(0, 6)}</h3>
                      <span class="text-blue-600 font-bold">RM ${o.total}</span>
                 </div>
-                <p class="text-gray-500 text-sm mb-4">Location: Client Address...</p>
+                <div class="mb-4">
+                    <p class="font-bold text-gray-800">${o.storeName || o.clientName || 'Client'}</p>
+                    <p class="text-gray-500 text-sm truncate">${o.deliveryAddress || 'No address'}</p>
+                </div>
                 <button onclick="pickJob('${o.id}')" class="mt-auto w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Pick Job</button>
             </div>
         `).join('');
@@ -323,6 +410,11 @@ function renderDriverDeliveries($container) {
                 <div class="flex justify-between mb-2">
                      <h3 class="font-bold">Order #${o.id.slice(0, 6)}</h3>
                      <span class="text-blue-600 font-bold">RM ${o.total}</span>
+                </div>
+                <div class="mb-4 p-3 bg-gray-50 rounded text-sm">
+                    <p class="font-bold text-gray-800">${o.storeName || o.clientName || 'Client'}</p>
+                    <p class="text-gray-600">${o.deliveryAddress || 'No address provided'}</p>
+                    <a href="https://maps.google.com/?q=${encodeURIComponent(o.deliveryAddress || '')}" target="_blank" class="text-blue-500 hover:underline text-xs mt-1 block">Open in Maps</a>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="updateStatus('${o.id}', 'delivering', '${uid}')" class="flex-1 bg-yellow-100 text-yellow-800 py-2 rounded text-sm font-semibold hover:bg-yellow-200">Start Delivery</button>
@@ -367,6 +459,44 @@ function renderInvoices($container) {
              </tr>
         `).join('');
         $('#invoice-table-body').html(rows);
+    });
+    listeners.push(unsub);
+}
+
+function renderClients($container) {
+    $container.html(`
+        <h2 class="text-2xl font-bold mb-6">Client Management</h2>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                 <table class="w-full text-left text-sm min-w-[600px]">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="p-4">Name</th>
+                            <th class="p-4">Email</th>
+                            <th class="p-4">Store Name</th>
+                            <th class="p-4">Address</th>
+                            <th class="p-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    `);
+
+    const unsub = dbAPI.getUsers('client', (users) => {
+        const rows = users.map(u => `
+            <tr class="border-b border-gray-50">
+                <td class="p-4 font-bold text-gray-800">${u.name || '-'}</td>
+                <td class="p-4 text-gray-500">${u.email}</td>
+                <td class="p-4">${u.storeName || '<span class="text-gray-300 italic">Not Set</span>'}</td>
+                <td class="p-4 truncate max-w-xs">${u.address || '<span class="text-gray-300 italic">Not Set</span>'}</td>
+                <td class="p-4">
+                    <button onclick="openEditClientModal('${u.uid}', '${u.name || ''}', '${u.storeName || ''}', '${u.address || ''}')" class="text-blue-600 hover:underline">Edit</button>
+                </td>
+            </tr>
+        `).join('');
+        $('#clients-table-body').html(rows);
     });
     listeners.push(unsub);
 }
@@ -421,6 +551,9 @@ window.goToCart = function () {
 window.submitOrder = async function (total) {
     const order = {
         clientId: auth.currentUser.uid,
+        clientName: currentUser.name || 'Unknown',
+        storeName: currentUser.storeName || '',
+        deliveryAddress: currentUser.address || 'No address provided',
         items: cart,
         total: total,
         status: 'pending',
@@ -505,3 +638,97 @@ function openAddProductModal() {
         $('#modal-bg').remove();
     });
 }
+
+function openEditClientModal(uid, name, storeName, address) {
+    // If values are 'undefined' string or null, reset
+    const html = `
+     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Edit Client Profile</h3>
+            <form id="edit-client-form" class="space-y-4">
+                <input type="hidden" name="uid" value="${uid}">
+                <div>
+                     <label class="block text-sm font-medium text-gray-700">Client Name</label>
+                     <input type="text" class="w-full border p-2 rounded" name="name" value="${name}">
+                </div>
+                <div>
+                     <label class="block text-sm font-medium text-gray-700">Store Name</label>
+                     <input type="text" class="w-full border p-2 rounded" name="storeName" value="${storeName}">
+                </div>
+                <div>
+                     <label class="block text-sm font-medium text-gray-700">Address (Delivery)</label>
+                     <textarea class="w-full border p-2 rounded" name="address" rows="3">${address}</textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+                </div>
+            </form>
+        </div>
+     </div>
+    `;
+    $('body').append(html);
+
+    $('#edit-client-form').submit(async (e) => {
+        e.preventDefault();
+        const data = {
+            name: $('input[name="name"]').val(),
+            storeName: $('input[name="storeName"]').val(),
+            address: $('textarea[name="address"]').val()
+        };
+        await dbAPI.updateUserProfile(uid, data);
+        $('#modal-bg').remove();
+    });
+}
+window.openEditClientModal = openEditClientModal;
+window.openAddProductModal = openAddProductModal;
+
+function openRestockModal(id, name, currentSupplier) {
+    const html = `
+     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Restock / Supplier Order</h3>
+            <p class="text-sm text-gray-500 mb-4">Ordering stock for: <strong>${name}</strong></p>
+            <form id="restock-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Supplier</label>
+                    <input type="text" class="w-full border p-2 rounded" name="supplier" value="${currentSupplier}" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Quantity to Order</label>
+                    <input type="number" class="w-full border p-2 rounded" name="quantity" required min="1">
+                </div>
+                <!-- 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Total Cost (RM)</label>
+                    <input type="number" class="w-full border p-2 rounded" name="cost" placeholder="Optional">
+                </div>
+                -->
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirm Purchase</button>
+                </div>
+            </form>
+        </div>
+     </div>
+    `;
+    $('body').append(html);
+
+    $('#restock-form').submit(async (e) => {
+        e.preventDefault();
+        const addedQty = parseInt($('input[name="quantity"]').val());
+        const supplier = $('input[name="supplier"]').val();
+
+        // Get current product to add to existing quantity
+        const doc = await db.collection('products').doc(id).get();
+        const currentQty = doc.data().quantity || 0;
+
+        await dbAPI.updateProduct(id, {
+            quantity: currentQty + addedQty,
+            supplier: supplier // Update supplier if changed
+        });
+
+        $('#modal-bg').remove();
+    });
+}
+window.openRestockModal = openRestockModal;
