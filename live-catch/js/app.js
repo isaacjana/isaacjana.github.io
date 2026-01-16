@@ -28,10 +28,16 @@ const views = {
     setup: document.getElementById('view-setup')
 };
 
-const navBtns = {
+const buttons = {
     client: document.getElementById('nav-btn-client'),
     supplier: document.getElementById('nav-btn-supplier'),
-    driver: document.getElementById('nav-btn-driver')
+    driver: document.getElementById('nav-btn-driver'),
+    setup: document.getElementById('btn-global-setup'),
+    // Mobile buttons
+    m_client: document.getElementById('mobile-btn-client'),
+    m_supplier: document.getElementById('mobile-btn-supplier'),
+    m_driver: document.getElementById('mobile-btn-driver'),
+    m_setup: document.getElementById('mobile-btn-setup')
 };
 
 const labels = {
@@ -86,7 +92,7 @@ async function init() {
     // 4. Bind Events
     document.getElementById('btn-login-google').onclick = () => loginWithGoogle();
     document.getElementById('btn-logout').onclick = () => logout();
-    document.getElementById('btn-global-setup').onclick = () => showSection('setup');
+    buttons.setup.onclick = () => showSection('setup'); // Use the new buttons object
 
     document.querySelectorAll('.role-selector').forEach(btn => {
         btn.onclick = async () => {
@@ -97,9 +103,17 @@ async function init() {
         };
     });
 
-    Object.keys(navBtns).forEach(role => {
-        navBtns[role].onclick = () => switchToRole(role);
+    // Desktop nav buttons
+    ['client', 'supplier', 'driver'].forEach(role => {
+        buttons[role].onclick = () => switchToRole(role);
     });
+
+    // Mobile nav buttons
+    ['m_client', 'm_supplier', 'm_driver'].forEach(btnKey => {
+        buttons[btnKey].onclick = () => switchToRole(btnKey.substring(2)); // Extract role from 'm_role'
+    });
+    buttons.m_setup.onclick = () => showSection('setup');
+
 
     setupSetupForms();
 
@@ -136,13 +150,33 @@ function switchToRole(role) {
     showSection(role);
     labels.role.innerText = `${role.toUpperCase()} VIEW`;
 
-    // Update Nav Buttons
-    Object.keys(navBtns).forEach(r => {
-        navBtns[r].classList.toggle('bg-white', r === role);
-        navBtns[r].classList.toggle('shadow-sm', r === role);
-        navBtns[r].classList.toggle('text-primary', r === role);
-        navBtns[r].classList.toggle('text-slate-500', r !== role);
+    // Update Desktop Nav Buttons
+    ['client', 'supplier', 'driver'].forEach(r => {
+        buttons[r].classList.toggle('bg-white', r === role);
+        buttons[r].classList.toggle('shadow-sm', r === role);
+        buttons[r].classList.toggle('text-primary', r === role);
+        buttons[r].classList.toggle('text-slate-500', r !== role);
     });
+
+    // Update Mobile Nav Buttons
+    const mobileKeys = { client: 'm_client', supplier: 'm_supplier', driver: 'm_driver' };
+    Object.entries(mobileKeys).forEach(([key, btnKey]) => {
+        const btn = buttons[btnKey];
+        if (btn) {
+            if (key === role) {
+                btn.classList.add('text-indigo-600');
+                btn.classList.remove('text-slate-400');
+            } else {
+                btn.classList.remove('text-indigo-600');
+                btn.classList.add('text-slate-400');
+            }
+        }
+    });
+    // Ensure mobile setup button is not highlighted when switching roles
+    if (buttons.m_setup) {
+        buttons.m_setup.classList.remove('text-indigo-600');
+        buttons.m_setup.classList.add('text-slate-400');
+    }
 
     // Refresh Profile fields in setup
     populateSetupFields();
@@ -153,9 +187,32 @@ function showSection(sectionKey) {
         views[k].classList.toggle('hidden', k !== sectionKey);
     });
 
+    // Special case for mobile setup button highlighting
+    if (sectionKey === 'setup') {
+        const mSetup = buttons['m_setup'];
+        if (mSetup) {
+            mSetup.classList.add('text-indigo-600');
+            mSetup.classList.remove('text-slate-400');
+            // Deactivate other mobile role buttons
+            ['m_client', 'm_supplier', 'm_driver'].forEach(k => {
+                buttons[k]?.classList.remove('text-indigo-600');
+                buttons[k]?.classList.add('text-slate-400');
+            });
+        }
+    } else {
+        // If not setup, ensure mobile setup button is not highlighted
+        if (buttons.m_setup) {
+            buttons.m_setup.classList.remove('text-indigo-600');
+            buttons.m_setup.classList.add('text-slate-400');
+        }
+    }
+
     // Explicit map resize
     if (sectionKey === 'driver') {
-        setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+        // Use requestAnimationFrame for more robust map resizing, especially on mobile
+        requestAnimationFrame(() => {
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+        });
     }
 }
 
