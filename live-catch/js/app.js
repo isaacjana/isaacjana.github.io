@@ -337,29 +337,46 @@ function renderAllViews(currentView = null) {
 
 function renderClientView() {
     containers.clientStock.innerHTML = '';
-    // Use client specific stock if available, else primary
-    const displayStock = (activeClientId && Object.keys(clientStockData).length > 0) ? clientStockData : stockData;
+
+    // Merge Strategy: Start with global stock, then overlay B2B specifics
+    let displayStock = { ...stockData };
+    if (activeClientId && clientStockData && Object.keys(clientStockData).length > 0) {
+        // Overlay B2B prices/items
+        Object.entries(clientStockData).forEach(([id, item]) => {
+            displayStock[id] = {
+                ...(displayStock[id] || {}),
+                ...item,
+                isB2B: true // Mark for the UI tag
+            };
+        });
+    }
 
     Object.entries(displayStock).forEach(([id, item]) => {
-        const isSoldOut = item.quantity <= 0;
+        if (!item) return;
+        const isSoldOut = (item.quantity || 0) <= 0;
+        const itemName = item.name || "Unknown Item";
+        const itemPrice = item.price || 0;
+        const itemUnit = item.unit || "unit";
+        const itemImage = item.image || 'https://placehold.co/600x400/f8fafc/64748b?text=Ocean+Live+Catch';
+
         const card = document.createElement('div');
         card.className = `role-card bg-white p-4 rounded-[2rem] border shadow-sm transition-all group ${isSoldOut ? 'opacity-60' : ''}`;
         card.innerHTML = `
             <div class="relative h-48 rounded-[1.5rem] overflow-hidden bg-slate-100 mb-4">
-                <img src="${item.image}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-110" onerror="this.src='https://placehold.co/600x400/f8fafc/64748b?text=${encodeURIComponent(item.name)}'">
+                <img src="${itemImage}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-110" onerror="this.src='https://placehold.co/600x400/f8fafc/64748b?text=${encodeURIComponent(itemName)}'">
                 ${isSoldOut ? '<div class="absolute inset-0 bg-red-500/10 backdrop-blur-[1px] flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-1 rounded-full text-xs font-black">OUT OF STOCK</span></div>' : ''}
-                ${activeClientId && clientStockData[id] ? '<div class="absolute top-3 left-3 bg-indigo-600 text-[8px] font-black text-white px-2 py-1 rounded-md uppercase">B2B Exclusive</div>' : ''}
+                ${item.isB2B ? '<div class="absolute top-3 left-3 bg-indigo-600 text-[8px] font-black text-white px-2 py-1 rounded-md uppercase">B2B Exclusive</div>' : ''}
             </div>
             <div class="px-2">
                 <div class="flex justify-between items-start mb-3">
-                    <h3 class="font-bold text-lg leading-tight text-slate-800">${item.name}</h3>
+                    <h3 class="font-bold text-lg leading-tight text-slate-800">${itemName}</h3>
                     <div class="text-right">
-                        <span class="text-primary font-black block leading-none text-xl">RM ${item.price}</span>
-                        <span class="text-[9px] uppercase font-bold text-slate-400">per ${item.unit}</span>
+                        <span class="text-primary font-black block leading-none text-xl">RM ${itemPrice}</span>
+                        <span class="text-[9px] uppercase font-bold text-slate-400">per ${itemUnit}</span>
                     </div>
                 </div>
                 <button 
-                    onclick="handleOrder('${id}', '${item.name}')"
+                    onclick="handleOrder('${id}', '${itemName.replace(/'/g, "\\'")}')"
                     ${isSoldOut ? 'disabled' : ''}
                     class="w-full py-4 rounded-2xl font-black transition-all ${isSoldOut ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-white shadow-xl shadow-slate-900/10 hover:bg-slate-900 active:scale-95'}"
                 >
@@ -556,11 +573,13 @@ function setupBusinessLogic() {
 
         clients.forEach(client => {
             const tr = document.createElement('tr');
+            const clientId = client.name.replace(/\s+/g, '_').toLowerCase();
             tr.innerHTML = `
-                <td class="px-6 py-4 font-bold text-slate-800">${client.name}</td>
-                <td class="px-6 py-4 text-slate-500">${client.address}</td>
-                <td class="px-6 py-4 text-right">
-                    <button onclick="handleSelectClient('${client.name}', '${client.address}')" class="text-[10px] font-black uppercase text-indigo-600 hover:underline">Select Client</button>
+                <td class="px-10 py-6 font-bold text-slate-800">${client.name}</td>
+                <td class="px-10 py-6 text-slate-500">${client.address}</td>
+                <td class="px-10 py-6 text-right space-x-4">
+                    <button onclick="handleManageItems('${clientId}', '${client.name}')" class="text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-600 transition-colors">Manage B2B</button>
+                    <button onclick="handleSelectClient('${client.name}', '${client.address}')" class="px-4 py-2 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase rounded-lg hover:bg-indigo-100 transition-all">Select Client</button>
                 </td>
             `;
             list.appendChild(tr);
@@ -609,20 +628,20 @@ window.handleSelectClient = (name, address) => {
 };
 
 window.handleManageItems = (id, name) => {
-    const itemName = prompt(`Add Custom Item for ${name}:`);
+    const itemName = prompt(`Add/Override Item for "${name}":`, "Tiger Prawn (L)");
     if (!itemName) return;
-    const price = parseFloat(prompt(`Price for ${name} (RM):`));
+    const price = parseFloat(prompt(`B2B Price for "${itemName}" (RM):`, "40.00"));
     if (isNaN(price)) return;
 
     createClientStockItem(id, {
         name: itemName,
         price: price,
         unit: 'kg',
-        image: 'https://images.unsplash.com/photo-1559737558-2f57377f6b98?q=80&w=200&auto=format&fit=crop',
+        image: 'https://images.pexels.com/photos/19598204/pexels-photo-19598204.jpeg?auto=compress&cs=tinysrgb&w=800',
         quantity: 100
     });
 
-    recordAudit(currentUser.uid, 'ADD_CLIENT_ITEM', `Added ${itemName} to ${name} catalog.`);
+    recordAudit(currentUser.uid, 'ADD_CLIENT_ITEM', `Set special price RM ${price} for ${itemName} at ${name}.`);
 };
 
 window.handleUndoPickup = async (orderId) => {
@@ -727,16 +746,13 @@ window.handleOrder = async (id, name) => {
     }
 
     try {
-        // Robust item source selection
-        let item = null;
-        if (activeClientId && clientStockData && clientStockData[id]) {
-            item = clientStockData[id];
-        } else if (stockData && stockData[id]) {
-            item = stockData[id];
-        }
+        // Robust item source selection (Merged Strategy)
+        const baseItem = stockData[id] || {};
+        const overrideItem = (activeClientId && clientStockData) ? (clientStockData[id] || {}) : {};
+        const item = { ...baseItem, ...overrideItem };
 
-        if (!item) {
-            alert("Error: Item no longer available. Please refresh.");
+        if (!item.name || !item.price) {
+            alert("Error: Item data incomplete. Please refresh.");
             return;
         }
 
