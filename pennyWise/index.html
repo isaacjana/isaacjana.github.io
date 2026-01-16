@@ -1,90 +1,355 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PennyWise Pro</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PennyWise Pro | Sarawak Budget Planner 2026</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script>
-        tailwind.config = { darkMode: 'class' };
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        jungle: {
+                            50: '#f0f9f4',
+                            100: '#dcf1e6',
+                            200: '#bbe3cd',
+                            300: '#8ecda9',
+                            400: '#5dad7f',
+                            500: '#3d8e61',
+                            600: '#2d724d',
+                            700: '#265b40',
+                            800: '#214935',
+                            900: '#004B23', // Sarawak Jungle Green
+                            DEFAULT: '#004B23'
+                        },
+                        coral: '#FF6B6B',
+                        mint: '#2ECC71'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                }
+            }
         }
     </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .nav-active { @apply text-indigo-500 bg-indigo-500/10 font-bold; }
-        ::-webkit-scrollbar { display: none; }
-        body { -webkit-tap-highlight-color: transparent; }
-        .transition-all { transition: all 0.3s ease; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #004B23;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background-color: #F8FAFC;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-[#050505] dark:text-slate-100 font-sans antialiased">
 
-    <div id="auth-overlay" class="fixed inset-0 bg-white dark:bg-[#050505] z-[100] flex items-center justify-center">
-        <div class="text-center p-6">
-            <div class="w-20 h-20 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl">
-                <i class="fas fa-wallet text-white text-3xl"></i>
+<body class="pb-24">
+
+    <!-- Header Section -->
+    <header class="bg-jungle-900 text-white pt-8 pb-16 px-6 rounded-b-[40px] shadow-2xl">
+        <div class="max-w-md mx-auto flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">PennyWise Pro</h1>
+                <p class="text-xs text-jungle-200 opacity-80">Kuching | Budget Planner 2026</p>
             </div>
-            <h1 class="text-4xl font-black mb-10 tracking-tight">PennyWise</h1>
-            <button id="btn-login" class="bg-slate-900 dark:bg-white text-white dark:text-black px-10 py-4 rounded-2xl font-bold flex items-center mx-auto transition active:scale-95 shadow-xl">
-                <i class="fab fa-google mr-3"></i> Continue with Google
-            </button>
+            <div class="flex items-center gap-3">
+                <div class="text-right hidden sm:block">
+                    <p id="user-name" class="text-[10px] font-bold uppercase tracking-wider text-jungle-200"></p>
+                    <button id="btn-logout"
+                        class="text-[8px] text-white/50 hover:text-white uppercase font-bold">Logout</button>
+                </div>
+                <div
+                    class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md overflow-hidden">
+                    <img id="user-photo" src="" class="hidden w-full h-full object-cover">
+                    <i id="user-icon" class="fa-solid fa-user text-lg"></i>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div id="app" class="hidden pb-24 lg:pl-64">
-        <aside class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-white dark:bg-[#0a0a0a] border-r border-slate-200 dark:border-white/5 flex-col p-6">
-            <div class="text-2xl font-black text-indigo-600 mb-10 px-4">PENNYWISE</div>
-            <nav class="space-y-2 flex-1">
-                <button data-screen="dashboard" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl"><i class="fas fa-home"></i> <span>Dashboard</span></button>
-                <button data-screen="subs" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400"><i class="fas fa-calendar-check"></i> <span>Subscriptions</span></button>
-                <button data-screen="streak" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400"><i class="fas fa-fire"></i> <span>Streaks</span></button>
-                <button data-screen="settings" class="nav-link w-full flex items-center space-x-3 p-4 rounded-2xl text-slate-400"><i class="fas fa-cog"></i> <span>Settings</span></button>
-            </nav>
-        </aside>
+        <div class="max-w-md mx-auto text-center mt-4">
+            <p class="text-jungle-100 text-sm font-medium uppercase tracking-wider mb-1">Total Remaining Balance</p>
+            <h2 id="total-balance" class="text-4xl font-bold tracking-tighter mb-1">RM 0.00</h2>
+            <div class="flex justify-center gap-2">
+                <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-sm">Real-time Sync</span>
+                <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-sm">Sarawak Edition</span>
+            </div>
+        </div>
+    </header>
 
-        <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t dark:border-white/5 flex justify-around p-5 z-50">
-            <button data-screen="dashboard" class="nav-link"><i class="fas fa-home text-xl"></i></button>
-            <button data-screen="subs" class="nav-link"><i class="fas fa-calendar-check text-xl"></i></button>
-            <button data-screen="streak" class="nav-link"><i class="fas fa-fire text-xl"></i></button>
-            <button data-screen="settings" class="nav-link"><i class="fas fa-cog text-xl"></i></button>
-        </nav>
+    <main class="max-w-md mx-auto px-6 -mt-10 space-y-6">
 
-        <button id="open-add-modal" class="fixed bottom-24 lg:bottom-8 right-6 bg-indigo-600 text-white w-14 h-14 rounded-2xl shadow-xl z-40 active:scale-90 transition-transform">
-            <i class="fas fa-plus"></i>
+        <!-- Tab Switcher (Optional) - Using a simple stacked scroll for now -->
+
+        <!-- Section 1: Gross Salary & Net Income -->
+        <section class="glass-card rounded-3xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div
+                    class="w-10 h-10 bg-jungle-100 rounded-2xl flex items-center justify-center text-jungle-700 font-bold">
+                    RM
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-800">Gaji Bulanan</h3>
+                    <p class="text-xs text-gray-400">Monthly Gross Income</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="relative">
+                    <input type="number" id="gross-salary" placeholder="0.00"
+                        class="w-full text-3xl font-bold text-jungle-900 bg-transparent border-b-2 border-jungle-100 focus:border-jungle-500 outline-none pb-2 placeholder:text-gray-200"
+                        pattern="\d*" inputmode="decimal">
+                    <span class="absolute right-0 bottom-2 text-gray-400 font-medium">Gross</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 pt-2">
+                    <div class="p-3 bg-gray-50 rounded-2xl">
+                        <p class="text-[10px] text-gray-500 uppercase font-semibold">Total Deductions</p>
+                        <p id="total-deductions" class="text-sm font-bold text-red-500">RM 0.00</p>
+                    </div>
+                    <div class="p-3 bg-jungle-50 rounded-2xl">
+                        <p class="text-[10px] text-jungle-600 uppercase font-semibold">Net Spendable</p>
+                        <p id="net-salary" class="text-sm font-bold text-jungle-700">RM 0.00</p>
+                    </div>
+                </div>
+
+                <div id="statutory-breakdown"
+                    class="text-[10px] text-gray-400 flex flex-wrap gap-x-4 gap-y-1 pt-1 italic">
+                    <!-- Dynamic details: EPF, SOCSO, EIS, PCB -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Budget Rule 50/30/20 -->
+        <section class="glass-card rounded-3xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="font-bold text-gray-800">Budget Allocation</h3>
+                    <p class="text-xs text-gray-400">The 50/30/20 Rule</p>
+                </div>
+                <div class="w-24">
+                    <canvas id="budgetChart"></canvas>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Needs -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="font-semibold text-gray-700"><i
+                                class="fa-solid fa-house-chimney text-blue-500 mr-2"></i>Needs</span>
+                        <span id="needs-val" class="text-jungle-700 font-bold">50%</span>
+                    </div>
+                    <input type="range" id="slider-needs" min="0" max="100" value="50"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                    <div class="flex justify-between text-[10px] text-gray-400">
+                        <span>Rent, Bills, Groceries</span>
+                        <span id="needs-amount" class="font-medium text-gray-600">RM 0.00</span>
+                    </div>
+                </div>
+
+                <!-- Wants -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="font-semibold text-gray-700"><i
+                                class="fa-solid fa-utensils text-orange-500 mr-2"></i>Wants</span>
+                        <span id="wants-val" class="text-jungle-700 font-bold">30%</span>
+                    </div>
+                    <input type="range" id="slider-wants" min="0" max="100" value="30"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                    <div class="flex justify-between text-[10px] text-gray-400">
+                        <span>Makan, Shop, Fun</span>
+                        <span id="wants-amount" class="font-medium text-gray-600">RM 0.00</span>
+                    </div>
+                </div>
+
+                <!-- Savings -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="font-semibold text-gray-700"><i
+                                class="fa-solid fa-piggy-bank text-emerald-500 mr-2"></i>Savings</span>
+                        <span id="savings-val" class="text-jungle-700 font-bold">20%</span>
+                    </div>
+                    <input type="range" id="slider-savings" min="0" max="100" value="20"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                    <div class="flex justify-between text-[10px] text-gray-400">
+                        <span>ASB, Emergency, Debt</span>
+                        <span id="savings-amount" class="font-medium text-gray-600">RM 0.00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Expense Progress -->
+        <section class="glass-card rounded-3xl p-6">
+            <h3 class="font-bold text-gray-800 mb-4">Spending Status</h3>
+
+            <div class="space-y-4">
+                <!-- Wants Progress -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium">Wants Spending</span>
+                        <span id="wants-spending-stat" class="font-bold">RM 0.00 / RM 0.00</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2.5">
+                        <div id="wants-progress-bar"
+                            class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Needs Progress -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium">Needs Spending</span>
+                        <span id="needs-spending-stat" class="font-bold text-gray-500">RM 0.00 / RM 0.00</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2.5">
+                        <div id="needs-progress-bar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-500"
+                            style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Recent Transactions -->
+        <section class="glass-card rounded-3xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-gray-800">Recent Makan & Shopping</h3>
+                <button id="btn-add-expense"
+                    class="text-jungle-700 text-xs font-bold uppercase hover:bg-jungle-50 px-2 py-1 rounded-lg">View
+                    All</button>
+            </div>
+
+            <div id="expenses-list" class="space-y-3 min-h-[100px]">
+                <!-- Dynamic list items -->
+                <div class="flex items-center justify-center h-full text-gray-300 italic text-sm py-4">
+                    Belum ada rekaman makan-makan...
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Floating Quick Add Button -->
+    <div class="fixed bottom-8 left-0 right-0 px-6 max-w-md mx-auto flex justify-center">
+        <button id="quick-add-trigger"
+            class="bg-jungle-900 text-white w-full py-4 rounded-2xl shadow-xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <i class="fa-solid fa-plus-circle"></i> Catat Belanja Baru
         </button>
-
-        <main id="screen-container" class="max-w-xl mx-auto p-6 pt-10"></main>
     </div>
 
-    <div id="modal-transaction" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-end lg:items-center justify-center p-4">
-        <div class="bg-white dark:bg-[#121212] w-full max-w-md rounded-[2.5rem] p-8 border dark:border-white/5">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-black">New Entry</h2>
-                <button class="close-modal bg-slate-100 dark:bg-white/5 w-8 h-8 rounded-full"><i class="fas fa-times"></i></button>
+    <!-- Quick Add Modal -->
+    <div id="modal-backdrop"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="modal-content"
+            class="bg-white w-full max-w-md rounded-t-[32px] sm:rounded-[32px] p-8 space-y-6 translate-y-full transition-transform duration-300">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Quick Add Expense</h3>
+                <button id="modal-close" class="text-gray-400 bg-gray-100 rounded-full p-2"><i
+                        class="fa-solid fa-times w-5 h-5 flex items-center justify-center"></i></button>
             </div>
-            <form id="form-transaction" class="space-y-4">
-                <input type="number" id="tr-amount" placeholder="0.00" step="0.01" class="w-full text-5xl font-black text-center bg-transparent focus:outline-none dark:text-white" required>
-                <input type="text" id="tr-desc" placeholder="Description" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-2xl border-none outline-none" required>
-                <select id="tr-category" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-2xl outline-none dark:text-white">
-                    <option value="Food">🍔 Food & Drink</option>
-                    <option value="Essential">🏠 Essential/Rent</option>
-                    <option value="Subscription">📺 Subscription</option>
-                    <option value="Fun">🍿 Entertainment</option>
-                    <option value="Health">💊 Health</option>
-                </select>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold">Save</button>
-            </form>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">How much?</label>
+                    <div class="relative">
+                        <span class="absolute left-0 bottom-2 text-xl font-bold text-gray-400">RM</span>
+                        <input type="number" id="exp-amount" placeholder="0.00"
+                            class="w-full text-4xl font-bold text-jungle-900 bg-transparent border-b-2 border-gray-100 focus:border-jungle-500 outline-none pb-2 pl-12 placeholder:text-gray-100"
+                            pattern="\d*" inputmode="decimal">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Category</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button"
+                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
+                            data-cat="Needs">
+                            <i class="fa-solid fa-house-chimney text-blue-500"></i>
+                            <span class="text-[10px] font-bold">NEEDS</span>
+                        </button>
+                        <button type="button"
+                            class="cat-btn border-2 border-gray-100 rounded-2xl py-3 flex flex-col items-center gap-1 active:bg-jungle-50"
+                            data-cat="Wants">
+                            <i class="fa-solid fa-utensils text-orange-500"></i>
+                            <span class="text-[10px] font-bold">WANTS</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">What for?</label>
+                    <input type="text" id="exp-name" placeholder="E.g. Laksa Sarawak, Bill Sesco"
+                        class="w-full bg-gray-50 border-0 rounded-2xl p-4 focus:ring-2 focus:ring-jungle-500 outline-none text-gray-700 font-medium">
+                </div>
+
+                <button id="save-expense"
+                    class="w-full bg-jungle-900 text-white py-4 rounded-2xl font-bold shadow-lg mt-4 disabled:opacity-50">
+                    Simpan Belanja
+                </button>
+            </div>
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <!-- Scripts -->
+    <!-- Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase (v8 compat) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay"
+        class="fixed inset-0 bg-jungle-900 z-[100] flex flex-col items-center justify-center p-8 text-white hidden">
+        <div class="text-center space-y-6 max-w-xs">
+            <div
+                class="w-24 h-24 bg-white/10 rounded-[32px] flex items-center justify-center mx-auto backdrop-blur-xl mb-4">
+                <i class="fa-solid fa-wallet text-5xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold tracking-tight">PennyWise Pro</h2>
+            <p class="text-jungle-100 opacity-80 text-sm">Urus Gaji & Simpanan dengan Bijak. Sarawak 2026 Edition.</p>
+
+            <button id="btn-login"
+                class="w-full bg-white text-jungle-900 py-4 rounded-2xl font-bold shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6"
+                    alt="Google">
+                Login with Google
+            </button>
+            <p class="text-[10px] text-jungle-300 uppercase tracking-widest">Secured by Firebase</p>
+        </div>
+    </div>
 </body>
+
 </html>

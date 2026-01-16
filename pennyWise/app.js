@@ -1,288 +1,430 @@
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // Change '/sw.js' to './sw.js'
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker Registered'))
-            .catch(err => console.error('Service Worker Failed:', err));
-    });
-}
+// PennyWise Pro - app.js
+// Sarawak Budget Planner 2026 Context
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, enableIndexedDbPersistence, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
+// --- FIREBASE INITIALIZATION ---
 const firebaseConfig = {
-    apiKey: "AIzaSyDsGbfRlXxqUwLHXbGcwRYOvuygTPgTeMA",
-    authDomain: "penny-wise-e482e.firebaseapp.com",
-    projectId: "penny-wise-e482e",
-    storageBucket: "penny-wise-e482e.firebasestorage.app",
-    messagingSenderId: "504425521894",
-    appId: "1:504425521894:web:d3bf53689eaf6a3d5e9127"
+    apiKey: "AIzaSyBjemuEa89QZI68Ttv5iW9DjQMhLwU9Kmk",
+    authDomain: "penny-wise-bfdaa.firebaseapp.com",
+    projectId: "penny-wise-bfdaa",
+    storageBucket: "penny-wise-bfdaa.firebasestorage.app",
+    messagingSenderId: "438298356973",
+    appId: "1:438298356973:web:2b13a22ec61db8a34cb0e4"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+// --- STATE MANAGEMENT ---
+let currentUser = null;
+let state = {
+    grossSalary: 0,
+    netSalary: 0,
+    budget: {
+        needs: 50,
+        wants: 30,
+        savings: 20
+    },
+    expenses: []
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
+let budgetChart = null;
+let selectedCategory = null;
+let unsubscribeBudget = null;
+let unsubscribeExpenses = null;
 
-let currentUser = null;
-let allTransactions = [];
-let unsubscribe = null;
+// --- UTILITIES ---
+const formatRM = (amount) => {
+    return new Intl.NumberFormat('en-MY', {
+        style: 'currency',
+        currency: 'MYR',
+    }).format(amount).replace('MYR', 'RM');
+};
 
-// Offline Persistence
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') console.log("Multiple tabs open, persistence failed.");
-    else if (err.code == 'unimplemented') console.log("Browser does not support persistence.");
-});
+// --- LOGIC: INCOME CALCULATION ---
+/**
+ * STRICT 2026 Statutory Rules as per Mission:
+ * EPF: 11% (No Cap)
+ * SOCSO: 0.5%, Capped at RM6k Gross (Max ~RM29.75)
+ * EIS: 0.2%, Capped at RM6k Gross (Max ~RM11.90)
+ * PCB: 0% if <3.5k, 2% if 3.5k-6k
+ */
+function calculateNetIncome(gross) {
+    if (!gross || gross <= 0) return { net: 0, deductions: {} };
 
-// Authentication Observer
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        currentUser = user;
-        $('#auth-overlay').fadeOut();
-        $('#app').removeClass('hidden');
-        initDataListener();
-    } else {
-        if (unsubscribe) unsubscribe();
-        currentUser = null;
-        $('#auth-overlay').fadeIn();
-        $('#app').addClass('hidden');
+    // EPF
+    const epf = gross * 0.11;
+
+    // SOCSO (Capped at 6000 wage ceiling)
+    const socsoBasis = Math.min(gross, 6000);
+    const socso = socsoBasis * 0.005; // User said max ~29.75. 6000 * 0.005 is 30.00. 
+    // Usually table based, but user specifically asked for RM29.75 cap.
+    const finalSocso = Math.min(socso, 29.75);
+
+    // EIS (Capped at 6000 wage ceiling)
+    const eisBasis = Math.min(gross, 6000);
+    const eis = eisBasis * 0.002; // 6000 * 0.002 = 12.00.
+    const finalEis = Math.min(eis, 11.90);
+
+    // PCB PCB Estimator: Simple logic (0% if <RM3.5k, 2% if RM3.5k-6k)
+    let pcb = 0;
+    if (gross >= 3500) {
+        pcb = gross * 0.02;
     }
-});
 
-// Real-time Data Listener
-function initDataListener() {
-    const q = query(
-        collection(db, "transactions"), 
-        where("uid", "==", currentUser.uid), 
-        orderBy("date", "desc")
-    );
+    const totalDeductions = epf + finalSocso + finalEis + pcb;
+    const net = gross - totalDeductions;
 
-    unsubscribe = onSnapshot(q, (snap) => {
-        allTransactions = snap.docs.map(d => ({ 
-            id: d.id, 
-            ...d.data(),
-            date: d.data().date?.toDate() || new Date() 
-        }));
-        const activeScreen = $('.nav-link.nav-active').data('screen') || 'dashboard';
-        renderScreen(activeScreen);
-    }, (error) => {
-        console.error("Firestore Error:", error);
+    return {
+        net,
+        totalDeductions,
+        breakdown: { epf, socso: finalSocso, eis: finalEis, pcb }
+    };
+}
+
+// --- CORE UI UPDATES ---
+function updateUI() {
+    // 1. Calculate Deductions & Net
+    const result = calculateNetIncome(state.grossSalary);
+    state.netSalary = result.net;
+
+    // Update Income Section
+    $('#total-deductions').text(formatRM(result.totalDeductions));
+    $('#net-salary').text(formatRM(result.netSalary));
+
+    if (state.grossSalary > 0) {
+        const b = result.breakdown;
+        $('#statutory-breakdown').html(`
+            <span>EPF (11%): ${formatRM(b.epf)}</span>
+            <span>SOCSO: ${formatRM(b.socso)}</span>
+            <span>EIS: ${formatRM(b.eis)}</span>
+            <span>PCB (2%): ${formatRM(b.pcb)}</span>
+        `);
+    } else {
+        $('#statutory-breakdown').empty();
+    }
+
+    // 2. Budget Allocations
+    const needsBudget = state.netSalary * (state.budget.needs / 100);
+    const wantsBudget = state.netSalary * (state.budget.wants / 100);
+    const savingsBudget = state.netSalary * (state.budget.savings / 100);
+
+    $('#needs-amount').text(formatRM(needsBudget));
+    $('#wants-amount').text(formatRM(wantsBudget));
+    $('#savings-amount').text(formatRM(savingsBudget));
+
+    // 3. Spending Progress
+    const needsSpent = state.expenses.filter(e => e.category === 'Needs').reduce((acc, curr) => acc + curr.amount, 0);
+    const wantsSpent = state.expenses.filter(e => e.category === 'Wants').reduce((acc, curr) => acc + curr.amount, 0);
+
+    $('#needs-spending-stat').text(`${formatRM(needsSpent)} / ${formatRM(needsBudget)}`);
+    $('#wants-spending-stat').text(`${formatRM(wantsSpent)} / ${formatRM(wantsBudget)}`);
+
+    // Progress Bars
+    const needsPerc = needsBudget > 0 ? (needsSpent / needsBudget) * 100 : 0;
+    const wantsPerc = wantsBudget > 0 ? (wantsSpent / wantsBudget) * 100 : 0;
+
+    $('#needs-progress-bar').css('width', Math.min(needsPerc, 100) + '%');
+    $('#wants-progress-bar').css('width', Math.min(wantsPerc, 100) + '%');
+
+    // Visual Feedback: Coral Red if "Wants" exceeds budget
+    if (wantsPerc > 100) {
+        $('#wants-progress-bar').removeClass('bg-emerald-500').addClass('bg-red-500');
+    } else {
+        $('#wants-progress-bar').removeClass('bg-red-500').addClass('bg-emerald-500');
+    }
+
+    // 4. Remaining Balance
+    const totalSpent = state.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const remainingVal = state.netSalary - totalSpent;
+    $('#total-balance').text(formatRM(remainingVal));
+
+    // 5. Update Donut Chart
+    updateChart();
+
+    // 6. Update Expense List (Last 5)
+    renderExpenseList();
+}
+
+function updateChart() {
+    const data = [state.budget.needs, state.budget.wants, state.budget.savings];
+
+    if (!budgetChart) {
+        const ctx = document.getElementById('budgetChart').getContext('2d');
+        budgetChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Needs', 'Wants', 'Savings'],
+                datasets: [{
+                    data: data,
+                    backgroundColor: ['#3b82f6', '#f97316', '#10b981'],
+                    borderWidth: 0,
+                    cutout: '75%'
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    } else {
+        budgetChart.data.datasets[0].data = data;
+        budgetChart.update();
+    }
+}
+
+function renderExpenseList() {
+    const list = $('#expenses-list');
+    list.empty();
+
+    if (state.expenses.length === 0) {
+        list.append(`
+            <div class="flex items-center justify-center h-full text-gray-300 italic text-sm py-4">
+                Belum ada rekaman makan-makan...
+            </div>
+        `);
+        return;
+    }
+
+    // Show last 5
+    const latest = [...state.expenses].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
+
+    latest.forEach(exp => {
+        const icon = exp.category === 'Needs' ? 'fa-house-chimney text-blue-500' : 'fa-utensils text-orange-500';
+        list.append(`
+            <div class="flex items-center justify-between p-3 bg-white border border-gray-50 rounded-2xl shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center">
+                        <i class="fa-solid ${icon}"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800 text-sm">${exp.name}</p>
+                        <p class="text-[10px] text-gray-400 capitalize">${new Date(exp.timestamp).toLocaleDateString()} • ${exp.category}</p>
+                    </div>
+                </div>
+                <p class="font-bold text-gray-700">-${formatRM(exp.amount)}</p>
+            </div>
+        `);
     });
 }
 
-// Screen Router
-function renderScreen(screen) {
-    const container = $('#screen-container');
-    $('.nav-link').removeClass('nav-active text-indigo-500').addClass('text-slate-400');
-    $(`[data-screen="${screen}"]`).addClass('nav-active text-indigo-500');
+// --- DATA PERSISTENCE (FIRESTORE) ---
+function initDataSync() {
+    if (!currentUser) return;
 
-    if (screen === 'dashboard') renderDashboard(container);
-    else if (screen === 'subs') renderSubs(container);
-    else if (screen === 'streak') renderStreak(container);
-    else if (screen === 'settings') renderSettings(container);
-}
+    // Unsubscribe from previous listeners if any
+    if (unsubscribeBudget) unsubscribeBudget();
+    if (unsubscribeExpenses) unsubscribeExpenses();
 
-// Dashboard Logic (Burn Rate & Forecast)
-function renderDashboard(container) {
-    const goal = parseFloat(localStorage.getItem('budget_goal') || 5000);
-    const now = new Date();
-    const day = now.getDate();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    
-    const monthly = allTransactions.filter(t => t.date.getMonth() === now.getMonth());
-    const spent = monthly.reduce((s, t) => s + t.amount, 0);
-    const roundups = monthly.reduce((s, t) => s + (Math.ceil(t.amount) - t.amount), 0);
-    const forecast = day > 0 ? (spent / day) * daysInMonth : 0;
-    const pacePerc = Math.min((spent / goal) * 100, 100);
+    const userDocRef = db.collection('users').doc(currentUser.uid);
 
-    
+    // Listen to Budget Settings (Specific to User)
+    unsubscribeBudget = userDocRef.collection('settings').doc('currentMonth').onSnapshot((doc) => {
+        if (doc.exists) {
+            const data = doc.data();
+            state.grossSalary = data.grossSalary || 0;
+            state.budget = data.budget || { needs: 50, wants: 30, savings: 20 };
 
-    container.html(`
-        <div class="space-y-6">
-            <div class="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
-                <p class="text-[10px] font-bold uppercase opacity-60 tracking-widest">Monthly Forecast</p>
-                <h2 class="text-5xl font-black mt-1">$${forecast.toFixed(0)}</h2>
-                <div class="flex justify-between mt-8 pt-4 border-t border-white/10 text-sm">
-                    <div><p class="opacity-60">Daily Burn</p><p class="font-bold">$${(spent/day || 0).toFixed(2)}</p></div>
-                    <div><p class="opacity-60">Round-ups</p><p class="font-bold text-emerald-300">+$${roundups.toFixed(2)}</p></div>
-                </div>
-            </div>
+            // Sync inputs with state (only if not focused to avoid cursor jumping)
+            if (!$('#gross-salary').is(':focus')) $('#gross-salary').val(state.grossSalary || '');
+            if (!$('#slider-needs').is(':focus')) $('#slider-needs').val(state.budget.needs);
+            if (!$('#slider-wants').is(':focus')) $('#slider-wants').val(state.budget.wants);
+            if (!$('#slider-savings').is(':focus')) $('#slider-savings').val(state.budget.savings);
 
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white dark:bg-white/5 p-5 rounded-3xl border dark:border-white/5 shadow-sm">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Actual Spent</p>
-                    <p class="text-xl font-black">$${spent.toFixed(2)}</p>
-                </div>
-                <div class="bg-white dark:bg-white/5 p-5 rounded-3xl border dark:border-white/5 shadow-sm">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Budget Pace</p>
-                    <p class="text-xl font-black text-indigo-500">${pacePerc.toFixed(0)}%</p>
-                </div>
-            </div>
+            updateLabels();
+            updateUI();
+        } else {
+            // Initial setup for new user
+            userDocRef.collection('settings').doc('currentMonth').set({
+                grossSalary: 0,
+                budget: { needs: 50, wants: 30, savings: 20 }
+            });
+        }
+    });
 
-            <h3 class="font-bold text-slate-400 px-2 mt-4">Activity</h3>
-            <div class="space-y-3 pb-20">
-                ${allTransactions.length > 0 ? allTransactions.map(t => `
-                    <div class="bg-white dark:bg-white/5 p-4 rounded-2xl flex justify-between items-center border dark:border-white/5 shadow-sm transition-all">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">💰</div>
-                            <div>
-                                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">${t.description}</p>
-                                <div class="flex space-x-2 text-[10px] font-bold text-slate-500 uppercase">
-                                    <span>${t.category}</span>
-                                    <button onclick="window.editTr('${t.id}', '${t.description}', ${t.amount})" class="text-indigo-500 hover:text-indigo-600">Edit</button>
-                                    <button onclick="window.delTr('${t.id}')" class="text-red-500 hover:text-red-600">Del</button>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="font-black text-sm text-slate-800 dark:text-white">-$${t.amount.toFixed(2)}</p>
-                    </div>
-                `).join('') : '<p class="text-center py-10 text-slate-500">No transactions logged.</p>'}
-            </div>
-        </div>
-    `);
-}
-
-// Subscription Detection Logic
-function renderSubs(container) {
-    const subs = allTransactions.filter(t => t.category === 'Subscription');
-    const grouped = subs.reduce((acc, t) => {
-        const key = t.description.toLowerCase();
-        if (!acc[key]) acc[key] = { name: t.description, amount: t.amount, count: 0 };
-        acc[key].count++;
-        return acc;
-    }, {});
-
-    
-
-    container.html(`
-        <h1 class="text-3xl font-black mb-8">Subscriptions</h1>
-        <div class="space-y-4">
-            ${Object.values(grouped).map(s => `
-                <div class="bg-white dark:bg-white/5 p-5 rounded-3xl border dark:border-white/5 flex justify-between items-center shadow-sm">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 text-xl"><i class="fas fa-sync-alt"></i></div>
-                        <div><p class="font-bold text-lg">${s.name}</p><p class="text-xs text-slate-500">Recurring</p></div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-black text-indigo-500">-$${s.amount.toFixed(2)}</p>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">$${(s.amount * 12).toFixed(0)}/yr</p>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-center py-20 text-slate-500">No recurring bills detected.</p>'}
-        </div>
-    `);
-}
-
-// Streak Calculation Logic
-function renderStreak(container) {
-    const trDates = new Set(allTransactions.map(t => t.date.toDateString()));
-    let streak = 0;
-    let checkDate = new Date();
-    
-    while (!trDates.has(checkDate.toDateString())) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-        if (streak > 365) break; 
-    }
-
-    
-
-    container.html(`
-        <div class="text-center py-20">
-            <div class="w-44 h-44 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-8 relative">
-                <i class="fas fa-fire text-orange-500 text-7xl animate-pulse"></i>
-                <div class="absolute inset-0 border-4 border-orange-500/20 rounded-full animate-ping opacity-20"></div>
-            </div>
-            <h1 class="text-8xl font-black tracking-tighter">${streak}</h1>
-            <p class="text-slate-500 font-bold uppercase tracking-widest mt-4">Day No-Spend Streak</p>
-        </div>
-    `);
-}
-
-// Settings & Dark Mode
-function renderSettings(container) {
-    const isDark = document.documentElement.classList.contains('dark');
-    container.html(`
-        <h1 class="text-3xl font-black mb-8">Settings</h1>
-        <div class="bg-white dark:bg-white/5 p-8 rounded-[2.5rem] border dark:border-white/5 space-y-8 shadow-sm">
-            <div class="space-y-3">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Goal ($)</label>
-                <div class="flex space-x-2">
-                    <input id="set-goal" type="number" value="${localStorage.getItem('budget_goal') || 5000}" class="flex-1 bg-slate-100 dark:bg-white/5 p-4 rounded-2xl outline-none font-bold text-lg">
-                    <button id="save-budget" class="bg-indigo-600 text-white px-8 rounded-2xl font-bold transition active:scale-95">Set</button>
-                </div>
-            </div>
-            <div class="flex justify-between items-center py-4 border-t dark:border-white/5">
-                <span class="font-bold">Dark Mode</span>
-                <button id="toggle-theme" class="w-14 h-7 rounded-full ${isDark ? 'bg-indigo-600' : 'bg-slate-300'} relative transition-all">
-                    <div class="absolute top-1 ${isDark ? 'left-8' : 'left-1'} w-5 h-5 bg-white rounded-full transition-all"></div>
-                </button>
-            </div>
-            <button id="logout" class="w-full py-5 text-red-500 font-bold border border-red-500/10 rounded-2xl bg-red-500/5 transition active:scale-95">Sign Out</button>
-        </div>
-    `);
-}
-
-// Global UI Handlers
-$(document).on('click', '.nav-link', function() { renderScreen($(this).data('screen')); });
-$(document).on('click', '#btn-login', () => signInWithPopup(auth, provider));
-$(document).on('click', '#logout', () => signOut(auth));
-$(document).on('click', '#open-add-modal', () => $('#modal-transaction').fadeIn().css('display', 'flex'));
-$(document).on('click', '.close-modal', () => $('#modal-transaction').fadeOut());
-
-// CRUD Operations
-window.delTr = async (id) => { 
-    if (confirm("Delete this entry permanently?")) {
-        try { await deleteDoc(doc(db, "transactions", id)); } 
-        catch (e) { alert("Delete failed: " + e.message); }
-    }
-};
-
-window.editTr = async (id, currentDesc, currentAmount) => {
-    const newDesc = prompt("Edit Description:", currentDesc);
-    const newAmount = prompt("Edit Amount:", currentAmount);
-    if (newDesc && newAmount) {
-        try { 
-            await updateDoc(doc(db, "transactions", id), { 
-                description: newDesc, 
-                amount: parseFloat(newAmount) 
-            }); 
-        } catch (e) { alert("Edit failed: " + e.message); }
-    }
-};
-
-$(document).on('click', '#save-budget', () => { 
-    localStorage.setItem('budget_goal', $('#set-goal').val()); 
-    alert('Target Updated'); 
-    renderScreen('dashboard'); 
-});
-
-$(document).on('click', '#toggle-theme', () => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    renderScreen('settings');
-});
-
-$('#form-transaction').submit(async function(e) {
-    e.preventDefault();
-    const btn = $(this).find('button');
-    btn.prop('disabled', true).text('Saving...');
-    
-    try {
-        await addDoc(collection(db, "transactions"), {
-            uid: currentUser.uid,
-            amount: parseFloat($('#tr-amount').val()),
-            description: $('#tr-desc').val(),
-            category: $('#tr-category').val(),
-            date: new Date()
+    // Listen to Expenses (Specific to User)
+    unsubscribeExpenses = userDocRef.collection('expenses').orderBy('timestamp', 'desc').limit(20).onSnapshot((snapshot) => {
+        state.expenses = [];
+        snapshot.forEach(doc => {
+            state.expenses.push({ id: doc.id, ...doc.data() });
         });
-        $('#modal-transaction').fadeOut();
-        this.reset();
-    } catch (err) {
-        alert("Error saving transaction: " + err.message);
-    } finally {
-        btn.prop('disabled', false).text('Save');
-    }
+        updateUI();
+    });
+}
+
+function updateBudgetFirestore() {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser.uid).collection('settings').doc('currentMonth').update({
+        grossSalary: state.grossSalary,
+        budget: state.budget
+    });
+}
+
+function updateLabels() {
+    $('#needs-val').text(Math.round(state.budget.needs) + '%');
+    $('#wants-val').text(Math.round(state.budget.wants) + '%');
+    $('#savings-val').text(Math.round(state.budget.savings) + '%');
+}
+
+// --- AUTH LOGIC ---
+function handleAuthStatus() {
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            $('#login-overlay').addClass('hidden');
+            $('#user-name').text(user.displayName.split(' ')[0]);
+            if (user.photoURL) {
+                $('#user-photo').attr('src', user.photoURL).removeClass('hidden');
+                $('#user-icon').addClass('hidden');
+            }
+            initDataSync();
+        } else {
+            currentUser = null;
+            $('#login-overlay').removeClass('hidden');
+            $('#user-photo').addClass('hidden');
+            $('#user-icon').removeClass('hidden');
+            if (unsubscribeBudget) unsubscribeBudget();
+            if (unsubscribeExpenses) unsubscribeExpenses();
+            // Reset local state
+            state.expenses = [];
+            state.grossSalary = 0;
+            updateUI();
+        }
+    });
+}
+
+// --- EVENT HANDLERS ---
+$(document).ready(function () {
+
+    handleAuthStatus();
+
+    // Login / Logout
+    $('#btn-login').on('click', () => {
+        auth.signInWithPopup(provider).catch(err => alert("Login failed: " + err.message));
+    });
+
+    $('#btn-logout').on('click', () => {
+        auth.signOut();
+    });
+
+    // Gross Salary Input
+    $('#gross-salary').on('input', function () {
+        state.grossSalary = parseFloat($(this).val()) || 0;
+        updateUI();
+    });
+
+    // Debounce Firestore Update for Salary
+    let salaryTimeout;
+    $('#gross-salary').on('change', function () {
+        clearTimeout(salaryTimeout);
+        salaryTimeout = setTimeout(() => {
+            updateBudgetFirestore();
+        }, 1000);
+    });
+
+    // Sliders with auto-balancing logic
+    $('input[type="range"]').on('input', function () {
+        const id = $(this).attr('id');
+        const newVal = parseInt($(this).val());
+
+        const keys = ['needs', 'wants', 'savings'];
+        const changedKey = id.split('-')[1]; // needs, wants, or savings
+        const otherKeys = keys.filter(k => k !== changedKey);
+
+        // Calculate remaining to be distributed
+        const remaining = 100 - newVal;
+        const currentOthersSum = state.budget[otherKeys[0]] + state.budget[otherKeys[1]];
+
+        if (currentOthersSum === 0) {
+            // Split equally if both others are 0
+            state.budget[otherKeys[0]] = remaining / 2;
+            state.budget[otherKeys[1]] = remaining / 2;
+        } else {
+            // Distribute proportionally
+            state.budget[otherKeys[0]] = (state.budget[otherKeys[0]] / currentOthersSum) * remaining;
+            state.budget[otherKeys[1]] = (state.budget[otherKeys[1]] / currentOthersSum) * remaining;
+        }
+
+        state.budget[changedKey] = newVal;
+
+        // Sync inputs
+        $('#slider-needs').val(state.budget.needs);
+        $('#slider-wants').val(state.budget.wants);
+        $('#slider-savings').val(state.budget.savings);
+
+        updateLabels();
+        updateUI();
+    });
+
+    $('input[type="range"]').on('change', function () {
+        updateBudgetFirestore();
+    });
+
+    // Quick Add Modal
+    $('#quick-add-trigger').on('click', function () {
+        $('#modal-backdrop').removeClass('hidden');
+        setTimeout(() => {
+            $('#modal-content').removeClass('translate-y-full');
+        }, 10);
+    });
+
+    const closeModal = () => {
+        $('#modal-content').addClass('translate-y-full');
+        setTimeout(() => {
+            $('#modal-backdrop').addClass('hidden');
+        }, 300);
+    };
+
+    $('#modal-close, #modal-backdrop').on('click', function (e) {
+        if (e.target === this) closeModal();
+    });
+
+    // Category Selection
+    $('.cat-btn').on('click', function () {
+        $('.cat-btn').removeClass('border-jungle-500 bg-jungle-50 text-jungle-700').addClass('border-gray-100');
+        $(this).removeClass('border-gray-100').addClass('border-jungle-500 bg-jungle-50 text-jungle-700');
+        selectedCategory = $(this).data('cat');
+        checkSaveStatus();
+    });
+
+    // Save Expense
+    const checkSaveStatus = () => {
+        const amount = parseFloat($('#exp-amount').val()) || 0;
+        const name = $('#exp-name').val().trim();
+        $('#save-expense').prop('disabled', !(amount > 0 && selectedCategory && name));
+    };
+
+    $('#exp-amount, #exp-name').on('input', checkSaveStatus);
+
+    $('#save-expense').on('click', async function () {
+        if (!currentUser) return;
+        const amount = parseFloat($('#exp-amount').val());
+        const name = $('#exp-name').val();
+
+        const btn = $(this);
+        btn.prop('disabled', true).text('Menyimpan...');
+
+        try {
+            await db.collection('users').doc(currentUser.uid).collection('expenses').add({
+                name,
+                amount,
+                category: selectedCategory,
+                timestamp: Date.now()
+            });
+
+            // Reset & Close
+            $('#exp-amount').val('');
+            $('#exp-name').val('');
+            $('.cat-btn').removeClass('border-jungle-500 bg-jungle-50 text-jungle-700').addClass('border-gray-100');
+            selectedCategory = null;
+            closeModal();
+        } catch (error) {
+            console.error("Error adding expense: ", error);
+            alert("Gagal simpan rekaman. Cuba lagi!");
+        } finally {
+            btn.prop('disabled', false).text('Simpan Belanja');
+        }
+    });
+
 });
