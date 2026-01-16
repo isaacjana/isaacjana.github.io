@@ -872,14 +872,17 @@ function openManagePricesModal(userId, userName) {
 
     // Fetch products and current custom prices
     Promise.all([
-        new Promise(resolve => dbAPI.getProducts(resolve)()), // Just fetch once, simplified
+        db.collection('products').orderBy('name').get(),
         db.collection('users').doc(userId).collection('customPrices').get()
-    ]).then(([products, customPricesSnap]) => {
+    ]).then(([productsSnap, customPricesSnap]) => {
+        const products = [];
+        productsSnap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+
         const customPrices = {};
         customPricesSnap.forEach(doc => customPrices[doc.id] = doc.data().price);
 
         const rows = products.map(p => {
-            const currentPrice = customPrices[p.id] || '';
+            const currentPrice = customPrices[p.id] !== undefined ? customPrices[p.id] : '';
             return `
             <div class="flex justify-between items-center border-b pb-2">
                 <div>
