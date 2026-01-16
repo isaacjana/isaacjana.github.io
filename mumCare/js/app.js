@@ -207,18 +207,26 @@ function updateBagProgress(count) {
     if (percent === 100) badge.classList.replace('text-indigo-600', 'text-green-600');
 }
 
+// --- Global Event Handlers for HTML interop ---
+window.switchTab = (tab) => {
+    UI.switchTab(tab);
+    const btns = document.querySelectorAll('.nav-btn');
+    btns.forEach(b => b.classList.remove('nav-active'));
+    // Attempt to find the clicked button if possible, but UI.js handles the switch.
+    // We can further refine this by passing the event element or using data-tab.
+};
+
 // --- Event Listeners ---
 document.addEventListener('click', async (e) => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
 
-    // Tab Switching - Attach to window so onclick works in HTML
-    window.switchTab = (tab) => {
-        UI.switchTab(tab);
-        const btns = document.querySelectorAll('.nav-btn');
-        btns.forEach(b => b.classList.remove('nav-active'));
-        e.target.closest('.nav-btn')?.classList.add('nav-active');
-    };
+    if (e.target.closest('.nav-btn')) {
+        const tab = e.target.closest('.nav-btn').getAttribute('onclick').match(/'([^']+)'/)[1];
+        // switchTab is already called by onclick, this listener handles the UI visual feedback
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
+        e.target.closest('.nav-btn').classList.add('nav-active');
+    }
 
     if (e.target.classList.contains('task-check')) {
         await Checklist.toggleTask(uid, e.target.dataset.id, e.target.checked);
