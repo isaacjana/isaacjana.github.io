@@ -11,6 +11,28 @@ const firestore = getFirestore(app);
 // --- Realtime Database (Stock Management) ---
 
 /**
+ * Create a new stock item
+ * @param {Object} itemData 
+ */
+export async function createStockItem(itemData) {
+    const id = itemData.name.toLowerCase().replace(/\s+/g, '_');
+    const itemRef = ref(db, `seafood_stock/${id}`);
+    return set(itemRef, {
+        ...itemData,
+        lastUpdated: Date.now()
+    });
+}
+
+/**
+ * Delete a stock item
+ * @param {string} itemId 
+ */
+export async function deleteStockItem(itemId) {
+    const itemRef = ref(db, `seafood_stock/${itemId}`);
+    return set(itemRef, null);
+}
+
+/**
  * Subscribe to stock changes
  * @param {Function} callback - Function called with stock data
  */
@@ -43,10 +65,34 @@ export async function initializeDefaultStock() {
     onValue(stockRef, (snapshot) => {
         if (!snapshot.exists()) {
             const defaults = {
-                'tiger_prawn': { name: 'Tiger Prawn (L)', quantity: 25, price: 45, unit: 'kg', image: 'https://images.unsplash.com/photo-1559737558-2f57377f6b98?auto=format&fit=crop&w=300&q=80' },
-                'mud_crab': { name: 'Sarawak Mud Crab', quantity: 12, price: 85, unit: 'kg', image: 'https://images.unsplash.com/photo-1551460395-829d6d76bb87?auto=format&fit=crop&w=300&q=80' },
-                'seabass': { name: 'Live Seabass', quantity: 8, price: 35, unit: 'pcs', image: 'https://images.unsplash.com/photo-1534123206718-7389a9f0a2ba?auto=format&fit=crop&w=300&q=80' },
-                'lobster': { name: 'Rock Lobster', quantity: 5, price: 180, unit: 'kg', image: 'https://images.unsplash.com/photo-1559742811-82410b49c038?auto=format&fit=crop&w=300&q=80' }
+                'tiger_prawn': {
+                    name: 'Tiger Prawn (L)',
+                    quantity: 25,
+                    price: 45,
+                    unit: 'kg',
+                    image: 'https://images.unsplash.com/photo-1559737558-2f57377f6b98?q=80&w=600&auto=format&fit=crop'
+                },
+                'mud_crab': {
+                    name: 'Sarawak Mud Crab',
+                    quantity: 12,
+                    price: 85,
+                    unit: 'kg',
+                    image: 'https://images.unsplash.com/photo-1551460395-829d6d76bb87?q=80&w=600&auto=format&fit=crop'
+                },
+                'seabass': {
+                    name: 'Live Seabass',
+                    quantity: 8,
+                    price: 35,
+                    unit: 'pcs',
+                    image: 'https://images.unsplash.com/photo-1534123206718-7389a9f0a2ba?q=80&w=600&auto=format&fit=crop'
+                },
+                'lobster': {
+                    name: 'Rock Lobster',
+                    quantity: 5,
+                    price: 180,
+                    unit: 'kg',
+                    image: 'https://images.unsplash.com/photo-1559742811-82410b49c038?q=80&w=600&auto=format&fit=crop'
+                }
             };
             set(stockRef, defaults);
         }
