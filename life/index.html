@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Master's Protocol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        master: {
+                            dark: '#0f172a',
+                            light: '#1e293b',
+                            accent: '#10b981', // Emerald Green for vitality
+                            alert: '#ef4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-master-dark text-gray-200 min-h-screen" x-data="app()">
+
+    <header class="md:hidden p-4 border-b border-gray-700 flex justify-between items-center bg-master-light">
+        <h1 class="text-xl font-bold text-master-accent">MASTER'S PROTOCOL</h1>
+        <button @click="mobileMenu = !mobileMenu" class="text-gray-300"><i class="fas fa-bars"></i></button>
+    </header>
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <aside :class="mobileMenu ? 'block' : 'hidden'" class="md:block w-full md:w-64 bg-master-light border-r border-gray-700 flex-shrink-0">
+            <div class="p-6 hidden md:block">
+                <h1 class="text-2xl font-extrabold tracking-tighter text-white">THE <span class="text-master-accent">MASTER</span></h1>
+                <p class="text-xs text-gray-500 mt-1">Live. Move. Fast.</p>
+            </div>
+            
+            <nav class="mt-2">
+                <a @click="tab = 'dashboard'; mobileMenu=false" :class="tab === 'dashboard' ? 'bg-gray-700 border-r-4 border-master-accent' : ''" class="cursor-pointer block py-3 px-6 hover:bg-gray-700 transition"><i class="fas fa-tachometer-alt w-6"></i> Dashboard</a>
+                <a @click="tab = 'workout'; mobileMenu=false" :class="tab === 'workout' ? 'bg-gray-700 border-r-4 border-master-accent' : ''" class="cursor-pointer block py-3 px-6 hover:bg-gray-700 transition"><i class="fas fa-dumbbell w-6"></i> The 100kg Workout</a>
+                <a @click="tab = 'nutrition'; mobileMenu=false" :class="tab === 'nutrition' ? 'bg-gray-700 border-r-4 border-master-accent' : ''" class="cursor-pointer block py-3 px-6 hover:bg-gray-700 transition"><i class="fas fa-utensils w-6"></i> Fasting & Food</a>
+                <a @click="tab = 'progress'; mobileMenu=false" :class="tab === 'progress' ? 'bg-gray-700 border-r-4 border-master-accent' : ''" class="cursor-pointer block py-3 px-6 hover:bg-gray-700 transition"><i class="fas fa-chart-line w-6"></i> Progress Log</a>
+                <a @click="tab = 'guide'; mobileMenu=false" :class="tab === 'guide' ? 'bg-gray-700 border-r-4 border-master-accent' : ''" class="cursor-pointer block py-3 px-6 hover:bg-gray-700 transition"><i class="fas fa-book w-6"></i> Kuching Guide</a>
+            </nav>
+
+            <div class="p-6 mt-10">
+                <div class="glass p-4 rounded-lg text-center">
+                    <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                    <h2 class="text-xl font-bold" :class="isFasting ? 'text-blue-400' : 'text-green-400'" x-text="isFasting ? 'FASTING' : 'FEEDING'"></h2>
+                    <p class="text-xs mt-2" x-text="timeString"></p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+            
+            <div x-show="tab === 'dashboard'" x-transition.opacity>
+                <h2 class="text-3xl font-bold mb-6">Daily Discipline</h2>
+                
+                <div class="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fas fa-clock text-9xl"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Current Window: <span x-text="isFasting ? 'Water, Tea, Salt' : 'Clean Fuel'"></span></h3>
+                    <div class="w-full bg-gray-700 rounded-full h-4 mt-4">
+                        <div class="bg-master-accent h-4 rounded-full transition-all duration-1000" :style="`width: ${timeProgress}%`"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400 mt-2">
+                        <span>13:00 (Start Eat)</span>
+                        <span>20:00 (Start Fast)</span>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-400" x-text="isFasting ? 'Your body is currently cleaning cells (Autophagy).' : 'Fuel your body with protein and greens.'"></p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="(task, index) in dailyTasks" :key="index">
+                        <div @click="toggleTask(index)" :class="task.completed ? 'bg-green-900 border-green-700' : 'bg-gray-800 border-gray-700'" class="cursor-pointer border p-4 rounded-lg flex items-center justify-between transition-all hover:scale-[1.02]">
+                            <div>
+                                <h4 class="font-bold" x-text="task.name"></h4>
+                                <p class="text-xs text-gray-400" x-text="task.desc"></p>
+                            </div>
+                            <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" :class="task.completed ? 'bg-green-500 border-green-500' : 'border-gray-500'">
+                                <i x-show="task.completed" class="fas fa-check text-white text-xs"></i>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="mt-8 bg-blue-900 bg-opacity-20 border border-blue-800 p-4 rounded-lg flex items-start gap-4">
+                    <i class="fas fa-info-circle text-blue-400 mt-1"></i>
+                    <div>
+                        <h4 class="font-bold text-blue-400">Developer Health Check</h4>
+                        <p class="text-sm text-gray-300">Remember the 50/10 rule. If you have been coding for 50 minutes, stand up now and look at something 20 feet away.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="tab === 'workout'" x-cloak x-transition.opacity>
+                <h2 class="text-3xl font-bold mb-2">The 100kg Protocol</h2>
+                <p class="text-gray-400 mb-6">Low Impact. High Tension. Joint Preservation.</p>
+
+                <div class="flex space-x-2 mb-6 overflow-x-auto">
+                    <button @click="activeWorkout = 'mon'" :class="activeWorkout === 'mon' ? 'bg-master-accent text-gray-900' : 'bg-gray-800'" class="px-4 py-2 rounded-lg font-bold">Mon (Legs)</button>
+                    <button @click="activeWorkout = 'wed'" :class="activeWorkout === 'wed' ? 'bg-master-accent text-gray-900' : 'bg-gray-800'" class="px-4 py-2 rounded-lg font-bold">Wed (Active)</button>
+                    <button @click="activeWorkout = 'fri'" :class="activeWorkout === 'fri' ? 'bg-master-accent text-gray-900' : 'bg-gray-800'" class="px-4 py-2 rounded-lg font-bold">Fri (Upper)</button>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <template x-if="activeWorkout === 'mon'">
+                        <div>
+                            <h3 class="text-2xl font-bold text-master-accent mb-4">Monday: Lower Body Foundation</h3>
+                            <div class="space-y-4">
+                                <div class="bg-gray-700 p-4 rounded-lg">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h4 class="font-bold">Box Squats</h4>
+                                        <span class="text-xs bg-gray-600 px-2 py-1 rounded">3 x 12-15</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300">Sit onto a chair, stand up. Control the descent. Protects knees.</p>
+                                </div>
+                                <div class="bg-gray-700 p-4 rounded-lg">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h4 class="font-bold">Glute Bridges</h4>
+                                        <span class="text-xs bg-gray-600 px-2 py-1 rounded">3 x 15</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300">Lie on back, lift hips. Squeeze glutes at top.</p>
+                                </div>
+                                <div class="bg-gray-700 p-4 rounded-lg">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h4 class="font-bold">Wall Sit</h4>
+                                        <span class="text-xs bg-gray-600 px-2 py-1 rounded">3 x 30s</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300">Sit against wall. Static hold. Zero impact.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="activeWorkout === 'wed'">
+                        <div>
+                            <h3 class="text-2xl font-bold text-master-accent mb-4">Wednesday: Active Recovery</h3>
+                            <div class="bg-gray-700 p-6 rounded-lg text-center">
+                                <i class="fas fa-walking text-5xl text-gray-500 mb-4"></i>
+                                <h4 class="text-xl font-bold">The Long Walk</h4>
+                                <p class="text-gray-300 mt-2">45-60 Minutes. Zone 2 Cardio.</p>
+                                <p class="text-sm text-gray-400 mt-4">Listen to a podcast or enjoy silence. No phone screen. Keep breathing nasal.</p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="activeWorkout === 'fri'">
+                        <div>
+                            <h3 class="text-2xl font-bold text-master-accent mb-4">Friday: Upper Body Push/Pull</h3>
+                            <div class="space-y-4">
+                                <div class="bg-gray-700 p-4 rounded-lg">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h4 class="font-bold">Incline Push-ups</h4>
+                                        <span class="text-xs bg-gray-600 px-2 py-1 rounded">3 x 8-12</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300">Hands on desk or counter. Keep body straight.</p>
+                                </div>
+                                <div class="bg-gray-700 p-4 rounded-lg">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h4 class="font-bold">Doorframe Rows</h4>
+                                        <span class="text-xs bg-gray-600 px-2 py-1 rounded">3 x 12-15</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300">Grab doorframe, lean back, pull chest to frame.</p>
+                                </div>
+                                <div class="bg-gray-700 p-4 rounded-lg">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h4 class="font-bold">Plank</h4>
+                                        <span class="text-xs bg-gray-600 px-2 py-1 rounded">3 x 30-60s</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300">Core tight. Don't let hips sag.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div x-show="tab === 'nutrition'" x-cloak x-transition.opacity>
+                <h2 class="text-3xl font-bold mb-6">Fasting & Fuel</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                        <h3 class="text-xl font-bold text-master-accent mb-4">The Schedule (17:7)</h3>
+                        <ul class="space-y-4 border-l-2 border-gray-700 ml-2 pl-4">
+                            <li class="relative">
+                                <span class="absolute -left-[22px] bg-gray-800 border-2 border-gray-600 w-3 h-3 rounded-full mt-1.5"></span>
+                                <strong class="block text-white">07:00 AM - 12:00 PM</strong>
+                                <span class="text-sm text-gray-400">Warm Water + Salt. Black Coffee/Tea. Wim Hof. Deep Work.</span>
+                            </li>
+                            <li class="relative">
+                                <span class="absolute -left-[22px] bg-green-500 w-3 h-3 rounded-full mt-1.5"></span>
+                                <strong class="block text-green-400">01:00 PM (Break Fast)</strong>
+                                <span class="text-sm text-gray-400">Protein focused. Chicken, Eggs, Greens. No carb bombs.</span>
+                            </li>
+                            <li class="relative">
+                                <span class="absolute -left-[22px] bg-green-500 w-3 h-3 rounded-full mt-1.5"></span>
+                                <strong class="block text-green-400">07:30 PM (Last Meal)</strong>
+                                <span class="text-sm text-gray-400">Lighter protein + Complex Carbs (Sweet Potato) for sleep.</span>
+                            </li>
+                            <li class="relative">
+                                <span class="absolute -left-[22px] bg-red-500 w-3 h-3 rounded-full mt-1.5"></span>
+                                <strong class="block text-red-400">08:00 PM (Kitchen Closed)</strong>
+                                <span class="text-sm text-gray-400">Strict Stop. Herbal tea or water only.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                        <h3 class="text-xl font-bold text-yellow-500 mb-4"><i class="fas fa-map-marker-alt"></i> Kuching Survival</h3>
+                        <div class="space-y-3">
+                            <div class="bg-gray-700 p-3 rounded">
+                                <h4 class="font-bold text-sm">Kopitiam Order</h4>
+                                <p class="text-xs text-gray-300">"Kopi O Kosong" or "Teh C Kosong". No condensed milk.</p>
+                            </div>
+                            <div class="bg-gray-700 p-3 rounded">
+                                <h4 class="font-bold text-sm">Kolo Mee Hack</h4>
+                                <p class="text-xs text-gray-300">Ask for "Kurang Mee, Lebih Isi" (Less noodle, more meat). Eat the meat first.</p>
+                            </div>
+                            <div class="bg-gray-700 p-3 rounded">
+                                <h4 class="font-bold text-sm">Social Strategy</h4>
+                                <p class="text-xs text-gray-300">Eat 2 boiled eggs before going out. Shift fasting window to 3pm-10pm if needed.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="tab === 'progress'" x-cloak x-transition.opacity>
+                <h2 class="text-3xl font-bold mb-6">System Logs</h2>
+                
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 mb-6">
+                     <h3 class="text-lg font-bold mb-4">Weekly Input</h3>
+                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                         <div>
+                             <label class="text-xs text-gray-400">Weight (kg)</label>
+                             <input type="number" x-model="logInput.weight" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white">
+                         </div>
+                         <div>
+                             <label class="text-xs text-gray-400">Waist (cm)</label>
+                             <input type="number" x-model="logInput.waist" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white">
+                         </div>
+                         <div>
+                             <label class="text-xs text-gray-400">Energy (1-10)</label>
+                             <input type="number" x-model="logInput.energy" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white">
+                         </div>
+                         <div class="flex items-end">
+                             <button @click="addLog" class="w-full bg-master-accent text-gray-900 font-bold py-2 rounded hover:bg-green-400">Log Entry</button>
+                         </div>
+                     </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-900 text-gray-400">
+                            <tr>
+                                <th class="p-4">Date</th>
+                                <th class="p-4">Weight</th>
+                                <th class="p-4">Waist</th>
+                                <th class="p-4">Energy</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            <template x-for="log in logs" :key="log.date">
+                                <tr>
+                                    <td class="p-4" x-text="log.date"></td>
+                                    <td class="p-4" x-text="log.weight + ' kg'"></td>
+                                    <td class="p-4" x-text="log.waist + ' cm'"></td>
+                                    <td class="p-4">
+                                        <div class="w-full bg-gray-700 rounded-full h-2 w-24">
+                                            <div class="bg-blue-500 h-2 rounded-full" :style="`width: ${log.energy * 10}%`"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="logs.length === 0">
+                                <td colspan="4" class="p-8 text-center text-gray-500">No logs yet. Start your journey.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div x-show="tab === 'guide'" x-cloak x-transition.opacity>
+                <div class="max-w-2xl mx-auto text-center mt-10">
+                    <h2 class="text-3xl font-bold mb-4">The Master's Wisdom</h2>
+                    <blockquote class="text-xl italic text-gray-400 border-l-4 border-master-accent pl-4 text-left my-8">
+                        "A healthy man wants a thousand things; a sick man only wants one. Do not wait until you are sick to value your health."
+                    </blockquote>
+                    <div class="bg-gray-800 p-6 rounded-lg text-left border border-gray-700">
+                        <h3 class="font-bold text-white mb-2">The "Cheating" Protocol</h3>
+                        <p class="mb-2">If you have a big dinner:</p>
+                        <ol class="list-decimal list-inside text-gray-300 space-y-2">
+                            <li>Don't panic. It's just a bug, not a system crash.</li>
+                            <li>Shift tomorrow's fasting window. Start eating later.</li>
+                            <li>Do a 45-min walk the next day to burn the glycogen.</li>
+                            <li>Get right back to the protocol.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                tab: 'dashboard',
+                mobileMenu: false,
+                activeWorkout: 'mon',
+                now: new Date(),
+                timeString: '',
+                isFasting: false,
+                timeProgress: 0,
+                
+                // Tasks
+                dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [
+                    { name: 'Hydrate', desc: 'Warm water + pinch of salt', completed: false },
+                    { name: 'Wim Hof', desc: '3 Rounds of Breathing', completed: false },
+                    { name: 'Stretch', desc: 'Cat-Cow, Hip openers', completed: false },
+                    { name: 'Brisk Walk', desc: '30 mins Zone 2', completed: false },
+                    { name: 'Clean Diet', desc: '1pm-8pm Window', completed: false }
+                ],
+
+                // Logs
+                logInput: { weight: '', waist: '', energy: '' },
+                logs: JSON.parse(localStorage.getItem('masterLogs')) || [],
+
+                init() {
+                    this.updateTime();
+                    setInterval(() => this.updateTime(), 60000); // Update every minute
+                    
+                    // Reset tasks if it's a new day (simple check)
+                    const lastLogin = localStorage.getItem('masterLastLogin');
+                    const today = new Date().toDateString();
+                    if (lastLogin !== today) {
+                        this.dailyTasks.forEach(t => t.completed = false);
+                        localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
+                        localStorage.setItem('masterLastLogin', today);
+                    }
+                },
+
+                updateTime() {
+                    const d = new Date();
+                    this.timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const hour = d.getHours();
+                    
+                    // Fasting Logic (1pm to 8pm is EATING window, rest is FASTING)
+                    // 13:00 to 20:00 = EATING
+                    if (hour >= 13 && hour < 20) {
+                        this.isFasting = false;
+                        // Calculate progress of eating window (7 hours total)
+                        const start = 13 * 60;
+                        const current = (hour * 60) + d.getMinutes();
+                        this.timeProgress = ((current - start) / (7 * 60)) * 100;
+                    } else {
+                        this.isFasting = true;
+                        this.timeProgress = 100;
+                    }
+                },
+
+                toggleTask(index) {
+                    this.dailyTasks[index].completed = !this.dailyTasks[index].completed;
+                    localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
+                },
+
+                addLog() {
+                    if(!this.logInput.weight) return;
+                    const entry = {
+                        date: new Date().toLocaleDateString(),
+                        weight: this.logInput.weight,
+                        waist: this.logInput.waist || '-',
+                        energy: this.logInput.energy || '-'
+                    };
+                    this.logs.unshift(entry); // Add to top
+                    localStorage.setItem('masterLogs', JSON.stringify(this.logs));
+                    this.logInput = { weight: '', waist: '', energy: '' }; // Reset form
+                    this.tab = 'progress'; // Switch to view
+                }
+            }
+        }
+    </script>
+</body>
+</html>
