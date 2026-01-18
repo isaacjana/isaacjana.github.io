@@ -15,8 +15,6 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -41,6 +39,7 @@
         }
     </script>
 </head>
+
 <body class="bg-master-dark text-gray-200 h-screen overflow-hidden flex flex-col md:flex-row" x-data="app">
 
     <div x-show="!user" x-transition.opacity class="fixed inset-0 z-[100] bg-master-dark flex flex-col items-center justify-center p-6 text-center">
@@ -276,6 +275,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
+        // IMPORT ALPINE JS HERE TO FIX RACE CONDITION
+        import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/module.esm.js';
 
         // CONFIG
         const firebaseConfig = {
@@ -291,214 +293,214 @@
         const auth = getAuth(firebaseApp);
         const db = getFirestore(firebaseApp);
         
-        // Silent catch for persistence warning
         enableIndexedDbPersistence(db).catch((err) => { 
-            // This error is non-critical for most browsers
             console.log("Persistence suppressed:", err.code); 
         });
 
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('app', () => ({
-                // UI State
-                tab: 'dashboard',
-                mobileMenu: false,
-                activeWorkout: 'mon',
-                dadMode: localStorage.getItem('masterDadMode') === 'true',
-                loading: false,
+        // REGISTER ALPINE DATA COMPONENT
+        Alpine.data('app', () => ({
+            // UI State
+            tab: 'dashboard',
+            mobileMenu: false,
+            activeWorkout: 'mon',
+            dadMode: localStorage.getItem('masterDadMode') === 'true',
+            loading: false,
+            
+            // User & Data
+            user: null,
+            logs: [],
+            streak: 0,
+            
+            // Time & Fasting Logic
+            timeString: '',
+            isFasting: false,
+            timeProgress: 0,
+
+            // Inputs
+            logInput: { weight: '', energy: '' },
+
+            // Tasks
+            dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [
+                { name: 'Hydrate', desc: 'Water + Salt', completed: false },
+                { name: 'Wim Hof', desc: 'Breathing', completed: false },
+                { name: 'Stretch', desc: 'Mobility', completed: false },
+                { name: 'Movement', desc: 'Walk or Workout', completed: false },
+                { name: 'Clean Diet', desc: 'No junk', completed: false }
+            ],
+            
+            navItems: [
+                { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                { id: 'workout', label: 'Workout', icon: 'fas fa-dumbbell' },
+                { id: 'nutrition', label: 'Fasting', icon: 'fas fa-utensils' },
+                { id: 'progress', label: 'Analytics', icon: 'fas fa-chart-line' }
+            ],
+
+            init() {
+                // Time Loop
+                this.updateTime();
+                setInterval(() => this.updateTime(), 60000);
                 
-                // User & Data
-                user: null,
-                logs: [],
-                streak: 0,
-                
-                // Time & Fasting Logic
-                timeString: '',
-                isFasting: false,
-                timeProgress: 0,
-
-                // Inputs
-                logInput: { weight: '', energy: '' },
-
-                // Tasks
-                dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [
-                    { name: 'Hydrate', desc: 'Water + Salt', completed: false },
-                    { name: 'Wim Hof', desc: 'Breathing', completed: false },
-                    { name: 'Stretch', desc: 'Mobility', completed: false },
-                    { name: 'Movement', desc: 'Walk or Workout', completed: false },
-                    { name: 'Clean Diet', desc: 'No junk', completed: false }
-                ],
-                
-                navItems: [
-                    { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
-                    { id: 'workout', label: 'Workout', icon: 'fas fa-dumbbell' },
-                    { id: 'nutrition', label: 'Fasting', icon: 'fas fa-utensils' },
-                    { id: 'progress', label: 'Analytics', icon: 'fas fa-chart-line' }
-                ],
-
-                init() {
-                    // Time Loop
-                    this.updateTime();
-                    setInterval(() => this.updateTime(), 60000);
-                    
-                    // Task Reset Logic
-                    const today = new Date().toDateString();
-                    if (localStorage.getItem('masterLastLogin') !== today) {
-                        this.dailyTasks.forEach(t => t.completed = false);
-                        localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
-                        localStorage.setItem('masterLastLogin', today);
-                    }
-
-                    // Auth Listener
-                    onAuthStateChanged(auth, (user) => {
-                        this.user = user;
-                        if (user) {
-                            this.fetchLogs();
-                        } else {
-                            this.logs = [];
-                            this.streak = 0;
-                            if(this.chartInstance) {
-                                this.chartInstance.data.datasets[0].data = [];
-                                this.chartInstance.update();
-                            }
-                        }
-                    });
-                },
-
-                // AUTH METHODS
-                async login() {
-                    try {
-                        await signInWithPopup(auth, new GoogleAuthProvider());
-                    } catch (e) { alert(e.message); }
-                },
-                logout() { signOut(auth); },
-
-                // DATA METHODS
-                fetchLogs() {
-                    if (!this.user) return;
-                    const q = query(
-                        collection(db, `users/${this.user.uid}/master_logs`), 
-                        orderBy('timestamp', 'desc') 
-                    );
-                    
-                    onSnapshot(q, (snapshot) => {
-                        this.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        this.calculateStreak();
-                        this.updateChart();
-                    });
-                },
-
-                async addLog() {
-                    if (!this.user || !this.logInput.weight) return;
-                    this.loading = true;
-                    try {
-                        await addDoc(collection(db, `users/${this.user.uid}/master_logs`), {
-                            weight: parseFloat(this.logInput.weight),
-                            energy: parseInt(this.logInput.energy) || 5,
-                            dateString: new Date().toLocaleDateString('en-GB'), 
-                            timestamp: serverTimestamp()
-                        });
-                        this.logInput = { weight: '', energy: '' };
-                        this.tab = 'progress';
-                    } catch (e) {
-                        console.error(e);
-                        alert("Error saving log.");
-                    }
-                    this.loading = false;
-                },
-
-                // UTILS & CALCULATORS
-                saveSettings() {
-                    localStorage.setItem('masterDadMode', this.dadMode);
-                },
-
-                toggleTask(index) {
-                    this.dailyTasks[index].completed = !this.dailyTasks[index].completed;
+                // Task Reset Logic
+                const today = new Date().toDateString();
+                if (localStorage.getItem('masterLastLogin') !== today) {
+                    this.dailyTasks.forEach(t => t.completed = false);
                     localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
-                },
-
-                calculateStreak() {
-                    this.streak = this.logs.length; 
-                },
-
-                get bmi() {
-                    if (this.logs.length > 0) {
-                        const w = this.logs[0].weight;
-                        const h = 1.72;
-                        return (w / (h * h)).toFixed(1);
-                    }
-                    return (100 / (1.72 * 1.72)).toFixed(1);
-                },
-
-                get bmiColor() {
-                    const b = parseFloat(this.bmi);
-                    if(b < 25) return 'text-green-400';
-                    if(b < 30) return 'text-yellow-400';
-                    return 'text-red-400';
-                },
-
-                get completedTasks() {
-                    return this.dailyTasks.filter(t => t.completed).length;
-                },
-
-                get waterGoal() {
-                    const w = this.logs.length > 0 ? this.logs[0].weight : 100;
-                    return (w * 0.033).toFixed(1);
-                },
-
-                updateTime() {
-                    const d = new Date();
-                    this.timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const h = d.getHours();
-                    if (h >= 13 && h < 20) {
-                        this.isFasting = false;
-                        this.timeProgress = (((h * 60 + d.getMinutes()) - (13 * 60)) / (7 * 60)) * 100;
-                    } else {
-                        this.isFasting = true;
-                        this.timeProgress = 100;
-                    }
-                },
-
-                // CHART LOGIC
-                chartInstance: null,
-                updateChart() {
-                    const ctx = document.getElementById('mainChart');
-                    if (!ctx) return;
-                    
-                    const data = [...this.logs].reverse();
-                    const labels = data.map(l => l.dateString.slice(0, 5)); 
-                    const weights = data.map(l => l.weight);
-
-                    if (this.chartInstance) {
-                        this.chartInstance.destroy();
-                    }
-
-                    this.chartInstance = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Weight',
-                                data: weights,
-                                borderColor: '#10b981',
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                tension: 0.3,
-                                fill: true,
-                                pointRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } },
-                                x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
-                            }
-                        }
-                    });
+                    localStorage.setItem('masterLastLogin', today);
                 }
-            }));
-        });
+
+                // Auth Listener
+                onAuthStateChanged(auth, (user) => {
+                    this.user = user;
+                    if (user) {
+                        this.fetchLogs();
+                    } else {
+                        this.logs = [];
+                        this.streak = 0;
+                        if(this.chartInstance) {
+                            this.chartInstance.data.datasets[0].data = [];
+                            this.chartInstance.update();
+                        }
+                    }
+                });
+            },
+
+            // AUTH METHODS
+            async login() {
+                try {
+                    await signInWithPopup(auth, new GoogleAuthProvider());
+                } catch (e) { alert(e.message); }
+            },
+            logout() { signOut(auth); },
+
+            // DATA METHODS
+            fetchLogs() {
+                if (!this.user) return;
+                const q = query(
+                    collection(db, `users/${this.user.uid}/master_logs`), 
+                    orderBy('timestamp', 'desc') 
+                );
+                
+                onSnapshot(q, (snapshot) => {
+                    this.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    this.calculateStreak();
+                    this.updateChart();
+                });
+            },
+
+            async addLog() {
+                if (!this.user || !this.logInput.weight) return;
+                this.loading = true;
+                try {
+                    await addDoc(collection(db, `users/${this.user.uid}/master_logs`), {
+                        weight: parseFloat(this.logInput.weight),
+                        energy: parseInt(this.logInput.energy) || 5,
+                        dateString: new Date().toLocaleDateString('en-GB'), 
+                        timestamp: serverTimestamp()
+                    });
+                    this.logInput = { weight: '', energy: '' };
+                    this.tab = 'progress';
+                } catch (e) {
+                    console.error(e);
+                    alert("Error saving log.");
+                }
+                this.loading = false;
+            },
+
+            // UTILS & CALCULATORS
+            saveSettings() {
+                localStorage.setItem('masterDadMode', this.dadMode);
+            },
+
+            toggleTask(index) {
+                this.dailyTasks[index].completed = !this.dailyTasks[index].completed;
+                localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
+            },
+
+            calculateStreak() {
+                this.streak = this.logs.length; 
+            },
+
+            get bmi() {
+                if (this.logs.length > 0) {
+                    const w = this.logs[0].weight;
+                    const h = 1.72;
+                    return (w / (h * h)).toFixed(1);
+                }
+                return (100 / (1.72 * 1.72)).toFixed(1);
+            },
+
+            get bmiColor() {
+                const b = parseFloat(this.bmi);
+                if(b < 25) return 'text-green-400';
+                if(b < 30) return 'text-yellow-400';
+                return 'text-red-400';
+            },
+
+            get completedTasks() {
+                return this.dailyTasks.filter(t => t.completed).length;
+            },
+
+            get waterGoal() {
+                const w = this.logs.length > 0 ? this.logs[0].weight : 100;
+                return (w * 0.033).toFixed(1);
+            },
+
+            updateTime() {
+                const d = new Date();
+                this.timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const h = d.getHours();
+                if (h >= 13 && h < 20) {
+                    this.isFasting = false;
+                    this.timeProgress = (((h * 60 + d.getMinutes()) - (13 * 60)) / (7 * 60)) * 100;
+                } else {
+                    this.isFasting = true;
+                    this.timeProgress = 100;
+                }
+            },
+
+            // CHART LOGIC
+            chartInstance: null,
+            updateChart() {
+                const ctx = document.getElementById('mainChart');
+                if (!ctx) return;
+                
+                const data = [...this.logs].reverse();
+                const labels = data.map(l => l.dateString.slice(0, 5)); 
+                const weights = data.map(l => l.weight);
+
+                if (this.chartInstance) {
+                    this.chartInstance.destroy();
+                }
+
+                this.chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Weight',
+                            data: weights,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } },
+                            x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                        }
+                    }
+                });
+            }
+        }));
+
+        // START ALPINE AFTER EVERYTHING IS DEFINED
+        Alpine.start();
     </script>
 </body>
 </html>
