@@ -46,6 +46,8 @@ Alpine.data('app', () => ({
     // Audio Engine
     activeAudio: null,
     audioPlayer: null,
+    audioContext: null,
+    noiseNode: null,
 
     // Environment State
     sunriseTime: '--:--',
@@ -141,25 +143,102 @@ Alpine.data('app', () => ({
     // --- AUDIO ENGINE ---
     toggleAudio(type) {
         if (this.activeAudio === type) {
-            if (this.audioPlayer) this.audioPlayer.pause();
-            this.activeAudio = null;
-        } else {
-            if (this.audioPlayer) this.audioPlayer.pause();
+            this.stopAudio();
+            return;
+        }
 
-            const sources = {
-                rain: 'https://upload.wikimedia.org/wikipedia/commons/8/8f/Rain_falling_on_pavement.ogg',
-                brown: 'https://upload.wikimedia.org/wikipedia/commons/e/e6/Brown_noise.ogg'
-            };
+        this.stopAudio();
 
-            this.audioPlayer = new Audio(sources[type]);
+        if (type === 'brown') {
+            this.playBrownNoise();
+        } else if (type === 'rain') {
+            // Using a more robust source for rain
+            const rainUrl = 'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg';
+            this.playExternalAudio(rainUrl, 'rain');
+        }
+    },
+
+    stopAudio() {
+        if (this.audioPlayer) {
+            this.audioPlayer.pause();
+            this.audioPlayer.src = '';
+            this.audioPlayer = null;
+        }
+        if (this.noiseNode) {
+            try {
+                this.noiseNode.stop();
+                this.noiseNode.disconnect();
+            } catch (e) { }
+            this.noiseNode = null;
+        }
+        this.activeAudio = null;
+    },
+
+    playBrownNoise() {
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+
+            const bufferSize = 10 * this.audioContext.sampleRate;
+            const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            let lastOut = 0.0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                data[i] = (lastOut + (0.02 * white)) / 1.002;
+                lastOut = data[i];
+                data[i] *= 3.5; // volume compensation
+            }
+
+            this.noiseNode = this.audioContext.createBufferSource();
+            this.noiseNode.buffer = buffer;
+            this.noiseNode.loop = true;
+
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = 0.3; // Base volume
+
+            this.noiseNode.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+
+            this.noiseNode.start();
+            this.activeAudio = 'brown';
+        } catch (e) {
+            console.error("Audio Context Error:", e);
+            alert("Failed to initialize system audio. Try clicking once on the page first.");
+        }
+    },
+
+    playExternalAudio(url, type) {
+        try {
+            this.audioPlayer = new Audio();
+            this.audioPlayer.crossOrigin = "anonymous";
+            this.audioPlayer.src = url;
             this.audioPlayer.loop = true;
-            this.audioPlayer.volume = 0.5;
-            this.audioPlayer.play().then(() => {
-                this.activeAudio = type;
-            }).catch(e => {
-                console.error("Audio playback error:", e);
-                alert("Please interact with the page first to enable audio.");
-            });
+            this.audioPlayer.volume = 0.4;
+
+            const playPromise = this.audioPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    this.activeAudio = type;
+                }).catch(e => {
+                    console.error("External audio failed:", e);
+                    // Fallback to simpler source or alert
+                    if (e.name === 'NotAllowedError') {
+                        alert("Audio blocked by browser. Please click anywhere on the page first.");
+                    } else {
+                        alert("Neural link failed. Attempting reconnection...");
+                        this.activeAudio = null;
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Audio Player instantiation failed:", e);
         }
     },
 
