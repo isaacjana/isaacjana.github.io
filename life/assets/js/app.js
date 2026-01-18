@@ -240,6 +240,63 @@ Alpine.data('app', () => ({
         }
     },
 
+    // --- WORKOUT METHODS ---
+    calculateReadiness() {
+        let score = parseInt(this.readiness.motivation);
+        if (this.readiness.hydration) score += 2;
+        if (this.readiness.salt) score += 3;
+        this.readiness.score = score;
+        this.readiness.checked = true;
+        this.triggerHaptic('success');
+    },
+
+    toggleSet(exerciseName, setIndex) {
+        if (!this.workoutLogs[exerciseName]) {
+            this.workoutLogs[exerciseName] = [];
+        }
+        this.workoutLogs[exerciseName][setIndex] = !this.workoutLogs[exerciseName][setIndex];
+        this.triggerHaptic('light');
+
+        if (this.workoutLogs[exerciseName][setIndex]) {
+            this.startRest();
+        }
+    },
+
+    startRest() {
+        clearInterval(this.restTimer.interval);
+        this.restTimer.active = true;
+        this.restTimer.time = 60;
+        this.restTimer.interval = setInterval(() => {
+            if (this.restTimer.time > 0) {
+                this.restTimer.time--;
+            } else {
+                this.stopRest();
+            }
+        }, 1000);
+    },
+
+    stopRest() {
+        clearInterval(this.restTimer.interval);
+        this.restTimer.active = false;
+        new Audio('https://upload.wikimedia.org/wikipedia/commons/3/30/Beep_short.ogg').play().catch(() => { });
+        this.triggerHaptic('heavy');
+    },
+
+    swapExercise(exercise) {
+        const currentName = exercise.name;
+        exercise.name = exercise.alt;
+        exercise.alt = currentName;
+        this.triggerHaptic('medium');
+    },
+
+    updatePR(type, val) {
+        if (val > this.prs[type]) {
+            this.prs[type] = parseInt(val);
+            this.triggerHaptic('success');
+            alert(`NEW PERSONAL RECORD: ${val} in ${type.toUpperCase()}`);
+        }
+    },
+
     calculateInsights() {
         if (this.logs.length < 3) {
             this.insights = "Insufficient data for neural correlation. Log 3+ days.";
@@ -485,20 +542,6 @@ Alpine.data('app', () => ({
         }
     },
 
-    async fetchWeather() {
-        try {
-            // Defaulting to Kuching, MY as per user's location in original code
-            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=1.5533&longitude=110.3592&daily=sunrise,sunset&current=temperature_2m&timezone=Asia%2FKuala_Lumpur');
-            const data = await res.json();
-
-            this.currentTemp = Math.round(data.current.temperature_2m);
-            const fmt = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            this.sunriseTime = fmt(data.daily.sunrise[0]);
-            this.sunsetTime = fmt(data.daily.sunset[0]);
-        } catch (e) {
-            console.warn("Weather sync failed:", e);
-        }
-    },
 
     // --- COMPUTED PROPERTIES ---
     get playerLevel() {
