@@ -340,8 +340,7 @@ Alpine.data('app', () => ({
         if (type === 'brown') {
             this.playBrownNoise();
         } else if (type === 'rain') {
-            // Using a more robust source for rain
-            const rainUrl = 'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg';
+            const rainUrl = 'https://upload.wikimedia.org/wikipedia/commons/8/8f/Rain_falling_on_pavement.ogg';
             this.playExternalAudio(rainUrl, 'rain');
         } else if (type === 'alpha') {
             this.playBinauralBeat(10, 'alpha'); // 10Hz Alpha for Focus
@@ -420,17 +419,52 @@ Alpine.data('app', () => ({
                     this.activeAudio = type;
                 }).catch(e => {
                     console.error("External audio failed:", e);
-                    // Fallback to simpler source or alert
                     if (e.name === 'NotAllowedError') {
-                        alert("Audio blocked by browser. Please click anywhere on the page first.");
+                        alert("Audio blocked. Please click anywhere on the page first.");
                     } else {
-                        alert("Neural link failed. Attempting reconnection...");
                         this.activeAudio = null;
                     }
                 });
             }
         } catch (e) {
-            console.error("Audio Player instantiation failed:", e);
+            console.error("Audio instantiation failed:", e);
+        }
+    },
+
+    playBinauralBeat(frequency, type) {
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (this.audioContext.state === 'suspended') this.audioContext.resume();
+
+            const leftOsc = this.audioContext.createOscillator();
+            const rightOsc = this.audioContext.createOscillator();
+            const leftGain = this.audioContext.createGain();
+            const rightGain = this.audioContext.createGain();
+            const pannerL = this.audioContext.createStereoPanner();
+            const pannerR = this.audioContext.createStereoPanner();
+
+            leftOsc.frequency.value = 200;
+            rightOsc.frequency.value = 200 + frequency;
+            leftGain.gain.value = 0.1;
+            rightGain.gain.value = 0.1;
+            pannerL.pan.value = -1;
+            pannerR.pan.value = 1;
+
+            leftOsc.connect(leftGain).connect(pannerL).connect(this.audioContext.destination);
+            rightOsc.connect(rightGain).connect(pannerR).connect(this.audioContext.destination);
+
+            leftOsc.start();
+            rightOsc.start();
+
+            this.noiseNode = {
+                stop: () => { try { leftOsc.stop(); rightOsc.stop(); } catch (e) { } },
+                disconnect: () => { try { leftOsc.disconnect(); rightOsc.disconnect(); } catch (e) { } }
+            };
+            this.activeAudio = type;
+        } catch (e) {
+            console.error("Binaural Beat Error:", e);
         }
     },
 
