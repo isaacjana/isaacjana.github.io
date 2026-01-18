@@ -1,0 +1,492 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/module.esm.js';
+
+// --- CONFIGURATION ---
+const firebaseConfig = {
+    apiKey: "AIzaSyBjemuEa89QZI68Ttv5iW9DjQMhLwU9Kmk",
+    authDomain: "penny-wise-bfdaa.firebaseapp.com",
+    projectId: "penny-wise-bfdaa",
+    storageBucket: "penny-wise-bfdaa.firebasestorage.app",
+    messagingSenderId: "438298356973",
+    appId: "1:438298356973:web:198dc164a067952a4cb0e4"
+};
+
+// --- INITIALIZATION ---
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+
+// Enable Offline Persistence
+enableIndexedDbPersistence(db).catch(err => {
+    if (err.code == 'failed-precondition') {
+        console.warn("Persistence failed: Multiple tabs open");
+    } else if (err.code == 'unimplemented') {
+        console.warn("Persistence failed: Browser doesn't support it");
+    }
+});
+
+// --- ALPINE APPLICATION ---
+Alpine.data('app', () => ({
+    // UI State
+    tab: 'dashboard',
+    mobileMenu: false,
+    loading: false,
+    user: null,
+
+    // System Mode State
+    systemMode: localStorage.getItem('masterMode') || 'standard',
+
+    // Data State
+    logs: [],
+    dailyCalories: parseInt(localStorage.getItem('masterCalories') || '0'),
+    lastCalorieDate: localStorage.getItem('masterCalDate') || new Date().toDateString(),
+
+    // Audio Engine
+    activeAudio: null,
+    audioPlayer: null,
+
+    // Environment State
+    sunriseTime: '--:--',
+    sunsetTime: '--:--',
+    currentTemp: null,
+
+    // Pomodoro State
+    pomodoroTime: 50 * 60,
+    pomodoroInitial: 50 * 60,
+    pomodoroMode: 'work',
+    isTimerRunning: false,
+    timerInterval: null,
+    currentMicroWorkout: '10 Doorframe Rows',
+    microWorkouts: ['10 Doorframe Rows', '20 Air Squats', '30s Wall Sit', '10 Incline Pushups', 'Stretch Hamstrings'],
+
+    // Inputs
+    logInput: { weight: '', waist: '', energy: '', sleep: '', note: '' },
+
+    // Tasks
+    dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [],
+
+    // Navigation Definitions
+    navItems: [
+        { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-home' },
+        { id: 'focus', label: 'Deep Work', icon: 'fas fa-brain' },
+        { id: 'workout', label: 'Workout', icon: 'fas fa-dumbbell' },
+        { id: 'nutrition', label: 'Fuel', icon: 'fas fa-utensils' },
+        { id: 'progress', label: 'Correlation', icon: 'fas fa-chart-line' }
+    ],
+
+    init() {
+        // Watchers for Persistence
+        this.$watch('dailyTasks', (val) => {
+            localStorage.setItem('masterTasks', JSON.stringify(val));
+        });
+
+        // Initialize Tasks if empty
+        if (this.dailyTasks.length === 0) {
+            this.updateTasksForMode();
+        }
+
+        // Daily Check-ins
+        this.checkDailyReset();
+        this.fetchWeather();
+
+        // Background refresh every minute
+        setInterval(() => this.checkDailyReset(), 60000);
+
+        // Auth Listeners
+        onAuthStateChanged(auth, (user) => {
+            this.user = user;
+            if (user) {
+                this.fetchLogs();
+            } else {
+                this.logs = [];
+            }
+        });
+    },
+
+    // --- SYSTEM LOGIC ---
+    setMode(mode) {
+        if (this.systemMode === mode) return;
+        this.systemMode = mode;
+        localStorage.setItem('masterMode', mode);
+        this.updateTasksForMode();
+    },
+
+    updateTasksForMode() {
+        const presets = {
+            busy: [
+                { name: 'Hydrate + Salt', desc: '6:00 AM Essential', completed: false },
+                { name: 'Micro-Workout', desc: '20m Survival Protocol', completed: false },
+                { name: 'Deep Work', desc: '7:30-13:00 (No Distractions)', completed: false },
+                { name: 'Clean Fuel', desc: 'Protein Only Lunch', completed: false }
+            ],
+            holiday: [
+                { name: 'Hydrate', desc: 'Morning Water', completed: false },
+                { name: 'Long Walk', desc: 'Explore/Hike', completed: false },
+                { name: 'Family Time', desc: 'Disconnect Phone', completed: false },
+                { name: 'Read/Learn', desc: '30 mins', completed: false }
+            ],
+            standard: [
+                { name: 'Hydrate', desc: 'Water + Salt', completed: false },
+                { name: 'Wim Hof', desc: '3 Rounds Breathing', completed: false },
+                { name: 'Deep Work', desc: '7:30 - 13:00 Fasted', completed: false },
+                { name: 'Workout', desc: '17:00 Training', completed: false },
+                { name: 'Clean Fuel', desc: '13:00 - 20:00', completed: false }
+            ]
+        };
+        this.dailyTasks = presets[this.systemMode] || presets.standard;
+    },
+
+    // --- AUDIO ENGINE ---
+    toggleAudio(type) {
+        if (this.activeAudio === type) {
+            if (this.audioPlayer) this.audioPlayer.pause();
+            this.activeAudio = null;
+        } else {
+            if (this.audioPlayer) this.audioPlayer.pause();
+
+            const sources = {
+                rain: 'https://upload.wikimedia.org/wikipedia/commons/8/8f/Rain_falling_on_pavement.ogg',
+                brown: 'https://upload.wikimedia.org/wikipedia/commons/e/e6/Brown_noise.ogg'
+            };
+
+            this.audioPlayer = new Audio(sources[type]);
+            this.audioPlayer.loop = true;
+            this.audioPlayer.volume = 0.5;
+            this.audioPlayer.play().then(() => {
+                this.activeAudio = type;
+            }).catch(e => {
+                console.error("Audio playback error:", e);
+                alert("Please interact with the page first to enable audio.");
+            });
+        }
+    },
+
+    // --- AUTHENTICATION ---
+    async login() {
+        try {
+            this.loading = true;
+            await signInWithPopup(auth, new GoogleAuthProvider());
+        } catch (e) {
+            alert("Login failed: " + e.message);
+        } finally {
+            this.loading = false;
+        }
+    },
+
+    async logout() {
+        try {
+            await signOut(auth);
+            this.user = null;
+            this.logs = [];
+        } catch (e) {
+            console.error("Logout error:", e);
+        }
+    },
+
+    // --- DATA HANDLING ---
+    fetchLogs() {
+        if (!this.user) return;
+        const q = query(
+            collection(db, `users/${this.user.uid}/master_logs`),
+            orderBy('timestamp', 'desc')
+        );
+
+        onSnapshot(q, (snapshot) => {
+            this.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            this.updateChart();
+        });
+    },
+
+    async addLog() {
+        if (!this.user || !this.logInput.weight) {
+            alert("Weight is required.");
+            return;
+        }
+
+        this.loading = true;
+        try {
+            await addDoc(collection(db, `users/${this.user.uid}/master_logs`), {
+                weight: parseFloat(this.logInput.weight),
+                waist: parseFloat(this.logInput.waist) || '-',
+                energy: parseInt(this.logInput.energy) || 5,
+                sleep: parseFloat(this.logInput.sleep) || 0,
+                note: this.logInput.note || '',
+                dateString: new Date().toLocaleDateString('en-GB'),
+                timestamp: serverTimestamp()
+            });
+
+            // Clear inputs
+            const currentNote = this.logInput.note;
+            this.logInput = { weight: '', waist: '', energy: '', sleep: '', note: currentNote };
+            this.tab = 'progress';
+        } catch (e) {
+            console.error("Error adding log:", e);
+            alert("Failed to save log.");
+        } finally {
+            this.loading = false;
+        }
+    },
+
+    exportData() {
+        if (!this.logs.length) return alert("No data to export.");
+
+        let csv = "Date,Weight,Waist,Sleep,Energy,Note\n";
+        csv += this.logs.map(l => {
+            const note = l.note ? `"${l.note.replace(/"/g, '""')}"` : '""';
+            return `${l.dateString},${l.weight},${l.waist},${l.sleep || 0},${l.energy},${note}`;
+        }).join("\n");
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `life-os-export-${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
+    addFood(cal) {
+        this.dailyCalories += cal;
+        localStorage.setItem('masterCalories', this.dailyCalories);
+    },
+
+    checkDailyReset() {
+        const today = new Date().toDateString();
+
+        // Reset tasks for new day
+        if (localStorage.getItem('masterLastLogin') !== today) {
+            this.updateTasksForMode();
+            localStorage.setItem('masterLastLogin', today);
+        }
+
+        // Reset calories for new day
+        if (this.lastCalorieDate !== today) {
+            this.dailyCalories = 0;
+            this.lastCalorieDate = today;
+            localStorage.setItem('masterCalories', '0');
+            localStorage.setItem('masterCalDate', today);
+        }
+    },
+
+    async fetchWeather() {
+        try {
+            // Defaulting to Kuching, MY as per user's location in original code
+            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=1.5533&longitude=110.3592&daily=sunrise,sunset&current=temperature_2m&timezone=Asia%2FKuala_Lumpur');
+            const data = await res.json();
+
+            this.currentTemp = Math.round(data.current.temperature_2m);
+            const fmt = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            this.sunriseTime = fmt(data.daily.sunrise[0]);
+            this.sunsetTime = fmt(data.daily.sunset[0]);
+        } catch (e) {
+            console.warn("Weather sync failed:", e);
+        }
+    },
+
+    // --- COMPUTED PROPERTIES ---
+    get playerLevel() {
+        const count = this.logs.length;
+        const levels = [
+            { name: 'Novice', threshold: 0, max: 15 },
+            { name: 'Apprentice', threshold: 15, max: 50 },
+            { name: 'Adept', threshold: 50, max: 100 },
+            { name: 'Master', threshold: 100, max: 1000 }
+        ];
+
+        let currentLevel = levels[0];
+        for (let i = levels.length - 1; i >= 0; i--) {
+            if (count >= levels[i].threshold) {
+                currentLevel = levels[i];
+                break;
+            }
+        }
+
+        const progress = Math.min(100, ((count - currentLevel.threshold) / (currentLevel.max - currentLevel.threshold)) * 100);
+        return {
+            name: currentLevel.name,
+            rank: levels.indexOf(currentLevel) + 1,
+            next: currentLevel.max,
+            width: progress
+        };
+    },
+
+    get circadianMessage() {
+        const h = new Date().getHours();
+        if (h >= 5 && h < 9) return "View morning sunlight immediately";
+        if (h >= 9 && h < 12) return "Peak focus window. Deep work only.";
+        if (h >= 12 && h < 15) return "Afternoon dip. Movement or cold water.";
+        if (h >= 15 && h < 18) return "Late afternoon light. Exercise window.";
+        if (h >= 18 && h < 21) return "Dim lights. Alcohol/Caffeine cutoff.";
+        if (h >= 21 || h < 5) return "Deep rest protocol. No blue light.";
+        return "Stay focused.";
+    },
+
+    get pomodoroProgress() {
+        return ((this.pomodoroInitial - this.pomodoroTime) / this.pomodoroInitial) * 100;
+    },
+
+    formatTime(s) {
+        return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+    },
+
+    toggleTimer() {
+        if (this.isTimerRunning) {
+            clearInterval(this.timerInterval);
+            this.isTimerRunning = false;
+        } else {
+            this.isTimerRunning = true;
+            this.timerInterval = setInterval(() => {
+                if (this.pomodoroTime > 0) {
+                    this.pomodoroTime--;
+                } else {
+                    this.completeTimer();
+                }
+            }, 1000);
+        }
+    },
+
+    resetTimer() {
+        clearInterval(this.timerInterval);
+        this.isTimerRunning = false;
+        this.pomodoroMode = 'work';
+        this.pomodoroTime = 50 * 60;
+        this.pomodoroInitial = 50 * 60;
+    },
+
+    completeTimer() {
+        clearInterval(this.timerInterval);
+        this.isTimerRunning = false;
+
+        const audio = new Audio('https://upload.wikimedia.org/wikipedia/commons/3/30/Beep_short.ogg');
+        audio.play().catch(() => { });
+
+        if (this.pomodoroMode === 'work') {
+            this.pomodoroMode = 'break';
+            this.pomodoroTime = 10 * 60;
+            this.pomodoroInitial = 10 * 60;
+            this.currentMicroWorkout = this.microWorkouts[Math.floor(Math.random() * this.microWorkouts.length)];
+        } else {
+            this.pomodoroMode = 'work';
+            this.pomodoroTime = 50 * 60;
+            this.pomodoroInitial = 50 * 60;
+        }
+    },
+
+    get bmi() {
+        if (!this.logs.length) return 23.5; // Placeholder
+        const latest = this.logs[0];
+        // Hardcoded height 1.72m for now from original code
+        return (latest.weight / (1.72 * 1.72)).toFixed(1);
+    },
+
+    get bmiColor() {
+        const val = parseFloat(this.bmi);
+        if (val < 18.5) return 'text-blue-400';
+        if (val < 25) return 'text-emerald-400';
+        if (val < 30) return 'text-yellow-500';
+        return 'text-red-500';
+    },
+
+    get whtr() {
+        if (!this.logs.length || this.logs[0].waist === '-') return 0;
+        return (parseFloat(this.logs[0].waist) / 172).toFixed(2);
+    },
+
+    get whtrStatus() {
+        const r = parseFloat(this.whtr);
+        if (r === 0) return { text: 'No Data', color: 'text-gray-500' };
+        if (r <= 0.5) return { text: 'Optimal', color: 'text-emerald-400' };
+        return { text: 'High Risk', color: 'text-red-500' };
+    },
+
+    get waterGoal() {
+        const weight = this.logs.length ? this.logs[0].weight : 75;
+        return (weight * 0.033).toFixed(1);
+    },
+
+    toggleTask(index) {
+        this.dailyTasks[index].completed = !this.dailyTasks[index].completed;
+        // Trigger Alpine reactivity
+        this.dailyTasks = [...this.dailyTasks];
+    },
+
+    // --- CHARTING ---
+    chartInstance: null,
+    updateChart() {
+        const ctx = document.getElementById('mainChart');
+        if (!ctx) return;
+
+        const data = [...this.logs].reverse();
+        if (this.chartInstance) this.chartInstance.destroy();
+
+        this.chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(l => l.dateString.slice(0, 5)),
+                datasets: [
+                    {
+                        label: 'Weight (kg)',
+                        data: data.map(l => l.weight),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Sleep (hrs)',
+                        data: data.map(l => l.sleep || null),
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#f8fafc',
+                        borderColor: '#334155',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: 'rgba(51, 65, 85, 0.5)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { display: false },
+                        ticks: { color: '#3b82f6' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    }
+}));
+
+// Start Alpine
+Alpine.start();

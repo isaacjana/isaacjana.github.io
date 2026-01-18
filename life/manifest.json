@@ -1,21 +1,25 @@
 {
-  "name": "Master's Protocol",
-  "short_name": "Protocol",
+  "name": "Life OS | Neural Protocol",
+  "short_name": "Life OS",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1e293b",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "description": "A futuristic personal operating system for peak performance tracking.",
+  "categories": ["lifestyle", "productivity", "health"]
 }

@@ -1,47 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Life OS v7.0 (Stable)</title>
-    
+    <title>Life OS | Neural Protocol</title>
+
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
 
+    <!-- Stylesheets -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 
-    <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        [x-cloak] { display: none !important; }
-        
-        /* Pomodoro Ring */
-        .progress-ring__circle {
-            transition: stroke-dashoffset 0.35s;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
-        
-        /* Sound Bars Animation */
-        .sound-bar { animation: sound 0.5s infinite alternate; }
-        .sound-bar:nth-child(2) { animation-delay: 0.1s; }
-        .sound-bar:nth-child(3) { animation-delay: 0.2s; }
-        @keyframes sound { 0% { height: 4px; } 100% { height: 16px; } }
-    </style>
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        master: { dark: '#0f172a', light: '#1e293b', card: '#334155', accent: '#10b981', warning: '#f59e0b', danger: '#ef4444' }
+                        master: {
+                            dark: '#020617',
+                            light: '#0f172a',
+                            card: '#1e293b',
+                            accent: '#10b981',
+                            warning: '#f59e0b',
+                            danger: '#ef4444',
+                            info: '#3b82f6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        outfit: ['Outfit', 'sans-serif']
                     }
                 }
             }
@@ -49,683 +50,763 @@
     </script>
 </head>
 
-<body class="bg-master-dark text-gray-200 h-screen overflow-hidden flex flex-col md:flex-row" x-data="app">
+<body class="bg-master-dark text-slate-200 h-screen overflow-hidden flex flex-col md:flex-row" x-data="app" x-cloak>
 
-    <div x-show="!user" x-transition.opacity class="fixed inset-0 z-[100] bg-master-dark flex flex-col items-center justify-center p-6 text-center">
-        <div class="w-24 h-24 bg-master-accent/10 rounded-full flex items-center justify-center mb-6 border border-master-accent/50 animate-pulse">
-            <i class="fas fa-shield-alt text-5xl text-master-accent"></i>
+    <!-- Splash / Login Screen -->
+    <div x-show="!user" x-transition.opacity.duration.500ms
+        class="fixed inset-0 z-[100] bg-master-dark flex flex-col items-center justify-center p-6 text-center">
+        <div
+            class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent">
         </div>
-        <h1 class="text-4xl font-extrabold text-white mb-2 tracking-tight">LIFE OS <span class="text-master-accent">v7.0</span></h1>
-        <p class="text-gray-400 mb-8 max-w-md font-mono text-sm">System Patch: Audio & Memory</p>
-        <button @click="login" class="bg-white text-gray-900 px-8 py-3 rounded-lg font-bold hover:bg-gray-200 transition flex items-center gap-3">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
-            Initialize System
+
+        <div class="relative">
+            <div
+                class="w-32 h-32 bg-master-accent/10 rounded-3xl flex items-center justify-center mb-8 border border-master-accent/30 animate-float shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+                <i class="fas fa-microchip text-6xl text-master-accent"></i>
+            </div>
+        </div>
+
+        <h1 class="text-5xl font-outfit font-black text-white mb-2 tracking-tighter uppercase italic">Life <span
+                class="text-master-accent">OS</span></h1>
+        <p class="text-slate-400 mb-12 max-w-md font-mono text-xs tracking-widest uppercase">System Initialization v7.1
+            // Stable</p>
+
+        <button @click="login" :disabled="loading"
+            class="btn-cyber bg-white text-master-dark px-10 py-4 rounded-2xl font-black hover:scale-105 transition-all flex items-center gap-4 shadow-2xl disabled:opacity-50">
+            <template x-if="!loading">
+                <div class="flex items-center gap-4">
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
+                    <span class="tracking-tight">INITIALIZE NEURAL LINK</span>
+                </div>
+            </template>
+            <template x-if="loading">
+                <i class="fas fa-circle-notch fa-spin text-xl"></i>
+            </template>
         </button>
+
+        <div class="mt-12 font-mono text-[10px] text-slate-600 flex gap-8">
+            <span>RTC: SYNCED</span>
+            <span>MEM: OPTIMIZED</span>
+            <span>OS: LI-V7</span>
+        </div>
     </div>
 
-    <header class="md:hidden p-4 border-b border-gray-800 flex justify-between items-center bg-master-light z-50">
-        <div class="flex items-center gap-2">
-            <i class="fas fa-layer-group text-master-accent"></i>
-            <h1 class="text-sm font-bold text-white tracking-widest uppercase">Protocol</h1>
+    <!-- Mobile Header -->
+    <header
+        class="md:hidden p-5 border-b border-white/5 flex justify-between items-center bg-master-light/50 backdrop-blur-xl z-50">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-8 h-8 bg-master-accent/20 rounded-lg flex items-center justify-center border border-master-accent/30">
+                <i class="fas fa-bolt text-master-accent text-sm"></i>
+            </div>
+            <h1 class="text-lg font-outfit font-black text-white tracking-tight">PROTOCOL</h1>
         </div>
-        <button @click="mobileMenu = !mobileMenu" class="text-gray-300 focus:outline-none p-2">
-            <i class="fas fa-bars text-xl"></i>
+        <button @click="mobileMenu = !mobileMenu" class="text-slate-400 p-2 hover:text-white transition">
+            <i class="fas" :class="mobileMenu ? 'fa-times' : 'fa-bars-staggered'"></i>
         </button>
     </header>
 
-    <div x-show="mobileMenu" class="fixed inset-0 bg-black/90 z-40 md:hidden" @click="mobileMenu = false" x-transition.opacity></div>
-    <aside :class="mobileMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0'" class="fixed md:static inset-y-0 left-0 w-64 bg-master-light border-r border-gray-800 z-50 transition-transform duration-300 flex flex-col">
-        <div class="p-6 hidden md:block border-b border-gray-800">
-            <h1 class="text-2xl font-black tracking-tighter text-white">LIFE <span class="text-master-accent">OS</span></h1>
-            <p class="text-[10px] text-gray-500 font-mono mt-1">SYS.VER.7.0</p>
+    <!-- Sidebar Navigation -->
+    <div x-show="mobileMenu" class="fixed inset-0 bg-master-dark/80 backdrop-blur-sm z-40 md:hidden"
+        @click="mobileMenu = false" x-transition.opacity></div>
+
+    <aside :class="mobileMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+        class="fixed md:static inset-y-0 left-0 w-72 bg-master-light border-r border-white/5 z-50 transition-transform duration-500 ease-in-out flex flex-col shadow-2xl">
+        <div class="p-8 hidden md:block">
+            <h1 class="text-3xl font-outfit font-black tracking-tighter text-white italic">LIFE<span
+                    class="text-master-accent">OS</span></h1>
+            <div class="flex items-center gap-2 mt-2">
+                <span class="w-2 h-2 rounded-full bg-master-accent animate-pulse"></span>
+                <p class="text-[10px] text-slate-500 font-mono tracking-widest uppercase font-bold">System Status:
+                    Active</p>
+            </div>
         </div>
 
-        <div class="p-4 bg-gray-900/50 border-b border-gray-800" x-show="user">
-            <div class="flex items-center gap-3 mb-3">
-                <img :src="user?.photoURL" class="w-8 h-8 rounded border border-gray-600">
+        <!-- User Profile Card -->
+        <div class="mx-4 p-5 glass rounded-3xl mb-6 relative overflow-hidden group border-white/10" x-show="user">
+            <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
+                <i class="fas fa-shield-halved text-4xl"></i>
+            </div>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="relative">
+                    <img :src="user?.photoURL"
+                        class="w-12 h-12 rounded-2xl border-2 border-master-accent/50 shadow-lg object-cover">
+                    <div
+                        class="absolute -bottom-1 -right-1 w-4 h-4 bg-master-accent rounded-full border-2 border-master-light flex items-center justify-center">
+                        <i class="fas fa-check text-[8px] text-master-dark"></i>
+                    </div>
+                </div>
                 <div>
-                    <span class="text-sm font-bold block text-white truncate w-32" x-text="user?.displayName"></span>
-                    <span class="text-[10px] text-master-accent font-mono uppercase" x-text="playerLevel.name"></span>
+                    <span class="text-sm font-bold block text-white truncate w-32 font-outfit"
+                        x-text="user?.displayName"></span>
+                    <span
+                        class="text-[10px] text-master-accent font-mono uppercase bg-master-accent/10 px-2 py-0.5 rounded"
+                        x-text="playerLevel.name"></span>
                 </div>
             </div>
-            <div class="w-full bg-gray-700 rounded-full h-1.5 mt-1">
-                <div class="bg-master-accent h-1.5 rounded-full transition-all duration-1000" :style="`width: ${playerLevel.width}%`"></div>
-            </div>
-            <div class="flex justify-between text-[10px] text-gray-500 mt-1 font-mono">
-                <span>Lvl <span x-text="playerLevel.rank"></span></span>
-                <span><span x-text="logs.length"></span>/<span x-text="playerLevel.next"></span> XP</span>
+            <div class="space-y-2">
+                <div class="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                    <div class="bg-gradient-to-right from-master-accent to-emerald-400 h-full rounded-full transition-all duration-1000 ease-out"
+                        :style="`width: ${playerLevel.width}%`"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-500 font-mono font-bold">
+                    <span>SECTOR <span x-text="playerLevel.rank"></span></span>
+                    <span><span x-text="logs.length"></span> / <span x-text="playerLevel.next"></span> XP</span>
+                </div>
             </div>
         </div>
 
-        <nav class="mt-4 flex-1 space-y-1 px-2">
-            <template x-for="item in navItems">
-                <a @click="tab = item.id; mobileMenu = false" 
-                   :class="tab === item.id ? 'bg-master-accent/10 text-master-accent border-master-accent' : 'text-gray-400 hover:bg-gray-800 hover:text-white border-transparent'" 
-                   class="cursor-pointer group flex items-center px-4 py-3 text-sm font-medium rounded-md border-l-4 transition-all">
-                    <i :class="item.icon" class="w-6 text-center mr-3 text-lg opacity-80"></i>
-                    <span x-text="item.label"></span>
+        <nav class="flex-1 space-y-2 px-4 py-2">
+            <template x-for="item in navItems" :key="item.id">
+                <a @click="tab = item.id; mobileMenu = false"
+                    :class="tab === item.id ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5'"
+                    class="nav-link cursor-pointer group flex items-center px-4 py-4 text-sm font-bold rounded-2xl transition-all duration-300">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center mr-4 transition-all"
+                        :class="tab === item.id ? 'bg-master-accent/20 text-master-accent' : 'bg-transparent group-hover:bg-white/10'">
+                        <i :class="item.icon" class="text-lg"></i>
+                    </div>
+                    <span x-text="item.label" class="flex-1"></span>
+                    <i class="fas fa-chevron-right text-[10px] opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all"
+                        :class="tab === item.id ? 'opacity-100 translate-x-0' : ''"></i>
                 </a>
             </template>
         </nav>
 
-        <div class="p-4 border-t border-gray-800">
-            <button @click="logout" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-red-900/10 transition">
-                <i class="fas fa-power-off"></i> Terminate
+        <div class="p-6">
+            <button @click="logout"
+                class="group w-full flex items-center justify-center gap-3 px-4 py-3 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300">
+                <i class="fas fa-power-off text-sm group-hover:rotate-90 transition-transform duration-500"></i>
+                <span class="text-xs font-black uppercase tracking-widest">Logout Protocol</span>
             </button>
         </div>
     </aside>
 
+    <!-- Main Content Area -->
     <main class="flex-1 overflow-y-auto relative scroll-smooth bg-master-dark" id="main-content">
-        <div class="max-w-5xl mx-auto p-4 md:p-8 pb-32">
-            
-            <div x-show="tab === 'dashboard'" x-transition.opacity.duration.300ms>
-                
-                <div class="mb-6 bg-gray-800 p-2 rounded-lg inline-flex items-center border border-gray-700 overflow-x-auto max-w-full">
-                    <button @click="setMode('standard')" :class="systemMode === 'standard' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap">
-                        <i class="fas fa-balance-scale mr-1"></i> Standard
-                    </button>
-                    <button @click="setMode('busy')" :class="systemMode === 'busy' ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap">
-                        <i class="fas fa-fire mr-1"></i> Busy
-                    </button>
-                    <button @click="setMode('holiday')" :class="systemMode === 'holiday' ? 'bg-green-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap">
-                        <i class="fas fa-umbrella-beach mr-1"></i> Holiday
-                    </button>
+        <div class="max-w-6xl mx-auto p-6 md:p-12 pb-32">
+
+            <!-- Dashboard View -->
+            <div x-show="tab === 'dashboard'" x-transition.opacity.duration.400ms class="animate-fade-in-up">
+
+                <!-- System Mode Switcher -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+                    <div>
+                        <h2 class="text-sm font-mono text-master-accent uppercase tracking-[0.2em] font-bold mb-1">
+                            Current Protocol</h2>
+                        <h1 class="text-4xl font-outfit font-black text-white" x-text="systemMode.toUpperCase()"></h1>
+                    </div>
+                    <div
+                        class="bg-master-light/50 p-1.5 rounded-2xl flex items-center border border-white/5 backdrop-blur-xl">
+                        <button @click="setMode('standard')"
+                            :class="systemMode === 'standard' ? 'bg-master-accent text-master-dark shadow-xl' : 'text-slate-400 hover:text-white'"
+                            class="px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2">
+                            Standard
+                        </button>
+                        <button @click="setMode('busy')"
+                            :class="systemMode === 'busy' ? 'bg-master-danger text-white shadow-xl' : 'text-slate-400 hover:text-white'"
+                            class="px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2">
+                            Busy
+                        </button>
+                        <button @click="setMode('holiday')"
+                            :class="systemMode === 'holiday' ? 'bg-master-info text-white shadow-xl' : 'text-slate-400 hover:text-white'"
+                            class="px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2">
+                            Holiday
+                        </button>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 relative overflow-hidden">
-                        <div class="relative z-10">
-                            <h2 class="text-xl font-bold text-white">Kuching, MY</h2>
-                            <p class="text-sm text-gray-400 font-mono mb-4" x-text="new Date().toLocaleDateString('en-MY', {weekday: 'long', day: 'numeric', month: 'short'})"></p>
-                            
-                            <div class="flex items-end gap-2">
-                                <span class="text-4xl font-bold text-white" x-text="currentTemp ? currentTemp + '°' : '--'"></span>
-                                <div class="text-xs text-yellow-500 font-bold mb-2">
-                                    <i class="fas fa-sun"></i> <span x-text="sunriseTime"></span>
-                                    <span class="text-gray-600 mx-1">|</span>
-                                    <i class="fas fa-moon text-gray-400"></i> <span x-text="sunsetTime"></span>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-10">
+                    <!-- Weather & Environment -->
+                    <div class="md:col-span-12 lg:col-span-8 glass rounded-[2.5rem] p-8 relative overflow-hidden group">
+                        <div
+                            class="absolute top-0 right-0 w-64 h-64 bg-master-accent/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-master-accent/10 transition-colors">
+                        </div>
+
+                        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <i class="fas fa-location-dot text-master-accent"></i>
+                                    <span class="text-sm font-mono text-slate-400 tracking-widest uppercase">Kuching
+                                        Node // MY</span>
+                                </div>
+                                <h3 class="text-5xl font-outfit font-black text-white mb-2"
+                                    x-text="new Date().toLocaleDateString('en-MY', {weekday: 'long', day: 'numeric', month: 'short'})">
+                                </h3>
+                                <p class="text-master-accent font-bold text-sm flex items-center gap-2">
+                                    <i class="fas fa-robot animate-bounce"></i>
+                                    <span x-text="circadianMessage"></span>
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-10">
+                                <div class="text-center">
+                                    <span class="text-6xl font-outfit font-black text-white"
+                                        x-text="currentTemp ? currentTemp + '°' : '--'"></span>
+                                    <span class="block text-[10px] font-mono text-slate-500 uppercase mt-2">Surface
+                                        Temp</span>
+                                </div>
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex items-center gap-3 text-sm font-bold text-amber-500 bg-amber-500/10 px-4 py-2 rounded-2xl border border-amber-500/20">
+                                        <i class="fas fa-sun-plant-wilt"></i> <span x-text="sunriseTime"></span>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-3 text-sm font-bold text-indigo-400 bg-indigo-400/10 px-4 py-2 rounded-2xl border border-indigo-400/20">
+                                        <i class="fas fa-moon"></i> <span x-text="sunsetTime"></span>
+                                    </div>
                                 </div>
                             </div>
-                            <p class="text-xs text-master-accent mt-4 font-bold uppercase"><i class="fas fa-robot mr-1"></i> <span x-text="circadianMessage"></span></p>
                         </div>
                     </div>
 
-                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 flex flex-col">
-                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2"><i class="fas fa-pen-nib mr-1"></i> Daily Mission</h3>
-                        <textarea x-model="logInput.note" placeholder="What is the one thing you must do today?" class="flex-1 bg-gray-900/50 border border-gray-700 rounded-lg p-3 text-sm text-white focus:border-master-accent outline-none resize-none"></textarea>
+                    <!-- Daily Mission -->
+                    <div
+                        class="md:col-span-12 lg:col-span-4 bg-white/5 rounded-[2.5rem] p-8 border border-white/5 flex flex-col hover:border-white/10 transition-all group">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest">Main Objective</h3>
+                            <i
+                                class="fas fa-bullseye text-master-accent group-hover:scale-125 transition-transform"></i>
+                        </div>
+                        <textarea x-model="logInput.note" placeholder="Define today's primary directive..."
+                            class="flex-1 bg-transparent border-none rounded-2xl p-0 text-xl font-bold text-white placeholder:text-slate-700 focus:ring-0 resize-none leading-relaxed"></textarea>
+                        <div class="mt-4 flex justify-end">
+                            <span class="text-[9px] font-mono text-slate-600 uppercase">Input encrypted //
+                                end-to-end</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex justify-between items-end mb-4">
-                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest">Protocol Checklist</h3>
-                    <span class="text-[10px] bg-gray-800 px-2 py-1 rounded text-gray-400 border border-gray-700" x-text="systemMode.toUpperCase() + ' MODE'"></span>
+                <!-- Protocol Checklist -->
+                <div class="flex items-center justify-between mb-6 px-2">
+                    <h3 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3">
+                        <span class="w-8 h-[1px] bg-slate-800"></span> Task Sequence
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-mono font-bold text-slate-500"
+                            x-text="dailyTasks.filter(t => t.completed).length + '/' + dailyTasks.length + ' COMPLETE'"></span>
+                    </div>
                 </div>
-                
-                <div class="space-y-3">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <template x-for="(task, index) in dailyTasks" :key="index">
-                        <div @click="toggleTask(index)" 
-                             :class="task.completed ? 'bg-master-accent/10 border-master-accent/50' : 'bg-gray-800 border-gray-700 hover:border-gray-600'" 
-                             class="cursor-pointer border p-4 rounded-lg flex items-center justify-between transition-all duration-200 group">
-                            <div class="flex items-center gap-4">
-                                <div class="w-6 h-6 rounded border flex items-center justify-center transition-colors" 
-                                     :class="task.completed ? 'bg-master-accent border-master-accent' : 'border-gray-500 bg-gray-900'">
-                                    <i x-show="task.completed" class="fas fa-check text-gray-900 text-xs"></i>
+                        <div @click="toggleTask(index)"
+                            :class="task.completed ? 'border-master-accent/40 bg-master-accent/5' : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10'"
+                            class="cursor-pointer border-2 p-6 rounded-[2rem] flex items-center justify-between transition-all duration-300 group">
+                            <div class="flex items-center gap-6">
+                                <div class="w-12 h-12 rounded-2xl border-2 flex items-center justify-center transition-all duration-500 group-hover:scale-110"
+                                    :class="task.completed ? 'bg-master-accent border-master-accent shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'border-slate-700 bg-master-dark'">
+                                    <i x-show="task.completed" class="fas fa-check text-master-dark text-lg"></i>
+                                    <i x-show="!task.completed" class="fas fa-ellipsis text-slate-700 text-xs"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-sm text-gray-200 group-hover:text-white" :class="{'text-gray-500 line-through': task.completed}" x-text="task.name"></h4>
-                                    <p class="text-xs text-gray-500" x-text="task.desc"></p>
+                                    <h4 class="font-bold text-lg text-white group-hover:text-master-accent transition-colors"
+                                        :class="{'text-slate-600 line-through': task.completed}" x-text="task.name">
+                                    </h4>
+                                    <p class="text-xs text-slate-500 tracking-wide mt-1" x-text="task.desc"></p>
                                 </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i class="fas fa-arrow-right text-slate-700"></i>
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
 
-            <div x-show="tab === 'focus'" x-cloak x-transition.opacity.duration.300ms>
-                <div class="max-w-xl mx-auto text-center mt-8">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-bold text-white">Neural Focus</h2>
-                        <p class="text-sm text-gray-400">Office Mode (7:30 - 4:30)</p>
-                    </div>
+            <!-- Deep Work View -->
+            <div x-show="tab === 'focus'" x-transition.opacity.duration.400ms class="max-w-3xl mx-auto py-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-5xl font-outfit font-black text-white mb-4 italic tracking-tight">Neural <span
+                            class="text-master-accent">Focus</span></h2>
+                    <p class="text-slate-400 font-mono text-xs tracking-widest uppercase">Deep work protocol initiated ·
+                        50:10 Cycle</p>
+                </div>
 
-                    <div class="flex justify-center gap-4 mb-8">
-                        <button @click="toggleAudio('rain')" :class="activeAudio === 'rain' ? 'bg-blue-500/20 text-blue-400 border-blue-500' : 'bg-gray-800 border-gray-700 text-gray-400'" class="px-4 py-2 rounded-full border text-xs font-bold flex items-center gap-2 transition">
-                            <i class="fas fa-cloud-rain"></i> Rain
-                            <div x-show="activeAudio === 'rain'" class="flex gap-0.5 items-end h-3">
-                                <div class="w-0.5 bg-blue-400 sound-bar"></div>
-                                <div class="w-0.5 bg-blue-400 sound-bar"></div>
-                            </div>
-                        </button>
-                        <button @click="toggleAudio('brown')" :class="activeAudio === 'brown' ? 'bg-yellow-900/20 text-yellow-600 border-yellow-700' : 'bg-gray-800 border-gray-700 text-gray-400'" class="px-4 py-2 rounded-full border text-xs font-bold flex items-center gap-2 transition">
-                            <i class="fas fa-wave-square"></i> Brown Noise
-                            <div x-show="activeAudio === 'brown'" class="flex gap-0.5 items-end h-3">
-                                <div class="w-0.5 bg-yellow-600 sound-bar"></div>
-                                <div class="w-0.5 bg-yellow-600 sound-bar"></div>
-                            </div>
-                        </button>
-                    </div>
-
-                    <div class="relative w-64 h-64 mx-auto mb-10">
-                        <svg class="w-full h-full" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" stroke-width="6" />
-                            <circle class="progress-ring__circle" cx="50" cy="50" r="45" fill="none" 
-                                    :stroke="pomodoroMode === 'work' ? '#10b981' : '#f59e0b'" stroke-width="6" 
-                                    stroke-dasharray="283" :stroke-dashoffset="283 - (283 * pomodoroProgress / 100)" stroke-linecap="round" />
-                        </svg>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-5xl font-mono font-bold text-white tracking-widest" x-text="formatTime(pomodoroTime)"></span>
-                            <span class="text-xs font-bold uppercase mt-2 px-3 py-1 rounded-full" 
-                                  :class="pomodoroMode === 'work' ? 'bg-master-accent/20 text-master-accent' : 'bg-yellow-500/20 text-yellow-500'" 
-                                  x-text="pomodoroMode === 'work' ? 'FOCUS' : 'RECOVERY'"></span>
+                <!-- Audio Controller -->
+                <div class="flex justify-center gap-6 mb-16">
+                    <button @click="toggleAudio('rain')"
+                        :class="activeAudio === 'rain' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'"
+                        class="px-8 py-4 rounded-3xl border-2 font-black text-sm flex items-center gap-4 transition-all duration-300 group">
+                        <i class="fas fa-cloud-rain text-lg group-hover:scale-125 transition-transform"></i>
+                        <span class="tracking-tight uppercase">Ambient Rain</span>
+                        <div x-show="activeAudio === 'rain'" class="flex gap-1 items-end h-4 ml-2">
+                            <div class="sound-bar"></div>
+                            <div class="sound-bar" style="animation-duration: 0.7s"></div>
+                            <div class="sound-bar" style="animation-duration: 0.9s"></div>
                         </div>
-                    </div>
-
-                    <div class="flex justify-center gap-4 mb-10">
-                        <button @click="toggleTimer" class="w-16 h-16 rounded-full bg-white text-gray-900 flex items-center justify-center hover:scale-110 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                            <i class="fas" :class="isTimerRunning ? 'fa-pause' : 'fa-play'"></i>
-                        </button>
-                        <button @click="resetTimer" class="w-16 h-16 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center hover:bg-gray-700 transition">
-                            <i class="fas fa-redo"></i>
-                        </button>
-                    </div>
-
-                    <div x-show="pomodoroMode === 'break'" x-transition.scale class="bg-yellow-900/20 border border-yellow-700/50 p-6 rounded-xl">
-                        <h3 class="text-lg font-bold text-yellow-500 mb-2"><i class="fas fa-bolt"></i> Micro-Dose</h3>
-                        <div class="text-xl font-bold text-white font-mono" x-text="currentMicroWorkout"></div>
-                        <p class="text-xs text-gray-400 mt-2">Find an empty meeting room or stairwell.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div x-show="tab === 'workout'" x-cloak x-transition.opacity.duration.300ms>
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold text-white">Workouts</h2>
-                    <span class="text-xs font-mono px-3 py-1 rounded border" :class="systemMode === 'busy' ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-gray-800 border-gray-700 text-gray-400'">
-                        <i class="fas fa-clock mr-1"></i> <span x-text="systemMode === 'busy' ? 'SURVIVAL MODE' : 'STANDARD'"></span>
-                    </span>
-                </div>
-
-                <div x-show="systemMode === 'busy'" class="bg-red-900/10 border border-red-700/50 p-6 rounded-xl mb-6">
-                    <h3 class="text-lg font-bold text-red-500 mb-2">Busy Protocol (20m)</h3>
-                    <p class="text-sm text-gray-400 mb-4">No time. High intensity. Get it done.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">100 Air Squats</div>
-                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">50 Pushups</div>
-                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">3 min Plank</div>
-                    </div>
-                </div>
-
-                <div x-show="systemMode !== 'busy'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
-                         <h3 class="font-bold text-white group-hover:text-master-accent">Monday: Legs</h3>
-                         <p class="text-[10px] text-gray-500 font-mono mt-1 mb-2">After 4:30 PM</p>
-                         <ul class="text-xs text-gray-400 mt-2 space-y-1 font-mono">
-                             <li>- Box Squats 3x15</li>
-                             <li>- Glute Bridge 3x15</li>
-                             <li>- Wall Sit 3x45s</li>
-                         </ul>
-                     </div>
-                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
-                         <h3 class="font-bold text-white group-hover:text-master-accent">Wednesday: Walk</h3>
-                         <p class="text-[10px] text-gray-500 font-mono mt-1 mb-2">After 4:30 PM</p>
-                         <p class="text-xs text-gray-400 mt-2">45min Zone 2 Cardio</p>
-                     </div>
-                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
-                         <h3 class="font-bold text-white group-hover:text-master-accent">Friday: Upper</h3>
-                         <p class="text-[10px] text-gray-500 font-mono mt-1 mb-2">After 4:30 PM</p>
-                         <ul class="text-xs text-gray-400 mt-2 space-y-1 font-mono">
-                             <li>- Incline Push 3x12</li>
-                             <li>- Door Rows 3x15</li>
-                             <li>- Superman 10x3s</li>
-                         </ul>
-                     </div>
-                </div>
-            </div>
-
-            <div x-show="tab === 'nutrition'" x-cloak x-transition.opacity.duration.300ms>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                        <h3 class="text-lg font-bold text-white mb-4">Work Schedule (17:7)</h3>
-                        <div class="relative pl-6 border-l-2 border-gray-700 space-y-8">
-                            <div class="relative">
-                                <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-blue-500"></span>
-                                <h4 class="font-bold text-blue-400 text-sm">06:00 - 07:30</h4>
-                                <p class="text-xs text-gray-400">Wake Up. Wim Hof. Commute.</p>
-                            </div>
-                            <div class="relative">
-                                <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-500"></span>
-                                <h4 class="font-bold text-white text-sm">07:30 - 13:00</h4>
-                                <p class="text-xs text-gray-400">Work Block 1. Fasted Focus.</p>
-                            </div>
-                            <div class="relative">
-                                <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-master-accent shadow-[0_0_10px_#10b981]"></span>
-                                <h4 class="font-bold text-master-accent text-sm">13:00 (Break Fast)</h4>
-                                <p class="text-xs text-gray-400">Lunch Break. Protein Focus.</p>
-                            </div>
-                            <div class="relative">
-                                <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-600"></span>
-                                <h4 class="font-bold text-gray-400 text-sm">16:30 (Work End)</h4>
-                                <p class="text-xs text-gray-400">Commute Home.</p>
-                            </div>
+                    </button>
+                    <button @click="toggleAudio('brown')"
+                        :class="activeAudio === 'brown' ? 'bg-amber-900/20 text-amber-500 border-amber-700' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'"
+                        class="px-8 py-4 rounded-3xl border-2 font-black text-sm flex items-center gap-4 transition-all duration-300 group">
+                        <i class="fas fa-wave-square text-lg group-hover:scale-125 transition-transform"></i>
+                        <span class="tracking-tight uppercase">Brown Noise</span>
+                        <div x-show="activeAudio === 'brown'" class="flex gap-1 items-end h-4 ml-2 text-amber-500">
+                            <div class="sound-bar"></div>
+                            <div class="sound-bar" style="animation-duration: 0.6s"></div>
+                            <div class="sound-bar" style="animation-duration: 0.8s"></div>
                         </div>
-                    </div>
-
-                    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-bold text-white">Kuching Estimator</h3>
-                            <div class="text-right">
-                                <span class="text-2xl font-mono font-bold text-master-accent" x-text="dailyCalories"></span>
-                                <span class="text-[10px] text-gray-500 block uppercase">Daily Total</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button @click="addFood(600)" class="bg-red-900/20 border border-red-900/50 p-2 rounded text-xs text-red-300 hover:bg-red-900/40 text-left">
-                                <span class="block font-bold">Kolo Mee</span><span class="text-[10px]">~600 cal</span>
-                            </button>
-                            <button @click="addFood(550)" class="bg-orange-900/20 border border-orange-900/50 p-2 rounded text-xs text-orange-300 hover:bg-orange-900/40 text-left">
-                                <span class="block font-bold">Laksa S'wak</span><span class="text-[10px]">~550 cal</span>
-                            </button>
-                            <button @click="addFood(150)" class="bg-green-900/20 border border-green-900/50 p-2 rounded text-xs text-green-300 hover:bg-green-900/40 text-left">
-                                <span class="block font-bold">Midin</span><span class="text-[10px]">~150 cal</span>
-                            </button>
-                            <button @click="addFood(120)" class="bg-yellow-900/20 border border-yellow-900/50 p-2 rounded text-xs text-yellow-300 hover:bg-yellow-900/40 text-left">
-                                <span class="block font-bold">Teh C Peng</span><span class="text-[10px]">~120 cal</span>
-                            </button>
-                            <button @click="dailyCalories = 0" class="col-span-2 border border-gray-600 text-gray-400 text-xs rounded p-2 hover:bg-gray-700 flex justify-center items-center gap-2">
-                                <i class="fas fa-undo"></i> Reset Day
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div x-show="tab === 'progress'" x-cloak x-transition.opacity.duration.300ms>
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold text-white">Correlation</h2>
-                    <button @click="exportData" class="text-xs font-mono text-master-accent border border-master-accent/50 px-3 py-1.5 rounded hover:bg-master-accent/10 flex items-center gap-2">
-                        <i class="fas fa-file-csv"></i> Export
                     </button>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-[10px] text-gray-500 uppercase font-bold">Latest Weight</p>
-                        <p class="text-xl font-bold text-white mt-1" x-text="logs.length ? logs[0].weight + ' kg' : '--'"></p>
+                <!-- Timer Ring -->
+                <div class="relative w-80 h-80 mx-auto mb-16 group">
+                    <div
+                        class="absolute inset-0 bg-master-accent/10 rounded-full blur-[100px] group-hover:bg-master-accent/20 transition-all duration-1000">
                     </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 relative group">
-                        <p class="text-[10px] text-gray-500 uppercase font-bold">Heart Risk (WHtR)</p>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-xl font-bold" :class="whtrStatus.color" x-text="whtr"></span>
-                            <span class="text-[9px] bg-black/30 px-1 rounded text-gray-400" x-text="whtrStatus.text"></span>
+                    <svg class="w-full h-full relative z-10" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6" />
+                        <circle class="progress-ring__circle" cx="50" cy="50" r="45" fill="none"
+                            :stroke="pomodoroMode === 'work' ? '#10b981' : '#f59e0b'" stroke-width="6"
+                            stroke-dasharray="283" :stroke-dashoffset="283 - (283 * pomodoroProgress / 100)"
+                            stroke-linecap="round" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center z-20">
+                        <span class="text-7xl font-outfit font-black text-white tracking-tight"
+                            x-text="formatTime(pomodoroTime)"></span>
+                        <span
+                            class="text-[10px] font-mono font-black uppercase mt-4 px-4 py-1.5 rounded-full border-2 tracking-widest"
+                            :class="pomodoroMode === 'work' ? 'border-master-accent/50 text-master-accent bg-master-accent/10' : 'border-amber-500/50 text-amber-500 bg-amber-500/10'"
+                            x-text="pomodoroMode === 'work' ? 'Focus Phase' : 'Recovery Phase'"></span>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-8 mb-16">
+                    <button @click="toggleTimer"
+                        class="w-24 h-24 rounded-[2.5rem] bg-white text-master-dark flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_60px_rgba(255,255,255,0.2)]">
+                        <i class="fas fa-2xl" :class="isTimerRunning ? 'fa-pause' : 'fa-play'"></i>
+                    </button>
+                    <button @click="resetTimer"
+                        class="w-24 h-24 rounded-[2.5rem] bg-white/5 border border-white/10 text-slate-400 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all">
+                        <i class="fas fa-redo-alt fa-xl"></i>
+                    </button>
+                </div>
+
+                <div x-show="pomodoroMode === 'break'" x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100"
+                    class="glass border-amber-500/30 p-10 rounded-[3rem] text-center">
+                    <h3 class="text-2xl font-black text-amber-500 mb-4 flex items-center justify-center gap-3">
+                        <i class="fas fa-bolt animate-pulse"></i> REST PROTOCOL
+                    </h3>
+                    <div class="text-3xl font-outfit font-black text-white mb-4" x-text="currentMicroWorkout"></div>
+                    <p class="text-sm text-slate-400 font-mono bg-white/5 py-2 px-4 rounded-xl inline-block">Execute
+                        immediately. Hydrate.</p>
+                </div>
+            </div>
+
+            <!-- Workout View -->
+            <div x-show="tab === 'workout'" x-transition.opacity.duration.400ms>
+                <div class="flex justify-between items-end mb-12">
+                    <div>
+                        <h2 class="text-5xl font-outfit font-black text-white italic tracking-tighter">PHYSICAL<span
+                                class="text-master-accent">LOAD</span></h2>
+                        <p class="text-slate-500 font-mono text-xs mt-2 uppercase tracking-widest">Structural
+                            Maintenance & Hypertrophy</p>
+                    </div>
+                    <div class="text-right">
+                        <span
+                            class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Efficiency
+                            Mode</span>
+                        <span class="px-6 py-2 rounded-2xl border-2 font-black text-sm inline-block"
+                            :class="systemMode === 'busy' ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-slate-400'">
+                            <i class="fas fa-microchip mr-2"></i> <span
+                                x-text="systemMode === 'busy' ? '20M SURVIVAL' : 'STANDARD OP'"></span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Busy Workout Strategy -->
+                <div x-show="systemMode === 'busy'"
+                    class="glass border-red-500/20 p-10 rounded-[3rem] mb-12 shadow-[0_0_80px_rgba(239,68,68,0.05)]">
+                    <div class="flex items-center gap-6 mb-8 text-red-500">
+                        <div
+                            class="w-16 h-16 rounded-[1.5rem] bg-red-500/10 flex items-center justify-center border-2 border-red-500/30">
+                            <i class="fas fa-fire-flame-curved text-3xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black italic">EMERGENCY PROTOCOL</h3>
+                            <p class="text-red-500/60 font-mono text-xs uppercase font-bold">20 Minutes AMRAP or Direct
+                            </p>
                         </div>
                     </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-[10px] text-gray-500 uppercase font-bold">Hydration</p>
-                        <p class="text-xl font-bold text-blue-400 mt-1" x-text="waterGoal + ' L'"></p>
-                    </div>
-                     <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-[10px] text-gray-500 uppercase font-bold">BMI</p>
-                        <p class="text-xl font-bold mt-1" :class="bmiColor" x-text="bmi"></p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div
+                            class="bg-master-dark border border-white/5 p-8 rounded-[2rem] hover:border-red-500/30 transition-all flex flex-col justify-center items-center">
+                            <span class="text-4xl font-outfit font-black text-white mb-2">100</span>
+                            <span class="text-xs font-mono font-bold text-slate-500 uppercase">Air Squats</span>
+                        </div>
+                        <div
+                            class="bg-master-dark border border-white/5 p-8 rounded-[2rem] hover:border-red-500/30 transition-all flex flex-col justify-center items-center">
+                            <span class="text-4xl font-outfit font-black text-white mb-2">50</span>
+                            <span class="text-xs font-mono font-bold text-slate-500 uppercase">Pushups</span>
+                        </div>
+                        <div
+                            class="bg-master-dark border border-white/5 p-8 rounded-[2rem] hover:border-red-500/30 transition-all flex flex-col justify-center items-center">
+                            <span class="text-4xl font-outfit font-black text-white mb-2">180s</span>
+                            <span class="text-xs font-mono font-bold text-slate-500 uppercase">Isometric Plank</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6 h-64 relative">
-                    <canvas id="mainChart"></canvas>
+                <!-- Weekly Schedule -->
+                <div x-show="systemMode !== 'busy'" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div
+                        class="glass p-8 rounded-[2.5rem] hover:scale-[1.02] transition-all group border-white/5 hover:border-white/20">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-master-accent/10 flex items-center justify-center border border-master-accent/20 mb-6 group-hover:bg-master-accent/20 transition-all">
+                            <i class="fas fa-person-arrow-down-to-line text-master-accent"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-white mb-1">MON: ANCHORING</h3>
+                        <p class="text-[10px] text-slate-500 font-mono uppercase font-bold mb-6">Lower Body Strength</p>
+                        <ul class="space-y-4">
+                            <li
+                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="w-2 h-2 rounded-full bg-master-accent"></span>
+                                <span class="text-slate-300 font-bold">Box Squats <span
+                                        class="text-slate-500 font-mono ml-auto">3x15</span></span>
+                            </li>
+                            <li
+                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="w-2 h-2 rounded-full bg-master-accent"></span>
+                                <span class="text-slate-300 font-bold">Glute Bridge <span
+                                        class="text-slate-500 font-mono ml-auto">3x15</span></span>
+                            </li>
+                            <li
+                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="w-2 h-2 rounded-full bg-master-accent"></span>
+                                <span class="text-slate-300 font-bold">Wall Sit <span
+                                        class="text-slate-500 font-mono ml-auto">3x45s</span></span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div
+                        class="glass p-8 rounded-[2.5rem] hover:scale-[1.02] transition-all group border-white/5 hover:border-white/20">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 mb-6 group-hover:bg-amber-500/20 transition-all">
+                            <i class="fas fa-person-walking text-amber-500"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-white mb-1">WED: ENDURANCE</h3>
+                        <p class="text-[10px] text-slate-500 font-mono uppercase font-bold mb-6">Zone 2 Cardiovascular
+                        </p>
+                        <div class="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem]">
+                            <p class="text-sm font-bold text-amber-500 mb-2">Target Directive:</p>
+                            <p class="text-2xl font-outfit font-black text-white italic">45M ZONE 2</p>
+                            <p class="text-[10px] text-slate-500 font-mono mt-4">Nasal breathing only. Maintain steady
+                                state output.</p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="glass p-8 rounded-[2.5rem] hover:scale-[1.02] transition-all group border-white/5 hover:border-white/20">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 mb-6 group-hover:bg-indigo-500/20 transition-all">
+                            <i class="fas fa-person-arms-up text-indigo-500"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-white mb-1">FRI: KINETIC</h3>
+                        <p class="text-[10px] text-slate-500 font-mono uppercase font-bold mb-6">Upper Body Structural
+                        </p>
+                        <ul class="space-y-4">
+                            <li
+                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                <span class="text-slate-300 font-bold">Incline Push <span
+                                        class="text-slate-500 font-mono ml-auto">3x12</span></span>
+                            </li>
+                            <li
+                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                <span class="text-slate-300 font-bold">Door Rows <span
+                                        class="text-slate-500 font-mono ml-auto">3x15</span></span>
+                            </li>
+                            <li
+                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                <span class="text-slate-300 font-bold">Superman <span
+                                        class="text-slate-500 font-mono ml-auto">10x3s</span></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fuel / Nutrition View -->
+            <div x-show="tab === 'nutrition'" x-transition.opacity.duration.400ms>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <!-- Metabolic Schedule -->
+                    <div class="glass p-10 rounded-[3rem] border-white/5 relative overflow-hidden">
+                        <div class="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/5 rounded-full blur-[50px]"></div>
+                        <h3 class="text-3xl font-outfit font-black text-white mb-8 italic">Metabolic <span
+                                class="text-indigo-400">Windows</span></h3>
+
+                        <div class="relative pl-8 border-l-2 border-slate-800 space-y-10">
+                            <div class="relative">
+                                <span
+                                    class="absolute -left-[41px] top-1 w-6 h-6 rounded-full bg-master-dark border-4 border-indigo-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]"></span>
+                                <h4 class="font-black text-indigo-400 text-sm font-mono tracking-widest uppercase mb-1">
+                                    06:00 — 07:30</h4>
+                                <h5 class="text-xl font-bold text-white mb-2">Ignition Phase</h5>
+                                <p class="text-sm text-slate-500 leading-relaxed">Early sunlight, cold exposure,
+                                    electrolyte loading. Zero caloric intake.</p>
+                            </div>
+                            <div class="relative">
+                                <span
+                                    class="absolute -left-[41px] top-1 w-6 h-6 rounded-full bg-master-dark border-4 border-slate-600 shadow-[0_0_15px_rgba(255,255,255,0.05)]"></span>
+                                <h4 class="font-black text-slate-500 text-sm font-mono tracking-widest uppercase mb-1">
+                                    07:30 — 13:00</h4>
+                                <h5 class="text-xl font-bold text-white mb-2">Fasted Execution</h5>
+                                <p class="text-sm text-slate-500 leading-relaxed">Neural focus window. Black coffee/tea
+                                    allowed. No glucose interference.</p>
+                            </div>
+                            <div class="relative">
+                                <span
+                                    class="absolute -left-[41px] top-1 w-6 h-6 rounded-full bg-master-dark border-4 border-master-accent shadow-[0_0_15px_rgba(16,185,129,0.3)]"></span>
+                                <h4
+                                    class="font-black text-master-accent text-sm font-mono tracking-widest uppercase mb-1">
+                                    13:00 (Break Fast)</h4>
+                                <h5 class="text-xl font-bold text-white mb-2">Protein Primary</h5>
+                                <p class="text-sm text-slate-500 leading-relaxed">High protein, moderate fats. Fiber
+                                    loading (Midin). Slow-burning fuel only.</p>
+                            </div>
+                            <div class="relative">
+                                <span
+                                    class="absolute -left-[41px] top-1 w-6 h-6 rounded-full bg-master-dark border-4 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]"></span>
+                                <h4 class="font-black text-amber-500 text-sm font-mono tracking-widest uppercase mb-1">
+                                    19:30 — 20:00</h4>
+                                <h5 class="text-xl font-bold text-white mb-2">Anabolic Close</h5>
+                                <p class="text-sm text-slate-500 leading-relaxed">Final feeding. Moderate carbs for
+                                    sleep preparation. Fasting starts here.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calorie Estimator -->
+                    <div class="flex flex-col gap-6">
+                        <div class="glass p-10 rounded-[3rem] border-white/5 relative overflow-hidden group">
+                            <div class="flex justify-between items-center mb-10">
+                                <div>
+                                    <h3
+                                        class="text-sm font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">
+                                        Energy Consumption</h3>
+                                    <h4 class="text-4xl font-outfit font-black text-white italic">FUEL LOG</h4>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-5xl font-outfit font-black text-master-accent italic"
+                                        x-text="dailyCalories"></div>
+                                    <span
+                                        class="text-[10px] text-slate-500 font-mono font-black uppercase tracking-widest mt-1">kCal
+                                        Total</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <button @click="addFood(600)"
+                                    class="bg-red-500/10 border-2 border-red-500/20 p-5 rounded-[2rem] text-left hover:bg-red-500/20 transition-all group">
+                                    <span
+                                        class="block font-black text-red-400 group-hover:scale-105 transition-transform uppercase italic">Kolo
+                                        Mee</span>
+                                    <span class="text-[10px] font-mono font-bold text-red-500/60 uppercase">High
+                                        Intensity // ~600</span>
+                                </button>
+                                <button @click="addFood(550)"
+                                    class="bg-amber-500/10 border-2 border-amber-500/20 p-5 rounded-[2rem] text-left hover:bg-amber-500/20 transition-all group">
+                                    <span
+                                        class="block font-black text-amber-400 group-hover:scale-105 transition-transform uppercase italic">Sarawak
+                                        Laksa</span>
+                                    <span class="text-[10px] font-mono font-bold text-amber-500/60 uppercase">Complex
+                                        Flavor // ~550</span>
+                                </button>
+                                <button @click="addFood(150)"
+                                    class="bg-emerald-500/10 border-2 border-emerald-500/20 p-5 rounded-[2rem] text-left hover:bg-emerald-500/20 transition-all group">
+                                    <span
+                                        class="block font-black text-emerald-400 group-hover:scale-105 transition-transform uppercase italic">Midin
+                                        Roast</span>
+                                    <span
+                                        class="text-[10px] font-mono font-bold text-emerald-500/60 uppercase">Micronutrient
+                                        // ~150</span>
+                                </button>
+                                <button @click="addFood(120)"
+                                    class="bg-indigo-500/10 border-2 border-indigo-500/20 p-5 rounded-[2rem] text-left hover:bg-indigo-500/20 transition-all group">
+                                    <span
+                                        class="block font-black text-indigo-400 group-hover:scale-105 transition-transform uppercase italic">Teh
+                                        C Peng</span>
+                                    <span class="text-[10px] font-mono font-bold text-indigo-500/60 uppercase">Glycemic
+                                        Spike // ~120</span>
+                                </button>
+                                <button @click="dailyCalories = 0"
+                                    class="col-span-2 bg-white/5 border-2 border-white/5 p-4 rounded-[1.5rem] text-slate-500 font-black text-xs uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all flex justify-center items-center gap-4">
+                                    <i class="fas fa-rotate-left"></i> Reset Metabolic Day
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Macro Guidelines -->
+                        <div class="bg-white/5 border border-white/5 p-8 rounded-[2.5rem] flex items-center gap-8">
+                            <div
+                                class="w-20 h-20 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center border-2 border-indigo-500/20 text-indigo-400">
+                                <i class="fas fa-droplet text-3xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-black text-white italic">HYDRATION PROTOCOL</h4>
+                                <p class="text-sm text-slate-500 font-mono mt-1">Target: <span
+                                        class="text-indigo-400 font-bold" x-text="waterGoal + ' Liters / Day'"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Correlation View -->
+            <div x-show="tab === 'progress'" x-transition.opacity.duration.400ms>
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+                    <div>
+                        <h2 class="text-5xl font-outfit font-black text-white italic tracking-tighter">NEURAL<span
+                                class="text-master-accent">METRIC</span></h2>
+                        <p class="text-slate-500 font-mono text-xs mt-2 uppercase tracking-widest">Biometric Data
+                            Tracking & Correlation</p>
+                    </div>
+                    <div>
+                        <button @click="exportData"
+                            class="btn-cyber bg-master-accent text-master-dark font-black px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl transition-all">
+                            <i class="fas fa-cloud-arrow-down"></i>
+                            <span class="text-xs uppercase tracking-widest">Export Dataset</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 mb-6">
-                     <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Log Daily Stats</h3>
-                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
-                         <div>
-                             <label class="text-[10px] text-gray-400 uppercase font-bold">Weight (kg)</label>
-                             <input type="number" x-model="logInput.weight" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 font-mono focus:border-master-accent outline-none">
-                         </div>
-                         <div>
-                             <label class="text-[10px] text-gray-400 uppercase font-bold">Waist (cm)</label>
-                             <input type="number" x-model="logInput.waist" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 font-mono focus:border-master-accent outline-none">
-                         </div>
-                         <div>
-                             <label class="text-[10px] text-gray-400 uppercase font-bold">Sleep (Hrs)</label>
-                             <input type="number" x-model="logInput.sleep" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 font-mono focus:border-master-accent outline-none">
-                         </div>
-                         <div>
-                             <label class="text-[10px] text-gray-400 uppercase font-bold">Energy (1-10)</label>
-                             <input type="number" x-model="logInput.energy" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 font-mono focus:border-master-accent outline-none">
-                         </div>
-                         <div class="col-span-2 md:col-span-1">
-                             <button @click="addLog" :disabled="loading" class="w-full bg-master-accent text-gray-900 font-bold py-2 rounded hover:bg-emerald-400 transition shadow-lg shadow-emerald-900/20 flex justify-center items-center h-[38px]">
-                                 <i x-show="!loading" class="fas fa-save mr-2"></i>
-                                 <span x-show="!loading">Save</span>
-                                 <i x-show="loading" class="fas fa-spinner fa-spin"></i>
-                             </button>
-                         </div>
-                     </div>
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                    <div class="glass p-8 rounded-[2.5rem] border-white/5">
+                        <div class="flex items-center gap-3 text-slate-500 mb-4">
+                            <i class="fas fa-weight-scale text-xs"></i>
+                            <span class="text-[10px] uppercase font-mono font-black tracking-widest">Weight Load</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-outfit font-black text-white italic"
+                                x-text="logs.length ? logs[0].weight : '--'"></span>
+                            <span class="text-xs font-mono text-slate-500">KG</span>
+                        </div>
+                    </div>
+
+                    <div class="glass p-8 rounded-[2.5rem] border-white/5">
+                        <div class="flex items-center gap-3 text-slate-500 mb-4">
+                            <i class="fas fa-heart-pulse text-xs"></i>
+                            <span class="text-[10px] uppercase font-mono font-black tracking-widest">Cardiac Risk</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-4xl font-outfit font-black italic" :class="whtrStatus.color"
+                                x-text="whtr"></span>
+                            <span
+                                class="text-[10px] font-mono font-black uppercase px-2 py-1 rounded-lg bg-white/5 text-slate-400"
+                                x-text="whtrStatus.text"></span>
+                        </div>
+                    </div>
+
+                    <div class="glass p-8 rounded-[2.5rem] border-white/5">
+                        <div class="flex items-center gap-3 text-slate-500 mb-4">
+                            <i class="fas fa-bed text-xs"></i>
+                            <span class="text-[10px] uppercase font-mono font-black tracking-widest">Recovery</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-outfit font-black text-indigo-400 italic"
+                                x-text="logs.length ? (logs[0].sleep || '--') : '--'"></span>
+                            <span class="text-xs font-mono text-slate-500">HRS</span>
+                        </div>
+                    </div>
+
+                    <div class="glass p-8 rounded-[2.5rem] border-white/5">
+                        <div class="flex items-center gap-3 text-slate-500 mb-4">
+                            <i class="fas fa-dna text-xs"></i>
+                            <span class="text-[10px] uppercase font-mono font-black tracking-widest">Metabolic
+                                BMI</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-outfit font-black italic" :class="bmiColor" x-text="bmi"></span>
+                            <span class="text-xs font-mono text-slate-500">INDEX</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="glass p-8 rounded-[3rem] border-white/5 mb-10 group">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-lg font-black text-white italic">Temporal Correlation Chart</h3>
+                        <div class="flex gap-4">
+                            <span
+                                class="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase font-black"><span
+                                    class="w-3 h-3 rounded-full bg-master-accent"></span> Weight</span>
+                            <span
+                                class="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase font-black"><span
+                                    class="w-3 h-3 rounded-full bg-indigo-400"></span> Sleep</span>
+                        </div>
+                    </div>
+                    <div class="h-80 relative">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Input Module -->
+                <div class="glass p-10 rounded-[3rem] border-white/5 bg-white/[0.02]">
+                    <h3 class="text-2xl font-black text-white italic mb-10 flex items-center gap-4">
+                        <i class="fas fa-pen-nib text-master-accent"></i> METRIC INPUT SEQUENCE
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+                        <div class="space-y-3">
+                            <label
+                                class="text-[10px] text-slate-500 uppercase font-black font-mono tracking-widest">Weight
+                                (kg)</label>
+                            <input type="number" step="0.1" x-model="logInput.weight"
+                                class="w-full bg-master-dark border-2 border-white/5 rounded-2xl p-5 text-2xl font-outfit font-black text-white focus:border-master-accent transition-all outline-none"
+                                placeholder="00.0">
+                        </div>
+                        <div class="space-y-3">
+                            <label
+                                class="text-[10px] text-slate-500 uppercase font-black font-mono tracking-widest">Waist
+                                (cm)</label>
+                            <input type="number" step="0.5" x-model="logInput.waist"
+                                class="w-full bg-master-dark border-2 border-white/5 rounded-2xl p-5 text-2xl font-outfit font-black text-white focus:border-master-accent transition-all outline-none"
+                                placeholder="00">
+                        </div>
+                        <div class="space-y-3">
+                            <label
+                                class="text-[10px] text-slate-500 uppercase font-black font-mono tracking-widest">Sleep
+                                (Hrs)</label>
+                            <input type="number" step="0.5" x-model="logInput.sleep"
+                                class="w-full bg-master-dark border-2 border-white/5 rounded-2xl p-5 text-2xl font-outfit font-black text-white focus:border-master-accent transition-all outline-none"
+                                placeholder="0.0">
+                        </div>
+                        <div class="space-y-3">
+                            <label
+                                class="text-[10px] text-slate-500 uppercase font-black font-mono tracking-widest">Energy
+                                (1-10)</label>
+                            <div class="flex items-center gap-4 bg-master-dark border-2 border-white/5 rounded-2xl p-5">
+                                <input type="range" min="1" max="10" x-model="logInput.energy"
+                                    class="w-full accent-master-accent">
+                                <span class="text-2xl font-outfit font-black text-white min-w-[1.5em]"
+                                    x-text="logInput.energy || 5"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button @click="addLog" :disabled="loading"
+                            class="group relative overflow-hidden bg-white text-master-dark font-black px-12 py-5 rounded-3xl hover:scale-105 active:scale-95 transition-all shadow-2xl flex items-center gap-4 disabled:opacity-50">
+                            <template x-if="!loading">
+                                <div class="flex items-center gap-4 italic tracking-tighter">
+                                    <i class="fas fa-save text-lg transition-transform group-hover:rotate-12"></i>
+                                    <span>COMMIT DATA SEQUENCE</span>
+                                </div>
+                            </template>
+                            <template x-if="loading">
+                                <i class="fas fa-circle-notch fa-spin text-xl"></i>
+                            </template>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/module.esm.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBjemuEa89QZI68Ttv5iW9DjQMhLwU9Kmk",
-            authDomain: "penny-wise-bfdaa.firebaseapp.com",
-            projectId: "penny-wise-bfdaa",
-            storageBucket: "penny-wise-bfdaa.firebasestorage.app",
-            messagingSenderId: "438298356973",
-            appId: "1:438298356973:web:198dc164a067952a4cb0e4"
-        };
-
-        const firebaseApp = initializeApp(firebaseConfig);
-        const auth = getAuth(firebaseApp);
-        const db = getFirestore(firebaseApp);
-        enableIndexedDbPersistence(db).catch(err => console.log("Persistence suppressed"));
-
-        Alpine.data('app', () => ({
-            tab: 'dashboard',
-            mobileMenu: false,
-            // Mode State
-            systemMode: localStorage.getItem('masterMode') || 'standard',
-            
-            dailyCalories: parseInt(localStorage.getItem('masterCalories') || '0'),
-            lastCalorieDate: localStorage.getItem('masterCalDate') || new Date().toDateString(),
-            loading: false,
-            user: null,
-            logs: [],
-            
-            // Audio Engine (REPLACED WITH STABLE WIKIMEDIA LINKS)
-            activeAudio: null,
-            audioPlayer: null,
-
-            // Circadian
-            sunriseTime: '--:--',
-            sunsetTime: '--:--',
-            currentTemp: null,
-
-            // Pomodoro
-            pomodoroTime: 50 * 60,
-            pomodoroInitial: 50 * 60,
-            pomodoroMode: 'work',
-            isTimerRunning: false,
-            timerInterval: null,
-            currentMicroWorkout: '10 Doorframe Rows',
-            microWorkouts: ['10 Doorframe Rows', '20 Air Squats', '30s Wall Sit', '10 Incline Pushups', 'Stretch Hamstrings'],
-
-            // Inputs
-            logInput: { weight: '', waist: '', energy: '', sleep: '', note: '' },
-
-            // Tasks - DYNAMIC based on Mode
-            dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [],
-            
-            navItems: [
-                { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-home' },
-                { id: 'focus', label: 'Deep Work', icon: 'fas fa-brain' },
-                { id: 'workout', label: 'Workout', icon: 'fas fa-dumbbell' },
-                { id: 'nutrition', label: 'Fuel', icon: 'fas fa-utensils' },
-                { id: 'progress', label: 'Correlation', icon: 'fas fa-chart-line' }
-            ],
-
-            init() {
-                // WATCHER FOR PERSISTENCE (Fixes the "doesn't save" bug)
-                this.$watch('dailyTasks', (val) => {
-                    localStorage.setItem('masterTasks', JSON.stringify(val));
-                });
-
-                // Initialize Tasks based on Mode if empty
-                if (this.dailyTasks.length === 0) {
-                    this.updateTasksForMode();
-                }
-
-                this.checkDailyReset();
-                this.fetchWeather();
-                setInterval(() => this.checkDailyReset(), 60000);
-
-                onAuthStateChanged(auth, (user) => {
-                    this.user = user;
-                    if (user) this.fetchLogs();
-                    else this.logs = [];
-                });
-            },
-
-            // --- SYSTEM MODE LOGIC ---
-            setMode(mode) {
-                if (this.systemMode === mode) return; // Don't reset if clicking same mode
-                this.systemMode = mode;
-                localStorage.setItem('masterMode', mode);
-                this.updateTasksForMode();
-            },
-
-            updateTasksForMode() {
-                let newTasks = [];
-                if (this.systemMode === 'busy') {
-                    newTasks = [
-                        { name: 'Hydrate + Salt', desc: '6:00 AM Essential', completed: false },
-                        { name: 'Micro-Workout', desc: '20m Survival Protocol', completed: false },
-                        { name: 'Deep Work', desc: '7:30-13:00 (No Distractions)', completed: false },
-                        { name: 'Clean Fuel', desc: 'Protein Only Lunch', completed: false }
-                    ];
-                } else if (this.systemMode === 'holiday') {
-                    newTasks = [
-                        { name: 'Hydrate', desc: 'Morning Water', completed: false },
-                        { name: 'Long Walk', desc: 'Explore/Hike', completed: false },
-                        { name: 'Family Time', desc: 'Disconnect Phone', completed: false },
-                        { name: 'Read/Learn', desc: '30 mins', completed: false }
-                    ];
-                } else {
-                    newTasks = [
-                        { name: 'Hydrate', desc: 'Water + Salt', completed: false },
-                        { name: 'Wim Hof', desc: '3 Rounds Breathing', completed: false },
-                        { name: 'Deep Work', desc: '7:30 - 13:00 Fasted', completed: false },
-                        { name: 'Workout', desc: '17:00 Training', completed: false },
-                        { name: 'Clean Fuel', desc: '13:00 - 20:00', completed: false }
-                    ];
-                }
-                this.dailyTasks = newTasks;
-            },
-
-            // --- AUDIO ENGINE (STABLE SOURCES) ---
-            toggleAudio(type) {
-                if (this.activeAudio === type) {
-                    this.audioPlayer.pause();
-                    this.activeAudio = null;
-                } else {
-                    if (this.audioPlayer) this.audioPlayer.pause();
-                    // Using Wikimedia Commons OGG files (Reliable)
-                    const src = type === 'rain' 
-                        ? 'https://upload.wikimedia.org/wikipedia/commons/8/8f/Rain_falling_on_pavement.ogg'
-                        : 'https://upload.wikimedia.org/wikipedia/commons/e/e6/Brown_noise.ogg';
-                    this.audioPlayer = new Audio(src);
-                    this.audioPlayer.loop = true;
-                    this.audioPlayer.volume = 0.5;
-                    this.audioPlayer.play().catch(e => alert("Please interact with the page first."));
-                    this.activeAudio = type;
-                }
-            },
-
-            // --- AUTH ---
-            async login() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch(e){ alert(e.message); } },
-            logout() { signOut(auth); },
-
-            // --- DATA ---
-            fetchLogs() {
-                if (!this.user) return;
-                const q = query(collection(db, `users/${this.user.uid}/master_logs`), orderBy('timestamp', 'desc'));
-                onSnapshot(q, (snapshot) => {
-                    this.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    this.updateChart();
-                });
-            },
-
-            async addLog() {
-                if (!this.user || !this.logInput.weight) return;
-                this.loading = true;
-                try {
-                    await addDoc(collection(db, `users/${this.user.uid}/master_logs`), {
-                        weight: parseFloat(this.logInput.weight),
-                        waist: parseFloat(this.logInput.waist) || '-',
-                        energy: parseInt(this.logInput.energy) || 5,
-                        sleep: parseFloat(this.logInput.sleep) || 0,
-                        note: this.logInput.note || '',
-                        dateString: new Date().toLocaleDateString('en-GB'),
-                        timestamp: serverTimestamp()
-                    });
-                    this.logInput = { weight: '', waist: '', energy: '', sleep: '', note: this.logInput.note }; 
-                    this.tab = 'progress';
-                } catch(e) { console.error(e); }
-                this.loading = false;
-            },
-
-            exportData() {
-                if (!this.logs.length) return alert("No data.");
-                let csv = "Date,Weight,Waist,Sleep,Energy,Note\n" + 
-                          this.logs.map(l => `${l.dateString},${l.weight},${l.waist},${l.sleep||''},${l.energy},"${l.note||''}"`).join("\n");
-                const link = document.createElement("a");
-                link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
-                link.download = "master_protocol_data.csv";
-                link.click();
-            },
-
-            addFood(cal) {
-                this.dailyCalories += cal;
-                localStorage.setItem('masterCalories', this.dailyCalories);
-            },
-
-            checkDailyReset() {
-                const today = new Date().toDateString();
-                // Reset Logic for tasks based on current mode
-                if (localStorage.getItem('masterLastLogin') !== today) {
-                    this.updateTasksForMode(); 
-                    localStorage.setItem('masterLastLogin', today);
-                }
-                if (this.lastCalorieDate !== today) {
-                    this.dailyCalories = 0;
-                    this.lastCalorieDate = today;
-                    localStorage.setItem('masterCalories', 0);
-                    localStorage.setItem('masterCalDate', today);
-                }
-            },
-
-            async fetchWeather() {
-                try {
-                    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=1.5533&longitude=110.3592&daily=sunrise,sunset&current=temperature_2m&timezone=Asia%2FKuala_Lumpur');
-                    const data = await res.json();
-                    this.currentTemp = Math.round(data.current.temperature_2m);
-                    const fmt = (iso) => new Date(iso).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    this.sunriseTime = fmt(data.daily.sunrise[0]);
-                    this.sunsetTime = fmt(data.daily.sunset[0]);
-                } catch(e) {}
-            },
-
-            // --- COMPUTED ---
-            get playerLevel() {
-                const c = this.logs.length;
-                if(c < 15) return { name: 'Novice', rank: 1, next: 15, width: (c/15)*100 };
-                if(c < 50) return { name: 'Apprentice', rank: 2, next: 50, width: ((c-15)/35)*100 };
-                if(c < 100) return { name: 'Adept', rank: 3, next: 100, width: ((c-50)/50)*100 };
-                return { name: 'Master', rank: 4, next: 1000, width: 100 };
-            },
-            
-            get circadianMessage() {
-                const h = new Date().getHours();
-                if (h >= 6 && h < 9) return "View morning light";
-                if (h >= 13 && h < 15) return "Afternoon slump? Move.";
-                if (h >= 20) return "Red Light Mode";
-                return "Hydrate & Focus";
-            },
-
-            get pomodoroProgress() { return ((this.pomodoroInitial - this.pomodoroTime) / this.pomodoroInitial) * 100; },
-            formatTime(s) { return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`; },
-            
-            toggleTimer() {
-                if (this.isTimerRunning) { clearInterval(this.timerInterval); this.isTimerRunning = false; }
-                else {
-                    this.isTimerRunning = true;
-                    this.timerInterval = setInterval(() => {
-                        if (this.pomodoroTime > 0) this.pomodoroTime--;
-                        else this.completeTimer();
-                    }, 1000);
-                }
-            },
-            resetTimer() { clearInterval(this.timerInterval); this.isTimerRunning = false; this.pomodoroMode = 'work'; this.pomodoroTime = 50*60; this.pomodoroInitial = 50*60; },
-            completeTimer() {
-                clearInterval(this.timerInterval); this.isTimerRunning = false;
-                // Using Wikimedia Beep
-                const audio = new Audio('https://upload.wikimedia.org/wikipedia/commons/3/30/Beep_short.ogg'); 
-                audio.play().catch(e => console.log('Audio autoplay blocked'));
-                if (this.pomodoroMode === 'work') {
-                    this.pomodoroMode = 'break'; this.pomodoroTime = 10*60; this.pomodoroInitial = 10*60;
-                    this.currentMicroWorkout = this.microWorkouts[Math.floor(Math.random() * this.microWorkouts.length)];
-                } else {
-                    this.pomodoroMode = 'work'; this.pomodoroTime = 50*60; this.pomodoroInitial = 50*60;
-                }
-            },
-
-            get bmi() { return (!this.logs.length) ? (100/(1.72*1.72)).toFixed(1) : (this.logs[0].weight/(1.72*1.72)).toFixed(1); },
-            get bmiColor() { return this.bmi < 25 ? 'text-master-accent' : (this.bmi < 30 ? 'text-yellow-500' : 'text-red-500'); },
-            get whtr() { return (this.logs.length && this.logs[0].waist !== '-') ? (parseFloat(this.logs[0].waist)/172).toFixed(2) : 0; },
-            get whtrStatus() { 
-                const r = parseFloat(this.whtr);
-                if(r===0) return {text:'No Data', color:'text-gray-500'};
-                return r<=0.5 ? {text:'Healthy', color:'text-master-accent'} : {text:'High Risk', color:'text-red-500'};
-            },
-            get waterGoal() { return (this.logs.length ? this.logs[0].weight : 100) * 0.033; },
-
-            toggleTask(i) { 
-                this.dailyTasks[i].completed = !this.dailyTasks[i].completed; 
-                // Note: The $watch handles saving now, but we keep this for immediate reactivity
-            },
-            saveSettings() { localStorage.setItem('masterDadMode', this.dadMode); },
-            
-            chartInstance: null,
-            updateChart() {
-                const ctx = document.getElementById('mainChart');
-                if (!ctx) return;
-                const data = [...this.logs].reverse();
-                if (this.chartInstance) this.chartInstance.destroy();
-                
-                // DUAL AXIS CHART CONFIG
-                this.chartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(l => l.dateString.slice(0,5)),
-                        datasets: [
-                            {
-                                label: 'Weight (kg)',
-                                data: data.map(l => l.weight),
-                                borderColor: '#10b981', // Accent
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                tension: 0.3,
-                                yAxisID: 'y'
-                            },
-                            {
-                                label: 'Sleep (hrs)',
-                                data: data.map(l => l.sleep || null),
-                                borderColor: '#3b82f6', // Blue
-                                borderDash: [5, 5],
-                                tension: 0.3,
-                                yAxisID: 'y1'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: { legend: { display: true, labels: { color: '#94a3b8' } } },
-                        scales: { 
-                            y: { type: 'linear', display: true, position: 'left', grid: { color: '#334155' } },
-                            y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }, // Independent axis
-                            x: { grid: { display: false } } 
-                        }
-                    }
-                });
-            }
-        }));
-        Alpine.start();
-    </script>
+    <!-- App Logic Integration -->
+    <script type="module" src="assets/js/app.js"></script>
 </body>
+
 </html>
