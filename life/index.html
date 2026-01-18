@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Life OS v5.0</title>
+    <title>Life OS v6.0</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -53,13 +53,13 @@
 
     <div x-show="!user" x-transition.opacity class="fixed inset-0 z-[100] bg-master-dark flex flex-col items-center justify-center p-6 text-center">
         <div class="w-24 h-24 bg-master-accent/10 rounded-full flex items-center justify-center mb-6 border border-master-accent/50 animate-pulse">
-            <i class="fas fa-brain text-5xl text-master-accent"></i>
+            <i class="fas fa-network-wired text-5xl text-master-accent"></i>
         </div>
-        <h1 class="text-4xl font-extrabold text-white mb-2 tracking-tight">LIFE OS <span class="text-master-accent">v5.0</span></h1>
-        <p class="text-gray-400 mb-8 max-w-md font-mono text-sm">Neural Focus & Bio-Tracking</p>
+        <h1 class="text-4xl font-extrabold text-white mb-2 tracking-tight">LIFE OS <span class="text-master-accent">v6.0</span></h1>
+        <p class="text-gray-400 mb-8 max-w-md font-mono text-sm">Adaptive Work/Life Protocol</p>
         <button @click="login" class="bg-white text-gray-900 px-8 py-3 rounded-lg font-bold hover:bg-gray-200 transition flex items-center gap-3">
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
-            Initialize
+            Initialize System
         </button>
     </div>
 
@@ -77,7 +77,7 @@
     <aside :class="mobileMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0'" class="fixed md:static inset-y-0 left-0 w-64 bg-master-light border-r border-gray-800 z-50 transition-transform duration-300 flex flex-col">
         <div class="p-6 hidden md:block border-b border-gray-800">
             <h1 class="text-2xl font-black tracking-tighter text-white">LIFE <span class="text-master-accent">OS</span></h1>
-            <p class="text-[10px] text-gray-500 font-mono mt-1">SYS.VER.5.0</p>
+            <p class="text-[10px] text-gray-500 font-mono mt-1">SYS.VER.6.0</p>
         </div>
 
         <div class="p-4 bg-gray-900/50 border-b border-gray-800" x-show="user">
@@ -120,6 +120,18 @@
             
             <div x-show="tab === 'dashboard'" x-transition.opacity.duration.300ms>
                 
+                <div class="mb-6 bg-gray-800 p-2 rounded-lg inline-flex items-center border border-gray-700">
+                    <button @click="setMode('standard')" :class="systemMode === 'standard' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition">
+                        <i class="fas fa-balance-scale mr-1"></i> Standard
+                    </button>
+                    <button @click="setMode('busy')" :class="systemMode === 'busy' ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition">
+                        <i class="fas fa-fire mr-1"></i> Busy
+                    </button>
+                    <button @click="setMode('holiday')" :class="systemMode === 'holiday' ? 'bg-green-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition">
+                        <i class="fas fa-umbrella-beach mr-1"></i> Holiday
+                    </button>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 relative overflow-hidden">
                         <div class="relative z-10">
@@ -144,7 +156,11 @@
                     </div>
                 </div>
 
-                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Protocol Checklist</h3>
+                <div class="flex justify-between items-end mb-4">
+                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest">Protocol Checklist</h3>
+                    <span class="text-[10px] bg-gray-800 px-2 py-1 rounded text-gray-400 border border-gray-700" x-text="systemMode.toUpperCase() + ' MODE'"></span>
+                </div>
+                
                 <div class="space-y-3">
                     <template x-for="(task, index) in dailyTasks" :key="index">
                         <div @click="toggleTask(index)" 
@@ -169,7 +185,7 @@
                 <div class="max-w-xl mx-auto text-center mt-8">
                     <div class="mb-8">
                         <h2 class="text-3xl font-bold text-white">Neural Focus</h2>
-                        <p class="text-sm text-gray-400">Focus 50m • Move 10m</p>
+                        <p class="text-sm text-gray-400">Office Mode (7:30 - 4:30)</p>
                     </div>
 
                     <div class="flex justify-center gap-4 mb-8">
@@ -218,6 +234,7 @@
                     <div x-show="pomodoroMode === 'break'" x-transition.scale class="bg-yellow-900/20 border border-yellow-700/50 p-6 rounded-xl">
                         <h3 class="text-lg font-bold text-yellow-500 mb-2"><i class="fas fa-bolt"></i> Micro-Dose</h3>
                         <div class="text-xl font-bold text-white font-mono" x-text="currentMicroWorkout"></div>
+                        <p class="text-xs text-gray-400 mt-2">Find an empty meeting room or stairwell.</p>
                     </div>
                 </div>
             </div>
@@ -225,25 +242,26 @@
             <div x-show="tab === 'workout'" x-cloak x-transition.opacity.duration.300ms>
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold text-white">Workouts</h2>
-                    <button @click="dadMode = !dadMode; saveSettings()" class="text-xs font-bold px-3 py-1 rounded-full border transition-colors flex items-center gap-2" :class="dadMode ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500' : 'bg-gray-800 text-gray-500 border-gray-600'">
-                        <i class="fas fa-baby"></i> DAD MODE
-                    </button>
+                    <span class="text-xs font-mono px-3 py-1 rounded border" :class="systemMode === 'busy' ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-gray-800 border-gray-700 text-gray-400'">
+                        <i class="fas fa-clock mr-1"></i> <span x-text="systemMode === 'busy' ? 'SURVIVAL MODE' : 'STANDARD'"></span>
+                    </span>
                 </div>
 
-                <div x-show="dadMode" class="bg-yellow-900/10 border border-yellow-700/50 p-6 rounded-xl mb-6">
-                    <h3 class="text-lg font-bold text-yellow-500 mb-2">Dad Protocol</h3>
-                    <p class="text-sm text-gray-400 mb-4">Cumulative reps throughout the day.</p>
+                <div x-show="systemMode === 'busy'" class="bg-red-900/10 border border-red-700/50 p-6 rounded-xl mb-6">
+                    <h3 class="text-lg font-bold text-red-500 mb-2">Busy Protocol (20m)</h3>
+                    <p class="text-sm text-gray-400 mb-4">No time. High intensity. Get it done.</p>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">50 Air Squats</div>
-                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">20 Pushups</div>
-                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">2 min Plank</div>
+                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">100 Air Squats</div>
+                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">50 Pushups</div>
+                         <div class="bg-gray-800 p-3 rounded border border-gray-700 font-mono">3 min Plank</div>
                     </div>
                 </div>
 
-                <div x-show="!dadMode" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div x-show="systemMode !== 'busy'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                      <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
                          <h3 class="font-bold text-white group-hover:text-master-accent">Monday: Legs</h3>
-                         <ul class="text-xs text-gray-500 mt-2 space-y-1 font-mono">
+                         <p class="text-[10px] text-gray-500 font-mono mt-1 mb-2">After 4:30 PM</p>
+                         <ul class="text-xs text-gray-400 mt-2 space-y-1 font-mono">
                              <li>- Box Squats 3x15</li>
                              <li>- Glute Bridge 3x15</li>
                              <li>- Wall Sit 3x45s</li>
@@ -251,11 +269,13 @@
                      </div>
                      <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
                          <h3 class="font-bold text-white group-hover:text-master-accent">Wednesday: Walk</h3>
-                         <p class="text-xs text-gray-500 mt-2">45min Zone 2 Cardio (Nasal Breathing)</p>
+                         <p class="text-[10px] text-gray-500 font-mono mt-1 mb-2">After 4:30 PM</p>
+                         <p class="text-xs text-gray-400 mt-2">45min Zone 2 Cardio (Nasal Breathing)</p>
                      </div>
                      <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
                          <h3 class="font-bold text-white group-hover:text-master-accent">Friday: Upper</h3>
-                         <ul class="text-xs text-gray-500 mt-2 space-y-1 font-mono">
+                         <p class="text-[10px] text-gray-500 font-mono mt-1 mb-2">After 4:30 PM</p>
+                         <ul class="text-xs text-gray-400 mt-2 space-y-1 font-mono">
                              <li>- Incline Push 3x12</li>
                              <li>- Door Rows 3x15</li>
                              <li>- Superman 10x3s</li>
@@ -267,18 +287,33 @@
             <div x-show="tab === 'nutrition'" x-cloak x-transition.opacity.duration.300ms>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                        <h3 class="text-lg font-bold text-white mb-4">Intermittent Fasting (17:7)</h3>
-                        <div class="relative pl-6 border-l-2 border-gray-700 space-y-6">
+                        <h3 class="text-lg font-bold text-white mb-4">Work Schedule (17:7)</h3>
+                        <div class="relative pl-6 border-l-2 border-gray-700 space-y-8">
+                            
+                            <div class="relative">
+                                <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-blue-500"></span>
+                                <h4 class="font-bold text-blue-400 text-sm">06:00 - 07:30</h4>
+                                <p class="text-xs text-gray-400">Wake Up. Wim Hof. Commute.</p>
+                            </div>
+
                             <div class="relative">
                                 <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-500"></span>
-                                <h4 class="font-bold text-white text-sm">07:00 - 12:00</h4>
-                                <p class="text-xs text-gray-400">Water, Salt, Black Coffee.</p>
+                                <h4 class="font-bold text-white text-sm">07:30 - 13:00</h4>
+                                <p class="text-xs text-gray-400">Work Block 1. Fasted Focus. Black Coffee.</p>
                             </div>
+                            
                             <div class="relative">
                                 <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-master-accent shadow-[0_0_10px_#10b981]"></span>
                                 <h4 class="font-bold text-master-accent text-sm">13:00 (Break Fast)</h4>
-                                <p class="text-xs text-gray-400">Protein Focus (Chicken/Eggs).</p>
+                                <p class="text-xs text-gray-400">Lunch Break. Protein Focus.</p>
                             </div>
+
+                            <div class="relative">
+                                <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-600"></span>
+                                <h4 class="font-bold text-gray-400 text-sm">16:30 (Work End)</h4>
+                                <p class="text-xs text-gray-400">Commute Home. Decompress.</p>
+                            </div>
+
                             <div class="relative">
                                 <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-red-500"></span>
                                 <h4 class="font-bold text-red-400 text-sm">20:00 (Hard Stop)</h4>
@@ -335,9 +370,6 @@
                             <span class="text-xl font-bold" :class="whtrStatus.color" x-text="whtr"></span>
                             <span class="text-[9px] bg-black/30 px-1 rounded text-gray-400" x-text="whtrStatus.text"></span>
                         </div>
-                        <div class="absolute bottom-1 right-2 opacity-0 group-hover:opacity-100 transition text-[9px] text-gray-500">
-                            
-                        </div>
                     </div>
                     <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
                         <p class="text-[10px] text-gray-500 uppercase font-bold">Hydration</p>
@@ -381,30 +413,6 @@
                          </div>
                      </div>
                 </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead class="uppercase bg-gray-800 text-gray-500">
-                            <tr>
-                                <th class="p-3">Date</th>
-                                <th class="p-3">Weight</th>
-                                <th class="p-3">Sleep</th>
-                                <th class="p-3">Note</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="log in logs.slice(0,10)">
-                                <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
-                                    <td class="p-3 font-mono" x-text="log.dateString.slice(0,5)"></td>
-                                    <td class="p-3 text-white" x-text="log.weight"></td>
-                                    <td class="p-3" x-text="log.sleep ? log.sleep + 'h' : '-'"></td>
-                                    <td class="p-3 truncate max-w-[100px]" x-text="log.note || '-'"></td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-
             </div>
         </div>
     </main>
@@ -432,7 +440,9 @@
         Alpine.data('app', () => ({
             tab: 'dashboard',
             mobileMenu: false,
-            dadMode: localStorage.getItem('masterDadMode') === 'true',
+            // Mode State
+            systemMode: localStorage.getItem('masterMode') || 'standard',
+            
             dailyCalories: parseInt(localStorage.getItem('masterCalories') || '0'),
             lastCalorieDate: localStorage.getItem('masterCalDate') || new Date().toDateString(),
             loading: false,
@@ -460,14 +470,8 @@
             // Inputs
             logInput: { weight: '', waist: '', energy: '', sleep: '', note: '' },
 
-            // Tasks
-            dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [
-                { name: 'Hydrate', desc: 'Water + Salt', completed: false },
-                { name: 'Breathing', desc: 'Wim Hof 3 Rounds', completed: false },
-                { name: 'Movement', desc: 'Walk or Lift', completed: false },
-                { name: 'Clean Fuel', desc: '13:00 - 20:00', completed: false },
-                { name: 'Deep Work', desc: '2 x 50min Blocks', completed: false }
-            ],
+            // Tasks - DYNAMIC based on Mode
+            dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [],
             
             navItems: [
                 { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-home' },
@@ -478,6 +482,11 @@
             ],
 
             init() {
+                // Initialize Tasks based on Mode if empty
+                if (this.dailyTasks.length === 0) {
+                    this.updateTasksForMode();
+                }
+
                 this.checkDailyReset();
                 this.fetchWeather();
                 setInterval(() => this.checkDailyReset(), 60000);
@@ -489,6 +498,49 @@
                 });
             },
 
+            // --- SYSTEM MODE LOGIC ---
+            setMode(mode) {
+                this.systemMode = mode;
+                localStorage.setItem('masterMode', mode);
+                this.updateTasksForMode();
+            },
+
+            updateTasksForMode() {
+                // Define Task Templates
+                let newTasks = [];
+                
+                if (this.systemMode === 'busy') {
+                    // BUSY / SURVIVAL MODE
+                    newTasks = [
+                        { name: 'Hydrate + Salt', desc: '6:00 AM Essential', completed: false },
+                        { name: 'Micro-Workout', desc: '20m Survival Protocol', completed: false },
+                        { name: 'Deep Work', desc: '7:30-11:30 (No Distractions)', completed: false },
+                        { name: 'Clean Fuel', desc: 'Protein Only Lunch', completed: false }
+                    ];
+                } else if (this.systemMode === 'holiday') {
+                    // HOLIDAY / RECOVERY MODE
+                    newTasks = [
+                        { name: 'Hydrate', desc: 'Morning Water', completed: false },
+                        { name: 'Long Walk', desc: 'Explore/Hike', completed: false },
+                        { name: 'Family Time', desc: 'Disconnect Phone', completed: false },
+                        { name: 'Read/Learn', desc: '30 mins', completed: false }
+                    ];
+                } else {
+                    // STANDARD MODE
+                    newTasks = [
+                        { name: 'Hydrate', desc: 'Water + Salt', completed: false },
+                        { name: 'Wim Hof', desc: '3 Rounds Breathing', completed: false },
+                        { name: 'Deep Work', desc: '7:30 - 13:00 Fasted', completed: false },
+                        { name: 'Workout', desc: '17:00 Training', completed: false },
+                        { name: 'Clean Fuel', desc: '13:00 - 20:00', completed: false }
+                    ];
+                }
+                
+                // Reset daily tasks to the new template (clears progress on switch to ensure clean slate)
+                this.dailyTasks = newTasks;
+                localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
+            },
+
             // --- AUDIO ENGINE ---
             toggleAudio(type) {
                 if (this.activeAudio === type) {
@@ -496,10 +548,9 @@
                     this.activeAudio = null;
                 } else {
                     if (this.audioPlayer) this.audioPlayer.pause();
-                    // Using free CDN sounds
                     const src = type === 'rain' 
-                        ? 'https://cdn.pixabay.com/audio/2022/05/17/audio_031f7743d2.mp3' // Rain sound
-                        : 'https://cdn.pixabay.com/audio/2021/08/09/audio_88447e769f.mp3'; // Brown/White noise approx
+                        ? 'https://cdn.pixabay.com/audio/2022/05/17/audio_031f7743d2.mp3'
+                        : 'https://cdn.pixabay.com/audio/2021/08/09/audio_88447e769f.mp3';
                     this.audioPlayer = new Audio(src);
                     this.audioPlayer.loop = true;
                     this.audioPlayer.volume = 0.5;
@@ -558,9 +609,9 @@
 
             checkDailyReset() {
                 const today = new Date().toDateString();
+                // Reset Logic for tasks based on current mode
                 if (localStorage.getItem('masterLastLogin') !== today) {
-                    this.dailyTasks.forEach(t => t.completed = false);
-                    localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
+                    this.updateTasksForMode(); // Regenerate list for the new day
                     localStorage.setItem('masterLastLogin', today);
                 }
                 if (this.lastCalorieDate !== today) {
