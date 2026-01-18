@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Life OS v6.0</title>
+    <title>Life OS v7.0 (Stable)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -53,10 +53,10 @@
 
     <div x-show="!user" x-transition.opacity class="fixed inset-0 z-[100] bg-master-dark flex flex-col items-center justify-center p-6 text-center">
         <div class="w-24 h-24 bg-master-accent/10 rounded-full flex items-center justify-center mb-6 border border-master-accent/50 animate-pulse">
-            <i class="fas fa-network-wired text-5xl text-master-accent"></i>
+            <i class="fas fa-shield-alt text-5xl text-master-accent"></i>
         </div>
-        <h1 class="text-4xl font-extrabold text-white mb-2 tracking-tight">LIFE OS <span class="text-master-accent">v6.0</span></h1>
-        <p class="text-gray-400 mb-8 max-w-md font-mono text-sm">Adaptive Work/Life Protocol</p>
+        <h1 class="text-4xl font-extrabold text-white mb-2 tracking-tight">LIFE OS <span class="text-master-accent">v7.0</span></h1>
+        <p class="text-gray-400 mb-8 max-w-md font-mono text-sm">System Patch: Audio & Memory</p>
         <button @click="login" class="bg-white text-gray-900 px-8 py-3 rounded-lg font-bold hover:bg-gray-200 transition flex items-center gap-3">
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
             Initialize System
@@ -77,7 +77,7 @@
     <aside :class="mobileMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0'" class="fixed md:static inset-y-0 left-0 w-64 bg-master-light border-r border-gray-800 z-50 transition-transform duration-300 flex flex-col">
         <div class="p-6 hidden md:block border-b border-gray-800">
             <h1 class="text-2xl font-black tracking-tighter text-white">LIFE <span class="text-master-accent">OS</span></h1>
-            <p class="text-[10px] text-gray-500 font-mono mt-1">SYS.VER.6.0</p>
+            <p class="text-[10px] text-gray-500 font-mono mt-1">SYS.VER.7.0</p>
         </div>
 
         <div class="p-4 bg-gray-900/50 border-b border-gray-800" x-show="user">
@@ -120,14 +120,14 @@
             
             <div x-show="tab === 'dashboard'" x-transition.opacity.duration.300ms>
                 
-                <div class="mb-6 bg-gray-800 p-2 rounded-lg inline-flex items-center border border-gray-700">
-                    <button @click="setMode('standard')" :class="systemMode === 'standard' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition">
+                <div class="mb-6 bg-gray-800 p-2 rounded-lg inline-flex items-center border border-gray-700 overflow-x-auto max-w-full">
+                    <button @click="setMode('standard')" :class="systemMode === 'standard' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap">
                         <i class="fas fa-balance-scale mr-1"></i> Standard
                     </button>
-                    <button @click="setMode('busy')" :class="systemMode === 'busy' ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition">
+                    <button @click="setMode('busy')" :class="systemMode === 'busy' ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap">
                         <i class="fas fa-fire mr-1"></i> Busy
                     </button>
-                    <button @click="setMode('holiday')" :class="systemMode === 'holiday' ? 'bg-green-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition">
+                    <button @click="setMode('holiday')" :class="systemMode === 'holiday' ? 'bg-green-600 text-white shadow' : 'text-gray-400 hover:text-white'" class="px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap">
                         <i class="fas fa-umbrella-beach mr-1"></i> Holiday
                     </button>
                 </div>
@@ -194,13 +194,11 @@
                             <div x-show="activeAudio === 'rain'" class="flex gap-0.5 items-end h-3">
                                 <div class="w-0.5 bg-blue-400 sound-bar"></div>
                                 <div class="w-0.5 bg-blue-400 sound-bar"></div>
-                                <div class="w-0.5 bg-blue-400 sound-bar"></div>
                             </div>
                         </button>
                         <button @click="toggleAudio('brown')" :class="activeAudio === 'brown' ? 'bg-yellow-900/20 text-yellow-600 border-yellow-700' : 'bg-gray-800 border-gray-700 text-gray-400'" class="px-4 py-2 rounded-full border text-xs font-bold flex items-center gap-2 transition">
                             <i class="fas fa-wave-square"></i> Brown Noise
                             <div x-show="activeAudio === 'brown'" class="flex gap-0.5 items-end h-3">
-                                <div class="w-0.5 bg-yellow-600 sound-bar"></div>
                                 <div class="w-0.5 bg-yellow-600 sound-bar"></div>
                                 <div class="w-0.5 bg-yellow-600 sound-bar"></div>
                             </div>
@@ -270,7 +268,7 @@
                      <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
                          <h3 class="font-bold text-white group-hover:text-master-accent">Wednesday: Walk</h3>
                          <p class="text-[10px] text-gray-500 font-mono mt-1 mb-2">After 4:30 PM</p>
-                         <p class="text-xs text-gray-400 mt-2">45min Zone 2 Cardio (Nasal Breathing)</p>
+                         <p class="text-xs text-gray-400 mt-2">45min Zone 2 Cardio</p>
                      </div>
                      <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group">
                          <h3 class="font-bold text-white group-hover:text-master-accent">Friday: Upper</h3>
@@ -289,35 +287,25 @@
                     <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
                         <h3 class="text-lg font-bold text-white mb-4">Work Schedule (17:7)</h3>
                         <div class="relative pl-6 border-l-2 border-gray-700 space-y-8">
-                            
                             <div class="relative">
                                 <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-blue-500"></span>
                                 <h4 class="font-bold text-blue-400 text-sm">06:00 - 07:30</h4>
                                 <p class="text-xs text-gray-400">Wake Up. Wim Hof. Commute.</p>
                             </div>
-
                             <div class="relative">
                                 <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-500"></span>
                                 <h4 class="font-bold text-white text-sm">07:30 - 13:00</h4>
-                                <p class="text-xs text-gray-400">Work Block 1. Fasted Focus. Black Coffee.</p>
+                                <p class="text-xs text-gray-400">Work Block 1. Fasted Focus.</p>
                             </div>
-                            
                             <div class="relative">
                                 <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-master-accent shadow-[0_0_10px_#10b981]"></span>
                                 <h4 class="font-bold text-master-accent text-sm">13:00 (Break Fast)</h4>
                                 <p class="text-xs text-gray-400">Lunch Break. Protein Focus.</p>
                             </div>
-
                             <div class="relative">
                                 <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-600"></span>
                                 <h4 class="font-bold text-gray-400 text-sm">16:30 (Work End)</h4>
-                                <p class="text-xs text-gray-400">Commute Home. Decompress.</p>
-                            </div>
-
-                            <div class="relative">
-                                <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-red-500"></span>
-                                <h4 class="font-bold text-red-400 text-sm">20:00 (Hard Stop)</h4>
-                                <p class="text-xs text-gray-400">Kitchen Closed.</p>
+                                <p class="text-xs text-gray-400">Commute Home.</p>
                             </div>
                         </div>
                     </div>
@@ -449,7 +437,7 @@
             user: null,
             logs: [],
             
-            // Audio Engine
+            // Audio Engine (REPLACED WITH STABLE WIKIMEDIA LINKS)
             activeAudio: null,
             audioPlayer: null,
 
@@ -482,6 +470,11 @@
             ],
 
             init() {
+                // WATCHER FOR PERSISTENCE (Fixes the "doesn't save" bug)
+                this.$watch('dailyTasks', (val) => {
+                    localStorage.setItem('masterTasks', JSON.stringify(val));
+                });
+
                 // Initialize Tasks based on Mode if empty
                 if (this.dailyTasks.length === 0) {
                     this.updateTasksForMode();
@@ -500,25 +493,22 @@
 
             // --- SYSTEM MODE LOGIC ---
             setMode(mode) {
+                if (this.systemMode === mode) return; // Don't reset if clicking same mode
                 this.systemMode = mode;
                 localStorage.setItem('masterMode', mode);
                 this.updateTasksForMode();
             },
 
             updateTasksForMode() {
-                // Define Task Templates
                 let newTasks = [];
-                
                 if (this.systemMode === 'busy') {
-                    // BUSY / SURVIVAL MODE
                     newTasks = [
                         { name: 'Hydrate + Salt', desc: '6:00 AM Essential', completed: false },
                         { name: 'Micro-Workout', desc: '20m Survival Protocol', completed: false },
-                        { name: 'Deep Work', desc: '7:30-11:30 (No Distractions)', completed: false },
+                        { name: 'Deep Work', desc: '7:30-13:00 (No Distractions)', completed: false },
                         { name: 'Clean Fuel', desc: 'Protein Only Lunch', completed: false }
                     ];
                 } else if (this.systemMode === 'holiday') {
-                    // HOLIDAY / RECOVERY MODE
                     newTasks = [
                         { name: 'Hydrate', desc: 'Morning Water', completed: false },
                         { name: 'Long Walk', desc: 'Explore/Hike', completed: false },
@@ -526,7 +516,6 @@
                         { name: 'Read/Learn', desc: '30 mins', completed: false }
                     ];
                 } else {
-                    // STANDARD MODE
                     newTasks = [
                         { name: 'Hydrate', desc: 'Water + Salt', completed: false },
                         { name: 'Wim Hof', desc: '3 Rounds Breathing', completed: false },
@@ -535,26 +524,24 @@
                         { name: 'Clean Fuel', desc: '13:00 - 20:00', completed: false }
                     ];
                 }
-                
-                // Reset daily tasks to the new template (clears progress on switch to ensure clean slate)
                 this.dailyTasks = newTasks;
-                localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
             },
 
-            // --- AUDIO ENGINE ---
+            // --- AUDIO ENGINE (STABLE SOURCES) ---
             toggleAudio(type) {
                 if (this.activeAudio === type) {
                     this.audioPlayer.pause();
                     this.activeAudio = null;
                 } else {
                     if (this.audioPlayer) this.audioPlayer.pause();
+                    // Using Wikimedia Commons OGG files (Reliable)
                     const src = type === 'rain' 
-                        ? 'https://cdn.pixabay.com/audio/2022/05/17/audio_031f7743d2.mp3'
-                        : 'https://cdn.pixabay.com/audio/2021/08/09/audio_88447e769f.mp3';
+                        ? 'https://upload.wikimedia.org/wikipedia/commons/8/8f/Rain_falling_on_pavement.ogg'
+                        : 'https://upload.wikimedia.org/wikipedia/commons/e/e6/Brown_noise.ogg';
                     this.audioPlayer = new Audio(src);
                     this.audioPlayer.loop = true;
                     this.audioPlayer.volume = 0.5;
-                    this.audioPlayer.play();
+                    this.audioPlayer.play().catch(e => alert("Please interact with the page first."));
                     this.activeAudio = type;
                 }
             },
@@ -611,7 +598,7 @@
                 const today = new Date().toDateString();
                 // Reset Logic for tasks based on current mode
                 if (localStorage.getItem('masterLastLogin') !== today) {
-                    this.updateTasksForMode(); // Regenerate list for the new day
+                    this.updateTasksForMode(); 
                     localStorage.setItem('masterLastLogin', today);
                 }
                 if (this.lastCalorieDate !== today) {
@@ -666,7 +653,9 @@
             resetTimer() { clearInterval(this.timerInterval); this.isTimerRunning = false; this.pomodoroMode = 'work'; this.pomodoroTime = 50*60; this.pomodoroInitial = 50*60; },
             completeTimer() {
                 clearInterval(this.timerInterval); this.isTimerRunning = false;
-                const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'); audio.play();
+                // Using Wikimedia Beep
+                const audio = new Audio('https://upload.wikimedia.org/wikipedia/commons/3/30/Beep_short.ogg'); 
+                audio.play().catch(e => console.log('Audio autoplay blocked'));
                 if (this.pomodoroMode === 'work') {
                     this.pomodoroMode = 'break'; this.pomodoroTime = 10*60; this.pomodoroInitial = 10*60;
                     this.currentMicroWorkout = this.microWorkouts[Math.floor(Math.random() * this.microWorkouts.length)];
@@ -685,7 +674,10 @@
             },
             get waterGoal() { return (this.logs.length ? this.logs[0].weight : 100) * 0.033; },
 
-            toggleTask(i) { this.dailyTasks[i].completed = !this.dailyTasks[i].completed; localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks)); },
+            toggleTask(i) { 
+                this.dailyTasks[i].completed = !this.dailyTasks[i].completed; 
+                // Note: The $watch handles saving now, but we keep this for immediate reactivity
+            },
             saveSettings() { localStorage.setItem('masterDadMode', this.dadMode); },
             
             chartInstance: null,
