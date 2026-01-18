@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Master's Protocol</title>
+    <title>The Master's Protocol v3</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1e293b">
+    <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -15,14 +15,27 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
         [x-cloak] { display: none !important; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        canvas { -moz-user-select: none; -webkit-user-select: none; -ms-user-select: none; }
+        
+        /* Custom Ring for Pomodoro */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        /* Animations */
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 3s infinite; }
     </style>
 
     <script>
@@ -30,10 +43,8 @@
             theme: {
                 extend: {
                     colors: {
-                        master: { dark: '#0f172a', light: '#1e293b', accent: '#10b981', warning: '#f59e0b', danger: '#ef4444' }
-                    },
-                    animation: { 'fade-in': 'fadeIn 0.5s ease-out' },
-                    keyframes: { fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } } }
+                        master: { dark: '#0f172a', light: '#1e293b', card: '#334155', accent: '#10b981', warning: '#f59e0b', danger: '#ef4444' }
+                    }
                 }
             }
         }
@@ -43,231 +54,302 @@
 <body class="bg-master-dark text-gray-200 h-screen overflow-hidden flex flex-col md:flex-row" x-data="app">
 
     <div x-show="!user" x-transition.opacity class="fixed inset-0 z-[100] bg-master-dark flex flex-col items-center justify-center p-6 text-center">
-        <i class="fas fa-dumbbell text-6xl text-master-accent mb-6 animate-pulse"></i>
-        <h1 class="text-4xl font-extrabold text-white mb-2">MASTER'S PROTOCOL</h1>
-        <p class="text-gray-400 mb-8 max-w-md">Sync your discipline across devices. Join the PennyWise ecosystem.</p>
-        <button @click="login" class="bg-white text-gray-900 px-8 py-3 rounded-full font-bold shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 transition transform flex items-center gap-3">
+        <div class="w-20 h-20 bg-master-accent/10 rounded-full flex items-center justify-center mb-6 border border-master-accent/50 animate-pulse-soft">
+            <i class="fas fa-fingerprint text-4xl text-master-accent"></i>
+        </div>
+        <h1 class="text-4xl font-extrabold text-white mb-2 tracking-tight">LIFE OS <span class="text-master-accent">v3.0</span></h1>
+        <p class="text-gray-400 mb-8 max-w-md font-mono text-sm">Initialize System...</p>
+        <button @click="login" class="bg-white text-gray-900 px-8 py-3 rounded-lg font-bold hover:bg-gray-200 transition flex items-center gap-3">
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
-            Sign In with Google
+            Authenticate
         </button>
     </div>
 
-    <header class="md:hidden p-4 border-b border-gray-700 flex justify-between items-center bg-master-light z-50">
+    <header class="md:hidden p-4 border-b border-gray-800 flex justify-between items-center bg-master-light z-50">
         <div class="flex items-center gap-2">
-            <i class="fas fa-cube text-master-accent"></i>
-            <h1 class="text-lg font-bold text-white tracking-tight">MASTER'S PROTOCOL</h1>
+            <i class="fas fa-layer-group text-master-accent"></i>
+            <h1 class="text-sm font-bold text-white tracking-widest uppercase">Protocol</h1>
         </div>
         <button @click="mobileMenu = !mobileMenu" class="text-gray-300 focus:outline-none p-2">
             <i class="fas fa-bars text-xl"></i>
         </button>
     </header>
 
-    <div x-show="mobileMenu" class="fixed inset-0 bg-black bg-opacity-80 z-40 md:hidden" @click="mobileMenu = false" x-transition.opacity></div>
-    <aside :class="mobileMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0'" class="fixed md:static inset-y-0 left-0 w-64 bg-master-light border-r border-gray-700 z-50 transition-transform duration-300 flex flex-col">
-        <div class="p-6 hidden md:block">
-            <h1 class="text-2xl font-extrabold tracking-tighter text-white">THE <span class="text-master-accent">MASTER</span></h1>
-            <p class="text-xs text-gray-500 mt-1">Live. Move. Fast.</p>
+    <div x-show="mobileMenu" class="fixed inset-0 bg-black/90 z-40 md:hidden" @click="mobileMenu = false" x-transition.opacity></div>
+    <aside :class="mobileMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0'" class="fixed md:static inset-y-0 left-0 w-64 bg-master-light border-r border-gray-800 z-50 transition-transform duration-300 flex flex-col">
+        <div class="p-6 hidden md:block border-b border-gray-800">
+            <h1 class="text-2xl font-black tracking-tighter text-white">LIFE <span class="text-master-accent">OS</span></h1>
+            <p class="text-[10px] text-gray-500 font-mono mt-1">SYS.VER.3.0</p>
         </div>
-        
-        <div class="px-6 pb-4 md:hidden">
-            <p class="text-xs text-gray-500 uppercase mt-4">Profile</p>
-            <div class="flex items-center gap-2 mt-2" x-show="user">
-                <img :src="user?.photoURL" class="w-8 h-8 rounded-full border border-gray-600">
-                <span class="text-sm font-bold truncate" x-text="user?.displayName"></span>
+
+        <div class="px-6 py-4 md:hidden border-b border-gray-800 bg-gray-900/50">
+            <div class="flex items-center gap-3" x-show="user">
+                <img :src="user?.photoURL" class="w-8 h-8 rounded border border-gray-600">
+                <div>
+                    <span class="text-sm font-bold block text-white" x-text="user?.displayName"></span>
+                    <span class="text-[10px] text-gray-400 font-mono">Operator</span>
+                </div>
             </div>
         </div>
 
-        <nav class="mt-2 flex-1 overflow-y-auto">
+        <nav class="mt-4 flex-1 space-y-1 px-2">
             <template x-for="item in navItems">
                 <a @click="tab = item.id; mobileMenu = false" 
-                   :class="tab === item.id ? 'bg-gray-700 border-r-4 border-master-accent text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'" 
-                   class="cursor-pointer block py-4 px-6 transition-all duration-200 flex items-center gap-3">
-                    <i :class="item.icon" class="w-6 text-center"></i>
-                    <span x-text="item.label" class="font-medium"></span>
+                   :class="tab === item.id ? 'bg-master-accent/10 text-master-accent border-master-accent' : 'text-gray-400 hover:bg-gray-800 hover:text-white border-transparent'" 
+                   class="cursor-pointer group flex items-center px-4 py-3 text-sm font-medium rounded-md border-l-4 transition-all">
+                    <i :class="item.icon" class="w-6 text-center mr-3 text-lg opacity-80"></i>
+                    <span x-text="item.label"></span>
                 </a>
             </template>
         </nav>
 
-        <div class="p-4 border-t border-gray-700">
-            <button @click="logout" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-2 w-full px-2">
-                <i class="fas fa-sign-out-alt"></i> Sign Out
+        <div class="p-4 border-t border-gray-800">
+            <div class="bg-gray-900/50 rounded p-3 mb-3">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[10px] uppercase text-gray-500 font-bold">Bio-Clock</span>
+                    <i class="fas fa-sun text-yellow-500 text-xs" x-show="!isNight"></i>
+                    <i class="fas fa-moon text-blue-400 text-xs" x-show="isNight"></i>
+                </div>
+                <div class="text-xs text-gray-300" x-text="bioStatus"></div>
+            </div>
+            <button @click="logout" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-red-900/10 transition">
+                <i class="fas fa-power-off"></i> Terminate Session
             </button>
         </div>
     </aside>
 
     <main class="flex-1 overflow-y-auto relative scroll-smooth bg-master-dark" id="main-content">
-        <div class="max-w-4xl mx-auto p-4 md:p-8 pb-32">
+        <div class="max-w-5xl mx-auto p-4 md:p-8 pb-32">
             
             <div x-show="tab === 'dashboard'" x-transition.opacity.duration.300ms>
                 
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 class="text-3xl font-bold text-white">Dashboard</h2>
-                        <p class="text-gray-400 text-sm" x-text="new Date().toLocaleDateString('en-MY', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})"></p>
-                    </div>
-                    <a href="https://www.accuweather.com/en/my/kuching/230156/weather-forecast/230156" target="_blank" class="bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 border border-blue-800">
-                        <i class="fas fa-cloud-rain"></i> Kuching Weather
-                    </a>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-col justify-center items-center">
-                        <span class="text-xs text-gray-500 uppercase tracking-widest font-bold">Current Streak</span>
-                        <div class="text-3xl font-extrabold text-white mt-1 flex items-center gap-2">
-                            <span x-text="streak">0</span> <i class="fas fa-fire text-orange-500"></i>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="md:col-span-2 bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 relative overflow-hidden">
+                        <div class="flex justify-between items-start z-10 relative">
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Kuching, MY</h2>
+                                <p class="text-sm text-gray-400 font-mono" x-text="new Date().toLocaleDateString('en-MY', {weekday: 'long', day: 'numeric', month: 'long'})"></p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold text-white" x-text="currentTemp ? currentTemp + '°C' : '--'"></div>
+                                <div class="text-xs text-yellow-500 font-bold uppercase tracking-wider flex items-center justify-end gap-1">
+                                    <i class="fas fa-sun"></i> <span x-text="sunriseTime"></span>
+                                    <span class="text-gray-600 mx-1">|</span>
+                                    <i class="fas fa-moon text-gray-400"></i> <span x-text="sunsetTime"></span>
+                                </div>
+                            </div>
                         </div>
-                        <span class="text-[10px] text-gray-500">Days Consistent</span>
-                    </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-col justify-center items-center relative overflow-hidden">
-                        <span class="text-xs text-gray-500 uppercase tracking-widest font-bold">Status</span>
-                        <div class="text-xl font-bold mt-2" :class="isFasting ? 'text-blue-400' : 'text-master-accent'" x-text="isFasting ? 'FASTING' : 'FEEDING'"></div>
-                        <div class="text-[10px] text-gray-400 mt-1" x-text="timeString"></div>
-                        <div class="absolute bottom-0 left-0 h-1 bg-gray-700 w-full">
-                            <div class="h-full transition-all duration-1000" :class="isFasting ? 'bg-blue-500' : 'bg-master-accent'" :style="`width: ${timeProgress}%`"></div>
+                        
+                        <div class="mt-6 p-3 bg-black/20 rounded-lg backdrop-blur-sm border border-white/5 inline-block">
+                            <p class="text-xs font-bold text-master-accent uppercase tracking-wide flex items-center gap-2">
+                                <i class="fas fa-robot"></i> System Suggestion
+                            </p>
+                            <p class="text-sm text-gray-300 mt-1" x-text="circadianMessage"></p>
                         </div>
                     </div>
+
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 flex flex-col items-center justify-center">
+                        <div class="relative">
+                            <svg class="w-24 h-24 transform -rotate-90">
+                                <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-700" />
+                                <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-master-accent" stroke-dasharray="251.2" :stroke-dashoffset="251.2 - (251.2 * streak / 30)" />
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center flex-col">
+                                <span class="text-2xl font-bold text-white" x-text="streak"></span>
+                                <span class="text-[10px] text-gray-400 uppercase">Days</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-4 text-center">Consistency Rating: <span class="text-white font-bold" x-text="streak > 5 ? 'Elite' : 'Rookie'"></span></p>
+                    </div>
                 </div>
 
-                <div class="flex justify-between items-end mb-4">
-                    <h3 class="text-xl font-bold text-white">Daily Protocols</h3>
-                    <div class="text-xs text-gray-500" x-text="completedTasks + '/' + dailyTasks.length + ' Completed'"></div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Daily Protocols</h3>
+                <div class="space-y-3">
                     <template x-for="(task, index) in dailyTasks" :key="index">
                         <div @click="toggleTask(index)" 
-                             :class="task.completed ? 'bg-green-900/20 border-green-800' : 'bg-gray-800 border-gray-700 hover:border-gray-600'" 
-                             class="cursor-pointer border p-4 rounded-xl flex items-center justify-between transition-all duration-200 active:scale-95">
-                            <div>
-                                <h4 class="font-bold text-sm text-gray-200" :class="{'line-through text-gray-500': task.completed}" x-text="task.name"></h4>
-                                <p class="text-xs text-gray-500" x-text="task.desc"></p>
-                            </div>
-                            <div class="w-5 h-5 rounded border flex items-center justify-center" :class="task.completed ? 'bg-master-accent border-master-accent' : 'border-gray-500'">
-                                <i x-show="task.completed" class="fas fa-check text-master-dark text-[10px]"></i>
+                             :class="task.completed ? 'bg-master-accent/10 border-master-accent/50' : 'bg-gray-800 border-gray-700 hover:border-gray-600'" 
+                             class="cursor-pointer border p-4 rounded-lg flex items-center justify-between transition-all duration-200 group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-6 h-6 rounded border flex items-center justify-center transition-colors" 
+                                     :class="task.completed ? 'bg-master-accent border-master-accent' : 'border-gray-500 bg-gray-900'">
+                                    <i x-show="task.completed" class="fas fa-check text-gray-900 text-xs"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-gray-200 group-hover:text-white" :class="{'text-gray-500 line-through': task.completed}" x-text="task.name"></h4>
+                                    <p class="text-xs text-gray-500" x-text="task.desc"></p>
+                                </div>
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
 
-            <div x-show="tab === 'workout'" x-cloak x-transition.opacity.duration.300ms>
-                <div class="flex justify-between items-start mb-6">
-                    <h2 class="text-3xl font-bold text-white">Protocol 100</h2>
-                    <div class="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700">
-                        <span class="text-xs font-bold text-gray-400">DAD MODE</span>
-                        <button @click="dadMode = !dadMode; saveSettings()" 
-                                :class="dadMode ? 'bg-master-accent' : 'bg-gray-600'" 
-                                class="w-10 h-5 rounded-full relative transition-colors duration-200 focus:outline-none">
-                            <div :class="dadMode ? 'translate-x-5' : 'translate-x-0.5'" 
-                                 class="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform duration-200 shadow-sm"></div>
+            <div x-show="tab === 'focus'" x-cloak x-transition.opacity.duration.300ms>
+                <div class="max-w-2xl mx-auto text-center">
+                    <h2 class="text-3xl font-bold text-white mb-2">Deep Work Enforcer</h2>
+                    <p class="text-sm text-gray-400 mb-8">Focus for 50. Move for 10. Repeat.</p>
+
+                    <div class="relative w-64 h-64 mx-auto mb-10">
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" stroke-width="6" />
+                            <circle class="progress-ring__circle" cx="50" cy="50" r="45" fill="none" 
+                                    :stroke="pomodoroMode === 'work' ? '#10b981' : '#f59e0b'" 
+                                    stroke-width="6" 
+                                    stroke-dasharray="283" 
+                                    :stroke-dashoffset="283 - (283 * pomodoroProgress / 100)" 
+                                    stroke-linecap="round" />
+                        </svg>
+                        
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-5xl font-mono font-bold text-white tracking-widest" x-text="formatTime(pomodoroTime)"></span>
+                            <span class="text-xs font-bold uppercase mt-2 px-3 py-1 rounded-full" 
+                                  :class="pomodoroMode === 'work' ? 'bg-master-accent/20 text-master-accent' : 'bg-yellow-500/20 text-yellow-500'" 
+                                  x-text="pomodoroMode === 'work' ? 'FOCUS MODE' : 'RECOVERY'"></span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center gap-4 mb-10">
+                        <button @click="toggleTimer" class="w-16 h-16 rounded-full bg-white text-gray-900 flex items-center justify-center hover:scale-110 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                            <i class="fas" :class="isTimerRunning ? 'fa-pause' : 'fa-play'"></i>
+                        </button>
+                        <button @click="resetTimer" class="w-16 h-16 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center hover:bg-gray-700 transition">
+                            <i class="fas fa-redo"></i>
                         </button>
                     </div>
-                </div>
 
-                <div x-show="dadMode" class="bg-yellow-900/20 border border-yellow-700/50 p-6 rounded-xl mb-6 animate-fade-in">
-                    <div class="flex items-center gap-3 mb-4">
-                        <i class="fas fa-baby-carriage text-2xl text-yellow-500"></i>
-                        <h3 class="text-xl font-bold text-yellow-500">Emergency Micro-Dose</h3>
+                    <div x-show="pomodoroMode === 'break'" x-transition.scale class="bg-yellow-900/20 border border-yellow-700/50 p-6 rounded-xl">
+                        <h3 class="text-xl font-bold text-yellow-500 mb-2"><i class="fas fa-bolt"></i> Micro-Dose</h3>
+                        <p class="text-gray-300 mb-4">Don't sit. Perform this now:</p>
+                        <div class="text-2xl font-bold text-white bg-black/30 p-4 rounded-lg" x-text="currentMicroWorkout"></div>
                     </div>
-                    <p class="text-sm text-gray-300 mb-4">Newborn priority active. Do this to maintain baseline.</p>
-                    <ul class="space-y-3 text-sm">
-                        <li class="flex items-center gap-3"><span class="bg-gray-700 px-2 py-1 rounded text-white font-mono">50</span> Air Squats (Cumulative)</li>
-                        <li class="flex items-center gap-3"><span class="bg-gray-700 px-2 py-1 rounded text-white font-mono">20</span> Push-ups (Desk/Floor)</li>
-                        <li class="flex items-center gap-3"><span class="bg-gray-700 px-2 py-1 rounded text-white font-mono">2m</span> Cumulative Plank</li>
-                    </ul>
-                </div>
-
-                <div x-show="!dadMode">
-                    <div class="flex p-1 bg-gray-800 rounded-lg mb-6 overflow-x-auto">
-                        <button @click="activeWorkout = 'mon'" :class="activeWorkout === 'mon' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'" class="flex-1 py-2 px-4 rounded-md text-sm font-bold whitespace-nowrap">Mon (Legs)</button>
-                        <button @click="activeWorkout = 'wed'" :class="activeWorkout === 'wed' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'" class="flex-1 py-2 px-4 rounded-md text-sm font-bold whitespace-nowrap">Wed (Walk)</button>
-                        <button @click="activeWorkout = 'fri'" :class="activeWorkout === 'fri' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'" class="flex-1 py-2 px-4 rounded-md text-sm font-bold whitespace-nowrap">Fri (Upper)</button>
-                    </div>
-
-                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 min-h-[300px]">
-                        <template x-if="activeWorkout === 'mon'">
-                            <div class="space-y-4 animate-fade-in">
-                                <h3 class="text-xl font-bold text-master-accent">Foundation Day</h3>
-                                <div class="bg-gray-700/50 p-4 rounded-lg"><h4 class="font-bold">Box Squats</h4><span class="text-xs text-gray-400">3 x 15 (Control descent)</span></div>
-                                <div class="bg-gray-700/50 p-4 rounded-lg"><h4 class="font-bold">Glute Bridges</h4><span class="text-xs text-gray-400">3 x 15 (Squeeze top)</span></div>
-                                <div class="bg-gray-700/50 p-4 rounded-lg"><h4 class="font-bold">Wall Sit</h4><span class="text-xs text-gray-400">3 x 45s (Static)</span></div>
-                            </div>
-                        </template>
-                        <template x-if="activeWorkout === 'wed'">
-                             <div class="space-y-4 animate-fade-in text-center py-8">
-                                <i class="fas fa-walking text-5xl text-gray-600 mb-2"></i>
-                                <h3 class="text-xl font-bold text-master-accent">Zone 2 Cardio</h3>
-                                <p class="text-gray-300">45 Minutes. Nasal breathing only.</p>
-                                <p class="text-xs text-gray-500 mt-4">Tip: Listen to a podcast or solve code logic in your head.</p>
-                            </div>
-                        </template>
-                        <template x-if="activeWorkout === 'fri'">
-                            <div class="space-y-4 animate-fade-in">
-                                <h3 class="text-xl font-bold text-blue-400">Upper Power</h3>
-                                <div class="bg-gray-700/50 p-4 rounded-lg"><h4 class="font-bold">Incline Pushups</h4><span class="text-xs text-gray-400">3 x 12 (Desk edge)</span></div>
-                                <div class="bg-gray-700/50 p-4 rounded-lg"><h4 class="font-bold">Door Rows</h4><span class="text-xs text-gray-400">3 x 15 (Back squeeze)</span></div>
-                                <div class="bg-gray-700/50 p-4 rounded-lg"><h4 class="font-bold">Superman</h4><span class="text-xs text-gray-400">10 x 3s Hold (Posture)</span></div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </div>
-
-            <div x-show="tab === 'nutrition'" x-cloak x-transition.opacity.duration.300ms>
-                <h2 class="text-3xl font-bold text-white mb-6">Fuel System</h2>
-                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                    <div class="relative pl-6 border-l-2 border-gray-700 space-y-6">
-                        <div class="relative"><span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-500"></span><h4 class="font-bold">07:00 - 12:00</h4><p class="text-sm text-gray-400">Fasted. Water + Salt. Coffee.</p></div>
-                        <div class="relative"><span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-master-accent shadow-[0_0_8px_#10b981]"></span><h4 class="font-bold text-master-accent">13:00 (Break Fast)</h4><p class="text-sm text-gray-400">Protein First. No heavy carbs.</p></div>
-                        <div class="relative"><span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-red-500"></span><h4 class="font-bold text-red-400">20:00 (Stop)</h4><p class="text-sm text-gray-400">Kitchen Closed.</p></div>
-                    </div>
-                </div>
-                <div class="mt-4 grid grid-cols-2 gap-4">
-                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700"><h4 class="font-bold text-xs text-gray-500 uppercase">Drink</h4><p class="font-bold">Kopi O Kosong</p></div>
-                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700"><h4 class="font-bold text-xs text-gray-500 uppercase">Food</h4><p class="font-bold">Midin & Eggs</p></div>
                 </div>
             </div>
 
             <div x-show="tab === 'progress'" x-cloak x-transition.opacity.duration.300ms>
-                <h2 class="text-3xl font-bold text-white mb-6">Analytics</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-white">System Analytics</h2>
+                    <button @click="exportData" class="text-xs font-mono text-master-accent border border-master-accent/50 px-4 py-2 rounded hover:bg-master-accent/10 transition flex items-center gap-2">
+                        <i class="fas fa-download"></i> EXPORT.CSV
+                    </button>
+                </div>
                 
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 text-center">
-                        <p class="text-[10px] text-gray-500 uppercase tracking-widest">BMI</p>
-                        <p class="text-2xl font-extrabold mt-1" :class="bmiColor" x-text="bmi"></p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold">Latest Weight</p>
+                        <p class="text-2xl font-bold text-white mt-1" x-text="logs.length ? logs[0].weight + ' kg' : '--'"></p>
                     </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 text-center">
-                        <p class="text-[10px] text-gray-500 uppercase tracking-widest">Hydration Goal</p>
-                        <p class="text-2xl font-extrabold text-blue-400 mt-1" x-text="waterGoal + ' L'"></p>
+                    
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 relative overflow-hidden">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold">BMI</p>
+                        <p class="text-2xl font-bold mt-1" :class="bmiColor" x-text="bmi"></p>
+                    </div>
+
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 col-span-2 md:col-span-1 border-l-4" :class="whtrStatus.border">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[10px] text-gray-500 uppercase font-bold">Heart Risk (WHtR)</p>
+                                <p class="text-2xl font-bold text-white mt-1" x-text="whtr"></p>
+                            </div>
+                            <span class="text-[10px] bg-black/30 px-2 py-1 rounded text-gray-300" x-text="whtrStatus.text"></span>
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-1">Goal: < 0.50</p>
+                    </div>
+
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold">Water Goal</p>
+                        <p class="text-2xl font-bold text-blue-400 mt-1" x-text="waterGoal + ' L'"></p>
                     </div>
                 </div>
 
                 <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6 shadow-lg h-64 relative">
-                    <h3 class="absolute top-4 left-4 text-xs font-bold text-gray-500 uppercase">Weight Trend</h3>
-                    <div class="h-full w-full pt-6">
+                    <div class="h-full w-full">
                         <canvas id="mainChart"></canvas>
                     </div>
                 </div>
 
                 <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 mb-6">
-                     <div class="grid grid-cols-3 gap-4 items-end">
-                         <div class="col-span-1">
+                     <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Log Biometrics</h3>
+                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                         <div>
                              <label class="text-[10px] text-gray-400 uppercase font-bold">Weight (kg)</label>
-                             <input type="number" x-model="logInput.weight" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 focus:border-master-accent outline-none">
+                             <input type="number" x-model="logInput.weight" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 focus:border-master-accent outline-none font-mono">
                          </div>
-                         <div class="col-span-1">
+                         <div>
+                             <label class="text-[10px] text-gray-400 uppercase font-bold">Waist (cm)</label>
+                             <input type="number" x-model="logInput.waist" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 focus:border-master-accent outline-none font-mono">
+                         </div>
+                         <div>
                              <label class="text-[10px] text-gray-400 uppercase font-bold">Energy (1-10)</label>
-                             <input type="number" x-model="logInput.energy" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 focus:border-master-accent outline-none">
+                             <input type="number" x-model="logInput.energy" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white mt-1 focus:border-master-accent outline-none font-mono">
                          </div>
-                         <div class="col-span-1">
-                             <button @click="addLog" :disabled="loading" class="w-full bg-master-accent text-gray-900 font-bold py-2 rounded hover:bg-emerald-400 transition flex justify-center">
-                                 <i x-show="!loading" class="fas fa-plus"></i>
+                         <div>
+                             <button @click="addLog" :disabled="loading" class="w-full bg-master-accent text-gray-900 font-bold py-2 rounded hover:bg-emerald-400 transition flex justify-center shadow-lg shadow-emerald-900/20">
+                                 <i x-show="!loading" class="fas fa-save mr-2"></i>
+                                 <span x-show="!loading">Save</span>
                                  <i x-show="loading" class="fas fa-spinner fa-spin"></i>
                              </button>
                          </div>
                      </div>
                 </div>
             </div>
+
+            <div x-show="tab === 'workout'" x-cloak x-transition.opacity.duration.300ms>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-white">Workouts</h2>
+                    <button @click="dadMode = !dadMode; saveSettings()" class="text-xs font-bold px-3 py-1 rounded-full border transition-colors flex items-center gap-2" :class="dadMode ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500' : 'bg-gray-800 text-gray-500 border-gray-600'">
+                        <i class="fas fa-baby"></i> DAD MODE
+                    </button>
+                </div>
+                
+                <div x-show="dadMode" class="bg-yellow-900/10 border border-yellow-700/50 p-6 rounded-xl mb-6">
+                    <h3 class="text-lg font-bold text-yellow-500 mb-2">Emergency Protocol</h3>
+                    <p class="text-sm text-gray-400 mb-4">No time? Do this. Something is better than nothing.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                         <div class="bg-gray-800 p-3 rounded border border-gray-700">50 Air Squats</div>
+                         <div class="bg-gray-800 p-3 rounded border border-gray-700">20 Pushups</div>
+                         <div class="bg-gray-800 p-3 rounded border border-gray-700">2 min Plank</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" x-show="!dadMode">
+                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group cursor-pointer">
+                         <h3 class="font-bold text-white group-hover:text-master-accent">Monday: Legs</h3>
+                         <p class="text-xs text-gray-500 mt-1">Squats, Bridges, Wall Sits</p>
+                     </div>
+                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group cursor-pointer">
+                         <h3 class="font-bold text-white group-hover:text-master-accent">Wednesday: Walk</h3>
+                         <p class="text-xs text-gray-500 mt-1">45min Zone 2 Cardio</p>
+                     </div>
+                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 hover:border-master-accent transition group cursor-pointer">
+                         <h3 class="font-bold text-white group-hover:text-master-accent">Friday: Upper</h3>
+                         <p class="text-xs text-gray-500 mt-1">Pushups, Rows, Superman</p>
+                     </div>
+                </div>
+            </div>
+
+            <div x-show="tab === 'nutrition'" x-cloak x-transition.opacity.duration.300ms>
+                <h2 class="text-3xl font-bold text-white mb-6">Fuel</h2>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 mb-6">
+                    <div class="relative pl-6 border-l-2 border-gray-700 space-y-8">
+                        <div class="relative">
+                            <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-gray-500"></span>
+                            <h4 class="font-bold text-white">07:00 - 12:00</h4>
+                            <p class="text-sm text-gray-400 mt-1">Fasted State. Water, Salt, Black Coffee.</p>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-master-accent shadow-[0_0_10px_#10b981]"></span>
+                            <h4 class="font-bold text-master-accent">13:00 (Break Fast)</h4>
+                            <p class="text-sm text-gray-400 mt-1">Protein Focus. Chicken, Eggs, Midin.</p>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-red-500"></span>
+                            <h4 class="font-bold text-red-400">20:00 (Hard Stop)</h4>
+                            <p class="text-sm text-gray-400 mt-1">Kitchen Closed. Autophagy begins.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -275,11 +357,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        
-        // IMPORT ALPINE JS HERE TO FIX RACE CONDITION
         import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/module.esm.js';
 
-        // CONFIG
+        // --- 1. FIREBASE SETUP ---
         const firebaseConfig = {
             apiKey: "AIzaSyBjemuEa89QZI68Ttv5iW9DjQMhLwU9Kmk",
             authDomain: "penny-wise-bfdaa.firebaseapp.com",
@@ -292,97 +372,86 @@
         const firebaseApp = initializeApp(firebaseConfig);
         const auth = getAuth(firebaseApp);
         const db = getFirestore(firebaseApp);
-        
-        enableIndexedDbPersistence(db).catch((err) => { 
-            console.log("Persistence suppressed:", err.code); 
-        });
+        enableIndexedDbPersistence(db).catch(err => console.log("Persistence suppressed:", err.code));
 
-        // REGISTER ALPINE DATA COMPONENT
+        // --- 2. ALPINE COMPONENT ---
         Alpine.data('app', () => ({
-            // UI State
+            // State
             tab: 'dashboard',
             mobileMenu: false,
-            activeWorkout: 'mon',
             dadMode: localStorage.getItem('masterDadMode') === 'true',
             loading: false,
-            
-            // User & Data
             user: null,
             logs: [],
             streak: 0,
             
-            // Time & Fasting Logic
-            timeString: '',
-            isFasting: false,
-            timeProgress: 0,
+            // Circadian & Weather
+            sunriseTime: '--:--',
+            sunsetTime: '--:--',
+            currentTemp: null,
+            isNight: false,
+
+            // Pomodoro State
+            pomodoroTime: 50 * 60, // 50 mins in seconds
+            pomodoroInitial: 50 * 60,
+            pomodoroMode: 'work', // 'work' or 'break'
+            isTimerRunning: false,
+            timerInterval: null,
+            currentMicroWorkout: '10 Doorframe Rows',
+            microWorkouts: ['10 Doorframe Rows', '20 Air Squats', '30s Wall Sit', '10 Incline Pushups', 'Stretch Hamstrings'],
 
             // Inputs
-            logInput: { weight: '', energy: '' },
+            logInput: { weight: '', waist: '', energy: '' },
 
             // Tasks
             dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [
                 { name: 'Hydrate', desc: 'Water + Salt', completed: false },
-                { name: 'Wim Hof', desc: 'Breathing', completed: false },
-                { name: 'Stretch', desc: 'Mobility', completed: false },
-                { name: 'Movement', desc: 'Walk or Workout', completed: false },
-                { name: 'Clean Diet', desc: 'No junk', completed: false }
+                { name: 'Breathing', desc: 'Wim Hof 3 Rounds', completed: false },
+                { name: 'Movement', desc: 'Walk or Lift', completed: false },
+                { name: 'Clean Fuel', desc: '13:00 - 20:00', completed: false },
+                { name: 'Deep Work', desc: '2 x 50min Blocks', completed: false }
             ],
             
             navItems: [
-                { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-home' },
+                { id: 'focus', label: 'Deep Work', icon: 'fas fa-brain' },
                 { id: 'workout', label: 'Workout', icon: 'fas fa-dumbbell' },
-                { id: 'nutrition', label: 'Fasting', icon: 'fas fa-utensils' },
+                { id: 'nutrition', label: 'Fuel', icon: 'fas fa-utensils' },
                 { id: 'progress', label: 'Analytics', icon: 'fas fa-chart-line' }
             ],
 
-            init() {
-                // Time Loop
-                this.updateTime();
-                setInterval(() => this.updateTime(), 60000);
+            async init() {
+                this.updateBioClock(); // Run once immediately
+                setInterval(() => this.updateBioClock(), 60000); 
+                this.fetchWeather();   // Fetch Kuching data
+
+                // Auth Listener
+                onAuthStateChanged(auth, (user) => {
+                    this.user = user;
+                    if (user) this.fetchLogs();
+                    else this.logs = [];
+                });
                 
-                // Task Reset Logic
+                // Task Reset
                 const today = new Date().toDateString();
                 if (localStorage.getItem('masterLastLogin') !== today) {
                     this.dailyTasks.forEach(t => t.completed = false);
                     localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
                     localStorage.setItem('masterLastLogin', today);
                 }
-
-                // Auth Listener
-                onAuthStateChanged(auth, (user) => {
-                    this.user = user;
-                    if (user) {
-                        this.fetchLogs();
-                    } else {
-                        this.logs = [];
-                        this.streak = 0;
-                        if(this.chartInstance) {
-                            this.chartInstance.data.datasets[0].data = [];
-                            this.chartInstance.update();
-                        }
-                    }
-                });
             },
 
-            // AUTH METHODS
-            async login() {
-                try {
-                    await signInWithPopup(auth, new GoogleAuthProvider());
-                } catch (e) { alert(e.message); }
-            },
+            // --- AUTH ---
+            async login() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch(e){ alert(e.message); } },
             logout() { signOut(auth); },
 
-            // DATA METHODS
+            // --- DATA & LOGS ---
             fetchLogs() {
                 if (!this.user) return;
-                const q = query(
-                    collection(db, `users/${this.user.uid}/master_logs`), 
-                    orderBy('timestamp', 'desc') 
-                );
-                
+                const q = query(collection(db, `users/${this.user.uid}/master_logs`), orderBy('timestamp', 'desc'));
                 onSnapshot(q, (snapshot) => {
                     this.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    this.calculateStreak();
+                    this.streak = this.logs.length; 
                     this.updateChart();
                 });
             },
@@ -393,97 +462,171 @@
                 try {
                     await addDoc(collection(db, `users/${this.user.uid}/master_logs`), {
                         weight: parseFloat(this.logInput.weight),
+                        waist: parseFloat(this.logInput.waist) || '-',
                         energy: parseInt(this.logInput.energy) || 5,
-                        dateString: new Date().toLocaleDateString('en-GB'), 
+                        dateString: new Date().toLocaleDateString('en-GB'),
                         timestamp: serverTimestamp()
                     });
-                    this.logInput = { weight: '', energy: '' };
+                    this.logInput = { weight: '', waist: '', energy: '' };
                     this.tab = 'progress';
-                } catch (e) {
-                    console.error(e);
-                    alert("Error saving log.");
-                }
+                } catch(e) { console.error(e); }
                 this.loading = false;
             },
 
-            // UTILS & CALCULATORS
-            saveSettings() {
-                localStorage.setItem('masterDadMode', this.dadMode);
+            exportData() {
+                if (!this.logs.length) return alert("No data.");
+                let csv = "Date,Weight,Waist,Energy\n" + this.logs.map(l => `${l.dateString},${l.weight},${l.waist},${l.energy}`).join("\n");
+                const link = document.createElement("a");
+                link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+                link.download = "master_protocol_data.csv";
+                link.click();
             },
 
-            toggleTask(index) {
-                this.dailyTasks[index].completed = !this.dailyTasks[index].completed;
+            // --- WEATHER & CIRCADIAN ---
+            async fetchWeather() {
+                // Kuching Coords: 1.55, 110.35
+                try {
+                    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=1.5533&longitude=110.3592&daily=sunrise,sunset&current=temperature_2m&timezone=Asia%2FKuala_Lumpur');
+                    const data = await res.json();
+                    
+                    this.currentTemp = Math.round(data.current.temperature_2m);
+                    
+                    // Format times (ISO to HH:MM AM/PM)
+                    const fmt = (iso) => new Date(iso).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    this.sunriseTime = fmt(data.daily.sunrise[0]);
+                    this.sunsetTime = fmt(data.daily.sunset[0]);
+                    
+                    // Logic for suggestions
+                    const h = new Date().getHours();
+                    const sunsetH = new Date(data.daily.sunset[0]).getHours();
+                    this.isNight = h >= sunsetH || h < 6;
+                } catch(e) { console.log('Weather fetch failed'); }
+            },
+
+            get circadianMessage() {
+                const h = new Date().getHours();
+                if (h >= 6 && h < 9) return "Go outside. View morning light to set cortisol.";
+                if (h >= 13 && h < 15) return "Afternoon slump? Do 30 squats. No caffeine.";
+                if (h >= 20) return "Blue light toxic. Engage Red Light mode.";
+                return "Hydrate and Focus.";
+            },
+            
+            updateBioClock() {
+                // Just triggers reactive updates for time-based getters
+            },
+            
+            get bioStatus() {
+                return this.isNight ? "Melatonin Production" : "Cortisol/Alertness";
+            },
+
+            // --- POMODORO ---
+            get pomodoroProgress() {
+                return ((this.pomodoroInitial - this.pomodoroTime) / this.pomodoroInitial) * 100;
+            },
+            
+            formatTime(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            },
+
+            toggleTimer() {
+                if (this.isTimerRunning) {
+                    clearInterval(this.timerInterval);
+                    this.isTimerRunning = false;
+                } else {
+                    this.isTimerRunning = true;
+                    this.timerInterval = setInterval(() => {
+                        if (this.pomodoroTime > 0) {
+                            this.pomodoroTime--;
+                        } else {
+                            this.completeTimer();
+                        }
+                    }, 1000);
+                }
+            },
+
+            resetTimer() {
+                clearInterval(this.timerInterval);
+                this.isTimerRunning = false;
+                this.pomodoroMode = 'work';
+                this.pomodoroTime = 50 * 60;
+                this.pomodoroInitial = 50 * 60;
+            },
+
+            completeTimer() {
+                clearInterval(this.timerInterval);
+                this.isTimerRunning = false;
+                // Play sound (Beep)
+                const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                audio.play();
+
+                if (this.pomodoroMode === 'work') {
+                    // Switch to Break
+                    this.pomodoroMode = 'break';
+                    this.pomodoroTime = 10 * 60; // 10 min break
+                    this.pomodoroInitial = 10 * 60;
+                    // Pick random workout
+                    this.currentMicroWorkout = this.microWorkouts[Math.floor(Math.random() * this.microWorkouts.length)];
+                } else {
+                    // Back to Work
+                    this.pomodoroMode = 'work';
+                    this.pomodoroTime = 50 * 60;
+                    this.pomodoroInitial = 50 * 60;
+                }
+            },
+
+            // --- CALCULATORS ---
+            get bmi() {
+                if (!this.logs.length) return (100 / (1.72*1.72)).toFixed(1);
+                return (this.logs[0].weight / (1.72*1.72)).toFixed(1);
+            },
+            get bmiColor() { return this.bmi < 25 ? 'text-master-accent' : (this.bmi < 30 ? 'text-yellow-500' : 'text-red-500'); },
+            
+            get waterGoal() {
+                 const w = this.logs.length ? this.logs[0].weight : 100;
+                 return (w * 0.033).toFixed(1);
+            },
+
+            get whtr() {
+                if (this.logs.length > 0 && this.logs[0].waist && this.logs[0].waist !== '-') {
+                    return (parseFloat(this.logs[0].waist) / 172).toFixed(2);
+                }
+                return 0;
+            },
+            
+            get whtrStatus() {
+                const r = parseFloat(this.whtr);
+                if (r === 0) return { text: 'No Data', border: 'border-gray-700' };
+                if (r <= 0.5) return { text: 'Healthy', border: 'border-master-accent' };
+                if (r <= 0.53) return { text: 'Warning', border: 'border-yellow-500' };
+                return { text: 'High Risk', border: 'border-red-500' };
+            },
+
+            // --- UTILS ---
+            toggleTask(i) {
+                this.dailyTasks[i].completed = !this.dailyTasks[i].completed;
                 localStorage.setItem('masterTasks', JSON.stringify(this.dailyTasks));
             },
+            saveSettings() { localStorage.setItem('masterDadMode', this.dadMode); },
 
-            calculateStreak() {
-                this.streak = this.logs.length; 
-            },
-
-            get bmi() {
-                if (this.logs.length > 0) {
-                    const w = this.logs[0].weight;
-                    const h = 1.72;
-                    return (w / (h * h)).toFixed(1);
-                }
-                return (100 / (1.72 * 1.72)).toFixed(1);
-            },
-
-            get bmiColor() {
-                const b = parseFloat(this.bmi);
-                if(b < 25) return 'text-green-400';
-                if(b < 30) return 'text-yellow-400';
-                return 'text-red-400';
-            },
-
-            get completedTasks() {
-                return this.dailyTasks.filter(t => t.completed).length;
-            },
-
-            get waterGoal() {
-                const w = this.logs.length > 0 ? this.logs[0].weight : 100;
-                return (w * 0.033).toFixed(1);
-            },
-
-            updateTime() {
-                const d = new Date();
-                this.timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const h = d.getHours();
-                if (h >= 13 && h < 20) {
-                    this.isFasting = false;
-                    this.timeProgress = (((h * 60 + d.getMinutes()) - (13 * 60)) / (7 * 60)) * 100;
-                } else {
-                    this.isFasting = true;
-                    this.timeProgress = 100;
-                }
-            },
-
-            // CHART LOGIC
             chartInstance: null,
             updateChart() {
                 const ctx = document.getElementById('mainChart');
                 if (!ctx) return;
-                
                 const data = [...this.logs].reverse();
-                const labels = data.map(l => l.dateString.slice(0, 5)); 
-                const weights = data.map(l => l.weight);
-
-                if (this.chartInstance) {
-                    this.chartInstance.destroy();
-                }
-
+                if (this.chartInstance) this.chartInstance.destroy();
                 this.chartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels,
+                        labels: data.map(l => l.dateString.slice(0,5)),
                         datasets: [{
                             label: 'Weight',
-                            data: weights,
+                            data: data.map(l => l.weight),
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.3,
                             fill: true,
-                            pointRadius: 4
+                            tension: 0.4
                         }]
                     },
                     options: {
@@ -491,15 +634,14 @@
                         maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
                         scales: {
-                            y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } },
-                            x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                            y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
                         }
                     }
                 });
             }
         }));
 
-        // START ALPINE AFTER EVERYTHING IS DEFINED
         Alpine.start();
     </script>
 </body>
