@@ -34,6 +34,67 @@ body {
     font-family: 'JetBrains Mono', monospace;
 }
 
+.text-master-accent {
+    color: var(--accent);
+}
+
+.bg-master-accent {
+    background-color: var(--accent);
+}
+
+.border-master-accent {
+    border-color: var(--accent);
+}
+
+.text-master-danger {
+    color: #ef4444;
+}
+
+.bg-master-danger {
+    background-color: #ef4444;
+}
+
+.border-master-danger {
+    border-color: #ef4444;
+}
+
+.text-master-info {
+    color: #3b82f6;
+}
+
+.bg-master-info {
+    background-color: #3b82f6;
+}
+
+.border-master-info {
+    border-color: #3b82f6;
+}
+
+/* Custom Workout Colors */
+.text-amber-500 {
+    color: #f59e0b;
+}
+
+.bg-amber-500\/10 {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.border-amber-500\/20 {
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.text-indigo-500 {
+    color: #6366f1;
+}
+
+.bg-indigo-500\/10 {
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
+.border-indigo-500\/20 {
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
 [x-cloak] {
     display: none !important;
 }

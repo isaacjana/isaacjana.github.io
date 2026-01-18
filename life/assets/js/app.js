@@ -49,6 +49,43 @@ Alpine.data('app', () => ({
     audioContext: null,
     noiseNode: null,
 
+    // --- WORKOUT ENGINE STATE ---
+    readiness: { checked: false, score: 0, hydration: false, salt: false, motivation: 5 },
+    restTimer: { active: false, time: 60, initial: 60, interval: null },
+    busyTimer: { active: false, time: 20 * 60, initial: 20 * 60, interval: null },
+    prs: JSON.parse(localStorage.getItem('masterPRs')) || { pushups: 0, squats: 0, plank: 0 },
+    workoutLogs: {}, // Format: { 'ExerciseName': [true, false, false] }
+
+    workoutData: {
+        standard: [
+            {
+                id: 'mon', day: 'Monday', title: 'Legs', icon: 'fa-person-arrow-down-to-line', color: 'master-accent',
+                exercises: [
+                    { name: 'Box Squats', sets: 3, reps: '15', alt: 'Air Squats' },
+                    { name: 'Glute Bridge', sets: 3, reps: '15', alt: 'Cossack Squats' },
+                    { name: 'Wall Sit', sets: 3, reps: '45s', alt: 'Plank' }
+                ]
+            },
+            {
+                id: 'wed', day: 'Wednesday', title: 'Endurance', icon: 'fa-person-walking', color: 'amber-500',
+                exercises: [{ name: 'Zone 2 Cardio', sets: 1, reps: '45m', alt: 'Fast Walk' }]
+            },
+            {
+                id: 'fri', day: 'Friday', title: 'Upper Body', icon: 'fa-person-arms-up', color: 'indigo-500',
+                exercises: [
+                    { name: 'Incline Push', sets: 3, reps: '12', alt: 'Diamond Pushups' },
+                    { name: 'Door Rows', sets: 3, reps: '15', alt: 'Superman' },
+                    { name: 'Superman', sets: 3, reps: '10x3s', alt: 'Bird Dog' }
+                ]
+            }
+        ],
+        busy: [
+            { name: 'Air Squats', target: 100, unit: 'Reps' },
+            { name: 'Pushups', target: 50, unit: 'Reps' },
+            { name: 'Isometric Plank', target: 180, unit: 'Secs' }
+        ]
+    },
+
     // Environment State
     locationName: 'Syncing...',
     sunriseTime: '--:--',
@@ -90,6 +127,7 @@ Alpine.data('app', () => ({
         this.$watch('dailyTasks', (val) => {
             localStorage.setItem('masterTasks', JSON.stringify(val));
         });
+        this.$watch('prs', (val) => localStorage.setItem('masterPRs', JSON.stringify(val)));
 
         // Initialize Tasks if empty
         if (this.dailyTasks.length === 0) {
@@ -504,8 +542,28 @@ Alpine.data('app', () => ({
         return ((this.pomodoroInitial - this.pomodoroTime) / this.pomodoroInitial) * 100;
     },
 
-    formatTime(s) {
-        return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+    formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    },
+
+    toggleBusyTimer() {
+        if (this.busyTimer.active) {
+            clearInterval(this.busyTimer.interval);
+            this.busyTimer.active = false;
+        } else {
+            this.busyTimer.active = true;
+            this.busyTimer.interval = setInterval(() => {
+                if (this.busyTimer.time > 0) {
+                    this.busyTimer.time--;
+                    if (this.busyTimer.time === 600) this.triggerHaptic('heavy'); // 10m alert
+                } else {
+                    clearInterval(this.busyTimer.interval);
+                    this.busyTimer.active = false;
+                }
+            }, 1000);
+        }
     },
 
     toggleTimer() {

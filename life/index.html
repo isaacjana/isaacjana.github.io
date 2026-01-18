@@ -448,139 +448,198 @@
                 </div>
             </div>
 
-            <!-- Workout View -->
+            <!-- Workout View (Interactivity Boost) -->
             <div x-show="tab === 'workout'" x-transition.opacity.duration.400ms>
-                <div class="flex justify-between items-end mb-12">
-                    <div>
-                        <h2 class="text-5xl font-outfit font-black text-white italic tracking-tighter">PHYSICAL<span
-                                class="text-master-accent">LOAD</span></h2>
-                        <p class="text-slate-500 font-mono text-xs mt-2 uppercase tracking-widest">Structural
-                            Maintenance & Hypertrophy</p>
+
+                <!-- Readiness Calculator (Point 5) -->
+                <div x-show="!readiness.checked"
+                    class="glass p-10 rounded-[3rem] mb-12 border-master-accent/20 animate-fade-in-up">
+                    <h3 class="text-3xl font-outfit font-black text-white italic mb-6">Readiness <span
+                            class="text-master-accent">Check</span></h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                        <div class="space-y-4">
+                            <label class="flex items-center gap-4 cursor-pointer group">
+                                <input type="checkbox" x-model="readiness.hydration"
+                                    class="w-6 h-6 rounded-lg bg-white/5 border-2 border-white/10 checked:bg-master-accent">
+                                <span
+                                    class="text-slate-300 font-bold group-hover:text-white transition-colors">Hydration
+                                    Protocol Confirmed</span>
+                            </label>
+                            <label class="flex items-center gap-4 cursor-pointer group">
+                                <input type="checkbox" x-model="readiness.salt"
+                                    class="w-6 h-6 rounded-lg bg-white/5 border-2 border-white/10 checked:bg-master-accent">
+                                <span
+                                    class="text-slate-300 font-bold group-hover:text-white transition-colors">Electrolytes
+                                    Distributed</span>
+                            </label>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] text-slate-500 uppercase font-black font-mono">Motivation
+                                Level</label>
+                            <input type="range" min="1" max="10" x-model="readiness.motivation"
+                                class="w-full accent-master-accent">
+                            <div class="flex justify-between text-[12px] font-bold text-slate-400">
+                                <span x-text="readiness.motivation + '/10'"></span>
+                                <span
+                                    x-text="readiness.motivation < 5 ? 'De-load Suggested' : 'Full Output Ready'"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <span
-                            class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Efficiency
-                            Mode</span>
-                        <span class="px-6 py-2 rounded-2xl border-2 font-black text-sm inline-block"
-                            :class="systemMode === 'busy' ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-slate-400'">
-                            <i class="fas fa-microchip mr-2"></i> <span
-                                x-text="systemMode === 'busy' ? '20M SURVIVAL' : 'STANDARD OP'"></span>
-                        </span>
-                    </div>
+                    <button @click="calculateReadiness"
+                        class="btn-cyber w-full bg-white text-master-dark py-5 rounded-3xl font-black italic tracking-tighter">INITIALIZE
+                        LOAD SEQUENCE</button>
                 </div>
 
-                <!-- Busy Workout Strategy -->
-                <div x-show="systemMode === 'busy'"
-                    class="glass border-red-500/20 p-10 rounded-[3rem] mb-12 shadow-[0_0_80px_rgba(239,68,68,0.05)]">
-                    <div class="flex items-center gap-6 mb-8 text-red-500">
-                        <div
-                            class="w-16 h-16 rounded-[1.5rem] bg-red-500/10 flex items-center justify-center border-2 border-red-500/30">
-                            <i class="fas fa-fire-flame-curved text-3xl"></i>
+                <!-- Active View Header -->
+                <div x-show="readiness.checked"
+                    class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8 animate-fade-in-up">
+                    <div>
+                        <div class="flex items-center gap-4 mb-2">
+                            <div
+                                class="bg-master-accent/20 text-master-accent px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-master-accent/30">
+                                Readiness Score: <span x-text="readiness.score"></span>/10
+                            </div>
+                            <span x-show="readiness.score < 5"
+                                class="text-amber-500 font-black text-xs uppercase italic tracking-tighter animate-pulse"><i
+                                    class="fas fa-triangle-exclamation"></i> De-load Protocol Active</span>
+                        </div>
+                        <h2 class="text-5xl font-outfit font-black text-white italic tracking-tighter uppercase">
+                            Physical <span x-text="systemMode === 'busy' ? 'Survival' : 'Maintenance'"></span></h2>
+                    </div>
+
+                    <!-- Rest Timer Float (Point 1) -->
+                    <div x-show="restTimer.active" x-transition.scale
+                        class="glass border-master-accent/40 px-8 py-5 rounded-[2rem] flex items-center gap-8 shadow-2xl animate-float">
+                        <div class="relative w-12 h-12">
+                            <svg class="w-full h-full" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)"
+                                    stroke-width="8" />
+                                <circle class="progress-ring__circle" cx="50" cy="50" r="45" fill="none"
+                                    stroke="#10b981" stroke-width="8" stroke-dasharray="283"
+                                    :stroke-dashoffset="283 - (283 * restTimer.time / 60)" />
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-black text-master-accent"
+                                x-text="restTimer.time + 's'"></div>
                         </div>
                         <div>
-                            <h3 class="text-2xl font-black italic">EMERGENCY PROTOCOL</h3>
-                            <p class="text-red-500/60 font-mono text-xs uppercase font-bold">20 Minutes AMRAP or Direct
-                            </p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div
-                            class="bg-master-dark border border-white/5 p-8 rounded-[2rem] hover:border-red-500/30 transition-all flex flex-col justify-center items-center">
-                            <span class="text-4xl font-outfit font-black text-white mb-2">100</span>
-                            <span class="text-xs font-mono font-bold text-slate-500 uppercase">Air Squats</span>
-                        </div>
-                        <div
-                            class="bg-master-dark border border-white/5 p-8 rounded-[2rem] hover:border-red-500/30 transition-all flex flex-col justify-center items-center">
-                            <span class="text-4xl font-outfit font-black text-white mb-2">50</span>
-                            <span class="text-xs font-mono font-bold text-slate-500 uppercase">Pushups</span>
-                        </div>
-                        <div
-                            class="bg-master-dark border border-white/5 p-8 rounded-[2rem] hover:border-red-500/30 transition-all flex flex-col justify-center items-center">
-                            <span class="text-4xl font-outfit font-black text-white mb-2">180s</span>
-                            <span class="text-xs font-mono font-bold text-slate-500 uppercase">Isometric Plank</span>
+                            <span class="block text-[10px] text-slate-500 font-mono font-black uppercase">Rest
+                                Phase</span>
+                            <button @click="stopRest" class="text-xs font-black text-master-accent uppercase">Skip
+                                Protocol</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Weekly Schedule -->
-                <div x-show="systemMode !== 'busy'" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div
-                        class="glass p-8 rounded-[2.5rem] hover:scale-[1.02] transition-all group border-white/5 hover:border-white/20">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-master-accent/10 flex items-center justify-center border border-master-accent/20 mb-6 group-hover:bg-master-accent/20 transition-all">
-                            <i class="fas fa-person-arrow-down-to-line text-master-accent"></i>
-                        </div>
-                        <h3 class="text-xl font-black text-white mb-1">MON: ANCHORING</h3>
-                        <p class="text-[10px] text-slate-500 font-mono uppercase font-bold mb-6">Lower Body Strength</p>
-                        <ul class="space-y-4">
-                            <li
-                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
-                                <span class="w-2 h-2 rounded-full bg-master-accent"></span>
-                                <span class="text-slate-300 font-bold">Box Squats <span
-                                        class="text-slate-500 font-mono ml-auto">3x15</span></span>
-                            </li>
-                            <li
-                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
-                                <span class="w-2 h-2 rounded-full bg-master-accent"></span>
-                                <span class="text-slate-300 font-bold">Glute Bridge <span
-                                        class="text-slate-500 font-mono ml-auto">3x15</span></span>
-                            </li>
-                            <li
-                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
-                                <span class="w-2 h-2 rounded-full bg-master-accent"></span>
-                                <span class="text-slate-300 font-bold">Wall Sit <span
-                                        class="text-slate-500 font-mono ml-auto">3x45s</span></span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div
-                        class="glass p-8 rounded-[2.5rem] hover:scale-[1.02] transition-all group border-white/5 hover:border-white/20">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 mb-6 group-hover:bg-amber-500/20 transition-all">
-                            <i class="fas fa-person-walking text-amber-500"></i>
-                        </div>
-                        <h3 class="text-xl font-black text-white mb-1">WED: ENDURANCE</h3>
-                        <p class="text-[10px] text-slate-500 font-mono uppercase font-bold mb-6">Zone 2 Cardiovascular
-                        </p>
-                        <div class="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem]">
-                            <p class="text-sm font-bold text-amber-500 mb-2">Target Directive:</p>
-                            <p class="text-2xl font-outfit font-black text-white italic">45M ZONE 2</p>
-                            <p class="text-[10px] text-slate-500 font-mono mt-4">Nasal breathing only. Maintain steady
-                                state output.</p>
+                <!-- Busy Mode Tracker (Point 3) -->
+                <div x-show="readiness.checked && systemMode === 'busy'" class="space-y-8 animate-fade-in-up">
+                    <div class="glass p-10 rounded-[3rem] border-red-500/20 text-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-red-500/5"></div>
+                        <h3 class="text-xl font-black text-red-500 mb-6 uppercase tracking-widest italic">AMRAP
+                            Stopwatch</h3>
+                        <div class="text-7xl font-outfit font-black text-white mb-8 tracking-tighter"
+                            x-text="formatTime(busyTimer.time)"></div>
+                        <div class="flex justify-center gap-6 relative z-10">
+                            <button @click="toggleBusyTimer"
+                                class="px-10 py-4 rounded-2xl bg-white text-master-dark font-black uppercase tracking-tighter hover:scale-105 transition-all outline-none"
+                                x-text="busyTimer.active ? 'Pause Feed' : 'Start Feed'"></button>
+                            <button @click="busyTime = 20*60"
+                                class="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 font-bold text-xs uppercase tracking-widest text-slate-400">Reset</button>
                         </div>
                     </div>
 
-                    <div
-                        class="glass p-8 rounded-[2.5rem] hover:scale-[1.02] transition-all group border-white/5 hover:border-white/20">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 mb-6 group-hover:bg-indigo-500/20 transition-all">
-                            <i class="fas fa-person-arms-up text-indigo-500"></i>
-                        </div>
-                        <h3 class="text-xl font-black text-white mb-1">FRI: KINETIC</h3>
-                        <p class="text-[10px] text-slate-500 font-mono uppercase font-bold mb-6">Upper Body Structural
-                        </p>
-                        <ul class="space-y-4">
-                            <li
-                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
-                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                <span class="text-slate-300 font-bold">Incline Push <span
-                                        class="text-slate-500 font-mono ml-auto">3x12</span></span>
-                            </li>
-                            <li
-                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
-                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                <span class="text-slate-300 font-bold">Door Rows <span
-                                        class="text-slate-500 font-mono ml-auto">3x15</span></span>
-                            </li>
-                            <li
-                                class="flex items-center gap-4 text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
-                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                <span class="text-slate-300 font-bold">Superman <span
-                                        class="text-slate-500 font-mono ml-auto">10x3s</span></span>
-                            </li>
-                        </ul>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <template x-for="ex in workoutData.busy">
+                            <div
+                                class="glass p-8 rounded-[2.5rem] border-white/5 group hover:border-red-500/30 transition-all text-center">
+                                <span
+                                    class="block text-5xl font-outfit font-black text-white mb-2 group-hover:text-red-500 transition-colors"
+                                    x-text="ex.target"></span>
+                                <span class="block text-xs font-mono font-black text-slate-500 uppercase italic"
+                                    x-text="ex.name"></span>
+                            </div>
+                        </template>
                     </div>
+
+                    <!-- PR Input Module (Point 6) -->
+                    <div class="glass p-8 rounded-[2.5rem] mt-10">
+                        <h3 class="text-lg font-black text-white italic mb-6 uppercase flex items-center gap-4">
+                            <i class="fas fa-trophy text-amber-500"></i> Local Records
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-white/5 p-6 rounded-2xl flex flex-col items-center">
+                                <span class="text-[10px] font-mono text-slate-500 mb-2 uppercase">Max Pushups</span>
+                                <span class="text-3xl font-black text-white mb-4" x-text="prs.pushups"></span>
+                                <input type="number" @change="updatePR('pushups', $event.target.value)"
+                                    placeholder="Update PR"
+                                    class="w-full bg-master-dark border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-master-accent">
+                            </div>
+                            <div class="bg-white/5 p-6 rounded-2xl flex flex-col items-center">
+                                <span class="text-[10px] font-mono text-slate-500 mb-2 uppercase">Max Squats</span>
+                                <span class="text-3xl font-black text-white mb-4" x-text="prs.squats"></span>
+                                <input type="number" @change="updatePR('squats', $event.target.value)"
+                                    placeholder="Update PR"
+                                    class="w-full bg-master-dark border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-master-accent">
+                            </div>
+                            <div class="bg-white/5 p-6 rounded-2xl flex flex-col items-center">
+                                <span class="text-[10px] font-mono text-slate-500 mb-2 uppercase">Max Isometric Plank
+                                    (s)</span>
+                                <span class="text-3xl font-black text-white mb-4" x-text="prs.plank"></span>
+                                <input type="number" @change="updatePR('plank', $event.target.value)"
+                                    placeholder="Update PR"
+                                    class="w-full bg-master-dark border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-master-accent">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Standard Weekly Schedule (Point 4 - Swapping) -->
+                <div x-show="readiness.checked && systemMode !== 'busy'"
+                    class="grid grid-cols-1 md:grid-cols-3 gap-8 animate-fade-in-up">
+                    <template x-for="day in workoutData.standard" :key="day.id">
+                        <div class="glass p-8 rounded-[3rem] hover:scale-[1.02] transition-all group border-white/5">
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center border mb-6 group-hover:scale-110 transition-all"
+                                :class="'bg-' + day.color + '/10 border-' + day.color + '/20 text-' + day.color">
+                                <i class="fas" :class="day.icon"></i>
+                            </div>
+                            <h3 class="text-xl font-black text-white mb-1 uppercase tracking-tighter"
+                                x-text="day.day + ': ' + day.title"></h3>
+                            <p class="text-[10px] text-slate-500 font-mono uppercase font-black mb-6">Target Deployment
+                                window-4:30PM</p>
+
+                            <div class="space-y-4">
+                                <template x-for="(ex, index) in day.exercises" :key="ex.name">
+                                    <div
+                                        class="bg-white/5 p-5 rounded-[2rem] border border-white/5 group/ex hover:border-white/10 transition-all">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div>
+                                                <span
+                                                    class="block text-sm font-black text-slate-200 group-hover/ex:text-master-accent transition-colors"
+                                                    x-text="ex.name"></span>
+                                                <span class="text-[10px] font-mono text-slate-500 uppercase"
+                                                    x-text="ex.sets + ' Sets x ' + ex.reps"></span>
+                                            </div>
+                                            <button @click="swapExercise(ex)"
+                                                class="text-slate-600 hover:text-white transition-colors"
+                                                title="Swap Protocol">
+                                                <i class="fas fa-rotate text-xs"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- Visual Set Tracking (Point 1) -->
+                                        <div class="flex gap-3">
+                                            <template x-for="s in Array.from({length: ex.sets}, (_, i) => i)">
+                                                <button @click="toggleSet(ex.name, s)"
+                                                    :class="workoutLogs[ex.name] && workoutLogs[ex.name][s] ? 'bg-master-accent border-master-accent text-master-dark' : 'bg-transparent border-white/10 text-slate-700'"
+                                                    class="w-10 h-10 rounded-full border-2 flex items-center justify-center font-black text-[10px] transition-all hover:scale-110">
+                                                    <span x-text="s + 1"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
 
