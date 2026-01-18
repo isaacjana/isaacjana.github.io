@@ -50,9 +50,16 @@ Alpine.data('app', () => ({
     noiseNode: null,
 
     // Environment State
+    locationName: 'Syncing...',
     sunriseTime: '--:--',
     sunsetTime: '--:--',
     currentTemp: null,
+
+    // Insights
+    insights: "Scanning neural patterns...",
+
+    // Reflection
+    reflection: { status: 'pending', note: '' },
 
     // Pomodoro State
     pomodoroTime: 50 * 60,
@@ -91,7 +98,7 @@ Alpine.data('app', () => ({
 
         // Daily Check-ins
         this.checkDailyReset();
-        this.fetchWeather();
+        this.detectLocation();
 
         // Background refresh every minute
         setInterval(() => this.checkDailyReset(), 60000);
@@ -140,6 +147,91 @@ Alpine.data('app', () => ({
         this.dailyTasks = presets[this.systemMode] || presets.standard;
     },
 
+    triggerHaptic(type = 'medium') {
+        if ('vibrate' in navigator) {
+            const patterns = {
+                light: 10,
+                medium: [15, 30, 15],
+                heavy: [50, 50, 50],
+                success: [20, 50, 20]
+            };
+            navigator.vibrate(patterns[type] || patterns.medium);
+        }
+    },
+
+    detectLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    this.fetchWeather(pos.coords.latitude, pos.coords.longitude);
+                    this.reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+                },
+                () => {
+                    // Fallback to Kuching
+                    this.fetchWeather(1.5533, 110.3592);
+                    this.locationName = "Kuching Node // MY";
+                }
+            );
+        } else {
+            this.fetchWeather(1.5533, 110.3592);
+            this.locationName = "Kuching Node // MY";
+        }
+    },
+
+    async reverseGeocode(lat, lon) {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const data = await res.json();
+            this.locationName = (data.address.city || data.address.town || "Unknown Sector") + " // Local Node";
+        } catch (e) {
+            this.locationName = "Active Node // Linked";
+        }
+    },
+
+    async fetchWeather(lat, lon) {
+        try {
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&current=temperature_2m&timezone=auto`);
+            const data = await res.json();
+
+            this.currentTemp = Math.round(data.current.temperature_2m);
+            const fmt = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            this.sunriseTime = fmt(data.daily.sunrise[0]);
+            this.sunsetTime = fmt(data.daily.sunset[0]);
+        } catch (e) {
+            console.warn("Weather sync failed:", e);
+        }
+    },
+
+    calculateInsights() {
+        if (this.logs.length < 3) {
+            this.insights = "Insufficient data for neural correlation. Log 3+ days.";
+            return;
+        }
+
+        const recent = this.logs.slice(0, 5);
+        const avgEnergy = recent.reduce((acc, l) => acc + (l.energy || 5), 0) / recent.length;
+        const avgSleep = recent.reduce((acc, l) => acc + (l.sleep || 0), 0) / recent.length;
+
+        let message = `Neural Analysis: Average energy ${avgEnergy.toFixed(1)}/10. `;
+
+        if (avgSleep < 7) {
+            message += "Correlation detected: Low recovery time is suppressing performance. Increase sleep cycle duration.";
+        } else if (avgEnergy > 7) {
+            message += "System optimized. Peak performance window identified.";
+        } else {
+            message += "Consistency is stable. Maintain current calorie-to-output ratio.";
+        }
+
+        this.insights = message;
+    },
+
+    saveReflection() {
+        this.triggerHaptic('success');
+        // In a real app, we'd save this to Firestore. For now, visual feedback.
+        this.reflection.status = 'synced';
+        setTimeout(() => this.reflection.status = 'completed', 2000);
+    },
+
     // --- AUDIO ENGINE ---
     toggleAudio(type) {
         if (this.activeAudio === type) {
@@ -148,6 +240,7 @@ Alpine.data('app', () => ({
         }
 
         this.stopAudio();
+        this.triggerHaptic('light');
 
         if (type === 'brown') {
             this.playBrownNoise();
@@ -155,6 +248,10 @@ Alpine.data('app', () => ({
             // Using a more robust source for rain
             const rainUrl = 'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg';
             this.playExternalAudio(rainUrl, 'rain');
+        } else if (type === 'alpha') {
+            this.playBinauralBeat(10, 'alpha'); // 10Hz Alpha for Focus
+        } else if (type === 'theta') {
+            this.playBinauralBeat(6, 'theta');  // 6Hz Theta for Creativity
         }
     },
 
