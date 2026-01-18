@@ -24,7 +24,6 @@
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         [x-cloak] { display: none !important; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        /* Smooth Chart Rendering */
         canvas { -moz-user-select: none; -webkit-user-select: none; -ms-user-select: none; }
     </style>
 
@@ -42,7 +41,7 @@
         }
     </script>
 </head>
-<body class="bg-master-dark text-gray-200 h-screen overflow-hidden flex flex-col md:flex-row" x-data="app()">
+<body class="bg-master-dark text-gray-200 h-screen overflow-hidden flex flex-col md:flex-row" x-data="app">
 
     <div x-show="!user" x-transition.opacity class="fixed inset-0 z-[100] bg-master-dark flex flex-col items-center justify-center p-6 text-center">
         <i class="fas fa-dumbbell text-6xl text-master-accent mb-6 animate-pulse"></i>
@@ -291,8 +290,12 @@
         const firebaseApp = initializeApp(firebaseConfig);
         const auth = getAuth(firebaseApp);
         const db = getFirestore(firebaseApp);
-        // Enable offline persistence
-        enableIndexedDbPersistence(db).catch((err) => { console.log("Persistence error", err); });
+        
+        // Silent catch for persistence warning
+        enableIndexedDbPersistence(db).catch((err) => { 
+            // This error is non-critical for most browsers
+            console.log("Persistence suppressed:", err.code); 
+        });
 
         document.addEventListener('alpine:init', () => {
             Alpine.data('app', () => ({
@@ -316,7 +319,7 @@
                 // Inputs
                 logInput: { weight: '', energy: '' },
 
-                // Tasks (Local only for now, reset daily)
+                // Tasks
                 dailyTasks: JSON.parse(localStorage.getItem('masterTasks')) || [
                     { name: 'Hydrate', desc: 'Water + Salt', completed: false },
                     { name: 'Wim Hof', desc: 'Breathing', completed: false },
@@ -352,6 +355,11 @@
                             this.fetchLogs();
                         } else {
                             this.logs = [];
+                            this.streak = 0;
+                            if(this.chartInstance) {
+                                this.chartInstance.data.datasets[0].data = [];
+                                this.chartInstance.update();
+                            }
                         }
                     });
                 },
@@ -367,10 +375,9 @@
                 // DATA METHODS
                 fetchLogs() {
                     if (!this.user) return;
-                    // Listen to real-time updates from Firestore
                     const q = query(
                         collection(db, `users/${this.user.uid}/master_logs`), 
-                        orderBy('timestamp', 'desc') // Newest first
+                        orderBy('timestamp', 'desc') 
                     );
                     
                     onSnapshot(q, (snapshot) => {
@@ -387,7 +394,7 @@
                         await addDoc(collection(db, `users/${this.user.uid}/master_logs`), {
                             weight: parseFloat(this.logInput.weight),
                             energy: parseInt(this.logInput.energy) || 5,
-                            dateString: new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY
+                            dateString: new Date().toLocaleDateString('en-GB'), 
                             timestamp: serverTimestamp()
                         });
                         this.logInput = { weight: '', energy: '' };
@@ -410,18 +417,16 @@
                 },
 
                 calculateStreak() {
-                    // Simple logic: check if logs exist for consecutive days.
-                    // For V2 MVP: We just count total logs as "Sessions" for motivation.
                     this.streak = this.logs.length; 
                 },
 
                 get bmi() {
                     if (this.logs.length > 0) {
-                        const w = this.logs[0].weight; // Most recent weight
-                        const h = 1.72; // You are 172cm
+                        const w = this.logs[0].weight;
+                        const h = 1.72;
                         return (w / (h * h)).toFixed(1);
                     }
-                    return (100 / (1.72 * 1.72)).toFixed(1); // Default
+                    return (100 / (1.72 * 1.72)).toFixed(1);
                 },
 
                 get bmiColor() {
@@ -444,7 +449,6 @@
                     const d = new Date();
                     this.timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     const h = d.getHours();
-                    // 13:00 to 20:00 is EATING
                     if (h >= 13 && h < 20) {
                         this.isFasting = false;
                         this.timeProgress = (((h * 60 + d.getMinutes()) - (13 * 60)) / (7 * 60)) * 100;
@@ -460,9 +464,8 @@
                     const ctx = document.getElementById('mainChart');
                     if (!ctx) return;
                     
-                    // Prepare Data (Reverse to show oldest -> newest)
                     const data = [...this.logs].reverse();
-                    const labels = data.map(l => l.dateString.slice(0, 5)); // DD/MM
+                    const labels = data.map(l => l.dateString.slice(0, 5)); 
                     const weights = data.map(l => l.weight);
 
                     if (this.chartInstance) {
