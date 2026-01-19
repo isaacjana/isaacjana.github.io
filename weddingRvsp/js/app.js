@@ -37,6 +37,7 @@ async function loadEvent(slug) {
     updateUIWithClientData(currentClientData);
     initAnimations();
     initRSVP();
+    startCountdown(currentClientData.date);
 }
 
 function updateUIWithClientData(data) {
@@ -46,10 +47,84 @@ function updateUIWithClientData(data) {
     document.getElementById('display-venue').innerText = data.venue;
     document.getElementById('display-quote').innerText = data.quote || "";
 
+    // Registry & Accommodation Displays
+    const registrySec = document.getElementById('registry-section');
+    const registryLink = document.getElementById('display-registry');
+    if (data.registry) {
+        registrySec.style.display = 'block';
+        registryLink.href = data.registry;
+    } else {
+        registrySec.style.display = 'none';
+    }
+
+    const accomSec = document.getElementById('accommodation-section');
+    const accomText = document.getElementById('display-accommodation');
+    if (data.accommodation) {
+        accomSec.style.display = 'block';
+        accomText.innerText = data.accommodation;
+    } else {
+        accomSec.style.display = 'none';
+    }
+
+    // Apply Theme
+    if (data.theme) {
+        document.body.className = `theme-${data.theme}`;
+    }
+
+    // Calendar Link (Simplified Google Calendar Link)
+    const calBtn = document.createElement('a');
+    calBtn.className = 'calendar-btn fade-up';
+    calBtn.href = `https://www.google.com/calendar/render?action=TEMPLATE&text=Wedding:+${encodeURIComponent(data.names)}&details=We+look+forward+to+seeing+you!&location=${encodeURIComponent(data.venue)}`;
+    calBtn.target = '_blank';
+    calBtn.innerHTML = `<span>📅 Add to Calendar</span>`;
+    document.getElementById('display-venue').after(calBtn);
+
     // Initials for footer/loader
     const initials = data.names.split('&').map(s => s.trim()[0]).join(' & ');
     document.getElementById('display-initials').innerText = initials;
     document.getElementById('loader-initials').innerText = initials;
+}
+
+// --- UTILITIES ---
+
+function showToast(message, icon = '✨') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 100);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 1000);
+    }, 4000);
+}
+
+function startCountdown(dateStr) {
+    const targetDate = new Date(dateStr).getTime();
+    if (isNaN(targetDate)) return;
+
+    const update = () => {
+        const now = new Date().getTime();
+        const diff = targetDate - now;
+
+        if (diff < 0) {
+            document.getElementById('countdown').style.display = 'none';
+            return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+        document.getElementById('days').innerText = days.toString().padStart(2, '0');
+        document.getElementById('hours').innerText = hours.toString().padStart(2, '0');
+        document.getElementById('mins').innerText = mins.toString().padStart(2, '0');
+    };
+
+    update();
+    setInterval(update, 60000);
 }
 
 function initRSVP() {
@@ -70,6 +145,8 @@ function initRSVP() {
 
         try {
             await addDoc(collection(db, "clients", currentClientId, "rsvps"), formData);
+            showToast("RSVP Confirmed! Thank you.", "🥂");
+
             gsap.to(".rsvp-card", {
                 opacity: 0, y: -50, duration: 0.8,
                 onComplete: () => {
@@ -82,7 +159,7 @@ function initRSVP() {
                 }
             });
         } catch (e) {
-            alert("Error sending RSVP. Please try again.");
+            showToast("Failed to send RSVP.", "⚠️");
             btn.innerText = "Confirm Attendance";
             btn.disabled = false;
         }
@@ -123,6 +200,7 @@ function initAdminEvents() {
     document.getElementById('btn-close-modal').onclick = () => closeClientModal();
     document.getElementById('client-form').onsubmit = handleClientSubmit;
     document.getElementById('btn-back-to-clients').onclick = () => showTab('clients');
+    document.getElementById('btn-export-csv').onclick = exportRSVPsToCSV;
 }
 
 async function loadClients() {
@@ -167,6 +245,9 @@ window.editClient = async (id) => {
         document.getElementById('client-date').value = data.date;
         document.getElementById('client-venue').value = data.venue;
         document.getElementById('client-quote').value = data.quote || "";
+        document.getElementById('client-theme').value = data.theme || "classic-emerald";
+        document.getElementById('client-registry').value = data.registry || "";
+        document.getElementById('client-accommodation').value = data.accommodation || "";
         openClientModal(true);
     }
 };
@@ -185,7 +266,10 @@ async function handleClientSubmit(e) {
         slug: document.getElementById('client-slug').value,
         date: document.getElementById('client-date').value,
         venue: document.getElementById('client-venue').value,
-        quote: document.getElementById('client-quote').value
+        quote: document.getElementById('client-quote').value,
+        theme: document.getElementById('client-theme').value,
+        registry: document.getElementById('client-registry').value,
+        accommodation: document.getElementById('client-accommodation').value
     };
 
     if (id) {
@@ -261,4 +345,43 @@ function initAnimations() {
     gsap.utils.toArray(".fade-up").forEach(el => {
         gsap.to(el, { scrollTrigger: { trigger: el, start: "top 85%" }, opacity: 1, y: 0, duration: 1 });
     });
+}
+
+async function exportRSVPsToCSV() {
+    if (!currentClientId) return;
+
+    showToast("Preparing CSV...", "📊");
+
+    const rsvpsRef = collection(db, "clients", currentClientId, "rsvps");
+    const snapshot = await getDocs(query(rsvpsRef, orderBy("timestamp", "desc")));
+
+    if (snapshot.empty) {
+        showToast("No RSVPs to export.", "⚠️");
+        return;
+    }
+
+    let csvContent = "Name,Attendance,Guests,Dietary,Timestamp\n";
+
+    snapshot.forEach(doc => {
+        const d = doc.data();
+        const row = [
+            `"${d.name}"`,
+            d.attendance,
+            d.guests,
+            `"${(d.dietary || '').replace(/"/g, '""')}"`,
+            d.timestamp
+        ].join(",");
+        csvContent += row + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `rsvps_${currentClientId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast("CSV Downloaded!", "✅");
 }

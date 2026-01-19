@@ -65,10 +65,25 @@
                 <p class="serif italic" style="margin-bottom: 20px; font-size: 1.2rem;">Join us in celebrating</p>
                 <h1 class="names" id="display-names">...</h1>
                 <div class="date" id="display-date">...</div>
-                <p style="letter-spacing: 0.2rem; margin-bottom: 40px;" id="display-venue">...</p>
-                <button class="cta-button" onclick="scrollToRSVP()">RSVP Now</button>
+                <p style="letter-spacing: 0.2rem; margin-bottom: 20px;" id="display-venue">...</p>
+
+                <!-- Countdown Timer -->
+                <div class="countdown-container fade-up" id="countdown">
+                    <div class="countdown-box"><span class="countdown-val" id="days">00</span><span
+                            class="countdown-label">Days</span></div>
+                    <div class="countdown-box"><span class="countdown-val" id="hours">00</span><span
+                            class="countdown-label">Hours</span></div>
+                    <div class="countdown-box"><span class="countdown-val" id="mins">00</span><span
+                            class="countdown-label">Mins</span></div>
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <button class="cta-button" onclick="scrollToRSVP()">RSVP Now</button>
+                </div>
             </div>
         </section>
+
+        <div id="toast-container"></div>
 
         <!-- Message Section -->
         <section style="background: var(--secondary); min-height: 40vh;">
@@ -76,6 +91,24 @@
                 <h2 class="serif" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 30px;">Our Journey
                 </h2>
                 <p class="fade-up" id="display-quote">...</p>
+            </div>
+        </section>
+
+        <!-- Details Section -->
+        <section id="details" style="background: var(--secondary); padding: 4rem 2rem;">
+            <div
+                style="max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4rem;">
+                <div class="fade-up" id="accommodation-section" style="display: none;">
+                    <h3 class="serif" style="color: var(--primary); margin-bottom: 1.5rem;">Accommodation</h3>
+                    <p id="display-accommodation" style="opacity: 0.8; line-height: 1.8;"></p>
+                </div>
+                <div class="fade-up" id="registry-section" style="display: none;">
+                    <h3 class="serif" style="color: var(--primary); margin-bottom: 1.5rem;">Gift Registry</h3>
+                    <p style="opacity: 0.8; margin-bottom: 1.5rem;">Your presence is the greatest gift, but if you wish
+                        to contribute to our journey:</p>
+                    <a href="#" id="display-registry" target="_blank" class="btn-small"
+                        style="display: inline-block; text-decoration: none;">View Registry</a>
+                </div>
             </div>
         </section>
 
@@ -142,7 +175,10 @@
                 <div id="view-rsvps" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <h3 id="rsvp-view-title">RSVPs</h3>
-                        <button class="btn-small" id="btn-back-to-clients">Back to Clients</button>
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn-small" id="btn-export-csv">Export CSV</button>
+                            <button class="btn-small" id="btn-back-to-clients">Back</button>
+                        </div>
                     </div>
                     <div id="stats" style="margin: 2rem 0; display: flex; gap: 2rem;">
                         <div class="guest-card">Total Records: <span id="total-guests">0</span></div>
@@ -186,6 +222,24 @@
                     <label>Short Message / Quote</label>
                     <textarea id="client-quote" rows="3"
                         placeholder="Love is not finding someone to live with..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Design Theme</label>
+                    <select id="client-theme">
+                        <option value="classic-emerald">Classic Emerald (Default)</option>
+                        <option value="royal-dark">Royal Dark (Gold & Black)</option>
+                        <option value="midnight-garden">Midnight Garden (Mint & Dark)</option>
+                        <option value="classic-light">Classic Light (Champagne & Cream)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Registry URL (optional)</label>
+                    <input type="url" id="client-registry" placeholder="https://registry.com/our-wedding">
+                </div>
+                <div class="form-group">
+                    <label>Accommodation Info (optional)</label>
+                    <textarea id="client-accommodation" rows="3"
+                        placeholder="Hotel recommendations, travel tips..."></textarea>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 3rem;">
                     <button type="submit" class="cta-button" style="flex: 2;">Save Invitation</button>
