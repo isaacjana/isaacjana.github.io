@@ -4,20 +4,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ocean Dashboard - Manage your live seafood inventory, orders, and deliveries">
+    <meta name="theme-color" content="#0f2847">
     <title>Dashboard - Ocean</title>
+
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
+        /* Active Nav Indicator */
         .active-nav {
-            background-color: rgba(30, 64, 175, 0.1);
-            border-right: 3px solid #1e40af;
-            color: #1e3a8a;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+            color: #1e40af;
             font-weight: 600;
+            position: relative;
+        }
+
+        .active-nav::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 60%;
+            background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+            border-radius: 0 4px 4px 0;
         }
 
         .hidden-section {
@@ -27,57 +53,149 @@
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
+            height: 8px;
         }
 
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #f1f5f9;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+        }
+
+        /* Smooth transitions for view changes */
+        .view-transition {
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Stat card hover effects */
+        .stat-card-animated:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Product card hover */
+        .product-card-hover:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        /* Table row hover highlight */
+        .table-row-hover:hover {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #0f2847 0%, #1e40af 50%, #0ea5e9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Card shimmer loading */
+        .shimmer {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Pulse animation for live indicators */
+        .pulse-dot {
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        /* Glass effect for modals */
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
         }
     </style>
 </head>
 
-<body class="bg-slate-50 h-screen flex overflow-hidden">
+<body class="bg-slate-50 min-h-screen">
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
     <!-- Sidebar -->
-    <aside
-        class="w-64 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col transition-all duration-300 transform -translate-x-full md:translate-x-0 absolute md:static z-50 h-full"
-        id="sidebar">
-        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-blue-900">Ocean</h1>
-            <button id="close-sidebar" class="md:hidden text-gray-500"><svg class="w-6 h-6" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
+    <aside class="sidebar" id="sidebar">
+        <!-- Logo Section -->
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+            </div>
+            <span class="sidebar-brand">Ocean</span>
+            <button id="close-sidebar" class="ml-auto md:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                     </path>
-                </svg></button>
+                </svg>
+            </button>
         </div>
 
-        <nav class="flex-1 overflow-y-auto py-4">
-            <ul class="space-y-1" id="nav-menu">
+        <!-- Navigation -->
+        <nav class="nav-menu">
+            <ul class="space-y-1 px-3" id="nav-menu">
                 <!-- Nav items injected by JS based on role -->
             </ul>
         </nav>
 
-        <div class="p-4 border-t border-gray-100 bg-gray-50">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold"
-                    id="user-avatar">
-                    ?
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-gray-800 truncate w-32" id="user-name">Loading...</p>
-                    <p class="text-xs text-gray-500 capitalize" id="user-role">...</p>
+        <!-- User Profile -->
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar" id="user-avatar">?</div>
+                <div class="user-info">
+                    <p class="user-name" id="user-name">Loading...</p>
+                    <span class="user-role" id="user-role">...</span>
                 </div>
             </div>
             <button onclick="signOut()"
-                class="w-full text-sm text-red-600 hover:bg-red-50 p-2 rounded transition text-left flex items-center gap-2">
+                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
@@ -89,33 +207,56 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-full relative">
-        <!-- Header for Mobile -->
-        <header class="bg-white border-b border-gray-200 p-4 flex items-center justify-between md:hidden">
-            <button id="open-sidebar" class="text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
+    <main class="main-content">
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <button id="open-sidebar" class="mobile-menu-btn">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
                     </path>
-                </svg></button>
-            <h1 class="text-xl font-bold text-blue-900">Ocean</h1>
-            <div class="w-6"></div> <!-- Spacer -->
+                </svg>
+            </button>
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style="background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+                <span class="font-bold text-lg gradient-text">Ocean</span>
+            </div>
+            <div class="w-10"></div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-8" id="main-view">
+        <!-- Content Area -->
+        <div class="content-wrapper" id="main-view">
             <!-- Loading State -->
-            <div id="view-loading" class="flex items-center justify-center h-full">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
+            <div id="view-loading" class="flex flex-col items-center justify-center h-[60vh]">
+                <div class="relative">
+                    <div class="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin"
+                        style="border-top-color: #0ea5e9;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="mt-4 text-gray-500 font-medium">Loading dashboard...</p>
             </div>
 
             <!-- Dynamic Content Sections will be injected here -->
         </div>
     </main>
 
-    <!-- Modals -->
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modal Container -->
     <div id="modal-container"></div>
 
     <script src="js/firebase-config.js"></script>
-    <!-- We don't include auth.js here because dashboard handles its own auth check/redirect in app.js -->
     <script src="js/db.js"></script>
     <script src="js/app.js"></script>
 </body>

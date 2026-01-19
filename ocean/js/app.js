@@ -3,33 +3,60 @@
 let currentUser = null;
 let currentRole = null;
 let listeners = [];
+let cart = [];
 
+// DOM Ready
 $(document).ready(function () {
     // Auth Check
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            currentUser = await dbAPI.getUserProfile(user.uid);
-            if (!currentUser) {
-                // Should handle creation if not exists or redirect
-                alert('User profile not found. Please contact support.');
-                signOut();
-                return;
+            try {
+                // Initialize User
+                currentUser = await dbAPI.getUserProfile(user.uid);
+                
+                // If user doesn't exist in DB but is auth'd (edge case), create them
+                if (!currentUser) {
+                    const profile = {
+                        name: user.displayName || 'User',
+                        email: user.email,
+                        role: 'client',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await db.collection('users').doc(user.uid).set(profile);
+                    currentUser = { uid: user.uid, ...profile };
+                }
+
+                currentRole = currentUser.role || 'client';
+
+                // Update Sidebar Profile
+                $('#user-name').text(currentUser.name || user.email);
+                $('#user-role').text(currentRole);
+                const initial = (currentUser.name || user.email).charAt(0).toUpperCase();
+                $('#user-avatar').text(initial);
+                
+                // Initialize Dashboard
+                initDashboard(currentRole);
+            } catch (error) {
+                console.error("Auth Error:", error);
+                showToast('Error loading profile', 'error');
             }
-            currentRole = currentUser.role || 'client';
-
-            $('#user-name').text(currentUser.name || user.email);
-            $('#user-role').text(currentRole);
-            $('#user-avatar').text((currentUser.name || user.email).charAt(0).toUpperCase());
-
-            initDashboard(currentRole);
         } else {
-            window.location.href = 'index.html';
+            // Redirect to login if on dashboard
+            if (window.location.href.includes('dashboard.html')) {
+                window.location.href = 'index.html';
+            }
         }
     });
 
-    // Mobile Sidebar Toggle
-    $('#open-sidebar').click(() => $('#sidebar').removeClass('-translate-x-full'));
-    $('#close-sidebar').click(() => $('#sidebar').addClass('-translate-x-full'));
+    // Sidebar Toggles
+    const toggleSidebar = () => {
+        $('#sidebar').toggleClass('open');
+        $('#sidebar-overlay').toggleClass('active');
+    };
+    
+    $('#open-sidebar').click(toggleSidebar);
+    $('#close-sidebar').click(toggleSidebar);
+    $('#sidebar-overlay').click(toggleSidebar);
 });
 
 function signOut() {
@@ -38,10 +65,9 @@ function signOut() {
 
 function initDashboard(role) {
     renderNav(role);
-    // Default View
-    if (role === 'admin') loadView('analytics');
-    else if (role === 'client') loadView('shop');
-    else if (role === 'driver') loadView('jobs');
+    // Determine default view based on role
+    const defaultView = role === 'admin' ? 'analytics' : (role === 'driver' ? 'jobs' : 'shop');
+    loadView(defaultView);
 }
 
 function renderNav(role) {
@@ -51,916 +77,337 @@ function renderNav(role) {
     const items = [];
 
     if (role === 'admin') {
-        items.push({ id: 'analytics', label: 'Dashboard', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' }); // Chart icon placeholder
+        items.push({ id: 'analytics', label: 'Dashboard', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' });
         items.push({ id: 'stock', label: 'Live Stock', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' });
         items.push({ id: 'orders', label: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' });
-        items.push({ id: 'invoices', label: 'Invoices (LHDN)', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' });
+        items.push({ id: 'invoices', label: 'Invoices', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' });
         items.push({ id: 'clients', label: 'Clients', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' });
     } else if (role === 'client') {
         items.push({ id: 'shop', label: 'Live Seafood', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' });
         items.push({ id: 'my-orders', label: 'My Orders', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' });
     } else if (role === 'driver') {
-        items.push({ id: 'jobs', label: 'Available Jobs', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }); // Lightning/Flash icon for quick jobs
+        items.push({ id: 'jobs', label: 'Available Jobs', icon: 'M13 10V3L4 14h7v7l9-11h-7z' });
         items.push({ id: 'my-deliveries', label: 'My Deliveries', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z' });
     }
 
     items.forEach(item => {
         $nav.append(`
-            <li>
-                <a href="#" onclick="loadView('${item.id}'); return false;" id="nav-${item.id}" class="flex items-center gap-3 px-6 py-3 text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors">
-                    <svg class="w-5 h-5 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg>
-                    ${item.label}
+            <li class="nav-item">
+                <a href="#" onclick="loadView('${item.id}'); return false;" id="nav-${item.id}" class="nav-link">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg>
+                    <span>${item.label}</span>
                 </a>
             </li>
         `);
     });
 }
-window.loadView = loadView; // Global export
 
 function loadView(viewId) {
-    // Clear existing listeners
-    // (Implementation: we should store unsubscribe functions in 'listeners' array and call them here)
+    // Unsubscribe from previous listeners
     listeners.forEach(unsub => unsub());
     listeners = [];
 
-    // UI Updates
-    $('#nav-menu a').removeClass('active-nav');
-    $(`#nav-${viewId}`).addClass('active-nav');
-    $('#view-loading').removeClass('hidden');
-    $('#sidebar').addClass('-translate-x-full'); // Close mobile sidebar
+    // Update Nav UI
+    $('.nav-link').removeClass('active');
+    $(`#nav-${viewId}`).addClass('active');
 
+    // Handle Mobile Sidebar
+    $('#sidebar').removeClass('open');
+    $('#sidebar-overlay').removeClass('active');
+
+    // Show Loading & Render
     const $main = $('#main-view');
-    $main.children().not('#view-loading').remove();
+    $main.find('> :not(#view-loading)').remove();
+    $('#view-loading').removeClass('hidden');
 
-    // Logic for each view
-    setTimeout(() => { // Simulate tiny delay/transition or just wait for render
+    setTimeout(() => {
         $('#view-loading').addClass('hidden');
+        const $content = $('<div class="view-transition"></div>').appendTo($main);
 
         switch (viewId) {
-            case 'analytics': renderAnalytics($main); break;
-            case 'stock': renderStockManagement($main); break;
-            case 'shop': renderShop($main); break;
-            case 'orders': renderOrdersAdmin($main); break;
-            case 'my-orders': renderOrdersClient($main); break;
-            case 'jobs': renderDriverJobs($main); break;
-            case 'my-deliveries': renderDriverDeliveries($main); break;
-            case 'invoices': renderInvoices($main); break;
-            case 'clients': renderClients($main); break;
-            default: $main.html('<p>View not implemented</p>');
+            case 'analytics': renderAnalytics($content); break;
+            case 'stock': renderStock($content); break;
+            case 'shop': renderShop($content); break;
+            case 'orders': renderOrdersAdmin($content); break;
+            case 'my-orders': renderOrdersClient($content); break;
+            case 'jobs': renderDriverJobs($content); break;
+            case 'my-deliveries': renderDriverDeliveries($content); break;
+            case 'invoices': renderInvoices($content); break;
+            case 'clients': renderClients($content); break;
+            default: $content.html('<div class="empty-state"><p class="empty-state-text">View under maintenance</p></div>');
         }
-    }, 300);
+    }, 400); // Small artificial delay for smooth transition feel
 }
 
-// --- Render Functions (Basic Implementation) ---
+// ==========================================
+// RENDER FUNCTIONS
+// ==========================================
 
-function renderAnalytics($container) {
-    $container.html(`
-        <h2 class="text-2xl font-bold mb-6">Sales Analytics</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-gray-500 text-sm">Today's Sales</p>
-                <h3 class="text-2xl font-bold text-blue-900 mt-2" id="sales-today">RM 0</h3>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-gray-500 text-sm">Weekly Sales</p>
-                <h3 class="text-2xl font-bold text-blue-900 mt-2" id="sales-weekly">RM 0</h3>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-gray-500 text-sm">Monthly Sales</p>
-                <h3 class="text-2xl font-bold text-blue-900 mt-2" id="sales-monthly">RM 0</h3>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-gray-500 text-sm">Yearly Sales</p>
-                <h3 class="text-2xl font-bold text-green-600 mt-2" id="sales-yearly">RM 0</h3>
+function renderAnalytics($el) {
+    $el.html(`
+        <div class="page-header">
+            <h2 class="page-title">Dashboard Overview</h2>
+             <div class="text-sm text-gray-500 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100">
+                Today: ${new Date().toLocaleDateString('en-MY', { dateStyle: 'long' })}
             </div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-64 flex items-center justify-center text-gray-400">
-            [Chart Placeholder: Sales Trend Line]
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card stat-card-animated">
+                <div class="stat-icon blue"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                <div class="stat-label">Daily Revenue</div>
+                <div class="stat-value" id="stat-daily">RM 0</div>
+                <div class="stat-change up"><span>+12.5%</span> vs yesterday</div>
+            </div>
+            <div class="stat-card stat-card-animated">
+                <div class="stat-icon green"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg></div>
+                <div class="stat-label">Monthly Revenue</div>
+                <div class="stat-value" id="stat-monthly">RM 0</div>
+                <div class="stat-change up"><span>+5.2%</span> vs last month</div>
+            </div>
+            <div class="stat-card stat-card-animated">
+                <div class="stat-icon orange"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg></div>
+                <div class="stat-label">Active Orders</div>
+                <div class="stat-value" id="stat-orders">0</div>
+                <div class="stat-change down text-gray-500 bg-gray-100"><span class="text-gray-600">Processing</span></div>
+            </div>
+             <div class="stat-card stat-card-animated">
+                <div class="stat-icon purple"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
+                <div class="stat-label">Total Clients</div>
+                <div class="stat-value" id="stat-clients">0</div>
+                <div class="stat-change up"><span>New</span> added recently</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card h-[400px]">
+                <div class="card-header">
+                    <h3 class="card-title">Sales Trends</h3>
+                </div>
+                <div class="card-body h-full relative p-4">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+            <div class="card h-[400px]">
+                <div class="card-header">
+                    <h3 class="card-title">Top Products</h3>
+                </div>
+                 <div class="card-body h-full relative p-4 flex items-center justify-center">
+                    <canvas id="productsChart"></canvas>
+                </div>
+            </div>
         </div>
     `);
 
-    // Calculate Sales
-    // We fetch ALL orders for Admin to calculate (or limit to last year if optimization needed)
+    // Logic: Fetch Order Data
     const unsub = dbAPI.getOrders('admin', null, (orders) => {
+        let daily = 0, monthly = 0, active = 0;
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        const tempDate = new Date(now);
-        const startOfWeek = new Date(tempDate.setDate(tempDate.getDate() - tempDate.getDay())); // Start of week (Sunday)
-
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-
-        let today = 0, weekly = 0, monthly = 0, yearly = 0;
 
         orders.forEach(o => {
-            if (o.status === 'completed' || o.status === 'accepted' || o.status === 'delivering') {
-                const date = o.createdAt ? new Date(o.createdAt.seconds * 1000) : new Date();
-                const total = parseFloat(o.total);
-
-                if (date >= startOfDay) today += total;
-                if (date >= startOfWeek) weekly += total;
-                if (date >= startOfMonth) monthly += total;
-                if (date >= startOfYear) yearly += total;
+            const total = parseFloat(o.total || 0);
+            const date = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date();
+            
+            if (['pending', 'accepted', 'delivering'].includes(o.status)) active++;
+            if (['completed', 'accepted', 'delivering'].includes(o.status)) { // count committed revenue
+                 if (date >= startOfDay) daily += total;
+                 if (date >= startOfMonth) monthly += total;
             }
         });
 
-        $('#sales-today').text(`RM ${today.toFixed(2)}`);
-        $('#sales-weekly').text(`RM ${weekly.toFixed(2)}`);
-        $('#sales-monthly').text(`RM ${monthly.toFixed(2)}`);
-        $('#sales-yearly').text(`RM ${yearly.toFixed(2)}`);
+        $('#stat-daily').text(`RM ${daily.toLocaleString('en-US', {minimumFractionDigits: 2})}`);
+        $('#stat-monthly').text(`RM ${monthly.toLocaleString('en-US', {minimumFractionDigits: 2})}`);
+        $('#stat-orders').text(active);
+
+        // Chart Init (Mock Data until advanced aggregation is built)
+        initCharts(orders);
     });
     listeners.push(unsub);
+    
+    // Fetch clients count
+    const unsubClients = dbAPI.getUsers('client', (users) => {
+        $('#stat-clients').text(users.length);
+    });
+    listeners.push(unsubClients);
 }
 
-function renderStockManagement($container) {
-    $container.html(`
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">Stock & Procurement</h2>
-            <button onclick="openAddProductModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Add New Product</button>
+function initCharts(orders) {
+    // Simple mock logic for visualization
+    const ctx1 = document.getElementById('salesChart');
+    if(ctx1) {
+        new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Revenue (RM)',
+                    data: [1200, 1900, 1500, 2100, 1800, 2500, 3200], // Placeholder
+                    borderColor: '#1e40af',
+                    backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    const ctx2 = document.getElementById('productsChart');
+    if(ctx2) {
+         new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['Lobster', 'Grouper', 'Crab', 'Prawns'],
+                datasets: [{
+                    data: [35, 25, 25, 15], // Placeholder
+                    backgroundColor: ['#0ea5e9', '#1e40af', '#0f2847', '#38bdf8']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+}
+
+function renderStock($el) {
+    if (!$('#add-prod-fab').length) {
+         $('body').append(`<button id="add-prod-fab" onclick="openAddProductModal()" class="fab"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>`);
+    }
+
+    $el.html(`
+        <div class="page-header">
+            <h2 class="page-title">Live Stock Management</h2>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm min-w-[800px]">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="p-4 font-semibold text-gray-600">Product</th>
-                            <th class="p-4 font-semibold text-gray-600">Current Supplier</th>
-                            <th class="p-4 font-semibold text-gray-600">Stock (Physical)</th>
-                            <th class="p-4 font-semibold text-gray-600">Pending Requests</th>
-                            <th class="p-4 font-semibold text-gray-600">Status</th>
-                            <th class="p-4 font-semibold text-gray-600">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="stock-table-body">
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Product Details</th>
+                        <th>Supplier</th>
+                        <th>Live Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-list">
+                    <!-- Loaded dynamically -->
+                    <tr><td colspan="5" class="p-8 text-center"><div class="shimmer w-full h-12 rounded"></div></td></tr>
+                </tbody>
+            </table>
         </div>
     `);
 
-    // Fetch Products AND Orders to calculate demand
-    // Nested listeners are tricky, so we'll fetch orders once per product update or independently?
-    // Independent listeners updating a shared state or re-rendering is properly reactive.
-    // For simplicity: specific render function that takes both.
+    const unsub = dbAPI.getProducts((products) => {
+        if (products.length === 0) {
+            $('#stock-list').html(`<tr><td colspan="5" class="p-8 text-center text-gray-500">No products found. Add one to get started.</td></tr>`);
+            return;
+        }
 
-    let localProducts = [];
-    let localOrders = [];
-
-    const renderTable = () => {
-        // Calculate Demand
-        const demand = {};
-        localOrders.forEach(o => {
-            if (o.status === 'pending') {
-                o.items.forEach(i => {
-                    demand[i.id] = (demand[i.id] || 0) + i.qty;
-                });
-            }
-        });
-
-        const rows = localProducts.map(p => {
-            const pendingQty = demand[p.id] || 0;
-            const status = p.quantity >= pendingQty ?
-                '<span class="text-green-600 font-bold">Sufficient</span>' :
-                `<span class="text-red-600 font-bold">Deficit (${p.quantity - pendingQty})</span>`;
-
+        const rows = products.map(p => {
+            const statusClass = p.quantity > 50 ? 'in-stock' : (p.quantity > 0 ? 'low-stock' : 'out-of-stock');
+            const statusText = p.quantity > 50 ? 'In Stock' : (p.quantity > 0 ? 'Low Stock' : 'Out of Stock');
+            
             return `
-            <tr class="border-b border-gray-50 hover:bg-gray-50">
-                <td class="p-4">
-                    <div class="font-medium text-gray-900">${p.name}</div>
-                    <div class="text-xs text-gray-500">Sell: RM ${p.price}/${p.unit}</div>
+            <tr class="table-row-hover">
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
+                           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-900">${p.name}</div>
+                            <div class="text-xs text-gray-500">Sell: RM ${p.price}/${p.unit}</div>
+                        </div>
+                    </div>
                 </td>
-                <td class="p-4 text-gray-500">${p.supplier || '-'}</td>
-                <td class="p-4 font-bold text-lg">${p.quantity} <span class="text-xs font-normal text-gray-400">${p.unit}</span></td>
-                <td class="p-4">
-                    ${pendingQty > 0 ? `<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded font-bold">${pendingQty} ${p.unit}</span>` : '-'}
+                <td>${p.supplier}</td>
+                <td>
+                    <span class="font-bold text-lg">${p.quantity}</span> 
+                    <span class="text-sm text-gray-400">${p.unit}</span>
                 </td>
-                <td class="p-4">${status}</td>
-                <td class="p-4 flex gap-2">
-                    <button onclick="openRestockModal('${p.id}', '${p.name}', '${p.supplier || ''}')" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded hover:bg-indigo-100 border border-indigo-200">Restock</button>
-                    <button class="text-gray-400 hover:text-red-600 ml-2" onclick="deleteProduct('${p.id}')">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+                <td>
+                    <div class="flex items-center gap-2">
+                        <div class="stock-indicator ${statusClass}"></div>
+                        <span class="text-sm font-medium text-gray-700">${statusText}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <button onclick="openRestockModal('${p.id}', '${p.name}', '${p.supplier}')" class="btn btn-secondary text-xs py-1 px-3 h-8">Restock</button>
+                        <button onclick="deleteProduct('${p.id}')" class="text-red-400 hover:text-red-600 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </div>
                 </td>
             </tr>
             `;
         }).join('');
-        $('#stock-table-body').html(rows);
-    };
-
-    const unsubProducts = dbAPI.getProducts((products) => {
-        localProducts = products;
-        renderTable();
+        $('#stock-list').html(rows);
     });
-    const unsubOrders = dbAPI.getOrders('admin', null, (orders) => {
-        localOrders = orders;
-        renderTable();
-    });
-
-    listeners.push(unsubProducts);
-    listeners.push(unsubOrders);
+    listeners.push(unsub);
 }
 
-function renderShop($container) {
-    $container.html(`
-        <h2 class="text-2xl font-bold mb-6">Live Seafood Catalog</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
-        
-        <!-- Floating Cart Button -->
-        <button onclick="goToCart()" class="fixed bottom-6 right-6 bg-blue-900 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 flex items-center justify-center w-16 h-16">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-        </button>
+function renderShop($el) {
+    if (!$('#cart-fab').length) {
+         $('body').append(`
+            <button id="cart-fab" onclick="goToCart()" class="fab">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <span id="cart-badge" class="fab-badge hidden">0</span>
+            </button>
+         `);
+    }
+
+    $el.html(`
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">Live Seafood Catalog</h2>
+                <p class="text-gray-500">Premium selection, delivered live.</p>
+            </div>
+        </div>
+        <div class="product-grid" id="shop-container">
+            <!-- Loading -->
+             ${ Array(6).fill('<div class="product-card h-96"><div class="skeleton w-full h-48"></div><div class="p-4 space-y-3"><div class="skeleton w-3/4 h-6"></div><div class="skeleton w-1/2 h-4"></div></div></div>').join('') }
+        </div>
     `);
 
     const unsub = dbAPI.getProducts((products) => {
+        if(products.length === 0) {
+            $('#shop-container').html('<div class="col-span-full empty-state"><div class="empty-state-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg></div><p class="empty-state-text">No products available at the moment.</p></div>');
+            return;
+        }
+
         const cards = products.map(p => `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
-                <div class="h-48 bg-gray-200">
-                    <img src="https://via.placeholder.com/400x300?text=${p.name}" class="w-full h-full object-cover">
+            <div class="product-card product-card-hover group">
+                <div class="product-image">
+                    <img src="https://source.unsplash.com/800x600/?seafood,${p.name}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/400x300?text=Ocean+Live'">
+                    <div class="product-stock-badge">
+                        <div class="stock-indicator ${p.quantity > 0 ? 'in-stock' : 'out-of-stock'}"></div>
+                        ${p.quantity} left
+                    </div>
                 </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h3 class="text-lg font-bold text-gray-900 mb-1">${p.name}</h3>
-                    <p class="text-sm text-gray-500 mb-3">${p.supplier}</p>
-                    <div class="flex justify-between items-center mt-auto">
-                        <span class="text-lg font-bold text-gray-700">Available</span> 
-                        <div class="flex gap-2 items-center">
-                            <input type="number" id="qty-${p.id}" value="1" min="1" class="w-16 border rounded p-1 text-center text-sm" onclick="event.stopPropagation()">
-                            <button class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-lg font-medium text-sm transition-colors" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, parseInt($('#qty-${p.id}').val()))">
-                                Add
-                            </button>
+                <div class="product-content">
+                    <h3 class="product-name">${p.name}</h3>
+                    <p class="product-supplier">Direct from ${p.supplier}</p>
+                    
+                    <div class="product-footer">
+                        <div>
+                            <span class="text-xs text-gray-500 uppercase">Est. Price</span>
+                            <div class="product-price">RM ${p.price}<span class="text-sm font-normal text-gray-400">/${p.unit}</span></div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                             <input type="number" id="qty-${p.id}" value="1" min="1" max="${p.quantity}" class="qty-input">
+                             <button onclick="addToCart('${p.id}', '${p.name}', ${p.price}, parseInt($('#qty-${p.id}').val()))" class="btn btn-primary px-3 py-2 rounded-lg">
+                                + Add
+                             </button>
                         </div>
                     </div>
-                    <div class="mt-2 text-xs text-green-600 font-semibold flex items-center gap-1">
-                        <span class="w-2 h-2 bg-green-500 rounded-full"></span> ${p.quantity} in stock
-                    </div>
                 </div>
             </div>
         `).join('');
-        $('#shop-grid').html(cards);
+        $('#shop-container').html(cards);
     });
     listeners.push(unsub);
 }
 
-// --- Additional Render Functions ---
-
-function renderOrdersAdmin($container) {
-    $container.html(`
-        <h2 class="text-2xl font-bold mb-6">Order Management</h2>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm min-w-[800px]">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="p-4">Order ID</th>
-                            <th class="p-4">Client</th>
-                            <th class="p-4">Items</th>
-                            <th class="p-4">Total</th>
-                            <th class="p-4">Status</th>
-                            <th class="p-4">Driver</th>
-                            <th class="p-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="orders-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-    `);
-
-    const unsub = dbAPI.getOrders('admin', null, (orders) => {
-        const rows = orders.map(o => `
-            <tr class="border-b border-gray-50 hover:bg-gray-50">
-                <td class="p-4 font-mono text-xs">${o.id.slice(0, 8)}</td>
-                <td class="p-4">${o.clientId}</td> <!-- In real app, fetch user name -->
-                <td class="p-4">${o.items.length} items</td>
-                <td class="p-4 font-bold">RM ${o.total}</td>
-                <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${getStatusColor(o.status)}">${o.status.toUpperCase()}</span></td>
-                <td class="p-4">${o.driverId ? 'Assigned' : '-'}</td>
-                <td class="p-4">
-                    ${o.status === 'pending' || o.status === 'requested' ? `<button onclick="openProcessOrderModal('${o.id}', '${o.clientId}')" class="text-blue-600 hover:underline mr-2">Process Quote</button>` : ''}
-                    ${o.status === 'completed' && !o.invoiced ? `<button onclick="createInvoice('${o.id}')" class="text-green-600 hover:underline">Invoice</button>` : ''}
-                </td>
-            </tr>
-        `).join('');
-        $('#orders-table-body').html(rows);
-    });
-    listeners.push(unsub);
-}
-
-// ... (renderOrdersClient, renderDriverJobs etc remain same)
-
-// New Process Order Modal
-window.openProcessOrderModal = async function (orderId, clientId) {
-    const orderDoc = await db.collection('orders').doc(orderId).get();
-    const orderData = orderDoc.data();
-
-    // Fetch Products to get base prices + Names
-    // Fetch Client Custom Prices
-    const [productsSnap, customPricesSnap] = await Promise.all([
-        db.collection('products').get(),
-        db.collection('users').doc(clientId).collection('customPrices').get()
-    ]);
-
-    const products = [];
-    productsSnap.forEach(d => products.push({ id: d.id, ...d.data() }));
-
-    const customPrices = {};
-    customPricesSnap.forEach(d => customPrices[d.id] = d.data().price);
-
-    // Calculate proposed total
-    let total = 0;
-    const itemsWithPrices = orderData.items.map(item => {
-        const product = products.find(p => p.id === item.id) || {};
-        const basePrice = product.price || 0;
-        const finalPrice = customPrices[item.id] !== undefined ? customPrices[item.id] : basePrice;
-        const itemTotal = finalPrice * item.qty;
-        total += itemTotal;
-
-        return { ...item, finalPrice, itemTotal };
-    });
-
-    const html = `
-     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 class="text-xl font-bold mb-4">Process Quote: Order #${orderId.slice(0, 8)}</h3>
-            
-            <div class="space-y-2 mb-4">
-                <div class="grid grid-cols-12 gap-2 font-bold bg-gray-50 p-2">
-                    <div class="col-span-5">Item</div>
-                    <div class="col-span-2">Qty</div>
-                    <div class="col-span-2">Price (RM)</div>
-                    <div class="col-span-3 text-right">Total</div>
-                </div>
-                ${itemsWithPrices.map((item, idx) => `
-                <div class="grid grid-cols-12 gap-2 items-center border-b pb-2">
-                    <div class="col-span-5">${item.name}</div>
-                    <div class="col-span-2">${item.qty}</div>
-                    <div class="col-span-2">
-                        <input type="number" step="0.01" class="border rounded w-full px-1" 
-                               value="${item.finalPrice}" 
-                               onchange="updateProcessTotal(${idx}, this.value, ${item.qty})">
-                    </div>
-                    <div class="col-span-3 text-right font-bold" id="item-total-${idx}">RM ${item.itemTotal.toFixed(2)}</div>
-                </div>
-                `).join('')}
-            </div>
-            
-            <div class="flex justify-between items-center text-xl font-bold mb-6">
-                <span>Grand Total</span>
-                <span id="grand-total">RM ${total.toFixed(2)}</span>
-            </div>
-
-            <div class="flex justify-end gap-3">
-                <button onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500">Cancel</button>
-                <button onclick="confirmQuote('${orderId}', ${total})" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Send Quote & Accept</button>
-            </div>
-        </div>
-     </div>
-    `;
-    $('body').append(html);
-
-    // Store items temporarily for the confirm function to grab updated prices? 
-    // Simplified: We assume the Admin modifies inputs, but we need to re-calculate effectively.
-    // For MVP, we stick to the initial auto-calc. If they edit, we need a way to track it.
-    // Let's attach a global object to store temp edits.
-    window.tempQuoteItems = itemsWithPrices;
-}
-
-window.updateProcessTotal = (idx, newPrice, qty) => {
-    const price = parseFloat(newPrice) || 0;
-    const total = price * qty;
-    window.tempQuoteItems[idx].finalPrice = price;
-    window.tempQuoteItems[idx].itemTotal = total;
-
-    $(`#item-total-${idx}`).text(`RM ${total.toFixed(2)}`);
-
-    const grandTotal = window.tempQuoteItems.reduce((sum, item) => sum + item.itemTotal, 0);
-    $('#grand-total').text(`RM ${grandTotal.toFixed(2)}`);
-}
-
-window.confirmQuote = async (orderId) => {
-    const total = window.tempQuoteItems.reduce((sum, item) => sum + item.itemTotal, 0);
-
-    // Update Order with Price and Status
-    await db.collection('orders').doc(orderId).update({
-        total: total,
-        status: 'pending', // Or 'accepted' directly? Prompt says "Admin should able have a setup... billing/invoice done by business admin"
-        // Let's set it to 'accepted' so it goes to Drivers, AND it has a price now.
-        // Wait, "Requested" -> Admin Quotes -> "Pending Payment/Accepted"?
-        // Previous flow: Client orders -> Pending -> Admin Accepts -> Driver...
-        // New flow: Client Requests -> Requested -> Admin Quotes -> Pending (Client Config) OR Accepted (Direct).
-        // Let's make it status: 'accepted' so it flows to drivers immediately, assuming 'Quote' implies acceptance of contract.
-        // Actually, let's keep it 'pending' if client needs to pay, OR 'accepted' if COD/Credit. 
-        // Let's go with 'accepted' to maintain previous driver flow compatibility.
-        status: 'accepted',
-        acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        // Save the frozen prices to the order items so invoice is accurate later
-        items: window.tempQuoteItems
-    });
-
-    // Trigger Inventory Deduction (since we skipped it in updateOrderStatus for 'requested' -> 'accepted' transition if we use this function)
-    const items = window.tempQuoteItems;
-    await Promise.all(items.map(async (item) => {
-        const productRef = db.collection('products').doc(item.id);
-        await productRef.update({ quantity: firebase.firestore.FieldValue.increment(-item.qty) });
-    }));
-
-    $('#modal-bg').remove();
-    alert("Quote Sent & Order Accepted!");
-}
-
-function renderOrdersClient($container) {
-    $container.html(`
-        <h2 class="text-2xl font-bold mb-6">My Orders</h2>
-        <div class="space-y-4" id="client-orders-list"></div>
-    `);
-
-    const unsub = dbAPI.getOrders('client', currentUser ? currentUser.uid : auth.currentUser.uid, (orders) => {
-        const list = orders.map(o => `
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <span class="text-sm text-gray-400">#${o.id.slice(0, 8)}</span>
-                        <p class="font-bold text-lg">${o.total > 0 ? 'RM ' + o.total : '<span class="text-gray-500 italic">Quote Pending</span>'}</p>
-                    </div>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(o.status)}">${o.status.toUpperCase()}</span>
-                </div>
-                <div class="space-y-2">
-                    ${o.items.map(i => `<div class="flex justify-between text-sm text-gray-600"><span>${i.name} x${i.qty}</span><span>${o.total > 0 ? 'RM ' + (i.price * i.qty).toFixed(2) : '-'}</span></div>`).join('')}
-                </div>
-            </div>
-        `).join('');
-        $('#client-orders-list').html(list);
-    });
-    listeners.push(unsub);
-}
-
-function renderDriverJobs($container) {
-    $container.html(`
-        <h2 class="text-2xl font-bold mb-6">Available Jobs</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="jobs-grid"></div>
-    `);
-
-    // Fetch all orders for driver (optimization needed for real scale)
-    const unsub = dbAPI.getOrders('driver', null, (orders) => {
-        const available = orders.filter(o => o.status === 'accepted' && !o.driverId);
-        const cards = available.map(o => `
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                <div class="flex justify-between mb-4">
-                     <h3 class="font-bold text-lg">Order #${o.id.slice(0, 6)}</h3>
-                     <span class="text-blue-600 font-bold">RM ${o.total}</span>
-                </div>
-                <div class="mb-4">
-                    <p class="font-bold text-gray-800">${o.storeName || o.clientName || 'Client'}</p>
-                    <p class="text-gray-500 text-sm truncate">${o.deliveryAddress || 'No address'}</p>
-                </div>
-                <button onclick="pickJob('${o.id}')" class="mt-auto w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Pick Job</button>
-            </div>
-        `).join('');
-        $('#jobs-grid').html(cards);
-    });
-    listeners.push(unsub);
-}
-
-function renderDriverDeliveries($container) {
-    $container.html(`
-        <h2 class="text-2xl font-bold mb-6">My Deliveries</h2>
-         <div class="space-y-4" id="delivery-list"></div>
-    `);
-
-    const uid = auth.currentUser.uid;
-    const unsub = dbAPI.getOrders('driver', null, (orders) => {
-        const mine = orders.filter(o => o.driverId === uid && o.status !== 'completed'); // Active deliveries
-        const cards = mine.map(o => `
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-blue-600">
-                <div class="flex justify-between mb-2">
-                     <h3 class="font-bold">Order #${o.id.slice(0, 6)}</h3>
-                     <span class="text-blue-600 font-bold">RM ${o.total}</span>
-                </div>
-                <div class="mb-4 p-3 bg-gray-50 rounded text-sm">
-                    <p class="font-bold text-gray-800">${o.storeName || o.clientName || 'Client'}</p>
-                    <p class="text-gray-600">${o.deliveryAddress || 'No address provided'}</p>
-                    <a href="https://maps.google.com/?q=${encodeURIComponent(o.deliveryAddress || '')}" target="_blank" class="text-blue-500 hover:underline text-xs mt-1 block">Open in Maps</a>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="updateStatus('${o.id}', 'delivering', '${uid}')" class="flex-1 bg-yellow-100 text-yellow-800 py-2 rounded text-sm font-semibold hover:bg-yellow-200">Start Delivery</button>
-                    <button onclick="updateStatus('${o.id}', 'completed')" class="flex-1 bg-green-100 text-green-800 py-2 rounded text-sm font-semibold hover:bg-green-200">Complete</button>
-                </div>
-            </div>
-        `).join('');
-        $('#delivery-list').html(cards);
-    });
-    listeners.push(unsub);
-}
-
-function renderInvoices($container) {
-    $container.html(`
-        <h2 class="text-2xl font-bold mb-6">Invoices (LHDN)</h2>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                 <table class="w-full text-left text-sm min-w-[600px]">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="p-4">Invoice ID</th>
-                            <th class="p-4">Order Ref</th>
-                            <th class="p-4">Amount</th>
-                            <th class="p-4">Date</th>
-                            <th class="p-4">LHDN Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="invoice-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-    `);
-
-    const unsub = dbAPI.getInvoices((invoices) => {
-        const rows = invoices.map(i => `
-             <tr class="border-b border-gray-50">
-                <td class="p-4 font-mono text-xs">${i.id}</td>
-                <td class="p-4 font-mono text-xs">${i.orderId}</td>
-                <td class="p-4">RM ${i.amount}</td>
-                <td class="p-4 text-gray-500">${i.createdAt ? new Date(i.createdAt.seconds * 1000).toLocaleDateString() : 'Now'}</td>
-                <td class="p-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Validated</span></td>
-             </tr>
-        `).join('');
-        $('#invoice-table-body').html(rows);
-    });
-    listeners.push(unsub);
-}
-
-function renderClients($container) {
-    $container.html(`
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">Client Management</h2>
-            <button onclick="openAddClientModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Add Client</button>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                 <table class="w-full text-left text-sm min-w-[600px]">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="p-4">Name</th>
-                            <th class="p-4">Email</th>
-                            <th class="p-4">Store Name</th>
-                            <th class="p-4">Address</th>
-                            <th class="p-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="clients-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-    `);
-
-    const unsub = dbAPI.getUsers('client', (users) => {
-        const rows = users.map(u => `
-            <tr class="border-b border-gray-50">
-                <td class="p-4 font-bold text-gray-800">${u.name || '-'}</td>
-                <td class="p-4 text-gray-500">${u.email}</td>
-                <td class="p-4">${u.storeName || '<span class="text-gray-300 italic">Not Set</span>'}</td>
-                <td class="p-4 truncate max-w-xs">${u.address || '<span class="text-gray-300 italic">Not Set</span>'}</td>
-                <td class="p-4">
-                    <button onclick="openEditClientModal('${u.uid}', '${u.name || ''}', '${u.storeName || ''}', '${u.address || ''}')" class="text-blue-600 hover:underline mr-2">Edit</button>
-                    <button onclick="openManagePricesModal('${u.uid}', '${u.name || 'Client'}')" class="text-green-600 hover:underline">Manage Prices</button>
-                </td>
-            </tr>
-        `).join('');
-        $('#clients-table-body').html(rows);
-    });
-    listeners.push(unsub);
-}
-
-
-// --- Helper Logic ---
-
-let cart = [];
-
-window.addToCart = function (id, name, price, qty = 1) {
-    const existing = cart.find(i => i.id === id);
-    if (existing) existing.qty += qty;
-    else cart.push({ id, name, price, qty: qty });
-
-    // Simple toast feedback
-    const toast = $(`<div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg z-50">Added to cart</div>`);
-    $('body').append(toast);
-    setTimeout(() => toast.remove(), 2000);
-}
-
-window.goToCart = function () {
-    if (cart.length === 0) { alert("Cart is empty"); return; }
-
-    // Render Modal Cart
-    // Client view: NO PRICE
-    const html = `
-     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="cart-modal">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Your Order Request</h3>
-            <div class="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                ${cart.map(i => `
-                    <div class="flex justify-between items-center text-sm border-b pb-2">
-                        <span class="font-medium text-lg">${i.name}</span>
-                        <span class="font-bold text-lg bg-gray-100 px-3 py-1 rounded">Qty: ${i.qty}</span>
-                    </div>
-                `).join('')}
-            </div>
-            <p class="text-sm text-gray-500 mb-4">You will receive a quote/invoice from the admin once confirmed.</p>
-            <div class="flex justify-end gap-3 pt-4">
-                 <button onclick="$('#cart-modal').remove()" class="px-4 py-2 text-gray-500">Close</button>
-                 <button onclick="submitOrder()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Request</button>
-            </div>
-        </div>
-     </div>
-    `;
-    $('body').append(html);
-}
-
-window.submitOrder = async function (total = 0) {
-    const order = {
-        clientId: auth.currentUser.uid,
-        clientName: currentUser.name || 'Unknown',
-        storeName: currentUser.storeName || '',
-        deliveryAddress: currentUser.address || 'No address provided',
-        items: cart,
-        total: 0, // Pending Admin Pricing
-        status: 'requested', // New Initial Status
-        driverId: null
-    };
-    await dbAPI.createOrder(order);
-    cart = [];
-    $('#cart-modal').remove();
-    alert("Order Request Sent! Waiting for Admin Confirmation.");
-    loadView('my-orders');
-}
-
-window.updateStatus = async function (id, status, driverId = null) {
-    await dbAPI.updateOrderStatus(id, status, driverId);
-}
-
-window.pickJob = async function (id) {
-    const uid = auth.currentUser.uid;
-    await dbAPI.updateOrderStatus(id, 'associating_driver', uid); // Intermediate or direct update
-    // Actually we just update driverId and status to delivering? 
-    // Flow: Pending -> Accepted (by Admin) -> Delivering (picked by Driver) -> Completed
-    // Or Pending -> Picked (by Driver) -> Delivering... 
-    // Simplest: Accepted -> Driver Picks -> Delivering
-    await dbAPI.updateOrderStatus(id, 'delivering', uid);
-    loadView('my-deliveries');
-}
-
-window.createInvoice = async function (orderId) {
-    // Retrieve order data first (not efficient but simple)
-    // In real app, pass data or fetch
-    const orderSnap = await db.collection('orders').doc(orderId).get();
-    window.dbAPI.generateInvoice(orderId, orderSnap.data());
-    // alert("Invoice Generated");
-    // Update local order to show it's invoiced to avoid duplicate? 
-    // We should probably update order doc to say invoiced: true
-    await db.collection('orders').doc(orderId).update({ invoiced: true });
-}
-
-function getStatusColor(status) {
-    switch (status) {
-        case 'requested': return 'bg-gray-100 text-gray-600 border border-gray-300';
-        case 'pending': return 'bg-yellow-100 text-yellow-800';
-        case 'accepted': return 'bg-blue-100 text-blue-800';
-        case 'delivering': return 'bg-indigo-100 text-indigo-800';
-        case 'completed': return 'bg-green-100 text-green-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
-}
-
-function openAddProductModal() {
-    const html = `
-     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Add New Product</h3>
-            <form id="add-product-form" class="space-y-4">
-                <input type="text" placeholder="Product Name" class="w-full border p-2 rounded" required name="name">
-                <input type="text" placeholder="Supplier" class="w-full border p-2 rounded" required name="supplier">
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="number" placeholder="Price" class="w-full border p-2 rounded" required name="price">
-                    <input type="text" placeholder="Unit (kg, pcs)" class="w-full border p-2 rounded" required name="unit">
-                </div>
-                <input type="number" placeholder="Initial Quantity" class="w-full border p-2 rounded" required name="quantity">
-                <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
-                </div>
-            </form>
-        </div>
-     </div>
-   `;
-    $('body').append(html);
-
-    $('#add-product-form').submit(async (e) => {
-        e.preventDefault();
-        const data = {
-            name: $('input[name="name"]').val(),
-            supplier: $('input[name="supplier"]').val(),
-            price: parseFloat($('input[name="price"]').val()),
-            unit: $('input[name="unit"]').val(),
-            quantity: parseInt($('input[name="quantity"]').val())
-        };
-        await dbAPI.addProduct(data);
-        $('#modal-bg').remove();
-    });
-}
-
-function openEditClientModal(uid, name, storeName, address) {
-    // If values are 'undefined' string or null, reset
-    const html = `
-     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Edit Client Profile</h3>
-            <form id="edit-client-form" class="space-y-4">
-                <input type="hidden" name="uid" value="${uid}">
-                <div>
-                     <label class="block text-sm font-medium text-gray-700">Client Name</label>
-                     <input type="text" class="w-full border p-2 rounded" name="name" value="${name}">
-                </div>
-                <div>
-                     <label class="block text-sm font-medium text-gray-700">Store Name</label>
-                     <input type="text" class="w-full border p-2 rounded" name="storeName" value="${storeName}">
-                </div>
-                <div>
-                     <label class="block text-sm font-medium text-gray-700">Address (Delivery)</label>
-                     <textarea class="w-full border p-2 rounded" name="address" rows="3">${address}</textarea>
-                </div>
-                <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
-                </div>
-            </form>
-        </div>
-     </div>
-    `;
-    $('body').append(html);
-
-    $('#edit-client-form').submit(async (e) => {
-        e.preventDefault();
-        const data = {
-            name: $('input[name="name"]').val(),
-            storeName: $('input[name="storeName"]').val(),
-            address: $('textarea[name="address"]').val()
-        };
-        await dbAPI.updateUserProfile(uid, data);
-        $('#modal-bg').remove();
-    });
-}
-window.openEditClientModal = openEditClientModal;
-window.openAddProductModal = openAddProductModal;
-window.openAddClientModal = openAddClientModal;
-
-function openAddClientModal() {
-    const html = `
-     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Add New Client</h3>
-            <form id="add-client-form" class="space-y-4">
-                <div>
-                     <label class="block text-sm font-medium text-gray-700">Client Name</label>
-                     <input type="text" class="w-full border p-2 rounded" name="name" required>
-                </div>
-                <div>
-                     <label class="block text-sm font-medium text-gray-700">Email (Optional)</label>
-                     <input type="email" class="w-full border p-2 rounded" name="email">
-                </div>
-                <div>
-                     <label class="block text-sm font-medium text-gray-700">Store Name</label>
-                     <input type="text" class="w-full border p-2 rounded" name="storeName" required>
-                </div>
-                <div>
-                     <label class="block text-sm font-medium text-gray-700">Address (Delivery)</label>
-                     <textarea class="w-full border p-2 rounded" name="address" rows="3" required></textarea>
-                </div>
-                <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
-                </div>
-            </form>
-        </div>
-     </div>
-    `;
-    $('body').append(html);
-
-    $('#add-client-form').submit(async (e) => {
-        e.preventDefault();
-        const data = {
-            name: $('input[name="name"]').val(),
-            email: $('input[name="email"]').val(),
-            storeName: $('input[name="storeName"]').val(),
-            address: $('textarea[name="address"]').val()
-        };
-        await dbAPI.addUser(data);
-        $('#modal-bg').remove();
-    });
-}
-
-window.openAddClientModal = openAddClientModal;
-
-function openManagePricesModal(userId, userName) {
-    const html = `
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
-       <div class="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-           <div class="flex justify-between items-center mb-4">
-               <h3 class="text-xl font-bold">Manage Custom Prices: ${userName}</h3>
-               <button onclick="$('#modal-bg').remove()" class="text-gray-500 hover:text-red-500">Close</button>
-           </div>
-           <p class="text-sm text-gray-500 mb-4">Set specific prices for this client. If left blank, default price applies.</p>
-           
-           <div class="space-y-4" id="price-list-container">
-               <p>Loading products...</p>
-           </div>
-       </div>
-    </div>
-   `;
-    $('body').append(html);
-
-    // Fetch products and current custom prices
-    Promise.all([
-        db.collection('products').orderBy('name').get(),
-        db.collection('users').doc(userId).collection('customPrices').get()
-    ]).then(([productsSnap, customPricesSnap]) => {
-        const products = [];
-        productsSnap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
-
-        const customPrices = {};
-        customPricesSnap.forEach(doc => customPrices[doc.id] = doc.data().price);
-
-        const rows = products.map(p => {
-            const currentPrice = customPrices[p.id] !== undefined ? customPrices[p.id] : '';
-            return `
-            <div class="flex justify-between items-center border-b pb-2">
-                <div>
-                    <p class="font-bold">${p.name}</p>
-                    <p class="text-xs text-gray-400">Default: RM ${p.price}</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-gray-600">RM</span>
-                    <input type="number" step="0.01" class="border rounded p-1 w-24 text-right" 
-                           value="${currentPrice}" 
-                           placeholder="Default"
-                           onchange="saveCustomPrice('${userId}', '${p.id}', this.value)">
-                </div>
-            </div>`;
-        }).join('');
-
-        $('#price-list-container').html(rows);
-    });
-}
-window.openManagePricesModal = openManagePricesModal;
-window.saveCustomPrice = async (userId, productId, price) => {
-    if (price === '') return; // Handle delete?
-    await dbAPI.setCustomPrice(userId, productId, price);
-    // Optional: show small 'Saved' text
-};
-
-function openRestockModal(id, name, currentSupplier) {
-    const html = `
-     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="modal-bg">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Restock / Supplier Order</h3>
-            <p class="text-sm text-gray-500 mb-4">Ordering stock for: <strong>${name}</strong></p>
-            <form id="restock-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Supplier</label>
-                    <input type="text" class="w-full border p-2 rounded" name="supplier" value="${currentSupplier}" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Quantity to Order</label>
-                    <input type="number" class="w-full border p-2 rounded" name="quantity" required min="1">
-                </div>
-                <!-- 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Total Cost (RM)</label>
-                    <input type="number" class="w-full border p-2 rounded" name="cost" placeholder="Optional">
-                </div>
-                -->
-                <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="$('#modal-bg').remove()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirm Purchase</button>
-                </div>
-            </form>
-        </div>
-     </div>
-    `;
-    $('body').append(html);
-
-    $('#restock-form').submit(async (e) => {
-        e.preventDefault();
-        const addedQty = parseInt($('input[name="quantity"]').val());
-        const supplier = $('input[name="supplier"]').val();
-
-        // Get current product to add to existing quantity
-        const doc = await db.collection('products').doc(id).get();
-        const currentQty = doc.data().quantity || 0;
-
-        await dbAPI.updateProduct(id, {
-            quantity: currentQty + addedQty,
-            supplier: supplier // Update supplier if changed
-        });
-
-        $('#modal-bg').remove();
-    });
-}
-window.openRestockModal = openRestockModal;
+// ... Additional helper functions continue in next block
