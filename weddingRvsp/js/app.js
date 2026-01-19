@@ -6,6 +6,7 @@ let currentClientId = null;
 let currentClientData = null;
 
 window.addEventListener('load', async () => {
+    initCursor();
     const urlParams = new URLSearchParams(window.location.search);
     const eventSlug = urlParams.get('e');
     const isAdmin = urlParams.has('admin');
@@ -195,6 +196,14 @@ function initRSVP() {
         try {
             await addDoc(collection(db, "clients", currentClientId, "rsvps"), formData);
             showToast("RSVP Confirmed! Thank you.", "🥂");
+
+            // Celebration!
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#d4af37', '#f8f1e5', '#0a1f1a']
+            });
 
             gsap.to(".rsvp-card", {
                 opacity: 0, y: -50, duration: 0.8,
@@ -550,3 +559,26 @@ window.deleteInvite = async (id) => {
         await deleteDoc(doc(db, "clients", currentClientId, "invites", id));
     }
 };
+
+function initCursor() {
+    const cursor = document.querySelector('.cursor');
+    const follower = document.querySelector('.cursor-follower');
+    if (!cursor || !follower) return;
+
+    window.addEventListener('mousemove', (e) => {
+        gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.1, ease: "power2.out" });
+        gsap.to(follower, { x: e.clientX, y: e.clientY, duration: 0.3, ease: "power2.out" });
+    });
+
+    const hoverables = document.querySelectorAll('button, a, input, select, textarea, .client-card');
+    hoverables.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            gsap.to(cursor, { scale: 2.5, backgroundColor: "rgba(212, 175, 55, 0.1)", duration: 0.3 });
+            gsap.to(follower, { scale: 0, duration: 0.3 });
+        });
+        el.addEventListener('mouseleave', () => {
+            gsap.to(cursor, { scale: 1, backgroundColor: "transparent", duration: 0.3 });
+            gsap.to(follower, { scale: 1, duration: 0.3 });
+        });
+    });
+}
