@@ -259,7 +259,7 @@ function initAdminView() {
     if (loader) loader.style.display = 'none';
 
     const adminView = document.getElementById('admin-view');
-    if (adminView) adminView.style.display = 'block';
+    if (adminView) adminView.style.display = 'grid';
 
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
@@ -270,18 +270,24 @@ function initAdminView() {
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
 
-    loginBtn.addEventListener('click', () => signInWithPopup(auth, provider));
-    logoutBtn.addEventListener('click', () => signOut(auth));
+    if (loginBtn) loginBtn.addEventListener('click', () => signInWithPopup(auth, provider));
+    if (logoutBtn) logoutBtn.addEventListener('click', () => signOut(auth));
 
     onAuthStateChanged(auth, (user) => {
+        const loginSection = document.getElementById('admin-login-section');
+        const contentSection = document.getElementById('admin-content');
+
         if (user && user.email === ADMIN_EMAIL) {
-            document.getElementById('admin-login-section').style.display = 'none';
-            document.getElementById('admin-content').style.display = 'block';
+            if (loginSection) loginSection.style.display = 'none';
+            if (contentSection) contentSection.style.display = 'contents';
             loadClients();
         } else {
-            if (user) { alert("Unauthorized access."); signOut(auth); }
-            document.getElementById('admin-login-section').style.display = 'block';
-            document.getElementById('admin-content').style.display = 'none';
+            if (user) {
+                showToast("Unauthorized access.", "⚠️");
+                signOut(auth);
+            }
+            if (loginSection) loginSection.style.display = 'flex';
+            if (contentSection) contentSection.style.display = 'none';
         }
     });
 

@@ -29,17 +29,21 @@
     <div class="app-container" id="main-content" style="opacity: 0; display: none;">
         <section class="hero" id="home">
             <div class="hero-content">
-                <p class="subtitle fade-up">THE WEDDING OF</p>
+                <p class="subtitle fade-up"
+                    style="letter-spacing: 0.5rem; opacity: 0.6; margin-bottom: 2rem; font-size: 0.8rem; font-weight: 600;">
+                    THE WEDDING OF</p>
                 <h1 id="display-names" class="fade-up">Julian & Elena</h1>
                 <p id="display-date" class="date fade-up">Saturday, June 20, 2026</p>
-                <p id="display-venue" class="fade-up" style="margin-bottom: 2rem;">Singapore</p>
-                <button class="cta-button fade-up" onclick="scrollToRSVP()">Join Us</button>
+                <p id="display-venue" class="fade-up"
+                    style="margin-bottom: 3rem; font-weight: 500; letter-spacing: 0.2rem; opacity: 0.8;">SINGAPORE</p>
+                <button class="btn btn-primary fade-up" onclick="scrollToRSVP()">Join Our Celebration</button>
             </div>
         </section>
 
         <section class="quote-section">
             <div class="container text-center">
-                <p id="display-quote" class="serif fade-up" style="font-size: 2rem; font-style: italic; opacity: 0.9;">
+                <p id="display-quote" class="serif fade-up"
+                    style="font-size: 2.5rem; font-style: italic; opacity: 0.9; line-height: 1.4;">
                     "Once in a while, right in the middle of an ordinary life, love gives us a fairytale."
                 </p>
             </div>
@@ -47,37 +51,40 @@
 
         <section id="location">
             <div class="container">
-                <h2 class="serif text-center fade-up" style="font-size: 3.5rem; margin-bottom: 4rem;">Location</h2>
-                <div class="stat-grid" style="grid-template-columns: 1fr; max-width: 800px; margin: 0 auto;">
-                    <div class="stat-card fade-up">
-                        <h3 class="serif" style="font-size: 2rem; margin-bottom: 1rem;">The Venue</h3>
-                        <p id="venue-details" style="margin-bottom: 1rem; opacity: 0.8;"></p>
-                        <p id="venue-address" style="font-weight: 700; color: var(--primary); margin-bottom: 2rem;"></p>
+                <h2 class="serif text-center fade-up" style="font-size: 4rem; margin-bottom: 5rem;">Location</h2>
+                <div style="max-width: 900px; margin: 0 auto;">
+                    <div class="client-card fade-up" style="text-align: center;">
+                        <h3 class="serif" style="font-size: 2.2rem; margin-bottom: 1.5rem; color: var(--primary);">The
+                            Venue</h3>
+                        <p id="venue-details" style="margin-bottom: 1rem; font-size: 1.1rem;"></p>
+                        <p id="venue-address"
+                            style="font-weight: 700; color: var(--text-main); margin-bottom: 2.5rem; opacity: 0.8;"></p>
                         <div id="map-container"
-                            style="height: 300px; border-radius: var(--radius-md); overflow: hidden; margin-bottom: 2rem;">
+                            style="height: 400px; border-radius: var(--radius-md); overflow: hidden; margin-bottom: 3rem; border: 1px solid var(--glass-border);">
                         </div>
-                        <a id="btn-directions" href="#" target="_blank" class="cta-button"
-                            style="padding: 1rem 2rem; font-size: 0.7rem;">Open in Maps</a>
+                        <a id="btn-directions" href="#" target="_blank" class="btn btn-outline">Open in Google Maps</a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="details" style="background: rgba(0,0,0,0.2);">
+        <section id="details"
+            style="background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border);">
             <div id="registry-section" class="container text-center fade-up"
-                style="margin-bottom: 4rem; display: none;">
-                <h2 class="serif" style="font-size: 2.5rem; margin-bottom: 1.5rem;">Gifts Registry</h2>
-                <p style="opacity: 0.7; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-                    Your presence is our greatest gift. Should you wish to honor us with a gift, we have a registry
-                    here.
+                style="margin-bottom: 5rem; display: none;">
+                <h2 class="serif" style="font-size: 3rem; margin-bottom: 2rem;">Gifts Registry</h2>
+                <p
+                    style="color: var(--text-muted); margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.8;">
+                    Your presence is our greatest gift. Should you wish to honor us with a gift, we have a curated
+                    registry here.
                 </p>
-                <a id="display-registry" href="#" target="_blank" class="cta-button"
-                    style="padding: 1rem 2rem; font-size: 0.7rem;">View Registry</a>
+                <a id="display-registry" href="#" target="_blank" class="btn btn-primary">View Full Registry</a>
             </div>
 
             <div id="accommodation-section" class="container text-center fade-up" style="display: none;">
-                <h2 class="serif" style="font-size: 2.5rem; margin-bottom: 1.5rem;">Accommodation</h2>
-                <p id="display-accommodation" style="opacity: 0.7; max-width: 600px; margin: 0 auto; line-height: 1.8;">
+                <h2 class="serif" style="font-size: 3rem; margin-bottom: 2rem;">Accommodation</h2>
+                <p id="display-accommodation"
+                    style="color: var(--text-muted); max-width: 650px; margin: 0 auto; line-height: 2; font-size: 1.1rem;">
                 </p>
             </div>
         </section>
@@ -85,42 +92,47 @@
         <section id="rsvp">
             <div class="container">
                 <div class="rsvp-card fade-up">
-                    <h2 class="serif text-center" style="font-size: 4rem; margin-bottom: 3rem;">R.S.V.P</h2>
+                    <h2 class="serif text-center" style="font-size: 4.5rem; margin-bottom: 4rem;">R.S.V.P</h2>
 
-                    <div id="guest-auth" style="display: none;">
-                        <p style="opacity: 0.7; margin-bottom: 2.5rem;">Please enter the 4-digit code provided on your
-                            card.</p>
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2rem;">
-                            <input type="text" id="auth-code" maxlength="4" placeholder="••••">
-                            <button id="btn-verify" class="cta-button">Verify Code</button>
+                    <div id="guest-auth" style="display: none; text-align: center;">
+                        <p style="color: var(--text-muted); margin-bottom: 3rem; font-style: italic;">Kindly verify your
+                            invitation code found on your physical invite.</p>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2.5rem;">
+                            <input type="text" id="auth-code" maxlength="4" placeholder="••••"
+                                style="width: 250px; text-align: center; font-size: 3rem; letter-spacing: 1.2rem; background: var(--surface-light); border: 1px solid var(--glass-border); color: var(--primary); padding: 1.5rem; border-radius: var(--radius-md); font-family: monospace;">
+                            <button id="btn-verify" class="btn btn-primary" style="padding: 1.2rem 4rem;">Unlock
+                                Invitation</button>
                         </div>
                     </div>
 
                     <form id="rsvp-form" style="display: none;">
                         <div class="form-group">
                             <label>Full Name</label>
-                            <input type="text" id="guest-name" required placeholder="As it appears on your invite">
+                            <input type="text" id="guest-name" required placeholder="Guest Name">
+                        </div>
+                        <div class="meta-grid" style="margin: 0 0 2rem 0;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Will you attend?</label>
+                                <select id="attendance" required>
+                                    <option value="attending">Accept with Pleasure</option>
+                                    <option value="declined">Decline with Regret</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Total Guests</label>
+                                <input type="number" id="guest-count" value="1" min="1" max="10">
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label>Will you attend?</label>
-                            <select id="attendance" required>
-                                <option value="attending">Joyfully Accept</option>
-                                <option value="declined">Regretfully Decline</option>
-                            </select>
+                            <label>Dietary Restrictions</label>
+                            <textarea id="dietary" rows="2" placeholder="Ex: Nut allergy, Vegetarian..."></textarea>
                         </div>
                         <div class="form-group">
-                            <label>Total Guests</label>
-                            <input type="number" id="guest-count" value="1" min="1" max="10">
-                        </div>
-                        <div class="form-group">
-                            <label>Dietary Notes</label>
-                            <textarea id="dietary" rows="3" placeholder="Allergies, vegetarian, etc."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Message to us</label>
+                            <label>Message for the Couple</label>
                             <textarea id="guest-message" rows="3" placeholder="A wish or a note..."></textarea>
                         </div>
-                        <button type="submit" class="cta-button" style="width: 100%;">Send RSVP</button>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Celebrate
+                            with Us</button>
                     </form>
                 </div>
             </div>
@@ -136,17 +148,17 @@
                 </div>
                 <div class="countdown-box">
                     <span class="countdown-val" id="mins">00</span>
-                    <span class="countdown-label">Mins</span>
+                    <span class="countdown-label">Minutes</span>
                 </div>
             </div>
         </section>
 
         <footer
-            style="text-align: center; padding: 6rem 2rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.3);">
+            style="text-align: center; padding: 10rem 2rem; border-top: 1px solid var(--glass-border); background: linear-gradient(to bottom, transparent, rgba(var(--primary-rgb), 0.05));">
             <div class="serif" id="display-initials"
-                style="font-size: 2.5rem; letter-spacing: 1rem; color: var(--primary);">J & E</div>
+                style="font-size: 3rem; letter-spacing: 1.5rem; color: var(--primary); margin-left: 1.5rem;">J & E</div>
             <p
-                style="margin-top: 2rem; opacity: 0.4; font-size: 0.7rem; letter-spacing: 0.2rem; text-transform: uppercase;">
+                style="margin-top: 3rem; color: var(--text-dim); font-size: 0.75rem; letter-spacing: 0.4rem; text-transform: uppercase; font-weight: 500;">
                 Thank you for being part of our story
             </p>
         </footer>
