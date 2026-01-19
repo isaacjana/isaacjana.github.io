@@ -462,8 +462,41 @@ class WorkoutApp {
         }, 250);
     }
 
-    beep() { try { document.getElementById('audio-beep').play(); } catch (e) { } }
-    completeSound() { try { document.getElementById('audio-complete').play(); } catch (e) { } }
+    beep() {
+        this.playTone(880, 0.15); // A5 note
+    }
+
+    completeSound() {
+        // Simple success melody: C5 -> E5 -> G5
+        this.playTone(523.25, 0.1);
+        setTimeout(() => this.playTone(659.25, 0.1), 150);
+        setTimeout(() => this.playTone(783.99, 0.3), 300);
+    }
+
+    playTone(freq, duration) {
+        try {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = context.createOscillator();
+            const gain = context.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, context.currentTime);
+
+            gain.gain.setValueAtTime(0.2, context.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(context.destination);
+
+            osc.start();
+            osc.stop(context.currentTime + duration);
+
+            // Clean up context after sound
+            setTimeout(() => context.close(), duration * 1000 + 100);
+        } catch (e) {
+            console.warn("Audio Context blocked or unsupported:", e);
+        }
+    }
 }
 
 // Start App
