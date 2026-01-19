@@ -10,135 +10,158 @@ window.addEventListener('load', async () => {
     const eventSlug = urlParams.get('e');
     const isAdminRequested = urlParams.has('admin');
 
-    // Handle Standalone Admin Page or URL Parameter Redirect
     if (window.isAdminPage || isAdminRequested) {
         if (!window.isAdminPage) {
-            window.location.href = "admin.html";
+            window.location.href = `admin.html${window.location.search}`;
             return;
         }
         initAdminView();
     } else if (eventSlug) {
-        initCursor(); // Only for guest experience
-        loadEvent(eventSlug);
+        initCursor();
+        WeddingApp.init();
     } else {
-        showError("Invalid Invitation Link. Please check your URL.");
+        showError("Invalid link. Please check your invitation.");
     }
 });
 
-// --- CLIENT LANDING LOGIC ---
+// --- CLIENT LANDING EXPERIENCE ---
 
-async function loadEvent(slug) {
-    const q = query(collection(db, "clients"), where("slug", "==", slug));
-    const querySnapshot = await getDocs(q);
+const WeddingApp = {
+    async init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const slug = urlParams.get('e');
+        if (!slug) {
+            showError("Please use a valid invitation link.");
+            return;
+        }
 
-    if (querySnapshot.empty) {
-        showError("Invitation not found.");
-        return;
-    }
+        try {
+            const q = query(collection(db, "clients"), where("slug", "==", slug));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                showError("Wedding event not found.");
+                return;
+            }
 
-    const clientDoc = querySnapshot.docs[0];
-    currentClientId = clientDoc.id;
-    currentClientData = clientDoc.data();
+            const doc = snap.docs[0];
+            currentClientId = doc.id;
+            currentClientData = doc.data();
 
-    // Check for "special access" or existing session
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlCode = urlParams.get('code');
-    const skipAuth = sessionStorage.getItem(`auth_${currentClientId}`);
+            this.setupUI();
+            this.handleGuestEntrance();
+        } catch (err) {
+            console.error(err);
+            showError("Unable to connect to service. Please try again later.");
+        }
+    },
 
-    if (urlCode) {
-        verifyAccessCode(urlCode);
-    } else if (skipAuth) {
-        initInvitationExperience();
-    } else {
-        showGuestAuth();
-    }
-}
+    setupUI() {
+        const data = currentClientData;
+        document.title = `${data.names} | Wedding Invitation`;
 
-function showGuestAuth() {
-    document.getElementById('guest-auth').style.display = 'flex';
-    document.getElementById('btn-verify-code').onclick = () => {
-        const code = document.getElementById('access-code').value;
-        verifyAccessCode(code);
-    };
-}
+        // Populate core text
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val || "";
+        };
 
-async function verifyAccessCode(code) {
-    if (!code) return;
-    const q = query(collection(db, "clients", currentClientId, "invites"), where("code", "==", code));
-    const snap = await getDocs(q);
+        setTxt('display-names', data.names);
+        setTxt('display-date', data.date);
+        setTxt('display-venue', data.venue);
+        setTxt('display-quote', data.quote);
+        setTxt('venue-details', `Our celebration will be held at ${data.venue}.`);
+        setTxt('venue-address', data.venue);
 
-    if (!snap.empty) {
-        sessionStorage.setItem(`auth_${currentClientId}`, "true");
+        // Registry & Accommodation
+        const toggleSection = (id, condition, val) => {
+            const sec = document.getElementById(id);
+            if (!sec) return;
+            sec.style.display = condition ? 'block' : 'none';
+            if (condition && val) {
+                const sub = sec.querySelector('[id^="display-"]');
+                if (sub) sub.innerText = val;
+                if (sub && sub.tagName === 'A') sub.href = val;
+            }
+        };
+
+        toggleSection('registry-section', !!data.registry, data.registry);
+        toggleSection('accommodation-section', !!data.accommodation, data.accommodation);
+
+        // Initials Logic
+        const initials = data.names.split('&').map(s => s.trim()[0]).join(' & ');
+        setTxt('display-initials', initials);
+        const lLogo = document.querySelector('.loader-logo');
+        if (lLogo) lLogo.innerText = initials;
+
+        // Theme
+        if (data.theme) document.body.className = `theme-${data.theme}`;
+
+        // Feature Inits
+        startCountdown(data.date);
+        initMaps(data.venue);
+    },
+
+    handleGuestEntrance() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const sessionAuth = sessionStorage.getItem(`auth_${currentClientId}`);
+
+        if (code) {
+            this.verifyGuest(code);
+        } else if (sessionAuth) {
+            this.unlockInvite();
+        } else {
+            // Show auth section
+            const authSec = document.getElementById('guest-auth');
+            if (authSec) authSec.style.display = 'block';
+
+            const vBtn = document.getElementById('btn-verify');
+            if (vBtn) {
+                vBtn.onclick = () => {
+                    const codeInput = document.getElementById('auth-code').value;
+                    this.verifyGuest(codeInput);
+                };
+            }
+        }
+    },
+
+    async verifyGuest(code) {
+        if (!code || code.length < 4) return;
+
+        try {
+            const q = query(collection(db, "clients", currentClientId, "invites"), where("code", "==", code));
+            const snap = await getDocs(q);
+
+            if (!snap.empty) {
+                sessionStorage.setItem(`auth_${currentClientId}`, "true");
+                this.unlockInvite();
+            } else {
+                showToast("Invalid code. Please try again.", "🔒");
+                const input = document.getElementById('auth-code');
+                if (input) {
+                    gsap.to(input, { x: 10, duration: 0.1, repeat: 5, yoyo: true });
+                }
+            }
+        } catch (err) {
+            showToast("Connection error. Try again.", "⚠️");
+        }
+    },
+
+    unlockInvite() {
         gsap.to("#guest-auth", {
-            opacity: 0, duration: 0.8, onComplete: () => {
-                document.getElementById('guest-auth').style.display = 'none';
-                initInvitationExperience();
+            opacity: 0, scale: 0.9, duration: 0.8, onComplete: () => {
+                const authSec = document.getElementById('guest-auth');
+                if (authSec) authSec.style.display = 'none';
+
+                const rsvpForm = document.getElementById('rsvp-form');
+                if (rsvpForm) rsvpForm.style.display = 'block';
+
+                initAnimations();
+                initRSVP();
             }
         });
-    } else {
-        const err = document.getElementById('auth-error');
-        err.style.display = 'block';
-        gsap.fromTo(err, { x: -10 }, { x: 10, repeat: 5, yoyo: true, duration: 0.1 });
     }
-}
-
-function initInvitationExperience() {
-    updateUIWithClientData(currentClientData);
-    initAnimations();
-    initRSVP();
-    startCountdown(currentClientData.date);
-    initMaps(currentClientData.venue);
-}
-
-function updateUIWithClientData(data) {
-    document.title = `${data.names} | Wedding Invitation`;
-    document.getElementById('display-names').innerText = data.names;
-    document.getElementById('display-date').innerText = data.date;
-    document.getElementById('display-venue').innerText = data.venue;
-    document.getElementById('display-quote').innerText = data.quote || "";
-
-    // Set maps/location data
-    document.getElementById('loc-venue').innerText = data.venue;
-    document.getElementById('loc-address').innerText = data.venue;
-    document.getElementById('btn-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(data.venue)}`;
-
-    // Registry & Accommodation Displays
-    const registrySec = document.getElementById('registry-section');
-    const registryLink = document.getElementById('display-registry');
-    if (data.registry) {
-        registrySec.style.display = 'block';
-        registryLink.href = data.registry;
-    } else {
-        registrySec.style.display = 'none';
-    }
-
-    const accomSec = document.getElementById('accommodation-section');
-    const accomText = document.getElementById('display-accommodation');
-    if (data.accommodation) {
-        accomSec.style.display = 'block';
-        accomText.innerText = data.accommodation;
-    } else {
-        accomSec.style.display = 'none';
-    }
-
-    // Apply Theme
-    if (data.theme) {
-        document.body.className = `theme-${data.theme}`;
-    }
-
-    // Calendar Link (Simplified Google Calendar Link)
-    const calBtn = document.createElement('a');
-    calBtn.className = 'calendar-btn fade-up';
-    calBtn.href = `https://www.google.com/calendar/render?action=TEMPLATE&text=Wedding:+${encodeURIComponent(data.names)}&details=We+look+forward+to+seeing+you!&location=${encodeURIComponent(data.venue)}`;
-    calBtn.target = '_blank';
-    calBtn.innerHTML = `<span>📅 Add to Calendar</span>`;
-    document.getElementById('display-venue').after(calBtn);
-
-    // Initials for footer/loader
-    const initials = data.names.split('&').map(s => s.trim()[0]).join(' & ');
-    document.getElementById('display-initials').innerText = initials;
-    document.getElementById('loader-initials').innerText = initials;
-}
+};
 
 // --- UTILITIES ---
 
@@ -474,25 +497,47 @@ function initAnimations() {
     const mainContent = document.getElementById('main-content');
     const loader = document.getElementById('loader');
 
-    if (mainContent) mainContent.style.display = 'block';
+    if (mainContent) {
+        mainContent.style.display = 'block';
+    }
 
     const tl = gsap.timeline();
-    tl.to(".loader-logo", { opacity: 1, y: 0, duration: 1 })
-        .to(".loader-line", { width: "200px", duration: 1.5 }, "-=0.5");
 
+    // Loader Out
     if (loader) {
-        tl.to("#loader", { opacity: 0, duration: 1, pointerEvents: "none" }, "+=0.5");
+        tl.to(".loader-logo", { opacity: 1, y: 0, duration: 1 })
+            .to(".loader-line", { width: "200px", duration: 1 })
+            .to(loader, { opacity: 0, duration: 1, pointerEvents: "none", ease: "power4.inOut" }, "+=0.5");
     }
 
+    // Main Content In
     if (mainContent) {
-        tl.to("#main-content", { opacity: 1, duration: 1 }, "-=0.5");
+        tl.to(mainContent, { opacity: 1, duration: 1, ease: "power2.out" }, "-=0.5");
     }
 
-    tl.from(".hero-content", { y: 50, opacity: 0, duration: 1.5 }, "-=0.5");
+    // Hero Stagger
+    tl.from(".hero-content .fade-up", {
+        y: 50,
+        opacity: 0,
+        duration: 1.5,
+        stagger: 0.2,
+        ease: "power3.out"
+    }, "-=0.5");
 
+    // Scroll Animations
     gsap.registerPlugin(ScrollTrigger);
     gsap.utils.toArray(".fade-up").forEach(el => {
-        gsap.to(el, { scrollTrigger: { trigger: el, start: "top 85%" }, opacity: 1, y: 0, duration: 1 });
+        gsap.to(el, {
+            scrollTrigger: {
+                trigger: el,
+                start: "top 90%",
+                toggleActions: "play none none none"
+            },
+            opacity: 1,
+            y: 0,
+            duration: 1.2,
+            ease: "power2.out"
+        });
     });
 }
 

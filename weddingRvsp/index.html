@@ -4,7 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wedding Invitation</title>
+    <title>Julian & Elena | Wedding Invitation</title>
+    <meta name="description" content="You are cordially invited to celebrate the wedding of Julian & Elena.">
+    <meta property="og:title" content="Julian & Elena | Wedding Invitation">
+    <meta property="og:description" content="Join us for our special day. RSVP inside.">
+
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
@@ -12,149 +16,139 @@
 </head>
 
 <body>
-    <!-- Custom Cursor -->
     <div class="cursor"></div>
     <div class="cursor-follower"></div>
-
-    <!-- Background Grain Overlay -->
     <div class="grain-overlay"></div>
+    <div id="toast-container"></div>
 
-    <!-- Loader -->
-    <div id="loader" class="loader">
-        <div class="loader-logo serif">W I</div>
+    <div id="loader">
+        <div class="loader-logo serif">J & E</div>
         <div class="loader-line"></div>
     </div>
 
-    <!-- Landing Experience -->
-    <div class="app-container" id="main-content" style="opacity: 0;">
-        <!-- Hero Section -->
+    <div class="app-container" id="main-content" style="opacity: 0; display: none;">
         <section class="hero" id="home">
-            <div class="hero-content floating">
+            <div class="hero-content">
                 <p class="subtitle fade-up">THE WEDDING OF</p>
-                <h1 class="serif fade-up" id="display-names">Julian & Elena</h1>
-                <div class="divider fade-up"></div>
-                <p class="date fade-up" id="display-date">Saturday, June 20, 2026</p>
-                <p class="venue fade-up" id="display-venue">The Raffles Hotel, Singapore</p>
-                <button class="cta-button fade-up" onclick="scrollToRSVP()">R S V P</button>
+                <h1 id="display-names" class="fade-up">Julian & Elena</h1>
+                <p id="display-date" class="date fade-up">Saturday, June 20, 2026</p>
+                <p id="display-venue" class="fade-up" style="margin-bottom: 2rem;">Singapore</p>
+                <button class="cta-button fade-up" onclick="scrollToRSVP()">Join Us</button>
             </div>
         </section>
 
-        <!-- Quote Section -->
         <section class="quote-section">
             <div class="container text-center">
-                <p class="serif quote fade-up" id="display-quote">"Once in a while, right in the middle of an ordinary
-                    life, love gives us a fairytale."</p>
+                <p id="display-quote" class="serif fade-up" style="font-size: 2rem; font-style: italic; opacity: 0.9;">
+                    "Once in a while, right in the middle of an ordinary life, love gives us a fairytale."
+                </p>
             </div>
         </section>
 
-        <!-- Gallery / Visual Section -->
-        <section class="gallery-section">
+        <section id="location">
             <div class="container">
-                <div class="gallery-grid">
-                    <div class="gallery-item large fade-up">
-                        <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=2069&auto=format&fit=crop"
-                            alt="Wedding Details">
-                    </div>
-                    <div class="gallery-item fade-up">
-                        <img src="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop"
-                            alt="Venue">
-                    </div>
-                    <div class="gallery-item fade-up">
-                        <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2070&auto=format&fit=crop"
-                            alt="Celebration">
+                <h2 class="serif text-center fade-up" style="font-size: 3.5rem; margin-bottom: 4rem;">Location</h2>
+                <div class="stat-grid" style="grid-template-columns: 1fr; max-width: 800px; margin: 0 auto;">
+                    <div class="stat-card fade-up">
+                        <h3 class="serif" style="font-size: 2rem; margin-bottom: 1rem;">The Venue</h3>
+                        <p id="venue-details" style="margin-bottom: 1rem; opacity: 0.8;"></p>
+                        <p id="venue-address" style="font-weight: 700; color: var(--primary); margin-bottom: 2rem;"></p>
+                        <div id="map-container"
+                            style="height: 300px; border-radius: var(--radius-md); overflow: hidden; margin-bottom: 2rem;">
+                        </div>
+                        <a id="btn-directions" href="#" target="_blank" class="cta-button"
+                            style="padding: 1rem 2rem; font-size: 0.7rem;">Open in Maps</a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Location Section -->
-        <section id="location" class="location-section">
-            <div class="container">
-                <h2 class="serif text-center fade-up" style="font-size: 3rem; margin-bottom: 3rem;">Location</h2>
-                <div class="info-grid">
-                    <div class="info-card fade-up">
-                        <h3 class="serif">The Venue</h3>
-                        <p id="venue-details">Our celebration will be held at the historical Grand Ballroom, Raffles
-                            Hotel.</p>
-                        <p><strong id="venue-address">1 Beach Rd, Singapore 189673</strong></p>
-                        <a href="https://maps.google.com" target="_blank" class="btn-small"
-                            style="margin-top:1rem; display:inline-block; text-decoration:none;">Get Directions</a>
-                    </div>
-                    <div class="map-container fade-up" id="map-container">
-                        <!-- Map Iframe will be inserted here or kept static -->
-                        <iframe width="100%" height="100%" frameborder="0" style="border:0; border-radius: 20px;"
-                            src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=Raffles+Hotel+Singapore"
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-                </div>
+        <section id="details" style="background: rgba(0,0,0,0.2);">
+            <div id="registry-section" class="container text-center fade-up"
+                style="margin-bottom: 4rem; display: none;">
+                <h2 class="serif" style="font-size: 2.5rem; margin-bottom: 1.5rem;">Gifts Registry</h2>
+                <p style="opacity: 0.7; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    Your presence is our greatest gift. Should you wish to honor us with a gift, we have a registry
+                    here.
+                </p>
+                <a id="display-registry" href="#" target="_blank" class="cta-button"
+                    style="padding: 1rem 2rem; font-size: 0.7rem;">View Registry</a>
+            </div>
+
+            <div id="accommodation-section" class="container text-center fade-up" style="display: none;">
+                <h2 class="serif" style="font-size: 2.5rem; margin-bottom: 1.5rem;">Accommodation</h2>
+                <p id="display-accommodation" style="opacity: 0.7; max-width: 600px; margin: 0 auto; line-height: 1.8;">
+                </p>
             </div>
         </section>
 
-        <!-- Optional Sections -->
-        <div id="registry-section" class="container text-center fade-up" style="margin-top: 5rem; display: none;">
-            <h3 class="serif">Gifts Registry</h3>
-            <p style="margin-bottom: 2rem; opacity: 0.8;">Your presence is more than enough, but if you wish to give a
-                gift...</p>
-            <a href="#" id="display-registry" target="_blank" class="btn-small">Registry Link</a>
-        </div>
-
-        <div id="accommodation-section" class="container text-center fade-up" style="margin-top: 5rem; display: none;">
-            <h3 class="serif">Stay With Us</h3>
-            <p id="display-accommodation" style="opacity: 0.8; max-width: 600px; margin: 0 auto;"></p>
-        </div>
-
-        <!-- RSVP Section -->
-        <section class="rsvp-section" id="rsvp">
+        <section id="rsvp">
             <div class="container">
                 <div class="rsvp-card fade-up">
-                    <h2 class="serif text-center" style="font-size: 3rem; margin-bottom: 3rem;">Join Us</h2>
+                    <h2 class="serif text-center" style="font-size: 4rem; margin-bottom: 3rem;">R.S.V.P</h2>
 
-                    <!-- Guest Authentication -->
-                    <div id="guest-auth">
-                        <p class="text-center" style="margin-bottom: 2rem; opacity: 0.8;">Please enter your 4-digit
-                            access code from your invitation.</p>
-                        <div style="display: flex; gap: 1rem; justify-content: center;">
-                            <input type="text" id="auth-code" maxlength="4"
-                                style="width: 150px; text-align: center; font-size: 2rem; letter-spacing: 0.5rem;"
-                                placeholder="****">
-                            <button class="cta-button" id="btn-verify" style="padding: 1rem 2rem;">Unlock</button>
+                    <div id="guest-auth" style="display: none;">
+                        <p style="opacity: 0.7; margin-bottom: 2.5rem;">Please enter the 4-digit code provided on your
+                            card.</p>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2rem;">
+                            <input type="text" id="auth-code" maxlength="4" placeholder="••••">
+                            <button id="btn-verify" class="cta-button">Verify Code</button>
                         </div>
                     </div>
 
                     <form id="rsvp-form" style="display: none;">
                         <div class="form-group">
-                            <label>Your Full Name</label>
-                            <input type="text" id="guest-name" required>
+                            <label>Full Name</label>
+                            <input type="text" id="guest-name" required placeholder="As it appears on your invite">
                         </div>
                         <div class="form-group">
-                            <label>Will you be attending?</label>
+                            <label>Will you attend?</label>
                             <select id="attendance" required>
-                                <option value="attending">Happily Attending</option>
+                                <option value="attending">Joyfully Accept</option>
                                 <option value="declined">Regretfully Decline</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Number of Guests</label>
+                            <label>Total Guests</label>
                             <input type="number" id="guest-count" value="1" min="1" max="10">
                         </div>
                         <div class="form-group">
-                            <label>Dietary Requirements (if any)</label>
-                            <textarea id="dietary" rows="3"
-                                placeholder="Tell us if you have any allergies..."></textarea>
+                            <label>Dietary Notes</label>
+                            <textarea id="dietary" rows="3" placeholder="Allergies, vegetarian, etc."></textarea>
                         </div>
                         <div class="form-group">
-                            <label>Message to the Couple</label>
-                            <textarea id="guest-message" rows="3" placeholder="Leave a wish or a note..."></textarea>
+                            <label>Message to us</label>
+                            <textarea id="guest-message" rows="3" placeholder="A wish or a note..."></textarea>
                         </div>
-                        <button type="submit" class="cta-button" style="width: 100%;">Confirm Attendance</button>
+                        <button type="submit" class="cta-button" style="width: 100%;">Send RSVP</button>
                     </form>
+                </div>
+            </div>
+
+            <div class="countdown-container fade-up" id="countdown">
+                <div class="countdown-box">
+                    <span class="countdown-val" id="days">00</span>
+                    <span class="countdown-label">Days</span>
+                </div>
+                <div class="countdown-box">
+                    <span class="countdown-val" id="hours">00</span>
+                    <span class="countdown-label">Hours</span>
+                </div>
+                <div class="countdown-box">
+                    <span class="countdown-val" id="mins">00</span>
+                    <span class="countdown-label">Mins</span>
                 </div>
             </div>
         </section>
 
-        <footer style="text-align: center; padding: 4rem; background: #111; color: var(--primary);">
-            <div class="serif" id="display-initials" style="font-size: 1.5rem; letter-spacing: 0.5rem;">W I</div>
+        <footer
+            style="text-align: center; padding: 6rem 2rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.3);">
+            <div class="serif" id="display-initials"
+                style="font-size: 2.5rem; letter-spacing: 1rem; color: var(--primary);">J & E</div>
+            <p
+                style="margin-top: 2rem; opacity: 0.4; font-size: 0.7rem; letter-spacing: 0.2rem; text-transform: uppercase;">
+                Thank you for being part of our story
+            </p>
         </footer>
     </div>
 
