@@ -996,3 +996,108 @@ window.createInvoice = async (orderId) => {
     await db.collection('orders').doc(orderId).update({ invoiced: true });
     showToast("Invoice generated successfully", "success");
 }
+
+window.deleteProduct = async (id) => {
+    if (confirm("Are you sure you want to delete this product?")) {
+        await dbAPI.deleteProduct(id);
+        showToast("Product deleted", "success");
+    }
+};
+
+window.openAddClientModal = () => {
+    const html = `
+     <div class="modal-backdrop" id="modal-bg">
+        <div class="modal slide-in">
+            <div class="modal-header">
+                <h3 class="modal-title">Register New Client</h3>
+                <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <form id="add-client-form">
+                <div class="modal-body space-y-4">
+                     <div>
+                        <label class="form-label">Client Name</label>
+                        <input type="text" class="form-input" name="name" required>
+                     </div>
+                     <div>
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" name="email" required>
+                     </div>
+                     <div>
+                        <label class="form-label">Store Name</label>
+                        <input type="text" class="form-input" name="storeName" required>
+                     </div>
+                     <div>
+                        <label class="form-label">Delivery Address</label>
+                        <textarea class="form-input h-24" name="address" required></textarea>
+                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="$('#modal-bg').remove()" class="btn btn-ghost">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Client</button>
+                </div>
+            </form>
+        </div>
+     </div>
+    `;
+    $('#modal-container').html(html);
+
+    $('#add-client-form').submit(async (e) => {
+        e.preventDefault();
+        const data = {
+            name: $('input[name="name"]').val(),
+            email: $('input[name="email"]').val(),
+            storeName: $('input[name="storeName"]').val(),
+            address: $('textarea[name="address"]').val()
+        };
+        await dbAPI.addUser(data);
+        $('#modal-bg').remove();
+        showToast('Client added manually', 'success');
+    });
+};
+
+window.openManagePricesModal = async (uid, clientName) => {
+    // Fetch products once
+    const products = await new Promise(resolve => {
+        const unsub = dbAPI.getProducts(data => {
+            unsub(); // Stop listening immediately
+            resolve(data);
+        });
+    });
+
+    const html = `
+     <div class="modal-backdrop" id="modal-bg">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Custom Prices: ${clientName}</h3>
+                <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm text-gray-500 mb-4">Set specific pricing for this client. If left blank, standard pricing applies.</p>
+                <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                    ${products.map(p => `
+                        <div class="flex items-center justify-between gap-4 p-3 bg-gray-50 rounded-lg">
+                            <span class="font-medium">${p.name} <span class="text-xs text-gray-400">(${p.unit})</span></span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-400">RM</span>
+                                <input type="number" step="0.01" value="${p.price}" 
+                                    class="form-input w-24 text-right" 
+                                    onchange="saveClientPrice('${uid}', '${p.id}', this.value)">
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="$('#modal-bg').remove()" class="btn btn-primary">Done</button>
+            </div>
+        </div>
+     </div>
+    `;
+    $('#modal-container').html(html);
+};
+
+window.saveClientPrice = async (userId, productId, price) => {
+    if (!price) return;
+    await dbAPI.setCustomPrice(userId, productId, price);
+    showToast("Price updated for client", "success");
+};
