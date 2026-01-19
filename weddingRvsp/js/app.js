@@ -6,14 +6,19 @@ let currentClientId = null;
 let currentClientData = null;
 
 window.addEventListener('load', async () => {
-    initCursor();
     const urlParams = new URLSearchParams(window.location.search);
     const eventSlug = urlParams.get('e');
-    const isAdmin = urlParams.has('admin');
+    const isAdminRequested = urlParams.has('admin');
 
-    if (isAdmin) {
+    // Handle Standalone Admin Page or URL Parameter Redirect
+    if (window.isAdminPage || isAdminRequested) {
+        if (!window.isAdminPage) {
+            window.location.href = "admin.html";
+            return;
+        }
         initAdminView();
     } else if (eventSlug) {
+        initCursor(); // Only for guest experience
         loadEvent(eventSlug);
     } else {
         showError("Invalid Invitation Link. Please check your URL.");
@@ -257,14 +262,25 @@ function initAdminEvents() {
     document.getElementById('btn-add-client').onclick = () => openClientModal();
     document.getElementById('btn-close-modal').onclick = () => closeClientModal();
     document.getElementById('client-form').onsubmit = handleClientSubmit;
-    document.getElementById('btn-back-to-clients').onclick = () => showTab('clients');
+    document.getElementById('nav-clients').onclick = () => showTab('clients');
     document.getElementById('nav-invites').onclick = () => showTab('invites');
+    document.getElementById('nav-rsvps').onclick = () => showTab('rsvps');
+    document.getElementById('btn-back-to-clients').onclick = () => showTab('clients');
     document.getElementById('btn-back-to-clients-from-invites').onclick = () => showTab('clients');
     document.getElementById('btn-add-invite').onclick = () => openInviteModal();
     document.getElementById('btn-close-invite-modal').onclick = () => closeInviteModal();
     document.getElementById('invite-form').onsubmit = handleInviteSubmit;
 
     document.getElementById('btn-export-csv').onclick = exportRSVPsToCSV;
+
+    // Search Filtering
+    document.getElementById('client-search').oninput = (e) => {
+        const term = e.target.value.toLowerCase();
+        document.querySelectorAll('.client-card').forEach(card => {
+            const text = card.innerText.toLowerCase();
+            card.style.display = text.includes(term) ? 'block' : 'none';
+        });
+    };
 }
 
 async function loadClients() {
@@ -274,16 +290,35 @@ async function loadClients() {
         snapshot.forEach(doc => {
             const data = doc.data();
             const card = document.createElement('div');
-            card.className = 'guest-card client-card';
+            card.className = 'client-card';
+            card.style.padding = '2.5rem';
+            card.style.borderRadius = '30px';
             card.innerHTML = `
-                <h3 class="serif">${data.names}</h3>
-                <p style="font-size: 0.8rem; opacity: 0.7;">Slug: ${data.slug}</p>
-                <div class="client-actions">
-                    <button class="btn-small" onclick="viewRSVPs('${doc.id}', '${data.names}')">RSVPs</button>
-                    <button class="btn-small" onclick="viewInvites('${doc.id}', '${data.names}')">Invites</button>
-                    <button class="btn-small" onclick="editClient('${doc.id}')">Edit</button>
-                    <button class="btn-small" style="color: #e74c3c; border-color: #e74c3c;" onclick="deleteClient('${doc.id}')">Delete</button>
-                    <a href="?e=${data.slug}" target="_blank" class="btn-small" style="text-decoration:none;">Open</a>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 2rem;">
+                    <div>
+                        <h3 class="serif" style="font-size:1.8rem;">${data.names}</h3>
+                        <p style="font-size: 0.8rem; opacity: 0.5; margin-top:0.5rem;">/${data.slug}</p>
+                    </div>
+                    <div style="background: var(--primary); width:12px; height:12px; border-radius:50%; box-shadow: 0 0 10px var(--primary);"></div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2.5rem;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                         <span style="display:block; font-size:0.7rem; opacity:0.5; text-transform:uppercase;">Date</span>
+                         <span style="font-size:0.9rem;">${data.date.split(',')[1] || data.date}</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                         <span style="display:block; font-size:0.7rem; opacity:0.5; text-transform:uppercase;">Theme</span>
+                         <span style="font-size:0.9rem; text-transform:capitalize;">${data.theme || 'Default'}</span>
+                    </div>
+                </div>
+
+                <div class="client-actions" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    <button class="btn-small" onclick="viewRSVPs('${doc.id}', '${data.names}')">👥 guests</button>
+                    <button class="btn-small" onclick="viewInvites('${doc.id}', '${data.names}')">💌 invites</button>
+                    <button class="btn-small" onclick="editClient('${doc.id}')">✍️ edit</button>
+                    <a href="?e=${data.slug}" target="_blank" class="btn-small" style="text-decoration:none;">🔗 view</a>
+                    <button class="btn-small" style="color: #ff4757; border-color: #ff4757; margin-left:auto;" onclick="deleteClient('${doc.id}')">🗑️</button>
                 </div>
             `;
             clientList.appendChild(card);
@@ -363,12 +398,21 @@ function loadRSVPsForClient(id) {
         snapshot.forEach(doc => {
             const data = doc.data();
             const card = document.createElement('div');
-            card.className = 'guest-card';
+            card.className = 'stat-card';
+            card.style.textAlign = 'left';
+            card.style.padding = '1.5rem';
             card.innerHTML = `
-                <span class="status-badge ${data.attendance === 'attending' ? 'status-attending' : 'status-declined'}">${data.attendance}</span>
-                <h3 class="serif">${data.name}</h3>
-                <p>Guests: ${data.guests}</p>
-                <p style="font-size:0.75rem; opacity:0.6;">${data.dietary || 'No dietary requirements'}</p>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="serif" style="font-size:1.2rem;">${data.name}</span>
+                    <span class="status-badge ${data.attendance === 'attending' ? 'status-attending' : 'status-declined'}">
+                        ${data.attendance}
+                    </span>
+                </div>
+                <div style="margin-top:1rem; display:flex; gap:1.5rem; opacity:0.7; font-size:0.8rem;">
+                    <span><b>Guests:</b> ${data.guests}</span>
+                    <span><b>Diet:</b> ${data.dietary || 'None'}</span>
+                </div>
+                ${data.message ? `<div style="margin-top:1rem; padding:0.5rem; background:rgba(255,255,255,0.05); border-radius:8px; font-size:0.8rem; font-style:italic;">"${data.message}"</div>` : ''}
             `;
             rsvpList.appendChild(card);
             total++;
@@ -382,13 +426,19 @@ function loadRSVPsForClient(id) {
 // --- UTILITIES ---
 
 function showTab(tab) {
-    document.getElementById('view-clients').style.display = tab === 'clients' ? 'block' : 'none';
-    document.getElementById('view-rsvps').style.display = tab === 'rsvps' ? 'block' : 'none';
-    document.getElementById('view-invites').style.display = tab === 'invites' ? 'block' : 'none';
+    const views = ['view-clients', 'view-rsvps', 'view-invites'];
+    views.forEach(v => document.getElementById(v).style.display = 'none');
+    document.getElementById(`view-${tab}`).style.display = 'block';
 
-    document.getElementById('nav-clients').classList.toggle('active', tab === 'clients');
-    document.getElementById('nav-rsvps').style.display = tab !== 'clients' ? 'block' : 'none';
-    document.getElementById('nav-invites').style.display = tab !== 'clients' ? 'block' : 'none';
+    const navs = ['nav-clients', 'nav-rsvps', 'nav-invites'];
+    navs.forEach(n => {
+        const el = document.getElementById(n);
+        el.classList.toggle('active', n === `nav-${tab}`);
+        // Only show Invitations and Guest List if a client is selected
+        if (n !== 'nav-clients') {
+            el.style.display = currentClientId ? 'flex' : 'none';
+        }
+    });
 }
 
 function openClientModal(isEdit = false) {
@@ -516,18 +566,22 @@ async function loadInvitesForClient(clientId) {
         snapshot.forEach(d => {
             const data = d.data();
             const card = document.createElement('div');
-            card.className = 'guest-card';
+            card.className = 'stat-card';
+            card.style.padding = '1.5rem';
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
+                <div style="display:flex; flex-direction:column; gap:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h3 class="serif">${data.name}</h3>
-                        <p style="color:var(--primary); font-weight:bold; font-size:1.2rem;">Code: ${data.code}</p>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button class="btn-small" onclick="generateQR('${data.code}', '${data.name}')">📱 QR</button>
+                            <button class="btn-small" onclick="copyInviteLink('${data.code}')">🔗 Link</button>
+                        </div>
                     </div>
-                    <div style="display:flex; gap:0.5rem;">
-                        <button class="btn-small" onclick="generateQR('${data.code}', '${data.name}')">QR Code</button>
-                        <button class="btn-small" onclick="copyInviteLink('${data.code}')">Link</button>
-                        <button class="btn-small" style="color:red; border-color:red;" onclick="deleteInvite('${d.id}')">Del</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:0.8rem; border-radius:12px;">
+                        <span style="font-size:0.7rem; text-transform:uppercase; opacity:0.5;">Access Code</span>
+                        <span style="color:var(--primary); font-family:monospace; font-weight:bold; font-size:1.2rem; letter-spacing:2px;">${data.code}</span>
                     </div>
+                    <button class="btn-small" style="color:#ff4757; border-color:transparent; align-self:flex-end;" onclick="deleteInvite('${d.id}')">Delete Invite</button>
                 </div>
             `;
             inviteList.appendChild(card);

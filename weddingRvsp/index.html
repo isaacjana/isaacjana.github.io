@@ -5,378 +5,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wedding Invitation</title>
-    <meta name="description" content="Official Wedding Invitation & RSVP">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        .admin-nav-item {
-            color: #fff;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-
-        .admin-nav-item.active {
-            background: var(--primary);
-            color: #000;
-        }
-
-        .client-card {
-            position: relative;
-        }
-
-        .client-actions {
-            margin-top: 1rem;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-small {
-            padding: 0.3rem 0.8rem;
-            font-size: 0.8rem;
-            border-radius: 5px;
-            cursor: pointer;
-            border: 1px solid var(--primary);
-            background: transparent;
-            color: var(--primary);
-        }
-
-        .btn-small:hover {
-            background: var(--primary);
-            color: #000;
-        }
-
-        /* Guest Login Style */
-        #guest-auth {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: var(--secondary);
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.8s ease;
-        }
-
-        .auth-card {
-            background: var(--glass-heavy);
-            padding: 3rem;
-            border-radius: 20px;
-            border: 1px solid var(--primary);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .auth-input {
-            width: 100%;
-            padding: 1rem;
-            font-size: 1.5rem;
-            text-align: center;
-            letter-spacing: 0.5rem;
-            border: none;
-            border-bottom: 2px solid var(--primary);
-            background: transparent;
-            color: #fff;
-            margin: 2rem 0;
-        }
-
-        .auth-input:focus {
-            outline: none;
-            border-bottom-width: 4px;
-        }
-    </style>
 </head>
 
 <body>
-
+    <!-- Custom Cursor -->
     <div class="cursor"></div>
     <div class="cursor-follower"></div>
 
-    <!-- Guest Auth Layer -->
-    <div id="guest-auth" style="display: none;">
-        <div class="auth-card fade-up" style="opacity: 1; transform: none;">
-            <h2 class="serif" style="color: var(--primary);">Exclusive Invitation</h2>
-            <p style="margin-top: 1rem; opacity: 0.8;">Please enter your unique 4-digit access code.</p>
-            <input type="text" id="access-code" class="auth-input" maxlength="4" placeholder="••••">
-            <button class="cta-button" id="btn-verify-code" style="width: 100%;">Enter Experience</button>
-            <p id="auth-error" style="color: #e74c3c; margin-top: 1rem; display: none;">Invalid code. Please try again.
-            </p>
-        </div>
-    </div>
+    <!-- Background Grain Overlay -->
+    <div class="grain-overlay"></div>
 
-    <!-- Cinematic Loader -->
-    <div id="loader">
-        <div class="loader-logo serif" id="loader-initials">W I</div>
+    <!-- Loader -->
+    <div id="loader" class="loader">
+        <div class="loader-logo serif">W I</div>
         <div class="loader-line"></div>
     </div>
 
+    <!-- Landing Experience -->
     <div class="app-container" id="main-content" style="opacity: 0;">
         <!-- Hero Section -->
         <section class="hero" id="home">
-            <div class="hero-content fade-up floating">
-                <p class="serif italic" style="margin-bottom: 20px; font-size: 1.2rem;">Join us in celebrating</p>
-                <h1 class="names" id="display-names">...</h1>
-                <div class="date" id="display-date">...</div>
-                <p style="letter-spacing: 0.2rem; margin-bottom: 20px;" id="display-venue">...</p>
+            <div class="hero-content floating">
+                <p class="subtitle fade-up">THE WEDDING OF</p>
+                <h1 class="serif fade-up" id="display-names">Julian & Elena</h1>
+                <div class="divider fade-up"></div>
+                <p class="date fade-up" id="display-date">Saturday, June 20, 2026</p>
+                <p class="venue fade-up" id="display-venue">The Raffles Hotel, Singapore</p>
+                <button class="cta-button fade-up" onclick="scrollToRSVP()">R S V P</button>
+            </div>
+        </section>
 
-                <!-- Countdown Timer -->
-                <div class="countdown-container fade-up" id="countdown">
-                    <div class="countdown-box"><span class="countdown-val" id="days">00</span><span
-                            class="countdown-label">Days</span></div>
-                    <div class="countdown-box"><span class="countdown-val" id="hours">00</span><span
-                            class="countdown-label">Hours</span></div>
-                    <div class="countdown-box"><span class="countdown-val" id="mins">00</span><span
-                            class="countdown-label">Mins</span></div>
-                </div>
+        <!-- Quote Section -->
+        <section class="quote-section">
+            <div class="container text-center">
+                <p class="serif quote fade-up" id="display-quote">"Once in a while, right in the middle of an ordinary
+                    life, love gives us a fairytale."</p>
+            </div>
+        </section>
 
-                <div style="margin-top: 40px;">
-                    <button class="cta-button" onclick="scrollToRSVP()">RSVP Now</button>
+        <!-- Gallery / Visual Section -->
+        <section class="gallery-section">
+            <div class="container">
+                <div class="gallery-grid">
+                    <div class="gallery-item large fade-up">
+                        <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=2069&auto=format&fit=crop"
+                            alt="Wedding Details">
+                    </div>
+                    <div class="gallery-item fade-up">
+                        <img src="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop"
+                            alt="Venue">
+                    </div>
+                    <div class="gallery-item fade-up">
+                        <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2070&auto=format&fit=crop"
+                            alt="Celebration">
+                    </div>
                 </div>
             </div>
         </section>
 
-        <div id="toast-container"></div>
-
-        <!-- Message Section -->
-        <section style="background: var(--secondary); min-height: 40vh;">
-            <div style="text-align: center; max-width: 600px; padding: 2rem;">
-                <h2 class="serif" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 30px;">Our Journey
-                </h2>
-                <p class="fade-up" id="display-quote">...</p>
+        <!-- Location Section -->
+        <section id="location" class="location-section">
+            <div class="container">
+                <h2 class="serif text-center fade-up" style="font-size: 3rem; margin-bottom: 3rem;">Location</h2>
+                <div class="info-grid">
+                    <div class="info-card fade-up">
+                        <h3 class="serif">The Venue</h3>
+                        <p id="venue-details">Our celebration will be held at the historical Grand Ballroom, Raffles
+                            Hotel.</p>
+                        <p><strong id="venue-address">1 Beach Rd, Singapore 189673</strong></p>
+                        <a href="https://maps.google.com" target="_blank" class="btn-small"
+                            style="margin-top:1rem; display:inline-block; text-decoration:none;">Get Directions</a>
+                    </div>
+                    <div class="map-container fade-up" id="map-container">
+                        <!-- Map Iframe will be inserted here or kept static -->
+                        <iframe width="100%" height="100%" frameborder="0" style="border:0; border-radius: 20px;"
+                            src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=Raffles+Hotel+Singapore"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
             </div>
         </section>
 
-    </div>
-    </div>
-    </section>
-
-    <!-- Location Section -->
-    <section id="location" style="background: #111; padding: 4rem 2rem;">
-        <div style="max-width: 1000px; margin: 0 auto; text-align: center;">
-            <h2 class="serif" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 2rem;">Location</h2>
-            <div class="fade-up"
-                style="background: var(--glass-heavy); border-radius: 20px; overflow: hidden; border: 1px solid var(--primary);">
-                <div id="map-container" style="height: 400px; background: #222;">
-                    <!-- Iframe injected by JS -->
-                </div>
-                <div style="padding: 2.5rem;">
-                    <h3 id="loc-venue" class="serif" style="margin-bottom: 0.5rem;">The Venue</h3>
-                    <p id="loc-address" style="opacity: 0.7; margin-bottom: 2rem;">Address loading...</p>
-                    <a href="#" id="btn-directions" target="_blank" class="cta-button"
-                        style="display: inline-block; text-decoration: none;">Get Directions</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- RSVP Section -->
-    <section class="rsvp-section" id="rsvp">
-        <div class="rsvp-card fade-up">
-            <h2 class="serif" style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">RSVP</h2>
-            <p style="text-align: center; margin-bottom: 3rem; color: var(--accent);">Please respond to our
-                invitation</p>
-
-            <form id="rsvp-form">
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="guest-name" placeholder="Enter your name" required>
-                </div>
-                <div class="form-group">
-                    <label>Attendance</label>
-                    <select id="attendance" required>
-                        <option value="attending">Accepts with Pleasure</option>
-                        <option value="declined">Declines with Regret</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Number of Guests</label>
-                    <input type="number" id="guest-count" value="1" min="1" max="10">
-                </div>
-                <div class="form-group">
-                    <label>Dietary Restrictions</label>
-                    <textarea id="dietary" rows="2" placeholder="Any allergies or requirements?"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Message to the Couple</label>
-                    <textarea id="guest-message" rows="3" placeholder="Leave a wish or a note..."></textarea>
-                </div>
-                <button type="submit" class="cta-button" style="width: 100%;">Confirm Attendance</button>
-            </form>
-        </div>
-    </section>
-
-    <!-- Admin Dashboard -->
-    <div id="admin-view" class="admin-view" style="display: none;">
-        <div id="admin-login-section" style="text-align: center; padding: 4rem;">
-            <h2 class="serif" style="font-size: 3rem; color: var(--primary); margin-bottom: 2rem;">Admin Access</h2>
-            <button class="cta-button" id="login-btn">Sign in with Google</button>
+        <!-- Optional Sections -->
+        <div id="registry-section" class="container text-center fade-up" style="margin-top: 5rem; display: none;">
+            <h3 class="serif">Gifts Registry</h3>
+            <p style="margin-bottom: 2rem; opacity: 0.8;">Your presence is more than enough, but if you wish to give a
+                gift...</p>
+            <a href="#" id="display-registry" target="_blank" class="btn-small">Registry Link</a>
         </div>
 
-        <div id="admin-content" style="display: none;">
-            <nav
-                style="display: flex; gap: 1rem; align-items: center; border-bottom: 1px solid var(--primary); padding-bottom: 1rem; margin-bottom: 2rem; overflow-x: auto;">
-                <h2 class="serif" style="color: var(--primary); margin: 0; margin-right: 2rem; white-space: nowrap;">
-                    Wedding
-                    Manager</h2>
-                <a href="#" class="admin-nav-item active" id="nav-clients">Clients</a>
-                <a href="#" class="admin-nav-item" id="nav-invites" style="display: none;">Invites</a>
-                <a href="#" class="admin-nav-item" id="nav-rsvps" style="display: none;">RSVPs</a>
-                <button id="logout-btn"
-                    style="margin-left: auto; background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer;">Logout</button>
-            </nav>
+        <div id="accommodation-section" class="container text-center fade-up" style="margin-top: 5rem; display: none;">
+            <h3 class="serif">Stay With Us</h3>
+            <p id="display-accommodation" style="opacity: 0.8; max-width: 600px; margin: 0 auto;"></p>
+        </div>
 
-            <!-- Client List View -->
-            <div id="view-clients">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Active Clients</h3>
-                    <button class="cta-button" id="btn-add-client" style="padding: 0.5rem 1rem;">+ Add
-                        Client</button>
-                </div>
-                <div class="rsvp-list" id="client-list" style="margin-top: 2rem;"></div>
-            </div>
+        <!-- RSVP Section -->
+        <section class="rsvp-section" id="rsvp">
+            <div class="container">
+                <div class="rsvp-card fade-up">
+                    <h2 class="serif text-center" style="font-size: 3rem; margin-bottom: 3rem;">Join Us</h2>
 
-            <!-- Invite Management View -->
-            <div id="view-invites" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 id="invite-view-title">Manage Invites</h3>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="cta-button" id="btn-add-invite" style="padding: 0.5rem 1rem;">+ New
-                            Invite</button>
-                        <button class="btn-small" id="btn-back-to-clients-from-invites">Back</button>
+                    <!-- Guest Authentication -->
+                    <div id="guest-auth">
+                        <p class="text-center" style="margin-bottom: 2rem; opacity: 0.8;">Please enter your 4-digit
+                            access code from your invitation.</p>
+                        <div style="display: flex; gap: 1rem; justify-content: center;">
+                            <input type="text" id="auth-code" maxlength="4"
+                                style="width: 150px; text-align: center; font-size: 2rem; letter-spacing: 0.5rem;"
+                                placeholder="****">
+                            <button class="cta-button" id="btn-verify" style="padding: 1rem 2rem;">Unlock</button>
+                        </div>
                     </div>
-                </div>
-                <div class="rsvp-list" id="invite-list" style="margin-top: 2rem;"></div>
-            </div>
 
-            <!-- Guest List View -->
-            <div id="view-rsvps" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 id="rsvp-view-title">RSVPs</h3>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn-small" id="btn-export-csv">Export CSV</button>
-                        <button class="btn-small" id="btn-back-to-clients">Back</button>
-                    </div>
+                    <form id="rsvp-form" style="display: none;">
+                        <div class="form-group">
+                            <label>Your Full Name</label>
+                            <input type="text" id="guest-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Will you be attending?</label>
+                            <select id="attendance" required>
+                                <option value="attending">Happily Attending</option>
+                                <option value="declined">Regretfully Decline</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Guests</label>
+                            <input type="number" id="guest-count" value="1" min="1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label>Dietary Requirements (if any)</label>
+                            <textarea id="dietary" rows="3"
+                                placeholder="Tell us if you have any allergies..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Message to the Couple</label>
+                            <textarea id="guest-message" rows="3" placeholder="Leave a wish or a note..."></textarea>
+                        </div>
+                        <button type="submit" class="cta-button" style="width: 100%;">Confirm Attendance</button>
+                    </form>
                 </div>
-                <div id="stats" style="margin: 2rem 0; display: flex; gap: 2rem;">
-                    <div class="guest-card">Total Records: <span id="total-guests">0</span></div>
-                    <div class="guest-card">Attending Guests: <span id="total-attending">0</span></div>
-                </div>
-                <div class="rsvp-list" id="rsvp-list"></div>
             </div>
-        </div>
+        </section>
+
+        <footer style="text-align: center; padding: 4rem; background: #111; color: var(--primary);">
+            <div class="serif" id="display-initials" style="font-size: 1.5rem; letter-spacing: 0.5rem;">W I</div>
+        </footer>
     </div>
 
-    <footer style="text-align: center; padding: 4rem; background: #111; color: var(--primary);">
-        <div class="serif" id="display-initials" style="font-size: 1.5rem; letter-spacing: 0.5rem;">W I</div>
-    </footer>
-    </div>
-
-    <!-- Client Modal -->
-    <div id="client-modal"
-        style="display:none; position: fixed; top: 0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; overflow-y: auto; padding: 2rem;">
-        <div
-            style="max-width: 600px; margin: 0 auto; background: var(--secondary); padding: 3rem; border-radius: 30px; border: 1px solid var(--primary); box-shadow: var(--shadow);">
-            <h2 class="serif" id="modal-title">New Event</h2>
-            <form id="client-form" style="margin-top: 2rem;">
-                <input type="hidden" id="client-id">
-                <div class="form-group">
-                    <label>Internal Name (Couple Names)</label>
-                    <input type="text" id="client-names" placeholder="Julian & Elena" required>
-                </div>
-                <div class="form-group">
-                    <label>URL Slug (unique)</label>
-                    <input type="text" id="client-slug" placeholder="julian-elena" required>
-                </div>
-                <div class="form-group">
-                    <label>Wedding Date</label>
-                    <input type="text" id="client-date" placeholder="Saturday, June 20, 2026" required>
-                </div>
-                <div class="form-group">
-                    <label>Venue</label>
-                    <input type="text" id="client-venue" placeholder="The Raffles Hotel, Singapore" required>
-                </div>
-                <div class="form-group">
-                    <label>Short Message / Quote</label>
-                    <textarea id="client-quote" rows="3"
-                        placeholder="Love is not finding someone to live with..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Design Theme</label>
-                    <select id="client-theme">
-                        <option value="classic-emerald">Classic Emerald (Default)</option>
-                        <option value="royal-dark">Royal Dark (Gold & Black)</option>
-                        <option value="midnight-garden">Midnight Garden (Mint & Dark)</option>
-                        <option value="classic-light">Classic Light (Champagne & Cream)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Registry URL (optional)</label>
-                    <input type="url" id="client-registry" placeholder="https://registry.com/our-wedding">
-                </div>
-                <div class="form-group">
-                    <label>Accommodation Info (optional)</label>
-                    <textarea id="client-accommodation" rows="3"
-                        placeholder="Hotel recommendations, travel tips..."></textarea>
-                </div>
-                <div style="display: flex; gap: 1rem; margin-top: 3rem;">
-                    <button type="submit" class="cta-button" style="flex: 2;">Save Invitation</button>
-                    <button type="button" id="btn-close-modal"
-                        style="flex: 1; background: #333; color: #fff; border: none; border-radius: 50px; cursor: pointer;">Cancel</button>
-                </div>
-            </form>
-        </div>
-        <!-- Invite Management Modal -->
-        <div id="invite-modal"
-            style="display:none; position: fixed; top: 0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; overflow-y: auto; padding: 2rem;">
-            <div
-                style="max-width: 500px; margin: 0 auto; background: var(--secondary); padding: 3rem; border-radius: 30px; border: 1px solid var(--primary);">
-                <h2 class="serif">New Invitation</h2>
-                <form id="invite-form" style="margin-top: 2rem;">
-                    <input type="hidden" id="invite-id">
-                    <div class="form-group">
-                        <label>Guest / Group Name</label>
-                        <input type="text" id="invite-name" placeholder="The Smith Family" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Assigned 4-Digit Code (Leave blank for random)</label>
-                        <input type="text" id="invite-code" maxlength="4" placeholder="1234">
-                    </div>
-                    <div style="display: flex; gap: 1rem; margin-top: 3rem;">
-                        <button type="submit" class="cta-button" style="flex: 2;">Generate Invite</button>
-                        <button type="button" id="btn-close-invite-modal"
-                            style="flex: 1; background: #333; color: #fff; border: none; border-radius: 50px; cursor: pointer;">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- QR Modal -->
-        <div id="qr-modal"
-            style="display:none; position: fixed; top: 0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-            <div style="background: #fff; padding: 2rem; border-radius: 20px; text-align: center; max-width: 400px;">
-                <div id="qrcode" style="margin-bottom: 1.5rem; display: flex; justify-content: center;"></div>
-                <p style="color: #000; font-weight: bold; font-family: sans-serif;" id="qr-label"></p>
-                <button onclick="document.getElementById('qr-modal').style.display='none'" class="btn-small"
-                    style="margin-top: 1rem; border-color: #000; color: #000;">Close</button>
-            </div>
-        </div>
-
-        <!-- Firebase App Logic -->
-        <script type="module" src="js/app.js"></script>
-        <script>
-            function scrollToRSVP() {
-                document.getElementById('rsvp').scrollIntoView({ behavior: 'smooth' });
-            }
-        </script>
+    <script type="module" src="js/app.js"></script>
+    <script>
+        function scrollToRSVP() {
+            document.getElementById('rsvp').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
 </body>
 
 </html>
