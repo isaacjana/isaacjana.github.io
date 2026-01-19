@@ -79,6 +79,18 @@
             </div>
         </header>
 
+        <div class="w-full flex justify-end mb-4">
+            <button id="btn-view-history"
+                class="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
+                View History
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
         <div class="w-full space-y-6">
             <div class="glass rounded-3xl p-6 relative overflow-hidden group">
                 <div class="relative z-10">
@@ -111,37 +123,8 @@
 
         <section class="w-full mt-10">
             <h4 class="text-xl font-bold mb-4">Weekly Activity</h4>
-            <div class="glass rounded-3xl p-6 flex items-end justify-between h-32 gap-2">
-                <div class="flex-1 bg-emerald-500/10 rounded-t-lg h-[20%] relative group">
-                    <div
-                        class="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
-                    </div>
-                </div>
-                <div class="flex-1 bg-emerald-500/10 rounded-t-lg h-[40%] relative group">
-                    <div class="absolute inset-0 bg-emerald-500 opacity-20 transition-opacity rounded-t-lg"></div>
-                </div>
-                <div class="flex-1 bg-emerald-500/10 rounded-t-lg h-[60%] relative group">
-                    <div class="absolute inset-0 bg-emerald-500 opacity-40 transition-opacity rounded-t-lg"></div>
-                </div>
-                <div class="flex-1 bg-emerald-500/10 rounded-t-lg h-[30%] relative group">
-                    <div class="absolute inset-0 bg-emerald-500 opacity-10 transition-opacity rounded-t-lg"></div>
-                </div>
-                <div class="flex-1 bg-emerald-500/10 rounded-t-lg h-[80%] relative group">
-                    <div class="absolute inset-0 bg-emerald-500 opacity-60 transition-opacity rounded-t-lg"></div>
-                </div>
-                <div class="flex-1 bg-emerald-500/10 rounded-t-lg h-[50%] relative group">
-                    <div class="absolute inset-0 bg-emerald-500 opacity-30 transition-opacity rounded-t-lg"></div>
-                </div>
-                <div class="flex-1 bg-emerald-500 rounded-t-lg h-[45%] shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-            </div>
-            <div class="flex justify-between mt-2 px-1">
-                <span class="text-[10px] text-gray-500 font-bold">MON</span>
-                <span class="text-[10px] text-gray-500 font-bold">TUE</span>
-                <span class="text-[10px] text-gray-500 font-bold">WED</span>
-                <span class="text-[10px] text-gray-500 font-bold">THU</span>
-                <span class="text-[10px] text-gray-500 font-bold">FRI</span>
-                <span class="text-[10px] text-gray-500 font-bold">SAT</span>
-                <span class="text-[10px] text-emerald-500 font-black">SUN</span>
+            <div id="weekly-bars" class="glass rounded-3xl p-6 flex items-end justify-between h-40 gap-2">
+                <!-- Dynamic Bars -->
             </div>
         </section>
 
@@ -319,10 +302,38 @@
                 </div>
             </div>
 
-            <button id="btn-finish"
-                class="w-full btn-primary py-5 rounded-3xl text-xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/30 mt-8">
-                Go Home
+            <div class="flex gap-4 mt-8">
+                <button id="btn-share"
+                    class="flex-1 glass py-5 rounded-3xl text-xl font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                    </svg>
+                    Share
+                </button>
+                <button id="btn-finish"
+                    class="flex-[2] btn-primary py-5 rounded-3xl text-xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/30">
+                    Go Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen 5: History -->
+    <div id="screen-history" class="screen p-6">
+        <header class="w-full flex justify-between items-center mb-8 pt-4">
+            <button id="btn-history-back" class="w-10 h-10 glass rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="3">
+                    <path d="M15 18l-6-6 6-6" />
+                </svg>
             </button>
+            <h2 class="text-xl font-bold uppercase tracking-widest text-[#fff]">History</h2>
+            <div class="w-10"></div>
+        </header>
+
+        <div id="history-list" class="space-y-4">
+            <!-- Dynamic History Cards -->
         </div>
     </div>
 

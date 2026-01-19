@@ -11,12 +11,38 @@ class DataManager {
             height: 0,
             bmi: 0,
             intensity: 'moderate',
-            history: 0
+            history: 0,
+            logs: []
         };
     }
 
     static saveUserData(data) {
         localStorage.setItem('db_user_data', JSON.stringify(data));
+    }
+
+    static addLog(data, log) {
+        if (!data.logs) data.logs = [];
+        data.logs.push(log);
+        data.history = data.logs.length;
+        this.saveUserData(data);
+    }
+
+    static getWeeklyStats(logs) {
+        const stats = new Array(7).fill(0);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        logs.forEach(log => {
+            const logDate = new Date(log.date);
+            logDate.setHours(0, 0, 0, 0);
+            const diffTime = now - logDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays >= 0 && diffDays < 7) {
+                stats[6 - diffDays] += 1;
+            }
+        });
+        return stats;
     }
 
     static calculateBMI(w, h) {
@@ -108,6 +134,9 @@ class WorkoutApp {
         $('#btn-skip').on('click', () => this.skipExercise());
         $('#btn-exit-workout').on('click', () => this.exitWorkout());
         $('#btn-finish').on('click', () => this.switchScreen('screen-home'));
+        $('#btn-view-history').on('click', () => this.viewHistory());
+        $('#btn-history-back').on('click', () => this.switchScreen('screen-home'));
+        $('#btn-share').on('click', () => this.shareResults());
     }
 
     switchScreen(id) {
@@ -152,6 +181,71 @@ class WorkoutApp {
         const factor = this.userData.intensity === 'low' ? 4 : (this.userData.intensity === 'moderate' ? 6 : 8);
         const est = Math.round(factor * this.userData.weight * (25 / 60));
         $('#est-calories').text(est + " kcal");
+
+        this.renderWeeklyChart();
+    }
+
+    viewHistory() {
+        const container = $('#history-list');
+        container.empty();
+
+        const logs = [...(this.userData.logs || [])].reverse();
+        if (logs.length === 0) {
+            container.append('<p class="text-center text-gray-500 mt-10">No workouts logged yet.</p>');
+        } else {
+            logs.forEach(log => {
+                const date = new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const card = $(`
+                    <div class="glass p-4 rounded-2xl flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-emerald-400 font-bold uppercase tracking-widest">${log.intensity} Session</p>
+                            <p class="font-bold">${date}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-black">${Math.round(log.calories)} kcal</p>
+                            <p class="text-xs text-gray-500">${Math.floor(log.duration / 60)}m ${log.duration % 60}s</p>
+                        </div>
+                    </div>
+                `);
+                container.append(card);
+            });
+        }
+        this.switchScreen('screen-history');
+    }
+
+    shareResults() {
+        const text = `🔥 I just crushed a ${Math.floor(this.totalTimeSpent / 60)}m workout on DailyBurn! Burned ${Math.round(this.totalCalories)} kcal. #Fitness #DailyBurn`;
+        if (navigator.share) {
+            navigator.share({ title: 'Workout Complete', text: text, url: window.location.href });
+        } else {
+            navigator.clipboard.writeText(text).then(() => alert('Results copied to clipboard!'));
+        }
+    }
+
+    renderWeeklyChart() {
+        const stats = DataManager.getWeeklyStats(this.userData.logs || []);
+        const max = Math.max(...stats, 1);
+        const container = $('#weekly-bars');
+        container.empty();
+
+        const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+        const todayIdx = (new Date().getDay() + 6) % 7; // Convert Sun-Sat (0-6) to Mon-Sun (0-6)
+
+        stats.forEach((count, i) => {
+            const height = (count / max) * 100;
+            const isToday = i === 6;
+            const bar = $(`
+                <div class="flex-1 flex flex-col items-center gap-2">
+                    <div class="w-full bg-emerald-500/10 rounded-t-lg relative group flex items-end justify-center" style="height: 100px">
+                        <div class="w-full bg-emerald-500 rounded-t-lg transition-all duration-1000 ${isToday ? 'shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'opacity-40'}" 
+                             style="height: 0%"></div>
+                    </div>
+                    <span class="text-[10px] ${isToday ? 'text-emerald-500 font-black' : 'text-gray-500 font-bold'}">${days[(new Date().getDay() + i + 1) % 7]}</span>
+                </div>
+            `);
+            container.append(bar);
+            setTimeout(() => bar.find('.bg-emerald-500').css('height', `${Math.max(height, 5)}%`), 100);
+        });
     }
 
     buildWorkout() {
@@ -306,8 +400,15 @@ class WorkoutApp {
         clearInterval(this.mainTimer);
         this.completeSound();
 
-        this.userData.history = (this.userData.history || 0) + 1;
-        DataManager.saveUserData(this.userData);
+        // Log the workout
+        const newLog = {
+            date: new Date().toISOString(),
+            duration: this.totalTimeSpent,
+            calories: Math.round(this.totalCalories),
+            intensity: this.userData.intensity
+        };
+        DataManager.addLog(this.userData, newLog);
+
         $('#stat-count').text(this.userData.history);
 
         $('#summary-time').text(`${Math.floor(this.totalTimeSpent / 60)}:${(this.totalTimeSpent % 60).toString().padStart(2, '0')}`);
