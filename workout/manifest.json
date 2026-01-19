@@ -1,12 +1,20 @@
 {
-  "name": "DailyBurn - Guided Home Workout",
+  "name": "DailyBurn - AI Guided Home Workout",
   "short_name": "DailyBurn",
-  "description": "Premium AI-guided home workouts with voice guidance and real-time tracking.",
-  "start_url": "index.html",
+  "description": "Premium AI-guided home workouts with voice coaching, real-time tracking, streak rewards, and personalized fitness routines. Transform your body at home.",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#10b981",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": [
+    "fitness",
+    "health",
+    "lifestyle"
+  ],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "icon-192.png",
@@ -17,7 +25,25 @@
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Start Workout",
+      "short_name": "Workout",
+      "description": "Begin your daily workout session",
+      "url": "./index.html#start",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

@@ -5,17 +5,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DailyBurn - AI Guided Home Workout</title>
+    <meta name="description"
+        content="Premium AI-guided home workouts with voice coaching, real-time tracking, and personalized fitness routines. Transform your body at home.">
+    <meta name="keywords" content="workout, fitness, home exercise, HIIT, cardio, strength training">
+    <meta name="author" content="DailyBurn">
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" href="icon-192.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <!-- Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Custom Styles -->
@@ -24,54 +42,97 @@
 
 <body class="antialiased">
 
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Timeline Overlay -->
+    <div id="timeline-overlay" class="timeline-overlay"></div>
+
     <!-- Screen 1: Profile Initialization -->
     <div id="screen-profile" class="screen active items-center justify-center p-6">
-        <div class="max-w-md w-full glass rounded-3xl p-8 space-y-8">
-            <div class="text-center">
-                <h1 class="text-4xl font-extrabold gradient-text mb-2">DailyBurn</h1>
-                <p class="text-gray-400">Personalize your fitness journey</p>
+        <div class="max-w-md w-full glass-elevated rounded-3xl p-8 space-y-8">
+            <!-- Logo & Welcome -->
+            <div class="text-center space-y-3">
+                <div
+                    class="w-20 h-20 bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <h1 class="text-4xl font-black gradient-text">DailyBurn</h1>
+                <p class="text-gray-400">Let's personalize your fitness journey</p>
             </div>
 
-            <div class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-sm font-semibold text-gray-300 ml-1">Name</label>
-                    <input type="text" id="input-name" placeholder="Your Name"
-                        class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xl focus:outline-none focus:border-emerald-500 transition-colors">
+            <!-- Form -->
+            <div class="space-y-5">
+                <div>
+                    <label for="input-name" class="input-label">Your Name</label>
+                    <input type="text" id="input-name" placeholder="Enter your name" class="input-field">
                 </div>
-                <div class="space-y-2">
-                    <label class="text-sm font-semibold text-gray-300 ml-1">Weight (kg)</label>
-                    <input type="number" id="input-weight" placeholder="e.g. 70"
-                        class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xl focus:outline-none focus:border-emerald-500 transition-colors">
-                </div>
-                <div class="space-y-2">
-                    <label class="text-sm font-semibold text-gray-300 ml-1">Height (cm)</label>
-                    <input type="number" id="input-height" placeholder="e.g. 175"
-                        class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xl focus:outline-none focus:border-emerald-500 transition-colors">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="input-weight" class="input-label">Weight (kg)</label>
+                        <input type="number" id="input-weight" placeholder="70" class="input-field" min="30" max="300">
+                    </div>
+                    <div>
+                        <label for="input-height" class="input-label">Height (cm)</label>
+                        <input type="number" id="input-height" placeholder="175" class="input-field" min="100"
+                            max="250">
+                    </div>
                 </div>
             </div>
 
+            <!-- Get Started Button -->
             <button id="btn-save-profile"
-                class="w-full btn-primary py-4 rounded-2xl text-xl font-bold shadow-lg shadow-emerald-500/20">
-                Get Started
+                class="w-full btn-primary py-4 rounded-2xl text-lg font-bold shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                <span>Get Started</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
             </button>
+
+            <!-- Features Preview -->
+            <div class="flex items-center justify-center gap-6 pt-4 border-t border-white/5">
+                <div class="text-center">
+                    <div class="text-2xl">🎯</div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold mt-1">Personalized</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl">🎙️</div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold mt-1">Voice Coach</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl">📊</div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold mt-1">Track Progress</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Screen 2: Home Dashboard -->
     <div id="screen-home" class="screen items-center p-6">
-        <header class="w-full flex justify-between items-center mb-8 pt-4">
+        <!-- Header -->
+        <header class="w-full flex justify-between items-center mb-6 pt-4">
             <div>
-                <h2 class="text-3xl font-bold">Hi, <span id="user-name-label" class="gradient-text">there</span>! 👋
-                </h2>
-                <p class="text-emerald-400 font-medium" id="user-intensity-label">Moderate Intensity</p>
-            </div>
-            <div class="flex gap-2">
-                <div class="flex flex-col items-end">
-                    <span class="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Completed</span>
-                    <span id="stat-count" class="text-xl font-bold text-white">0</span>
+                <div class="flex items-center gap-2">
+                    <h2 class="text-2xl font-bold">Hi, <span id="user-name-label" class="gradient-text">there</span>!
+                    </h2>
+                    <span class="text-2xl">👋</span>
                 </div>
-                <button id="btn-edit-profile" class="w-12 h-12 glass rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                <p class="text-emerald-400 font-medium text-sm mt-1" id="user-intensity-label">Moderate Intensity</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Streak Badge -->
+                <div id="streak-badge"
+                    class="hidden items-center gap-1 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 px-3 py-1.5 rounded-full">
+                    <span class="streak-fire">🔥</span>
+                    <span id="streak-count" class="text-sm font-bold text-orange-400">0</span>
+                </div>
+                <button id="btn-edit-profile" class="btn-icon w-11 h-11 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -80,86 +141,175 @@
             </div>
         </header>
 
-        <div class="w-full flex justify-end mb-4">
-            <button id="btn-view-history"
-                class="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                View History
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                        clip-rule="evenodd" />
-                </svg>
-            </button>
+        <!-- Quick Stats -->
+        <div class="w-full grid grid-cols-3 gap-3 mb-6">
+            <div class="glass rounded-2xl p-4 stat-card">
+                <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Completed</p>
+                <p id="stat-count" class="text-2xl font-black text-white mt-1">0</p>
+            </div>
+            <div class="glass rounded-2xl p-4 stat-card">
+                <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Kcal</p>
+                <p id="stat-total-calories" class="text-2xl font-black text-emerald-400 mt-1">0</p>
+            </div>
+            <div class="glass rounded-2xl p-4 stat-card">
+                <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Minutes</p>
+                <p id="stat-total-minutes" class="text-2xl font-black text-blue-400 mt-1">0</p>
+            </div>
         </div>
 
-        <div class="w-full space-y-6">
-            <div class="glass rounded-3xl p-6 relative overflow-hidden group">
+        <!-- Main Workout Card -->
+        <div class="w-full space-y-5">
+            <div class="glass-elevated rounded-3xl p-6 relative overflow-hidden group cursor-pointer"
+                id="workout-preview-card">
+                <!-- Background decoration -->
+                <div
+                    class="absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-full blur-3xl group-hover:opacity-80 transition-opacity">
+                </div>
+
                 <div class="relative z-10">
-                    <h3 class="text-2xl font-bold mb-2">Daily Routine</h3>
-                    <p class="text-gray-400 mb-6">A complete 25-min session designed for your body type.</p>
-                    <div class="flex gap-4">
-                        <div class="flex flex-col">
-                            <span class="text-xs text-gray-500 uppercase tracking-wider">Duration</span>
-                            <span class="font-bold">25 Min</span>
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-2xl font-bold mb-1">Daily Routine</h3>
+                            <p class="text-gray-400 text-sm">A complete session for your body type</p>
                         </div>
-                        <div class="w-px h-8 bg-white/10 self-center"></div>
-                        <div class="flex flex-col">
-                            <span class="text-xs text-gray-500 uppercase tracking-wider">Estimated Burn</span>
-                            <span class="font-bold text-emerald-400" id="est-calories">180 kcal</span>
+                        <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
                     </div>
-                </div>
-                <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <svg width="160" height="160" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M21 12l-18 10V2l18 10z" />
-                    </svg>
+                    <div class="flex gap-6">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Duration</span>
+                            <span class="font-bold text-lg">~25 Min</span>
+                        </div>
+                        <div class="w-px h-10 bg-white/10 self-center"></div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Est. Burn</span>
+                            <span class="font-bold text-lg text-emerald-400" id="est-calories">180 kcal</span>
+                        </div>
+                        <div class="w-px h-10 bg-white/10 self-center"></div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Exercises</span>
+                            <span class="font-bold text-lg" id="est-exercises">24</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <button id="btn-start-workout"
-                class="w-full btn-primary py-5 rounded-3xl text-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/30">
-                Start Workout
+                class="w-full btn-primary py-5 rounded-3xl text-xl font-black uppercase tracking-wider shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                </svg>
+                <span>Start Workout</span>
             </button>
         </div>
 
-        <section class="w-full mt-10">
-            <h4 class="text-xl font-bold mb-4">Weekly Activity</h4>
-            <div id="weekly-bars" class="glass rounded-3xl p-6 flex items-end justify-between h-40 gap-2">
+        <!-- Weekly Activity -->
+        <section class="w-full mt-8">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-bold">Weekly Activity</h4>
+                <button id="btn-view-history"
+                    class="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1 hover:text-emerald-300 transition-colors">
+                    View History
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <div id="weekly-bars" class="glass rounded-3xl p-6 flex items-end justify-between h-44 gap-2">
                 <!-- Dynamic Bars -->
             </div>
         </section>
 
-        <section class="w-full mt-10">
-            <h4 class="text-xl font-bold mb-4">The Routine</h4>
-            <div class="space-y-4">
-                <div class="flex items-center gap-4 p-4 glass rounded-2xl">
+        <!-- Routine Overview -->
+        <section class="w-full mt-8">
+            <h4 class="text-lg font-bold mb-4">Today's Routine</h4>
+            <div class="space-y-3">
+                <div class="flex items-center gap-4 p-4 glass rounded-2xl exercise-card">
                     <div
-                        class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 font-bold">
+                        class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 font-bold text-lg">
                         1</div>
-                    <div>
+                    <div class="flex-1">
                         <p class="font-bold">Warmup</p>
-                        <p class="text-sm text-gray-500">5 Mins • Mobility</p>
+                        <p class="text-sm text-gray-500">5 Mins • Mobility & Activation</p>
+                    </div>
+                    <div class="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clip-rule="evenodd" />
+                        </svg>
                     </div>
                 </div>
-                <div class="flex items-center gap-4 p-4 glass rounded-2xl">
+                <div class="flex items-center gap-4 p-4 glass rounded-2xl exercise-card">
                     <div
-                        class="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold">
+                        class="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-lg">
                         2</div>
-                    <div>
+                    <div class="flex-1">
                         <p class="font-bold">Main Circuit</p>
-                        <p class="text-sm text-gray-500">15 Mins • High Energy</p>
+                        <p class="text-sm text-gray-500">15 Mins • High Energy × 2 Rounds</p>
+                    </div>
+                    <div class="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clip-rule="evenodd" />
+                        </svg>
                     </div>
                 </div>
-                <div class="flex items-center gap-4 p-4 glass rounded-2xl">
+                <div class="flex items-center gap-4 p-4 glass rounded-2xl exercise-card">
                     <div
-                        class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 font-bold">
+                        class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 font-bold text-lg">
                         3</div>
-                    <div>
+                    <div class="flex-1">
                         <p class="font-bold">Cool Down</p>
-                        <p class="text-sm text-gray-500">5 Mins • Stretching</p>
+                        <p class="text-sm text-gray-500">5 Mins • Stretching & Recovery</p>
+                    </div>
+                    <div class="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clip-rule="evenodd" />
+                        </svg>
                     </div>
                 </div>
             </div>
+        </section>
+
+        <!-- Data Management -->
+        <section class="w-full mt-8 pb-8">
+            <div class="flex gap-3">
+                <button id="btn-export-data"
+                    class="flex-1 btn-secondary py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Export
+                </button>
+                <button id="btn-import-data"
+                    class="flex-1 btn-secondary py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Import
+                </button>
+            </div>
+            <input type="file" id="import-file-input" accept=".json" class="hidden">
         </section>
     </div>
 
@@ -168,18 +318,17 @@
         <!-- Top Nav -->
         <div class="w-full pt-4">
             <div class="flex justify-between items-center mb-4">
-                <button id="btn-exit-workout" class="text-gray-500 font-bold px-2">Exit</button>
+                <button id="btn-exit-workout"
+                    class="text-gray-500 font-bold text-sm hover:text-white transition-colors">Exit</button>
                 <div class="flex items-center gap-3">
-                    <button id="btn-timeline"
-                        class="w-8 h-8 glass rounded-full flex items-center justify-center text-gray-400">
+                    <button id="btn-timeline" class="btn-icon w-9 h-9 rounded-full text-gray-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <button id="btn-voice-toggle"
-                        class="w-8 h-8 glass rounded-full flex items-center justify-center text-emerald-400">
+                    <button id="btn-voice-toggle" class="btn-icon w-9 h-9 rounded-full text-emerald-400">
                         <svg id="icon-voice-on" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -198,59 +347,70 @@
                         Warmup
                     </div>
                 </div>
-                <div class="w-8"></div>
+                <div class="w-9"></div>
             </div>
             <!-- Global Progress Bar -->
-            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
-                <div id="global-progress" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%">
-                </div>
+            <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden mb-2">
+                <div id="global-progress"
+                    class="h-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-500"
+                    style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-gray-500 font-bold">
+                <span id="progress-current">1</span>
+                <span id="progress-total">/ 24</span>
             </div>
         </div>
 
         <!-- Timer Circle -->
-        <div class="relative flex items-center justify-center my-8">
-            <svg class="w-64 h-64">
+        <div class="relative flex items-center justify-center my-6">
+            <svg class="w-64 h-64" viewBox="0 0 256 256">
                 <circle cx="128" cy="128" r="120" stroke="currentColor" stroke-width="8" fill="transparent"
                     class="text-white/5" />
                 <circle id="timer-progress" cx="128" cy="128" r="120" stroke="currentColor" stroke-width="8"
                     fill="transparent" stroke-dasharray="753.98" stroke-dashoffset="0"
-                    class="progress-ring text-emerald-400" />
+                    class="progress-ring text-emerald-400" stroke-linecap="round" />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
                 <span id="timer-display" class="text-7xl font-black tabular-nums">00:45</span>
                 <span id="exercise-type-label"
                     class="text-emerald-500 uppercase font-bold tracking-widest text-xs mt-2">Work</span>
-                <!-- Mock Heart Rate -->
-                <div class="mt-4 flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full">
-                    <svg class="w-3 h-3 text-rose-500 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                <!-- Heart Rate Display -->
+                <div class="mt-4 flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full">
+                    <svg class="w-4 h-4 text-rose-500 heartbeat" fill="currentColor" viewBox="0 0 24 24">
                         <path
                             d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                     </svg>
-                    <span id="mock-hr" class="text-xs font-bold text-gray-300 tabular-nums">128 BPM</span>
+                    <span id="mock-hr" class="text-sm font-bold text-gray-300 tabular-nums">-- BPM</span>
                 </div>
             </div>
         </div>
 
         <!-- Exercise Info -->
         <div class="w-full text-center space-y-4">
-            <h2 id="current-exercise-name" class="text-4xl font-extrabold px-4">Jumping Jacks</h2>
-            <p id="exercise-tip" class="text-gray-400 px-8 text-sm italic">"Keep your core engaged and land softly on
-                your toes."</p>
+            <h2 id="current-exercise-name" class="text-4xl font-extrabold px-4 leading-tight">Jumping Jacks</h2>
+            <p id="exercise-tip" class="text-gray-400 px-8 text-sm italic max-w-sm mx-auto">"Keep your core engaged and
+                land softly on your toes."</p>
         </div>
 
         <!-- Next Up -->
-        <div class="w-full glass rounded-3xl p-4 mt-8 flex items-center gap-4">
-            <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-xs text-gray-500">Next
+        <div class="w-full glass rounded-3xl p-4 mt-6 flex items-center gap-4">
+            <div
+                class="w-14 h-14 bg-gradient-to-br from-white/5 to-white/10 rounded-2xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
             </div>
             <div class="flex-1">
-                <p class="text-xs text-gray-500 uppercase font-bold">Coming Up Next</p>
-                <p id="next-exercise-name" class="font-bold">Mountain Climbers</p>
+                <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Coming Up Next</p>
+                <p id="next-exercise-name" class="font-bold text-lg">Mountain Climbers</p>
             </div>
         </div>
 
         <!-- Controls -->
-        <div class="w-full flex items-center justify-center gap-8 mt-8">
-            <button id="btn-skip" class="w-14 h-14 glass rounded-full flex items-center justify-center text-gray-400">
+        <div class="w-full flex items-center justify-center gap-6 mt-6 pb-4">
+            <button id="btn-skip" class="btn-icon w-14 h-14 rounded-full text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
                 </svg>
@@ -266,46 +426,57 @@
                     <path d="M8 5v14l11-7z" />
                 </svg>
             </button>
-            <div class="w-14 h-14"></div> <!-- Spacer for symmetry -->
+            <button id="btn-add-time" class="btn-icon w-14 h-14 rounded-full text-gray-400" title="Add 10 seconds">
+                <span class="text-xs font-bold">+10s</span>
+            </button>
         </div>
     </div>
 
     <!-- Screen 4: Summary Screen -->
-    <div id="screen-summary" class="screen items-center justify-center p-6 bg-[#000]">
-        <div class="w-full max-w-md text-center space-y-10">
-            <div class="space-y-2">
-                <div class="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-emerald-400" fill="none"
+    <div id="screen-summary" class="screen items-center justify-center p-6">
+        <div class="w-full max-w-md text-center space-y-8">
+            <!-- Success Badge -->
+            <div class="space-y-4">
+                <div
+                    class="w-28 h-28 bg-gradient-to-br from-emerald-500/30 to-blue-500/30 rounded-full flex items-center justify-center mx-auto bounce-in border-2 border-emerald-500/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-emerald-400" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
-                <h1 class="text-4xl font-black">Workout Complete!</h1>
-                <p class="text-gray-400">Amazing job on today's session.</p>
+                <h1 class="text-4xl font-black gradient-text">Workout Complete!</h1>
+                <p class="text-gray-400">You crushed it! 💪</p>
             </div>
 
+            <!-- Achievement Badge (conditional) -->
+            <div id="achievement-container" class="hidden">
+                <!-- Dynamic achievement badge -->
+            </div>
+
+            <!-- Stats Grid -->
             <div class="grid grid-cols-2 gap-4">
-                <div class="glass p-6 rounded-3xl">
-                    <p class="text-sm text-gray-500 uppercase font-bold mb-1">Time Spent</p>
-                    <p id="summary-time" class="text-3xl font-black text-emerald-400">25:00</p>
+                <div class="glass-elevated p-6 rounded-3xl stat-card">
+                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Time Spent</p>
+                    <p id="summary-time" class="text-4xl font-black text-emerald-400">25:00</p>
                 </div>
-                <div class="glass p-6 rounded-3xl">
-                    <p class="text-sm text-gray-500 uppercase font-bold mb-1">Calories</p>
-                    <p id="summary-calories" class="text-3xl font-black text-blue-400">210</p>
+                <div class="glass-elevated p-6 rounded-3xl stat-card">
+                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Calories</p>
+                    <p id="summary-calories" class="text-4xl font-black text-blue-400">210</p>
                 </div>
             </div>
 
             <!-- Muscle Breakdown -->
-            <div class="glass rounded-3xl p-6 text-left space-y-4">
+            <div class="glass-elevated rounded-3xl p-6 text-left space-y-4">
                 <h3 class="text-xs uppercase font-black text-gray-500 tracking-widest">Focus Areas</h3>
                 <div id="muscle-breakdown" class="space-y-4">
                     <!-- Dynamic Bars -->
                 </div>
             </div>
 
-            <div class="flex gap-4 mt-8">
+            <!-- Action Buttons -->
+            <div class="flex gap-4 pt-4">
                 <button id="btn-share"
-                    class="flex-1 glass py-5 rounded-3xl text-xl font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                    class="flex-1 btn-secondary py-5 rounded-3xl text-lg font-bold flex items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path
                             d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
@@ -313,7 +484,7 @@
                     Share
                 </button>
                 <button id="btn-finish"
-                    class="flex-[2] btn-primary py-5 rounded-3xl text-xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/30">
+                    class="flex-[2] btn-primary py-5 rounded-3xl text-lg font-black uppercase tracking-wide shadow-xl shadow-emerald-500/30">
                     Go Home
                 </button>
             </div>
@@ -322,34 +493,46 @@
 
     <!-- Screen 5: History -->
     <div id="screen-history" class="screen p-6">
-        <header class="w-full flex justify-between items-center mb-8 pt-4">
-            <button id="btn-history-back" class="w-10 h-10 glass rounded-full flex items-center justify-center">
+        <header class="w-full flex justify-between items-center mb-6 pt-4">
+            <button id="btn-history-back" class="btn-icon w-11 h-11 rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="3">
+                    stroke="currentColor" stroke-width="2.5">
                     <path d="M15 18l-6-6 6-6" />
                 </svg>
             </button>
-            <h2 class="text-xl font-bold uppercase tracking-widest text-[#fff]">History</h2>
-            <div class="w-10"></div>
+            <h2 class="text-lg font-bold uppercase tracking-widest">Workout History</h2>
+            <div class="w-11"></div>
         </header>
 
-        <div id="history-list" class="space-y-4">
+        <!-- History Stats Summary -->
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="glass rounded-2xl p-4">
+                <p class="text-[10px] text-gray-500 uppercase font-bold">This Week</p>
+                <p id="history-week-count" class="text-2xl font-black text-emerald-400 mt-1">0 workouts</p>
+            </div>
+            <div class="glass rounded-2xl p-4">
+                <p class="text-[10px] text-gray-500 uppercase font-bold">This Month</p>
+                <p id="history-month-count" class="text-2xl font-black text-blue-400 mt-1">0 workouts</p>
+            </div>
+        </div>
+
+        <div id="history-list" class="space-y-3 pb-8">
             <!-- Dynamic History Cards -->
         </div>
     </div>
 
     <!-- Timeline Drawer -->
     <div id="timeline-drawer" class="p-6 overflow-y-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h3 class="text-xl font-bold uppercase tracking-widest">Routine</h3>
-            <button id="btn-close-timeline" class="text-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold uppercase tracking-widest">Routine</h3>
+            <button id="btn-close-timeline" class="btn-icon w-9 h-9 rounded-full text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
-        <div id="timeline-content" class="space-y-6">
+        <div id="timeline-content" class="space-y-5">
             <!-- Dynamic Content -->
         </div>
     </div>
