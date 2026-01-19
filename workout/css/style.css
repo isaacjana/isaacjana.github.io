@@ -54,6 +54,7 @@ body {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -72,16 +73,89 @@ body {
     animation: pulse-blue 3s infinite;
 }
 
+/* Timeline Drawer */
+#timeline-drawer {
+    position: fixed;
+    right: -100%;
+    top: 0;
+    width: 80%;
+    max-width: 350px;
+    height: 100vh;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(20px);
+    z-index: 100;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#timeline-drawer.open {
+    right: 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 1.5rem;
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.timeline-item.active {
+    border-left-color: #10b981;
+}
+
+.timeline-item.active::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #10b981;
+}
+
+/* Muscle Progress */
+.muscle-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.muscle-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #34d399, #3b82f6);
+    width: 0%;
+    transition: width 1s ease-out;
+}
+
 @keyframes pulse-blue {
-    0% { background-color: #0a0a0a; }
-    50% { background-color: #06111f; }
-    100% { background-color: #0a0a0a; }
+    0% {
+        background-color: #0a0a0a;
+    }
+
+    50% {
+        background-color: #06111f;
+    }
+
+    100% {
+        background-color: #0a0a0a;
+    }
 }
 
 @keyframes pulse-work {
-    0% { background-color: #0a0a0a; }
-    50% { background-color: #05140f; }
-    100% { background-color: #0a0a0a; }
+    0% {
+        background-color: #0a0a0a;
+    }
+
+    50% {
+        background-color: #05140f;
+    }
+
+    100% {
+        background-color: #0a0a0a;
+    }
 }
 
 .work-mode {
@@ -89,9 +163,20 @@ body {
 }
 
 @keyframes pulse-ring {
-    0% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.05); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 0.5; }
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
 }
 
 /* Custom Scrollbar */

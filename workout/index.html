@@ -186,6 +186,14 @@
             <div class="flex justify-between items-center mb-4">
                 <button id="btn-exit-workout" class="text-gray-500 font-bold px-2">Exit</button>
                 <div class="flex items-center gap-3">
+                    <button id="btn-timeline"
+                        class="w-8 h-8 glass rounded-full flex items-center justify-center text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
                     <button id="btn-voice-toggle"
                         class="w-8 h-8 glass rounded-full flex items-center justify-center text-emerald-400">
                         <svg id="icon-voice-on" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -303,10 +311,34 @@
                 </div>
             </div>
 
+            <!-- Muscle Breakdown -->
+            <div class="glass rounded-3xl p-6 text-left space-y-4">
+                <h3 class="text-xs uppercase font-black text-gray-500 tracking-widest">Focus Areas</h3>
+                <div id="muscle-breakdown" class="space-y-4">
+                    <!-- Dynamic Bars -->
+                </div>
+            </div>
+
             <button id="btn-finish"
                 class="w-full btn-primary py-5 rounded-3xl text-xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/30 mt-8">
                 Go Home
             </button>
+        </div>
+    </div>
+
+    <!-- Timeline Drawer -->
+    <div id="timeline-drawer" class="p-6 overflow-y-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h3 class="text-xl font-bold uppercase tracking-widest">Routine</h3>
+            <button id="btn-close-timeline" class="text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="timeline-content" class="space-y-6">
+            <!-- Dynamic Content -->
         </div>
     </div>
 

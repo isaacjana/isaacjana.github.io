@@ -102,6 +102,8 @@ class WorkoutApp {
             const isEnabled = this.speechManager.toggle();
             $('#icon-voice-on, #icon-voice-off').toggleClass('hidden');
         });
+        $('#btn-timeline').on('click', () => $('#timeline-drawer').addClass('open'));
+        $('#btn-close-timeline').on('click', () => $('#timeline-drawer').removeClass('open'));
         $('#btn-play-pause').on('click', () => this.togglePlayPause());
         $('#btn-skip').on('click', () => this.skipExercise());
         $('#btn-exit-workout').on('click', () => this.exitWorkout());
@@ -179,8 +181,26 @@ class WorkoutApp {
         this.totalTimeSpent = 0;
         this.totalCalories = 0;
         this.isPaused = false;
+
+        this.renderTimeline();
         this.switchScreen('screen-workout');
         this.loadExercise(0);
+    }
+
+    renderTimeline() {
+        const container = $('#timeline-content');
+        container.empty();
+        this.currentWorkout.forEach((ex, idx) => {
+            if (ex.type === 'Rest' && ex.name === 'Rest') return; // Skip minor rests in timeline for clarity
+            const item = $(`
+                <div class="timeline-item" id="tl-item-${idx}">
+                    <p class="text-xs text-gray-500 font-bold uppercase tracking-tighter">${ex.phase}</p>
+                    <p class="font-bold text-white">${ex.name}</p>
+                    <p class="text-[10px] text-emerald-500">${ex.duration}s • ${ex.category || 'N/A'}</p>
+                </div>
+            `);
+            container.append(item);
+        });
     }
 
     loadExercise(index) {
@@ -200,6 +220,10 @@ class WorkoutApp {
 
         const nextEx = this.currentWorkout[index + 1];
         $('#next-exercise-name').text(nextEx ? nextEx.name : "Finishing Up!");
+
+        // Update Timeline visual
+        $('.timeline-item').removeClass('active');
+        $(`#tl-item-${index}`).addClass('active');
 
         if (ex.type === 'Rest') {
             $('#screen-workout').removeClass('work-mode').addClass('pulse-rest');
@@ -289,8 +313,40 @@ class WorkoutApp {
         $('#summary-time').text(`${Math.floor(this.totalTimeSpent / 60)}:${(this.totalTimeSpent % 60).toString().padStart(2, '0')}`);
         $('#summary-calories').text(Math.round(this.totalCalories));
 
+        this.renderMuscleBreakdown();
         this.switchScreen('screen-summary');
         this.triggerConfetti();
+    }
+
+    renderMuscleBreakdown() {
+        const stats = { Upper: 0, Lower: 0, Core: 0, Cardio: 0 };
+        this.currentWorkout.forEach(ex => {
+            if (ex.type === 'Work' && ex.category) {
+                stats[ex.category] += ex.duration;
+            }
+        });
+
+        const total = Object.values(stats).reduce((a, b) => a + b, 0);
+        const container = $('#muscle-breakdown');
+        container.empty();
+
+        Object.entries(stats).forEach(([muscle, count]) => {
+            if (count === 0) return;
+            const percent = Math.round((count / total) * 100);
+            const row = $(`
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                        <span>${muscle}</span>
+                        <span class="text-emerald-400">${percent}%</span>
+                    </div>
+                    <div class="muscle-bar">
+                        <div class="muscle-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            `);
+            container.append(row);
+            setTimeout(() => row.find('.muscle-fill').css('width', `${percent}%`), 100);
+        });
     }
 
     triggerConfetti() {
