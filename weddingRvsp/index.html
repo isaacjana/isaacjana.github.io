@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 </head>
+
 <body>
 
     <!-- Cinematic Loader -->
@@ -32,8 +34,10 @@
         <!-- Gallery / Visual Section -->
         <section style="background: var(--secondary); height: 70vh;">
             <div style="text-align: center; max-width: 600px;">
-                <h2 class="serif" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 30px;">Our Journey</h2>
-                <p class="fade-up">"Love is not finding someone to live with; it's finding someone you can't live without."</p>
+                <h2 class="serif" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 30px;">Our Journey
+                </h2>
+                <p class="fade-up">"Love is not finding someone to live with; it's finding someone you can't live
+                    without."</p>
             </div>
         </section>
 
@@ -41,8 +45,9 @@
         <section class="rsvp-section" id="rsvp">
             <div class="rsvp-card fade-up">
                 <h2 class="serif" style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">RSVP</h2>
-                <p style="text-align: center; margin-bottom: 3rem; color: var(--accent);">Please respond by May 15, 2026</p>
-                
+                <p style="text-align: center; margin-bottom: 3rem; color: var(--accent);">Please respond by May 15, 2026
+                </p>
+
                 <form id="rsvp-form">
                     <div class="form-group">
                         <label>Full Name</label>
@@ -68,15 +73,29 @@
             </div>
         </section>
 
-        <!-- Admin Dashboard (Conditional) -->
+        <!-- Admin Dashboard -->
         <div id="admin-view" class="admin-view" style="display: none;">
-            <h2 class="serif" style="font-size: 3rem; color: var(--primary); border-bottom: 1px solid var(--primary); padding-bottom: 1rem;">Guest Management</h2>
-            <div id="stats" style="margin-top: 2rem; display: flex; gap: 2rem;">
-                <div class="guest-card">Total Guests: <span id="total-guests">0</span></div>
-                <div class="guest-card">Attending: <span id="total-attending">0</span></div>
+            <div id="admin-login-section" style="text-align: center; padding: 4rem;">
+                <h2 class="serif" style="font-size: 3rem; color: var(--primary); margin-bottom: 2rem;">Admin Access</h2>
+                <p style="margin-bottom: 2rem; opacity: 0.8;">Please sign in with your authorized Google account to view
+                    RSVPs.</p>
+                <button class="cta-button" id="login-btn">Sign in with Google</button>
             </div>
-            <div class="rsvp-list" id="rsvp-list">
-                <!-- Records will be injected here -->
+
+            <div id="admin-content" style="display: none;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--primary); padding-bottom: 1rem;">
+                    <h2 class="serif" style="font-size: 2.5rem; color: var(--primary);">Guest Management</h2>
+                    <button id="logout-btn"
+                        style="background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 0.5rem 1.5rem; border-radius: 20px; cursor: pointer;">Logout</button>
+                </div>
+                <div id="stats" style="margin-top: 2rem; display: flex; gap: 2rem;">
+                    <div class="guest-card">Total Records: <span id="total-guests">0</span></div>
+                    <div class="guest-card">Attending Guests: <span id="total-attending">0</span></div>
+                </div>
+                <div class="rsvp-list" id="rsvp-list">
+                    <!-- Records will be injected here -->
+                </div>
             </div>
         </div>
 
@@ -94,4 +113,5 @@
         }
     </script>
 </body>
+
 </html>

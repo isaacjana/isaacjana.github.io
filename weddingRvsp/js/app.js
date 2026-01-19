@@ -1,10 +1,13 @@
-import { db, collection, addDoc, onSnapshot, query, orderBy } from './firebase-config.js';
+import { db, auth, provider, signInWithPopup, onAuthStateChanged, signOut, collection, addDoc, onSnapshot, query, orderBy } from './firebase-config.js';
 
 window.addEventListener('load', () => {
     initAnimations();
     initRSVP();
     checkAdminMode();
 });
+
+// Authorized Email
+const ADMIN_EMAIL = "isaacjana.h@gmail.com";
 
 // 1. Entrance Animations
 function initAnimations() {
@@ -84,7 +87,7 @@ function initRSVP() {
     });
 }
 
-// 3. Admin Dashboard
+// 3. Admin Dashboard & Auth
 function checkAdminMode() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('admin')) {
@@ -93,8 +96,42 @@ function checkAdminMode() {
         document.getElementById('home').style.display = 'none';
         document.querySelector('.rsvp-section').style.display = 'none';
         document.getElementById('main-content').style.opacity = '1';
-        loadRSVPs();
+
+        initAdminAuth();
     }
+}
+
+function initAdminAuth() {
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginSection = document.getElementById('admin-login-section');
+    const adminContent = document.getElementById('admin-content');
+
+    loginBtn.addEventListener('click', async () => {
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error) {
+            console.error("Login failed:", error);
+            alert("Login failed. Please use a Google account.");
+        }
+    });
+
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    onAuthStateChanged(auth, (user) => {
+        if (user && user.email === ADMIN_EMAIL) {
+            loginSection.style.display = 'none';
+            adminContent.style.display = 'block';
+            loadRSVPs();
+        } else {
+            if (user) {
+                alert("Unauthorized. Please login with " + ADMIN_EMAIL);
+                signOut(auth);
+            }
+            loginSection.style.display = 'block';
+            adminContent.style.display = 'none';
+        }
+    });
 }
 
 function loadRSVPs() {
@@ -127,15 +164,18 @@ function loadRSVPs() {
             `;
             rsvpList.appendChild(card);
 
+            total += 1;
             if (data.attendance === 'attending') {
-                total += 1;
                 attending += data.guests;
-            } else {
-                total += 1;
             }
         });
 
         totalGuestsEl.innerText = total;
         totalAttendingEl.innerText = attending;
+    }, (error) => {
+        console.error("Firestore Listen Error:", error);
+        if (error.code === 'permission-denied') {
+            alert("Permission denied. Ensure your Firestore rules are updated.");
+        }
     });
 }
