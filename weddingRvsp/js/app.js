@@ -34,10 +34,54 @@ async function loadEvent(slug) {
     currentClientId = clientDoc.id;
     currentClientData = clientDoc.data();
 
+    // Check for "special access" or existing session
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCode = urlParams.get('code');
+    const skipAuth = sessionStorage.getItem(`auth_${currentClientId}`);
+
+    if (urlCode) {
+        verifyAccessCode(urlCode);
+    } else if (skipAuth) {
+        initInvitationExperience();
+    } else {
+        showGuestAuth();
+    }
+}
+
+function showGuestAuth() {
+    document.getElementById('guest-auth').style.display = 'flex';
+    document.getElementById('btn-verify-code').onclick = () => {
+        const code = document.getElementById('access-code').value;
+        verifyAccessCode(code);
+    };
+}
+
+async function verifyAccessCode(code) {
+    if (!code) return;
+    const q = query(collection(db, "clients", currentClientId, "invites"), where("code", "==", code));
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+        sessionStorage.setItem(`auth_${currentClientId}`, "true");
+        gsap.to("#guest-auth", {
+            opacity: 0, duration: 0.8, onComplete: () => {
+                document.getElementById('guest-auth').style.display = 'none';
+                initInvitationExperience();
+            }
+        });
+    } else {
+        const err = document.getElementById('auth-error');
+        err.style.display = 'block';
+        gsap.fromTo(err, { x: -10 }, { x: 10, repeat: 5, yoyo: true, duration: 0.1 });
+    }
+}
+
+function initInvitationExperience() {
     updateUIWithClientData(currentClientData);
     initAnimations();
     initRSVP();
     startCountdown(currentClientData.date);
+    initMaps(currentClientData.venue);
 }
 
 function updateUIWithClientData(data) {
@@ -46,6 +90,11 @@ function updateUIWithClientData(data) {
     document.getElementById('display-date').innerText = data.date;
     document.getElementById('display-venue').innerText = data.venue;
     document.getElementById('display-quote').innerText = data.quote || "";
+
+    // Set maps/location data
+    document.getElementById('loc-venue').innerText = data.venue;
+    document.getElementById('loc-address').innerText = data.venue;
+    document.getElementById('btn-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(data.venue)}`;
 
     // Registry & Accommodation Displays
     const registrySec = document.getElementById('registry-section');
@@ -200,6 +249,12 @@ function initAdminEvents() {
     document.getElementById('btn-close-modal').onclick = () => closeClientModal();
     document.getElementById('client-form').onsubmit = handleClientSubmit;
     document.getElementById('btn-back-to-clients').onclick = () => showTab('clients');
+    document.getElementById('nav-invites').onclick = () => showTab('invites');
+    document.getElementById('btn-back-to-clients-from-invites').onclick = () => showTab('clients');
+    document.getElementById('btn-add-invite').onclick = () => openInviteModal();
+    document.getElementById('btn-close-invite-modal').onclick = () => closeInviteModal();
+    document.getElementById('invite-form').onsubmit = handleInviteSubmit;
+
     document.getElementById('btn-export-csv').onclick = exportRSVPsToCSV;
 }
 
@@ -215,10 +270,11 @@ async function loadClients() {
                 <h3 class="serif">${data.names}</h3>
                 <p style="font-size: 0.8rem; opacity: 0.7;">Slug: ${data.slug}</p>
                 <div class="client-actions">
-                    <button class="btn-small" onclick="viewRSVPs('${doc.id}', '${data.names}')">View RSVPs</button>
+                    <button class="btn-small" onclick="viewRSVPs('${doc.id}', '${data.names}')">RSVPs</button>
+                    <button class="btn-small" onclick="viewInvites('${doc.id}', '${data.names}')">Invites</button>
                     <button class="btn-small" onclick="editClient('${doc.id}')">Edit</button>
                     <button class="btn-small" style="color: #e74c3c; border-color: #e74c3c;" onclick="deleteClient('${doc.id}')">Delete</button>
-                    <a href="?e=${data.slug}" target="_blank" class="btn-small" style="text-decoration:none;">Open Link</a>
+                    <a href="?e=${data.slug}" target="_blank" class="btn-small" style="text-decoration:none;">Open</a>
                 </div>
             `;
             clientList.appendChild(card);
@@ -232,6 +288,13 @@ window.viewRSVPs = async (id, names) => {
     document.getElementById('rsvp-view-title').innerText = `RSVPs: ${names}`;
     showTab('rsvps');
     loadRSVPsForClient(id);
+};
+
+window.viewInvites = async (id, names) => {
+    currentClientId = id;
+    document.getElementById('invite-view-title').innerText = `Invites: ${names}`;
+    showTab('invites');
+    loadInvitesForClient(id);
 };
 
 window.editClient = async (id) => {
@@ -312,7 +375,11 @@ function loadRSVPsForClient(id) {
 function showTab(tab) {
     document.getElementById('view-clients').style.display = tab === 'clients' ? 'block' : 'none';
     document.getElementById('view-rsvps').style.display = tab === 'rsvps' ? 'block' : 'none';
+    document.getElementById('view-invites').style.display = tab === 'invites' ? 'block' : 'none';
+
     document.getElementById('nav-clients').classList.toggle('active', tab === 'clients');
+    document.getElementById('nav-rsvps').style.display = tab !== 'clients' ? 'block' : 'none';
+    document.getElementById('nav-invites').style.display = tab !== 'clients' ? 'block' : 'none';
 }
 
 function openClientModal(isEdit = false) {
@@ -385,3 +452,101 @@ async function exportRSVPsToCSV() {
 
     showToast("CSV Downloaded!", "✅");
 }
+
+// --- NEW INVITE & MAPS LOGIC ---
+
+function initMaps(venue) {
+    const mapContainer = document.getElementById('map-container');
+    const iframe = document.createElement('iframe');
+    iframe.width = "100%";
+    iframe.height = "100%";
+    iframe.style.border = "0";
+    iframe.loading = "lazy";
+    iframe.allowFullscreen = true;
+    iframe.src = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY_HERE&q=${encodeURIComponent(venue)}`;
+    // Note: User needs to provide an API key for Embed API, or we use a simple search link:
+    iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(venue)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+    mapContainer.appendChild(iframe);
+}
+
+function openInviteModal(isEdit = false) {
+    document.getElementById('invite-modal').style.display = 'block';
+    if (!isEdit) {
+        document.getElementById('invite-form').reset();
+        document.getElementById('invite-id').value = "";
+    }
+}
+
+function closeInviteModal() {
+    document.getElementById('invite-modal').style.display = 'none';
+}
+
+async function handleInviteSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('invite-id').value;
+    const code = document.getElementById('invite-code').value || Math.floor(1000 + Math.random() * 9000).toString();
+
+    const data = {
+        name: document.getElementById('invite-name').value,
+        code: code,
+        createdAt: new Date().toISOString()
+    };
+
+    if (id) {
+        await setDoc(doc(db, "clients", currentClientId, "invites", id), data, { merge: true });
+    } else {
+        await addDoc(collection(db, "clients", currentClientId, "invites"), data);
+    }
+    closeInviteModal();
+}
+
+async function loadInvitesForClient(clientId) {
+    const inviteList = document.getElementById('invite-list');
+    onSnapshot(collection(db, "clients", clientId, "invites"), (snapshot) => {
+        inviteList.innerHTML = '';
+        snapshot.forEach(d => {
+            const data = d.data();
+            const card = document.createElement('div');
+            card.className = 'guest-card';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h3 class="serif">${data.name}</h3>
+                        <p style="color:var(--primary); font-weight:bold; font-size:1.2rem;">Code: ${data.code}</p>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="btn-small" onclick="generateQR('${data.code}', '${data.name}')">QR Code</button>
+                        <button class="btn-small" onclick="copyInviteLink('${data.code}')">Link</button>
+                        <button class="btn-small" style="color:red; border-color:red;" onclick="deleteInvite('${d.id}')">Del</button>
+                    </div>
+                </div>
+            `;
+            inviteList.appendChild(card);
+        });
+    });
+}
+
+window.copyInviteLink = (code) => {
+    const url = `${window.location.origin}${window.location.pathname}?e=${currentClientData.slug}&code=${code}`;
+    navigator.clipboard.writeText(url);
+    showToast("Link Copied!", "🔗");
+};
+
+window.generateQR = (code, name) => {
+    const url = `${window.location.origin}${window.location.pathname}?e=${currentClientData.slug}&code=${code}`;
+    const qrDiv = document.getElementById('qrcode');
+    qrDiv.innerHTML = '';
+    new QRCode(qrDiv, {
+        text: url,
+        width: 256,
+        height: 256
+    });
+    document.getElementById('qr-label').innerText = `Invite for: ${name}`;
+    document.getElementById('qr-modal').style.display = 'flex';
+};
+
+window.deleteInvite = async (id) => {
+    if (confirm("Delete this invite?")) {
+        await deleteDoc(doc(db, "clients", currentClientId, "invites", id));
+    }
+};
