@@ -232,10 +232,17 @@ function initRSVP() {
 // --- ADMIN DASHBOARD LOGIC ---
 
 function initAdminView() {
-    document.getElementById('loader').style.display = 'none';
-    document.getElementById('admin-view').style.display = 'block';
-    document.getElementById('main-content').style.opacity = '1';
-    document.getElementById('main-content').style.display = 'block';
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'none';
+
+    const adminView = document.getElementById('admin-view');
+    if (adminView) adminView.style.display = 'block';
+
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.style.opacity = '1';
+        mainContent.style.display = 'block';
+    }
 
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
@@ -455,17 +462,33 @@ function closeClientModal() {
 }
 
 function showError(msg) {
-    document.getElementById('loader').innerHTML = `<div class="serif" style="color:var(--primary); text-align:center; padding:2rem;">${msg}</div>`;
+    const loader = document.getElementById('loader');
+    if (loader) {
+        loader.innerHTML = `<div class="serif" style="color:var(--primary); text-align:center; padding:2rem;">${msg}</div>`;
+    } else {
+        alert(msg);
+    }
 }
 
 function initAnimations() {
-    document.getElementById('main-content').style.display = 'block';
+    const mainContent = document.getElementById('main-content');
+    const loader = document.getElementById('loader');
+
+    if (mainContent) mainContent.style.display = 'block';
+
     const tl = gsap.timeline();
     tl.to(".loader-logo", { opacity: 1, y: 0, duration: 1 })
-        .to(".loader-line", { width: "200px", duration: 1.5 }, "-=0.5")
-        .to("#loader", { opacity: 0, duration: 1, pointerEvents: "none" }, "+=0.5")
-        .to("#main-content", { opacity: 1, duration: 1 }, "-=0.5")
-        .from(".hero-content", { y: 50, opacity: 0, duration: 1.5 }, "-=0.5");
+        .to(".loader-line", { width: "200px", duration: 1.5 }, "-=0.5");
+
+    if (loader) {
+        tl.to("#loader", { opacity: 0, duration: 1, pointerEvents: "none" }, "+=0.5");
+    }
+
+    if (mainContent) {
+        tl.to("#main-content", { opacity: 1, duration: 1 }, "-=0.5");
+    }
+
+    tl.from(".hero-content", { y: 50, opacity: 0, duration: 1.5 }, "-=0.5");
 
     gsap.registerPlugin(ScrollTrigger);
     gsap.utils.toArray(".fade-up").forEach(el => {
