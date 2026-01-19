@@ -1,9 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Montserrat:wght@100..900&display=swap');
 
 :root {
-    --primary: #c5a059; /* Gold */
-    --secondary: #1a3c34; /* Emerald Dark */
-    --accent: #f4e9d8; /* Champagne */
+    --primary: #c5a059;
+    /* Gold */
+    --secondary: #1a3c34;
+    /* Emerald Dark */
+    --accent: #f4e9d8;
+    /* Champagne */
     --text-dark: #1a1a1a;
     --text-light: #ffffff;
     --glass: rgba(255, 255, 255, 0.1);
@@ -28,7 +31,10 @@ body {
     line-height: 1.6;
 }
 
-h1, h2, h3, .serif {
+h1,
+h2,
+h3,
+.serif {
     font-family: 'Playfair Display', serif;
 }
 
@@ -82,7 +88,7 @@ section {
 
 /* Hero Section */
 .hero {
-    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('../assets/light-bg.png');
+    background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('../assets/light-bg.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -163,10 +169,12 @@ section {
     color: var(--accent);
 }
 
-.form-group input, .form-group select, .form-group textarea {
+.form-group input,
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 1rem;
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     color: #fff;
@@ -177,7 +185,7 @@ section {
 .form-group input:focus {
     outline: none;
     border-color: var(--primary);
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* Admin Dashboard */
@@ -208,14 +216,20 @@ section {
     float: right;
 }
 
-.status-attending { background: #2ecc71; }
-.status-declined { background: #e74c3c; }
+.status-attending {
+    background: #2ecc71;
+}
+
+.status-declined {
+    background: #e74c3c;
+}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .hero-content {
         padding: 2rem 1rem;
     }
+
     .admin-view {
         padding: 1rem;
     }
@@ -225,4 +239,74 @@ section {
 .fade-up {
     opacity: 0;
     transform: translateY(30px);
+}
+
+/* Admin Client Cards */
+.client-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 200px;
+    background: var(--glass-heavy);
+    padding: 2rem;
+    transition: var(--transition);
+}
+
+.client-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary);
+    transform: translateY(-5px);
+}
+
+.client-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.btn-small {
+    padding: 0.6rem 1rem;
+    font-size: 0.75rem;
+    border-radius: 30px;
+    border: 1px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+    transition: var(--transition);
+}
+
+.btn-small:hover {
+    background: var(--primary);
+    color: #000;
+}
+
+#admin-content nav a {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+
+#admin-content nav a.active {
+    opacity: 1;
+    color: var(--primary);
+}
+
+/* Modal Animation */
+#client-modal {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }

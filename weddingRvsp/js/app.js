@@ -1,53 +1,62 @@
-import { db, auth, provider, signInWithPopup, onAuthStateChanged, signOut, collection, addDoc, onSnapshot, query, orderBy } from './firebase-config.js';
+import { db, auth, provider, signInWithPopup, onAuthStateChanged, signOut, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, where, getDocs, getDoc } from './firebase-config.js';
 
-window.addEventListener('load', () => {
-    initAnimations();
-    initRSVP();
-    checkAdminMode();
+// Configuration
+const ADMIN_EMAIL = "isaacjana.h@gmail.com";
+let currentClientId = null;
+let currentClientData = null;
+
+window.addEventListener('load', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventSlug = urlParams.get('e');
+    const isAdmin = urlParams.has('admin');
+
+    if (isAdmin) {
+        initAdminView();
+    } else if (eventSlug) {
+        loadEvent(eventSlug);
+    } else {
+        showError("Invalid Invitation Link. Please check your URL.");
+    }
 });
 
-// Authorized Email
-const ADMIN_EMAIL = "isaacjana.h@gmail.com";
+// --- CLIENT LANDING LOGIC ---
 
-// 1. Entrance Animations
-function initAnimations() {
-    const tl = gsap.timeline();
+async function loadEvent(slug) {
+    const q = query(collection(db, "clients"), where("slug", "==", slug));
+    const querySnapshot = await getDocs(q);
 
-    tl.to(".loader-logo", { opacity: 1, y: 0, duration: 1, ease: "power4.out" })
-        .to(".loader-line", { width: "200px", duration: 1.5, ease: "power4.inOut" }, "-=0.5")
-        .to("#loader", { opacity: 0, duration: 1, pointerEvents: "none", ease: "power2.inOut" }, "+=0.5")
-        .to("#main-content", { opacity: 1, duration: 1 }, "-=0.5")
-        .from(".hero-content", { y: 100, opacity: 0, duration: 1.5, ease: "expo.out" }, "-=0.5")
-        .from(".names", { letterSpacing: "1rem", duration: 2, ease: "expo.out" }, "-=1.5");
+    if (querySnapshot.empty) {
+        showError("Invitation not found.");
+        return;
+    }
 
-    // Scroll Animations
-    gsap.registerPlugin(ScrollTrigger);
+    const clientDoc = querySnapshot.docs[0];
+    currentClientId = clientDoc.id;
+    currentClientData = clientDoc.data();
 
-    gsap.utils.toArray(".fade-up").forEach(el => {
-        gsap.to(el, {
-            scrollTrigger: {
-                trigger: el,
-                start: "top 80%",
-                toggleActions: "play none none none"
-            },
-            opacity: 1,
-            y: 0,
-            duration: 1.2,
-            ease: "power3.out"
-        });
-    });
+    updateUIWithClientData(currentClientData);
+    initAnimations();
+    initRSVP();
 }
 
-// 2. RSVP Logic
+function updateUIWithClientData(data) {
+    document.title = `${data.names} | Wedding Invitation`;
+    document.getElementById('display-names').innerText = data.names;
+    document.getElementById('display-date').innerText = data.date;
+    document.getElementById('display-venue').innerText = data.venue;
+    document.getElementById('display-quote').innerText = data.quote || "";
+
+    // Initials for footer/loader
+    const initials = data.names.split('&').map(s => s.trim()[0]).join(' & ');
+    document.getElementById('display-initials').innerText = initials;
+    document.getElementById('loader-initials').innerText = initials;
+}
+
 function initRSVP() {
     const rsvpForm = document.getElementById('rsvp-form');
-    if (!rsvpForm) return;
-
     rsvpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const btn = rsvpForm.querySelector('button');
-        const originalText = btn.innerText;
         btn.innerText = "Sending...";
         btn.disabled = true;
 
@@ -60,122 +69,196 @@ function initRSVP() {
         };
 
         try {
-            await addDoc(collection(db, "rsvp"), formData);
-
-            // Success Feedback
+            await addDoc(collection(db, "clients", currentClientId, "rsvps"), formData);
             gsap.to(".rsvp-card", {
-                opacity: 0,
-                y: -50,
-                duration: 0.8,
+                opacity: 0, y: -50, duration: 0.8,
                 onComplete: () => {
                     document.querySelector('.rsvp-card').innerHTML = `
                         <div style="text-align: center; padding: 2rem;">
                             <h2 class="serif" style="color: var(--primary); font-size: 2.5rem;">Thank You!</h2>
-                            <p style="margin-top: 1rem;">We have received your response for ${formData.name}.</p>
-                            <p style="margin-top: 2rem;">See you in Singapore!</p>
-                        </div>
-                    `;
+                            <p style="margin-top: 1rem;">We've received your response, ${formData.name.split(' ')[0]}.</p>
+                        </div>`;
                     gsap.to(".rsvp-card", { opacity: 1, y: 0, duration: 0.8 });
                 }
             });
-        } catch (error) {
-            console.error("Error adding document: ", error);
-            alert("Oops! Something went wrong. Please try again.");
-            btn.innerText = originalText;
+        } catch (e) {
+            alert("Error sending RSVP. Please try again.");
+            btn.innerText = "Confirm Attendance";
             btn.disabled = false;
         }
     });
 }
 
-// 3. Admin Dashboard & Auth
-function checkAdminMode() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('admin')) {
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('admin-view').style.display = 'block';
-        document.getElementById('home').style.display = 'none';
-        document.querySelector('.rsvp-section').style.display = 'none';
-        document.getElementById('main-content').style.opacity = '1';
+// --- ADMIN DASHBOARD LOGIC ---
 
-        initAdminAuth();
-    }
-}
+function initAdminView() {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('admin-view').style.display = 'block';
+    document.getElementById('main-content').style.opacity = '1';
+    document.getElementById('main-content').style.display = 'block';
 
-function initAdminAuth() {
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const loginSection = document.getElementById('admin-login-section');
-    const adminContent = document.getElementById('admin-content');
 
-    loginBtn.addEventListener('click', async () => {
-        try {
-            await signInWithPopup(auth, provider);
-        } catch (error) {
-            console.error("Login failed:", error);
-            alert("Login failed. Please use a Google account.");
-        }
-    });
-
+    loginBtn.addEventListener('click', () => signInWithPopup(auth, provider));
     logoutBtn.addEventListener('click', () => signOut(auth));
 
     onAuthStateChanged(auth, (user) => {
         if (user && user.email === ADMIN_EMAIL) {
-            loginSection.style.display = 'none';
-            adminContent.style.display = 'block';
-            loadRSVPs();
+            document.getElementById('admin-login-section').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadClients();
         } else {
-            if (user) {
-                alert("Unauthorized. Please login with " + ADMIN_EMAIL);
-                signOut(auth);
-            }
-            loginSection.style.display = 'block';
-            adminContent.style.display = 'none';
+            if (user) { alert("Unauthorized access."); signOut(auth); }
+            document.getElementById('admin-login-section').style.display = 'block';
+            document.getElementById('admin-content').style.display = 'none';
         }
+    });
+
+    initAdminEvents();
+}
+
+function initAdminEvents() {
+    document.getElementById('btn-add-client').onclick = () => openClientModal();
+    document.getElementById('btn-close-modal').onclick = () => closeClientModal();
+    document.getElementById('client-form').onsubmit = handleClientSubmit;
+    document.getElementById('btn-back-to-clients').onclick = () => showTab('clients');
+}
+
+async function loadClients() {
+    const clientList = document.getElementById('client-list');
+    onSnapshot(collection(db, "clients"), (snapshot) => {
+        clientList.innerHTML = '';
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const card = document.createElement('div');
+            card.className = 'guest-card client-card';
+            card.innerHTML = `
+                <h3 class="serif">${data.names}</h3>
+                <p style="font-size: 0.8rem; opacity: 0.7;">Slug: ${data.slug}</p>
+                <div class="client-actions">
+                    <button class="btn-small" onclick="viewRSVPs('${doc.id}', '${data.names}')">View RSVPs</button>
+                    <button class="btn-small" onclick="editClient('${doc.id}')">Edit</button>
+                    <button class="btn-small" style="color: #e74c3c; border-color: #e74c3c;" onclick="deleteClient('${doc.id}')">Delete</button>
+                    <a href="?e=${data.slug}" target="_blank" class="btn-small" style="text-decoration:none;">Open Link</a>
+                </div>
+            `;
+            clientList.appendChild(card);
+        });
     });
 }
 
-function loadRSVPs() {
+// Global scope helpers for onclick (browser-side)
+window.viewRSVPs = async (id, names) => {
+    currentClientId = id;
+    document.getElementById('rsvp-view-title').innerText = `RSVPs: ${names}`;
+    showTab('rsvps');
+    loadRSVPsForClient(id);
+};
+
+window.editClient = async (id) => {
+    const docRef = doc(db, "clients", id);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+        const data = snap.data();
+        document.getElementById('client-id').value = id;
+        document.getElementById('client-names').value = data.names;
+        document.getElementById('client-slug').value = data.slug;
+        document.getElementById('client-date').value = data.date;
+        document.getElementById('client-venue').value = data.venue;
+        document.getElementById('client-quote').value = data.quote || "";
+        openClientModal(true);
+    }
+};
+
+window.deleteClient = async (id) => {
+    if (confirm("Are you sure? This will delete the client invitation.")) {
+        await deleteDoc(doc(db, "clients", id));
+    }
+};
+
+async function handleClientSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('client-id').value;
+    const data = {
+        names: document.getElementById('client-names').value,
+        slug: document.getElementById('client-slug').value,
+        date: document.getElementById('client-date').value,
+        venue: document.getElementById('client-venue').value,
+        quote: document.getElementById('client-quote').value
+    };
+
+    if (id) {
+        await setDoc(doc(db, "clients", id), data, { merge: true });
+    } else {
+        await addDoc(collection(db, "clients"), data);
+    }
+    closeClientModal();
+}
+
+function loadRSVPsForClient(id) {
     const rsvpList = document.getElementById('rsvp-list');
     const totalGuestsEl = document.getElementById('total-guests');
     const totalAttendingEl = document.getElementById('total-attending');
 
-    const q = query(collection(db, "rsvp"), orderBy("timestamp", "desc"));
-
-    onSnapshot(q, (snapshot) => {
+    onSnapshot(query(collection(db, "clients", id, "rsvps"), orderBy("timestamp", "desc")), (snapshot) => {
         rsvpList.innerHTML = '';
-        let total = 0;
-        let attending = 0;
-
-        snapshot.forEach((doc) => {
+        let total = 0, attending = 0;
+        snapshot.forEach(doc => {
             const data = doc.data();
             const card = document.createElement('div');
-            card.className = 'guest-card fade-up';
-            card.style.opacity = 1;
-            card.style.transform = 'none';
-
-            const statusClass = data.attendance === 'attending' ? 'status-attending' : 'status-declined';
-
+            card.className = 'guest-card';
             card.innerHTML = `
-                <span class="status-badge ${statusClass}">${data.attendance}</span>
+                <span class="status-badge ${data.attendance === 'attending' ? 'status-attending' : 'status-declined'}">${data.attendance}</span>
                 <h3 class="serif">${data.name}</h3>
                 <p>Guests: ${data.guests}</p>
-                <p style="margin-top: 10px; font-size: 0.8rem; opacity: 0.7;">Dietary: ${data.dietary || 'None'}</p>
-                <p style="margin-top: 5px; font-size: 0.6rem; opacity: 0.5;">${new Date(data.timestamp).toLocaleString()}</p>
+                <p style="font-size:0.75rem; opacity:0.6;">${data.dietary || 'No dietary requirements'}</p>
             `;
             rsvpList.appendChild(card);
-
-            total += 1;
-            if (data.attendance === 'attending') {
-                attending += data.guests;
-            }
+            total++;
+            if (data.attendance === 'attending') attending += data.guests;
         });
-
         totalGuestsEl.innerText = total;
         totalAttendingEl.innerText = attending;
-    }, (error) => {
-        console.error("Firestore Listen Error:", error);
-        if (error.code === 'permission-denied') {
-            alert("Permission denied. Ensure your Firestore rules are updated.");
-        }
+    });
+}
+
+// --- UTILITIES ---
+
+function showTab(tab) {
+    document.getElementById('view-clients').style.display = tab === 'clients' ? 'block' : 'none';
+    document.getElementById('view-rsvps').style.display = tab === 'rsvps' ? 'block' : 'none';
+    document.getElementById('nav-clients').classList.toggle('active', tab === 'clients');
+}
+
+function openClientModal(isEdit = false) {
+    document.getElementById('modal-title').innerText = isEdit ? "Edit Client" : "New Client";
+    if (!isEdit) {
+        document.getElementById('client-id').value = "";
+        document.getElementById('client-form').reset();
+    }
+    document.getElementById('client-modal').style.display = 'block';
+}
+
+function closeClientModal() {
+    document.getElementById('client-modal').style.display = 'none';
+}
+
+function showError(msg) {
+    document.getElementById('loader').innerHTML = `<div class="serif" style="color:var(--primary); text-align:center; padding:2rem;">${msg}</div>`;
+}
+
+function initAnimations() {
+    document.getElementById('main-content').style.display = 'block';
+    const tl = gsap.timeline();
+    tl.to(".loader-logo", { opacity: 1, y: 0, duration: 1 })
+        .to(".loader-line", { width: "200px", duration: 1.5 }, "-=0.5")
+        .to("#loader", { opacity: 0, duration: 1, pointerEvents: "none" }, "+=0.5")
+        .to("#main-content", { opacity: 1, duration: 1 }, "-=0.5")
+        .from(".hero-content", { y: 50, opacity: 0, duration: 1.5 }, "-=0.5");
+
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray(".fade-up").forEach(el => {
+        gsap.to(el, { scrollTrigger: { trigger: el, start: "top 85%" }, opacity: 1, y: 0, duration: 1 });
     });
 }
