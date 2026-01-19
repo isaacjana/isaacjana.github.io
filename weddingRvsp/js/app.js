@@ -319,36 +319,46 @@ async function loadClients() {
         clientList.innerHTML = '';
         snapshot.forEach(doc => {
             const data = doc.data();
+            const dateStr = data.date.split(',')[1] || data.date;
+
             const card = document.createElement('div');
             card.className = 'client-card';
-            card.style.padding = '2.5rem';
-            card.style.borderRadius = '30px';
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 2rem;">
+                <div class="card-header">
                     <div>
-                        <h3 class="serif" style="font-size:1.8rem;">${data.names}</h3>
-                        <p style="font-size: 0.8rem; opacity: 0.5; margin-top:0.5rem;">/${data.slug}</p>
+                        <h3 class="serif">${data.names}</h3>
+                        <div class="slug">/${data.slug}</div>
                     </div>
-                    <div style="background: var(--primary); width:12px; height:12px; border-radius:50%; box-shadow: 0 0 10px var(--primary);"></div>
+                    <div class="status-indicator"></div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2.5rem;">
-                    <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
-                         <span style="display:block; font-size:0.7rem; opacity:0.5; text-transform:uppercase;">Date</span>
-                         <span style="font-size:0.9rem;">${data.date.split(',')[1] || data.date}</span>
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <span class="meta-label">Event Date</span>
+                        <span class="meta-value">${dateStr}</span>
                     </div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
-                         <span style="display:block; font-size:0.7rem; opacity:0.5; text-transform:uppercase;">Theme</span>
-                         <span style="font-size:0.9rem; text-transform:capitalize;">${data.theme || 'Default'}</span>
+                    <div class="meta-item">
+                        <span class="meta-label">Design Theme</span>
+                        <span class="meta-value">${data.theme || 'Premium Default'}</span>
                     </div>
                 </div>
 
-                <div class="client-actions" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                    <button class="btn-small" onclick="viewRSVPs('${doc.id}', '${data.names}')">👥 guests</button>
-                    <button class="btn-small" onclick="viewInvites('${doc.id}', '${data.names}')">💌 invites</button>
-                    <button class="btn-small" onclick="editClient('${doc.id}')">✍️ edit</button>
-                    <a href="?e=${data.slug}" target="_blank" class="btn-small" style="text-decoration:none;">🔗 view</a>
-                    <button class="btn-small" style="color: #ff4757; border-color: #ff4757; margin-left:auto;" onclick="deleteClient('${doc.id}')">🗑️</button>
+                <div class="client-actions">
+                    <button class="btn btn-outline btn-small" onclick="viewRSVPs('${doc.id}', '${data.names}')">
+                        <span>👥</span> Guests
+                    </button>
+                    <button class="btn btn-outline btn-small" onclick="viewInvites('${doc.id}', '${data.names}')">
+                        <span>💌</span> Invites
+                    </button>
+                    <button class="btn btn-outline btn-small" onclick="editClient('${doc.id}')">
+                        <span>✍️</span> Edit
+                    </button>
+                    <a href="?e=${data.slug}" target="_blank" class="btn btn-outline btn-small">
+                        <span>🔗</span> View
+                    </a>
+                    <button class="btn btn-outline btn-small" style="color: #ff4757; border-color: rgba(255, 71, 87, 0.2);" onclick="deleteClient('${doc.id}')">
+                        <span>🗑️</span>
+                    </button>
                 </div>
             `;
             clientList.appendChild(card);
@@ -428,21 +438,26 @@ function loadRSVPsForClient(id) {
         snapshot.forEach(doc => {
             const data = doc.data();
             const card = document.createElement('div');
-            card.className = 'stat-card';
-            card.style.textAlign = 'left';
-            card.style.padding = '1.5rem';
+            card.className = 'client-card';
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="serif" style="font-size:1.2rem;">${data.name}</span>
-                    <span class="status-badge ${data.attendance === 'attending' ? 'status-attending' : 'status-declined'}">
+                <div class="card-header">
+                    <h3 class="serif">${data.name}</h3>
+                    <div class="status-badge ${data.attendance === 'attending' ? 'status-attending' : 'status-declined'}" 
+                         style="padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; background: ${data.attendance === 'attending' ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)'}; color: ${data.attendance === 'attending' ? '#2ecc71' : '#e74c3c'}; border: 1px solid ${data.attendance === 'attending' ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)'};">
                         ${data.attendance}
-                    </span>
+                    </div>
                 </div>
-                <div style="margin-top:1rem; display:flex; gap:1.5rem; opacity:0.7; font-size:0.8rem;">
-                    <span><b>Guests:</b> ${data.guests}</span>
-                    <span><b>Diet:</b> ${data.dietary || 'None'}</span>
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <span class="meta-label">Guests</span>
+                        <span class="meta-value">${data.guests}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Dietary</span>
+                        <span class="meta-value">${data.dietary || 'None'}</span>
+                    </div>
                 </div>
-                ${data.message ? `<div style="margin-top:1rem; padding:0.5rem; background:rgba(255,255,255,0.05); border-radius:8px; font-size:0.8rem; font-style:italic;">"${data.message}"</div>` : ''}
+                ${data.message ? `<div style="margin-top: 1rem; padding: 1.2rem; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); font-size: 0.85rem; font-style: italic; border: 1px solid var(--glass-border);">"${data.message}"</div>` : ''}
             `;
             rsvpList.appendChild(card);
             total++;
@@ -634,22 +649,32 @@ async function loadInvitesForClient(clientId) {
         snapshot.forEach(d => {
             const data = d.data();
             const card = document.createElement('div');
-            card.className = 'stat-card';
-            card.style.padding = '1.5rem';
+            card.className = 'client-card';
             card.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:1rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3 class="serif">${data.name}</h3>
-                        <div style="display:flex; gap:0.5rem;">
-                            <button class="btn-small" onclick="generateQR('${data.code}', '${data.name}')">📱 QR</button>
-                            <button class="btn-small" onclick="copyInviteLink('${data.code}')">🔗 Link</button>
-                        </div>
+                <div class="card-header">
+                    <h3 class="serif">${data.name}</h3>
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <span class="meta-label">Access Code</span>
+                        <span class="meta-value" style="color: var(--primary); letter-spacing: 3px; font-weight: 700;">${data.code}</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:0.8rem; border-radius:12px;">
-                        <span style="font-size:0.7rem; text-transform:uppercase; opacity:0.5;">Access Code</span>
-                        <span style="color:var(--primary); font-family:monospace; font-weight:bold; font-size:1.2rem; letter-spacing:2px;">${data.code}</span>
+                    <div class="meta-item">
+                        <span class="meta-label">Created</span>
+                        <span class="meta-value">${new Date(data.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <button class="btn-small" style="color:#ff4757; border-color:transparent; align-self:flex-end;" onclick="deleteInvite('${d.id}')">Delete Invite</button>
+                </div>
+                <div class="client-actions">
+                    <button class="btn btn-outline btn-small" onclick="generateQR('${data.code}', '${data.name}')">
+                        <span>📱</span> QR Code
+                    </button>
+                    <button class="btn btn-outline btn-small" onclick="copyInviteLink('${data.code}')">
+                        <span>🔗</span> Copy Link
+                    </button>
+                    <button class="btn btn-outline btn-small" style="color: #ff4757; border-color: rgba(255, 71, 87, 0.2);" onclick="deleteInvite('${d.id}')">
+                        🗑️
+                    </button>
                 </div>
             `;
             inviteList.appendChild(card);
@@ -660,7 +685,7 @@ async function loadInvitesForClient(clientId) {
 window.copyInviteLink = (code) => {
     const url = `${window.location.origin}${window.location.pathname}?e=${currentClientData.slug}&code=${code}`;
     navigator.clipboard.writeText(url);
-    showToast("Link Copied!", "🔗");
+    showToast("Link copied to clipboard", "🔗");
 };
 
 window.generateQR = (code, name) => {
@@ -670,15 +695,19 @@ window.generateQR = (code, name) => {
     new QRCode(qrDiv, {
         text: url,
         width: 256,
-        height: 256
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
     });
-    document.getElementById('qr-label').innerText = `Invite for: ${name}`;
+    document.getElementById('qr-label').innerText = `Invitation for ${name}`;
     document.getElementById('qr-modal').style.display = 'flex';
 };
 
 window.deleteInvite = async (id) => {
-    if (confirm("Delete this invite?")) {
+    if (confirm("Permanently delete this invitation?")) {
         await deleteDoc(doc(db, "clients", currentClientId, "invites", id));
+        showToast("Invitation deleted", "🗑️");
     }
 };
 
@@ -688,19 +717,17 @@ function initCursor() {
     if (!cursor || !follower) return;
 
     window.addEventListener('mousemove', (e) => {
-        gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.1, ease: "power2.out" });
-        gsap.to(follower, { x: e.clientX, y: e.clientY, duration: 0.3, ease: "power2.out" });
+        gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0, ease: "none" });
+        gsap.to(follower, { x: e.clientX, y: e.clientY, duration: 0.15, ease: "power2.out" });
     });
 
     const hoverables = document.querySelectorAll('button, a, input, select, textarea, .client-card');
     hoverables.forEach(el => {
         el.addEventListener('mouseenter', () => {
-            gsap.to(cursor, { scale: 2.5, backgroundColor: "rgba(212, 175, 55, 0.1)", duration: 0.3 });
-            gsap.to(follower, { scale: 0, duration: 0.3 });
+            gsap.to(follower, { scale: 1.5, background: "rgba(var(--primary-rgb), 0.1)", duration: 0.3 });
         });
         el.addEventListener('mouseleave', () => {
-            gsap.to(cursor, { scale: 1, backgroundColor: "transparent", duration: 0.3 });
-            gsap.to(follower, { scale: 1, duration: 0.3 });
+            gsap.to(follower, { scale: 1, background: "rgba(var(--primary-rgb), 0.05)", duration: 0.3 });
         });
     });
 }

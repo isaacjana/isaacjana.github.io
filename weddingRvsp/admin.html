@@ -40,22 +40,21 @@
                 <div class="auth-card">
                     <h2 class="serif">Admin Portal</h2>
                     <p>Secure access for wedding managers.</p>
-                    <button class="cta-button" id="login-btn" style="width: 100%;">Sign in with Google</button>
+                    <button class="btn btn-primary" id="login-btn" style="width: 100%;">Sign in with Google</button>
                 </div>
             </div>
 
             <!-- Content -->
             <div id="admin-content" style="display: none;">
                 <aside class="admin-sidebar">
-                    <div class="loader-logo serif" style="font-size: 2rem; opacity: 1; letter-spacing: 0.5rem;">W I
-                    </div>
+                    <div class="brand serif">W I</div>
                     <nav class="admin-nav-vertical">
                         <a href="#" class="active" id="nav-clients"><span>📂</span> <span>Dashboard</span></a>
                         <a href="#" id="nav-invites" style="display: none;"><span>💌</span> <span>Invitations</span></a>
                         <a href="#" id="nav-rsvps" style="display: none;"><span>👥</span> <span>Guest List</span></a>
                     </nav>
-                    <div style="margin-top: auto;">
-                        <button id="logout-btn" class="btn-small" style="width: 100%;">Sign Out</button>
+                    <div style="margin-top: auto; padding-top: 2rem; border-top: 1px solid var(--glass-border);">
+                        <button id="logout-btn" class="btn btn-outline btn-small" style="width: 100%;">Sign Out</button>
                     </div>
                 </aside>
 
@@ -65,18 +64,17 @@
                         <div class="admin-header">
                             <div>
                                 <h3 class="serif">Active Events</h3>
-                                <p style="opacity: 0.5;">Manage your wedding experiences</p>
+                                <p>Oversee and manage your wedding experiences</p>
                             </div>
-                            <div style="display:flex; gap:1.5rem; align-items:center;">
-                                <input type="text" id="client-search" placeholder="Search..."
-                                    style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); padding:1rem 1.5rem; border-radius:12px; color:#fff; width:280px;">
-                                <button class="cta-button" id="btn-add-client" style="padding: 1rem 2rem;">+ New
+                            <div class="action-bar">
+                                <div class="search-wrapper">
+                                    <input type="text" id="client-search" placeholder="Search events...">
+                                </div>
+                                <button class="btn btn-primary" id="btn-add-client" style="padding: 1rem 2rem;">+ New
                                     Event</button>
                             </div>
                         </div>
-                        <div id="client-list"
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 2rem;">
-                        </div>
+                        <div id="client-list"></div>
                     </div>
 
                     <!-- Invites -->
@@ -84,17 +82,15 @@
                         <div class="admin-header">
                             <div>
                                 <h3 class="serif" id="invite-view-title">Invitations</h3>
-                                <p style="opacity: 0.5;">Manage access codes and QR links</p>
+                                <p>Manage unique access codes and entry links</p>
                             </div>
-                            <div style="display: flex; gap: 1rem;">
-                                <button class="cta-button" id="btn-add-invite" style="padding: 1rem 2rem;">+ New
-                                    Invite</button>
-                                <button class="btn-small" id="btn-back-to-clients-from-invites">Back to Events</button>
+                            <div class="action-bar">
+                                <button class="btn btn-primary" id="btn-add-invite">+ New Invite</button>
+                                <button class="btn btn-outline btn-small"
+                                    id="btn-back-to-clients-from-invites">Dashboard</button>
                             </div>
                         </div>
-                        <div id="invite-list"
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
-                        </div>
+                        <div id="invite-list"></div>
                     </div>
 
                     <!-- RSVPs -->
@@ -102,11 +98,11 @@
                         <div class="admin-header">
                             <div>
                                 <h3 class="serif" id="rsvp-view-title">Guest List</h3>
-                                <p style="opacity: 0.5;">Real-time attendance tracking</p>
+                                <p>Real-time attendance and preference tracking</p>
                             </div>
-                            <div style="display: flex; gap: 1rem;">
-                                <button class="btn-small" id="btn-export-csv">Export CSV</button>
-                                <button class="btn-small" id="btn-back-to-clients">Back to Events</button>
+                            <div class="action-bar">
+                                <button class="btn btn-outline btn-small" id="btn-export-csv">Export CSV</button>
+                                <button class="btn btn-outline btn-small" id="btn-back-to-clients">Dashboard</button>
                             </div>
                         </div>
                         <div class="stats-grid">
@@ -119,9 +115,7 @@
                                 <span class="stat-label">Total Attending</span>
                             </div>
                         </div>
-                        <div id="rsvp-list"
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
-                        </div>
+                        <div id="rsvp-list"></div>
                     </div>
                 </main>
             </div>
@@ -171,8 +165,9 @@
                         <textarea id="client-accommodation" rows="2"></textarea>
                     </div>
                     <div style="display: flex; gap: 1rem; margin-top: 3rem;">
-                        <button type="submit" class="cta-button" style="flex: 2;">Save Event</button>
-                        <button type="button" id="btn-close-modal" class="btn-small" style="flex: 1;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="flex: 2;">Save Event</button>
+                        <button type="button" id="btn-close-modal" class="btn btn-outline btn-small"
+                            style="flex: 1;">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -193,8 +188,8 @@
                         <input type="text" id="invite-code" maxlength="4" placeholder="1234 (Optional)">
                     </div>
                     <div style="display: flex; gap: 1rem; margin-top: 3rem;">
-                        <button type="submit" class="cta-button" style="flex: 2;">Create Invite</button>
-                        <button type="button" id="btn-close-invite-modal" class="btn-small"
+                        <button type="submit" class="btn btn-primary" style="flex: 2;">Create Invite</button>
+                        <button type="button" id="btn-close-invite-modal" class="btn btn-outline btn-small"
                             style="flex: 1;">Cancel</button>
                     </div>
                 </form>
@@ -209,7 +204,7 @@
                 </div>
                 <p id="qr-label" class="serif" style="color: var(--primary); font-size: 1.2rem; margin-bottom: 2rem;">
                 </p>
-                <button onclick="document.getElementById('qr-modal').style.display='none'" class="cta-button"
+                <button onclick="document.getElementById('qr-modal').style.display='none'" class="btn btn-primary"
                     style="width: 100%; padding: 1rem;">Close</button>
             </div>
         </div>
