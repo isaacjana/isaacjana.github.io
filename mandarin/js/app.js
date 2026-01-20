@@ -12,6 +12,7 @@ class MandarinFlow {
     }
 
     async init() {
+        this.toneEngine = new ToneEngine(null); // Initialize early for voice checks
         await this.progress.loadCurriculum();
         this.setupNavigation();
         this.renderView('learn');

@@ -3,7 +3,7 @@
  */
 class ToneEngine {
     constructor(containerId) {
-        this.container = document.getElementById(containerId);
+        this.container = containerId ? document.getElementById(containerId) : null;
         this.tones = [
             { id: 1, name: 'Flat', path: 'M 10 50 L 90 50', description: 'High and level' },
             { id: 2, name: 'Rising', path: 'M 10 80 Q 50 80 90 20', description: 'Starts mid, rises to high' },
