@@ -57,7 +57,8 @@ class MandarinFlow {
 
     renderView(view) {
         const main = document.getElementById('main-view');
-        main.className = 'p-6 fade-in';
+        main.innerHTML = '';
+        main.className = 'p-6 slide-up';
 
         switch (view) {
             case 'learn':
@@ -77,33 +78,48 @@ class MandarinFlow {
 
     renderLearnView(container) {
         let html = `
-            <div class="space-y-8 pb-10">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-jade-800">Learning Path</h2>
-                    <div class="flex items-center gap-2 text-jade-500 font-bold text-sm">
-                        <span>🔥</span> ${this.progress.progress.streak} Day Streak
+            <div class="space-y-12 pb-24">
+                <div class="flex items-center justify-between glass-card p-4 rounded-3xl premium-shadow">
+                    <div>
+                        <h2 class="text-xs font-black uppercase tracking-tighter text-jade-400">Current Progress</h2>
+                        <p class="text-sm font-bold text-jade-800">${this.progress.progress.xp} Total XP</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-jade-600 text-white px-3 py-1.5 rounded-full text-[10px] font-black premium-shadow">
+                        <span>🔥</span> ${this.progress.progress.streak} DAY STREAK
                     </div>
                 </div>
-                <div class="relative flex flex-col items-center space-y-12">
+                
+                <div class="relative flex flex-col items-center">
+                    <!-- Lesson Path Connector -->
+                    <div class="absolute top-0 bottom-0 w-1 bg-gradient-to-b from-jade-200 via-jade-100 to-transparent rounded-full z-0 opacity-50"></div>
         `;
 
-        // Draw the vertical vertical lesson path
         this.progress.curriculum.forEach((level, lIndex) => {
-            html += `<div class="w-full text-center py-4 text-jade-400 font-bold uppercase tracking-widest text-xs">${level.title}</div>`;
+            html += `
+                <div class="w-full text-center py-6 mt-8 z-10 relative">
+                    <span class="bg-jade-50 px-4 text-[10px] font-black uppercase tracking-[0.3em] text-jade-300">Level ${lIndex + 1}</span>
+                    <h3 class="text-sm font-bold text-jade-600 mt-1">${level.title}</h3>
+                </div>
+            `;
 
             level.lessons.forEach((lesson, index) => {
                 const isEven = index % 2 === 0;
                 const offset = isEven ? '-translate-x-12' : 'translate-x-12';
+                const charSummary = lesson.items.slice(0, 3).map(i => i.char).join(' ');
 
                 html += `
-                    <div class="relative lesson-node group">
-                        <button class="lesson-btn w-20 h-20 rounded-full jade-gradient border-4 border-white shadow-lg flex items-center justify-center text-white transform transition-all active:scale-90 hover:scale-105 ${offset}" 
+                    <div class="relative lesson-node z-10 my-6 group">
+                        <button class="lesson-btn w-24 h-24 rounded-full jade-gradient border-8 border-white premium-shadow flex flex-col items-center justify-center text-white transform transition-all active:scale-95 duration-500 hover:rotate-6 ${offset} relative" 
                                 data-lesson-id="${lesson.id}">
-                            <span class="text-2xl">🏮</span>
-                            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-jade-700 font-bold text-[10px] bg-white px-2 py-1 rounded-full shadow-sm">
-                                ${lesson.title}
+                            <span class="text-3xl float">🏮</span>
+                            <div class="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-gold-400 border-4 border-white flex items-center justify-center text-[10px] font-black text-white premium-shadow-gold">
+                                ${lesson.items.length}
                             </div>
                         </button>
+                        <div class="absolute top-1/2 -translate-y-1/2 ${isEven ? 'left-16 ml-4 text-left' : 'right-16 mr-4 text-right'} w-32">
+                            <h4 class="text-xs font-black text-jade-800 uppercase tracking-tight truncate">${lesson.title}</h4>
+                            <p class="text-[10px] font-medium text-jade-400 leading-tight">${charSummary}...</p>
+                        </div>
                     </div>
                 `;
             });
@@ -113,7 +129,11 @@ class MandarinFlow {
         container.innerHTML = html;
 
         container.querySelectorAll('.lesson-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.startLesson(btn.dataset.lessonId));
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.lessonId;
+                btn.classList.add('scale-125', 'opacity-0');
+                setTimeout(() => this.startLesson(id), 400);
+            });
         });
     }
 
@@ -122,23 +142,38 @@ class MandarinFlow {
 
         if (reviewItems.length === 0) {
             container.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                    <div class="text-6xl">✨</div>
-                    <h2 class="text-2xl font-bold text-jade-800">You're all caught up!</h2>
-                    <p class="text-jade-500 max-w-xs text-sm">Your memory is fresh. Go learn some new characters or come back later for your next review session.</p>
+                <div class="flex flex-col items-center justify-center py-24 text-center space-y-8 scale-in">
+                    <div class="relative">
+                        <div class="text-8xl float">✨</div>
+                        <div class="absolute -top-4 -right-4 w-12 h-12 jade-gradient rounded-full border-4 border-white premium-shadow flex items-center justify-center text-white font-black text-xs">OK</div>
+                    </div>
+                    <div class="space-y-2">
+                        <h2 class="text-2xl font-black text-jade-800">Zen State Achieved</h2>
+                        <p class="text-jade-400 max-w-xs text-xs font-medium uppercase tracking-widest leading-relaxed">Your memory is currently peak performance. No reviews needed.</p>
+                    </div>
+                    <button id="go-explore" class="px-8 py-3 rounded-2xl jade-gradient text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl premium-shadow active:scale-95 transition-all">
+                        Explore Path
+                    </button>
                 </div>
             `;
+            document.getElementById('go-explore').addEventListener('click', () => this.switchView('learn'));
             return;
         }
 
         container.innerHTML = `
-            <div class="space-y-6">
-                <div class="glass-card rounded-3xl p-8 text-center">
-                    <h2 class="text-xl font-bold text-jade-800 mb-2">Daily Review</h2>
-                    <p class="text-jade-500 text-sm mb-6">Master ${reviewItems.length} characters ready for review.</p>
-                    <button id="start-review" class="w-full py-4 rounded-2xl gold-gradient text-white font-bold shadow-lg shadow-gold-200 active:scale-95 transition-transform">
-                        Start Review Session
-                    </button>
+            <div class="space-y-8 slide-up">
+                <div class="glass-card rounded-[2.5rem] p-10 text-center premium-shadow relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gold-400/10 rounded-full -mr-16 -mt-16"></div>
+                    <div class="relative z-10 space-y-6">
+                        <div class="inline-flex items-center gap-2 bg-gold-50 text-gold-600 px-4 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
+                            <span class="animate-pulse">●</span> Review Ready
+                        </div>
+                        <h2 class="text-3xl font-black text-jade-800 tracking-tight">Daily Ritual</h2>
+                        <p class="text-jade-400 text-xs font-medium uppercase tracking-widest">Master ${reviewItems.length} characters</p>
+                        <button id="start-review" class="w-full py-5 rounded-3xl gold-gradient text-white font-black text-sm uppercase tracking-[0.2em] shadow-2xl premium-shadow-gold active:scale-95 transition-all">
+                            Burn Incense & Begin
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -149,32 +184,42 @@ class MandarinFlow {
     renderStatsView(container) {
         const stats = this.progress.getStats();
         container.innerHTML = `
-            <div class="space-y-6">
-                <h2 class="text-2xl font-bold text-jade-800">Your Journey</h2>
+            <div class="space-y-8 slide-up">
+                <h2 class="text-xs font-black text-jade-300 uppercase tracking-[0.4em] text-center">Your Dragon Spirit</h2>
                 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class=" glass-card rounded-2xl p-4 text-center">
-                        <div class="text-2xl font-bold text-jade-600">${stats.charsLearned}</div>
-                        <div class="text-[10px] uppercase font-bold text- jade-400">Characters Known</div>
+                    <div class="glass-card rounded-3xl p-6 text-center premium-shadow">
+                        <div class="text-3xl font-black text-jade-700">${stats.charsLearned}</div>
+                        <div class="text-[9px] uppercase font-black tracking-widest text-jade-300 mt-1">Learned</div>
                     </div>
-                    <div class="glass-card rounded-2xl p-4 text-center">
-                        <div class="text-2xl font-bold text-gold-500">${stats.streak}</div>
-                        <div class="text-[10px] uppercase font-bold text-jade-400">Day Streak</div>
+                    <div class="glass-card rounded-3xl p-6 text-center premium-shadow">
+                        <div class="text-3xl font-black text-gold-500">${stats.streak}</div>
+                        <div class="text-[9px] uppercase font-black tracking-widest text-jade-300 mt-1">Streak</div>
                     </div>
                 </div>
 
-                <div class="glass-card rounded-3xl p-8 flex flex-col items-center text-center space-y-4">
-                    <div class="w-32 h-32 rounded-full jade-gradient border-8 border-gold-400 flex items-center justify-center text-6xl guardian-pulse">
-                        ${stats.guardian === 'Egg' ? '🥚' : (stats.guardian === 'Hatchling' ? '🐥' : (stats.guardian === 'Drakeling' ? '🐉' : '🐲'))}
+                <div class="glass-card rounded-[3rem] p-10 flex flex-col items-center text-center space-y-8 premium-shadow relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-jade-50/50 to-transparent"></div>
+                    <div class="relative">
+                        <div class="w-40 h-40 rounded-[2.5rem] jade-gradient border-8 border-white flex items-center justify-center text-7xl premium-shadow-gold guardian-glow float">
+                            ${stats.guardian === 'Egg' ? '🥚' : (stats.guardian === 'Hatchling' ? '🐥' : (stats.guardian === 'Drakeling' ? '🐉' : '🐲'))}
+                        </div>
+                        <div class="absolute -bottom-2 -right-2 bg-gold-500 text-white w-10 h-10 rounded-2xl flex items-center justify-center border-4 border-white premium-shadow-gold font-black text-xs">
+                            ${Math.floor(stats.xp / 100)}
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-jade-800">${stats.guardian} Spirit</h3>
-                        <p class="text-jade-500 text-xs">Total XP: ${stats.xp}</p>
+                    
+                    <div class="space-y-2">
+                        <h3 class="text-2xl font-black text-jade-800 tracking-tight">${stats.guardian} Spirit</h3>
+                        <p class="text-[10px] font-black text-jade-300 uppercase tracking-[0.2em]">Ascension Progress</p>
                     </div>
-                    <div class="w-full bg-jade-100 h-3 rounded-full overflow-hidden">
-                        <div class="bg-gold-400 h-full" style="width: ${(stats.xp % 500) / 5}%"></div>
+
+                    <div class="w-full space-y-3">
+                        <div class="w-full bg-jade-100/50 h-4 rounded-full overflow-hidden border border-white p-1">
+                            <div class="bg-gradient-to-r from-gold-400 to-gold-600 h-full rounded-full transition-all duration-1000 shadow-sm" style="width: ${(stats.xp % 500) / 5}%"></div>
+                        </div>
+                        <p class="text-[9px] text-jade-400 font-bold uppercase tracking-widest">${500 - (stats.xp % 500)} XP TO NEXT EVOLUTION</p>
                     </div>
-                    <p class="text-[10px] text-jade-400 font-bold uppercase">Next Evolution: ${500 - (stats.xp % 500)} XP Away</p>
                 </div>
             </div>
         `;
@@ -182,23 +227,38 @@ class MandarinFlow {
 
     renderSettingsView(container) {
         container.innerHTML = `
-            <div class="space-y-6">
-                <h2 class="text-2xl font-bold text-jade-800">Settings</h2>
-                <div class="glass-card rounded-2xl divide-y divide-jade-100">
-                    <div class="p-4 flex justify-between items-center">
-                        <span class="font-medium">Audio Feedback</span>
-                        <input type="checkbox" checked class="w-6 h-6 border-jade-300 text-jade-600 rounded">
+            <div class="space-y-8 slide-up">
+                <h2 class="text-xs font-black text-jade-300 uppercase tracking-[0.4em] text-center">Settings</h2>
+                <div class="glass-card rounded-3xl divide-y divide-jade-50 overflow-hidden premium-shadow">
+                    <div class="p-6 flex justify-between items-center bg-white/40">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-2xl bg-jade-100 border border-jade-200 flex items-center justify-center text-lg">🔊</div>
+                            <span class="font-bold text-jade-800 text-sm">Audio Feedback</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked class="sr-only peer">
+                            <div class="w-11 h-6 bg-jade-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-jade-600"></div>
+                        </label>
                     </div>
-                    <div class="p-4 flex justify-between items-center">
-                        <span class="font-medium">Haptic Feedback</span>
-                        <input type="checkbox" checked class="w-6 h-6 border-jade-300 text-jade-600 rounded">
+                    <div class="p-6 flex justify-between items-center bg-white/40">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-2xl bg-jade-100 border border-jade-200 flex items-center justify-center text-lg">📳</div>
+                            <span class="font-bold text-jade-800 text-sm">Haptic Pulse</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked class="sr-only peer">
+                            <div class="w-11 h-6 bg-jade-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-jade-600"></div>
+                        </label>
                     </div>
-                    <div class="p-4">
-                        <button id="reset-data" class="text-red-500 font-bold text-sm">Reset All Progress</button>
+                    <div class="p-6">
+                        <button id="reset-data" class="w-full py-4 rounded-2xl bg-red-50 text-red-500 font-black text-[10px] uppercase tracking-[0.2em] border border-red-100 hover:bg-red-500 hover:text-white transition-all">
+                            Purge All Data
+                        </button>
                     </div>
                 </div>
-                <div class="text-center text-[10px] text-jade-300 font-bold uppercase tracking-widest">
-                    MandarinFlow v1.0.0
+                <div class="text-center space-y-2">
+                    <p class="text-[9px] text-jade-200 font-black uppercase tracking-[0.3em]">MandarinFlow Elite v1.2.0</p>
+                    <p class="text-[8px] text-jade-100 italic">Built for absolute masters.</p>
                 </div>
             </div>
         `;
@@ -241,40 +301,62 @@ class MandarinFlow {
         const renderStep = () => {
             const item = items[currentIndex];
             main.innerHTML = `
-                <div class="space-y-6 flex flex-col items-center">
+                <div class="space-y-8 flex flex-col items-center slide-up pb-20">
                     <div class="flex justify-between w-full items-center">
-                        <button id="exit-session" class="text-jade-400">✕</button>
-                        <div class="flex-1 px-8">
-                            <div class="h-2 bg-jade-100 rounded-full">
-                                <div class="h-full bg-jade-600 rounded-full transition-all" style="width: ${(currentIndex / items.length) * 100}%"></div>
+                        <button id="exit-session" class="w-10 h-10 rounded-2xl bg-white/50 flex items-center justify-center text-jade-400 premium-shadow">✕</button>
+                        <div class="flex-1 px-6">
+                            <div class="h-1.5 bg-jade-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-jade-600 rounded-full transition-all duration-700" style="width: ${(currentIndex / items.length) * 100}%"></div>
                             </div>
                         </div>
-                        <span class="text-xs font-bold text-jade-400">${currentIndex + 1}/${items.length}</span>
+                        <span class="text-[10px] font-black text-jade-300 uppercase tracking-widest">${currentIndex + 1}/${items.length}</span>
                     </div>
 
-                    <div class="text-center space-y-2">
-                        <span class="text-jade-500 text-xs font-bold uppercase tracking-widest">Review Character</span>
-                        <h2 class="text-7xl hanzi text-jade-800">${item.char}</h2>
-                        <div class="flex items-center justify-center gap-2">
-                            <span class="text-2xl font-bold text-gold-600">${item.pinyin}</span>
-                            <button id="play-audio-btn" class="bg-jade-100 p-3 rounded-full text-jade-600 active:scale-90 transition-transform shadow-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                </svg>
-                            </button>
+                    <div class="text-center space-y-4">
+                        <span class="text-jade-400 text-[9px] font-black uppercase tracking-[0.3em]">Imperial Archives</span>
+                        <div class="space-y-2">
+                            <h2 class="text-7xl hanzi text-jade-800 drop-shadow-sm scale-in">${item.char}</h2>
+                            <div class="flex items-center justify-center gap-3">
+                                <span class="text-2xl font-black text-gold-500 tracking-tight">${item.pinyin}</span>
+                                <button id="play-audio-btn" class="w-10 h-10 rounded-2xl bg-gold-50 text-gold-600 flex items-center justify-center active:scale-95 transition-all premium-shadow-gold">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <p class="text-jade-500 italic">"${item.meaning}"</p>
+                        <p class="text-jade-400 italic text-sm font-medium tracking-tight">"${item.meaning}"</p>
                     </div>
 
-                    <!-- Canvas/Interaction Area -->
-                    <div class="relative w-full aspect-square max-w-[300px] glass-card rounded-3xl overflow-hidden shadow-jade-100/50">
-                        <canvas id="drawing-canvas" width="300" height="300" class="w-full h-full cursor-crosshair"></canvas>
-                        <div id="tone-area" class="absolute inset-0 hidden p-4 flex flex-col justify-center"></div>
+                    ${!this.toneEngine.hasMandarinVoice() ? `
+                        <div class="bg-amber-50/80 backdrop-blur-sm border border-amber-100 rounded-2xl p-4 text-[10px] text-amber-700 flex items-start gap-3 max-w-[300px] scale-in">
+                            <span class="text-xl">💡</span>
+                            <div class="space-y-1">
+                                <p class="font-black uppercase tracking-wider">Voice Not Found</p>
+                                <p class="leading-relaxed opacity-80">Install the Chinese language pack in system settings for full immersion.</p>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Drawing Portal -->
+                    <div class="relative w-full aspect-square max-w-[320px] glass-card rounded-[3rem] overflow-hidden premium-shadow group">
+                        <canvas id="drawing-canvas" width="320" height="320" class="w-full h-full cursor-crosshair relative z-10"></canvas>
+                        <div id="tone-area" class="absolute inset-0 hidden p-6 flex flex-col justify-center z-20 bg-white/90 backdrop-blur-md"></div>
+                        <!-- Background Grid -->
+                        <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 z-0 opacity-10">
+                            <div class="border-r border-b border-jade-900"></div>
+                            <div class="border-b border-jade-900"></div>
+                            <div class="border-r border-jade-900"></div>
+                            <div class=""></div>
+                        </div>
                     </div>
 
-                    <button id="validate-btn" class="w-full py-4 rounded-2xl jade-gradient text-white font-bold shadow-lg shadow-jade-200 active:scale-95 transition-transform">
-                        Check Result
-                    </button>
+                    <div class="w-full px-4 pt-4">
+                        <button id="validate-btn" class="w-full py-5 rounded-[2rem] jade-gradient text-white font-black text-xs uppercase tracking-[0.3em] premium-shadow active:scale-[0.98] transition-all relative overflow-hidden">
+                            <span class="relative z-10">Transcribe Character</span>
+                            <div class="absolute inset-0 bg-white/10 opacity-0 active:opacity-100 transition-opacity"></div>
+                        </button>
+                    </div>
                 </div>
             `;
 
@@ -283,7 +365,6 @@ class MandarinFlow {
 
             this.canvasEngine.drawGhost(item.char);
 
-            // Audio listener
             document.getElementById('play-audio-btn').addEventListener('click', () => {
                 this.toneEngine.playAudio(item.char);
             });
@@ -295,7 +376,8 @@ class MandarinFlow {
             document.getElementById('validate-btn').addEventListener('click', async () => {
                 const btn = document.getElementById('validate-btn');
                 btn.disabled = true;
-                btn.innerHTML = '<span class="animate-pulse">Thinking...</span>';
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="animate-pulse">Consulting the Sages...</span>';
 
                 const result = await this.canvasEngine.predict();
 
@@ -311,11 +393,11 @@ class MandarinFlow {
                         } else {
                             this.showSessionComplete();
                         }
-                    }, 1500);
+                    }, 1800);
                 } else {
                     this.showFailure();
                     btn.disabled = false;
-                    btn.textContent = 'Try Again';
+                    btn.innerHTML = originalText;
                     this.progress.updateMastery(item.id, 1);
                 }
             });
@@ -326,19 +408,20 @@ class MandarinFlow {
 
     showSuccess(item) {
         confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#2d5a27', '#eab308', '#ffffff']
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.7 },
+            colors: ['#2d5a27', '#f59e0b', '#ffffff'],
+            ticks: 200
         });
 
-        if (navigator.vibrate) navigator.vibrate(50);
+        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 
-        // Transition to tone selector for extra points (optional gamification)
         const toneArea = document.getElementById('tone-area');
         const canvas = document.getElementById('drawing-canvas');
         canvas.classList.add('hidden');
         toneArea.classList.remove('hidden');
+        toneArea.classList.add('scale-in');
 
         this.toneEngine.renderToneSelector((tone) => {
             if (tone === item.tone) {
@@ -359,16 +442,35 @@ class MandarinFlow {
     showSessionComplete() {
         const main = document.getElementById('main-view');
         main.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-10 text-center space-y-6 fade-in">
+            <div class="flex flex-col items-center justify-center py-10 text-center space-y-10 scale-in min-h-[70vh]">
                 <div class="relative">
-                    <div class="text-8xl">🏆</div>
-                    <div class="absolute -top-4 -right-4 bg-gold-400 text-white p-2 rounded-full text-xs font-bold">+100 XP</div>
+                    <div class="text-9xl float">🏮</div>
+                    <div class="absolute -top-6 -right-6 w-20 h-20 gold-gradient rounded-3xl flex items-center justify-center border-8 border-white premium-shadow-gold guardian-glow rotate-12">
+                        <span class="text-white font-black text-sm">+100</span>
+                    </div>
                 </div>
-                <h2 class="text-2xl font-bold text-jade-800">Session Complete!</h2>
-                <p class="text-jade-500 text-sm">You've strengthened your connection with your Inner Dragon.</p>
-                <button id="finish-btn" class="w-full py-4 rounded-2xl jade-gradient text-white font-bold shadow-lg">
-                    Return to Path
-                </button>
+                
+                <div class="space-y-3">
+                    <h2 class="text-4xl font-black text-jade-800 tracking-tight">Enlightenment Achieved</h2>
+                    <p class="text-jade-400 text-xs font-bold uppercase tracking-[0.3em]">The Dragon Spirit is pleased</p>
+                </div>
+
+                <div class="w-full glass-card rounded-[2.5rem] p-8 space-y-6 premium-shadow">
+                    <div class="flex justify-around items-center divide-x divide-jade-50">
+                        <div class="flex-1">
+                            <p class="text-[9px] font-black text-jade-300 uppercase tracking-widest mb-1">XP Gain</p>
+                            <p class="text-2xl font-black text-gold-600">+100</p>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[9px] font-black text-jade-300 uppercase tracking-widest mb-1">Accuracy</p>
+                            <p class="text-2xl font-black text-jade-700">100%</p>
+                        </div>
+                    </div>
+                    
+                    <button id="finish-btn" class="w-full py-5 rounded-[2rem] jade-gradient text-white font-black text-xs uppercase tracking-[0.4em] premium-shadow active:scale-95 transition-all">
+                        Ascend to Path
+                    </button>
+                </div>
             </div>
         `;
 

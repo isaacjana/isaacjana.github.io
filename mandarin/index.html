@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MandarinFlow | Master Hanzi</title>
     <meta name="description" content="A gamified, local-first Mandarin learning experience.">
-    
+
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2d5a27">
@@ -14,8 +15,10 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+SC:wght@500;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+SC:wght@500;700&family=ZCOOL+KuaiLe&display=swap"
+        rel="stylesheet">
+
     <!-- Styles -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -24,12 +27,12 @@
                 extend: {
                     colors: {
                         jade: {
-                            50: '#f1f8f3', 100: '#ddeee1', 200: '#bddbc8', 300: '#8ebfa4', 
-                            400: '#5fa07d', 500: '#3e845f', 600: '#2d5a27', 700: '#25513d', 
+                            50: '#f1f8f3', 100: '#ddeee1', 200: '#bddbc8', 300: '#8ebfa4',
+                            400: '#5fa07d', 500: '#3e845f', 600: '#2d5a27', 700: '#25513d',
                             800: '#1f4233', 900: '#1b382b',
                         },
                         gold: {
-                            50: '#fefce8', 100: '#fef9c3', 200: '#fef08a', 300: '#fde047', 
+                            50: '#fefce8', 100: '#fef9c3', 200: '#fef08a', 300: '#fde047',
                             400: '#facc15', 500: '#eab308', 600: '#ca8a04',
                         }
                     },
@@ -43,69 +46,101 @@
         }
     </script>
     <link rel="stylesheet" href="index.css">
-    
+
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
+
 <body class="bg-jade-50 min-h-screen pb-20 select-none">
+
+    <!-- Premium Background -->
+    <div class="mesh-bg"></div>
 
     <!-- App Container -->
     <div id="app" class="max-w-md mx-auto min-h-screen relative">
-        
+
         <!-- Header -->
-        <header class="p-6 flex justify-between items-center bg-white/50 backdrop-blur-sm sticky top-0 z-10 border-b border-jade-100">
-            <div>
-                <h1 class="text-2xl font-display text-jade-700 tracking-tight">MandarinFlow</h1>
-                <p class="text-[10px] text-jade-500 font-bold uppercase tracking-widest">Level 1: The Basics</p>
-            </div>
-            <div id="guardian-mini" class="flex flex-col items-center">
-                <div class="w-12 h-12 jade-gradient rounded-full flex items-center justify-center border-2 border-gold-400 shadow-md transition-transform hover:scale-110 cursor-pointer">
-                    <span id="guardian-icon" class="text-2xl">🥚</span>
+        <header
+            class="p-6 flex justify-between items-end bg-white/30 backdrop-blur-md sticky top-0 z-30 border-b border-white/20">
+            <div class="space-y-1">
+                <h1 class="text-3xl font-display text-jade-800 leading-none">MandarinFlow</h1>
+                <div class="flex items-center gap-2">
+                    <span id="level-indicator"
+                        class="text-[9px] font-black uppercase tracking-[0.2em] text-jade-500 bg-jade-100/50 px-2 py-0.5 rounded-full">Level
+                        1: The Basics</span>
                 </div>
-                <span id="xp-badge" class="mt-1 text-[10px] font-bold bg-gold-400 text-white px-2 py-0.5 rounded-full shadow-sm">0 XP</span>
+            </div>
+            <div id="guardian-mini" class="flex flex-col items-center group cursor-pointer">
+                <div
+                    class="w-14 h-14 jade-gradient rounded-3xl flex items-center justify-center border-2 border-white/50 premium-shadow transition-all duration-300 group-hover:scale-110 group-active:scale-95 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <span id="guardian-icon" class="text-3xl z-10 drop-shadow-lg">🥚</span>
+                </div>
+                <div id="xp-badge"
+                    class="absolute -top-1 -right-1 z-20 text-[9px] font-black bg-gold-500 text-white px-2 py-1 rounded-lg premium-shadow-gold ring-2 ring-white">
+                    0 XP</div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main id="main-view" class="p-6">
+        <main id="main-view" class="p-6 relative z-10">
             <!-- Dynamic views will be injected here -->
-            <div id="view-loading" class="flex flex-col items-center justify-center py-20 animate-pulse">
-                <div class="text-4xl mb-4">🏮</div>
-                <p class="text-jade-600 font-medium">Preparing curriculum...</p>
+            <div id="view-loading" class="flex flex-col items-center justify-center py-40 animate-pulse">
+                <div class="text-6xl mb-6 float">🏮</div>
+                <p class="text-jade-600 font-bold tracking-widest uppercase text-xs">Awakening the Dragon...</p>
             </div>
         </main>
 
         <!-- Modals/Overlays -->
-        <div id="modal-container" class="fixed inset-0 z-50 pointer-events-none opacity-0 transition-opacity flex items-center justify-center p-6 bg-jade-900/80 backdrop-blur-sm">
+        <div id="modal-container"
+            class="fixed inset-0 z-50 pointer-events-none opacity-0 transition-opacity flex items-center justify-center p-6 bg-jade-900/80 backdrop-blur-sm">
             <!-- Populated via JS -->
         </div>
 
         <!-- Navigation -->
-        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-jade-100 flex justify-around items-center h-16 max-w-md mx-auto z-40">
+        <nav
+            class="fixed bottom-6 left-6 right-6 bg-white/40 backdrop-blur-2xl border border-white/40 flex justify-around items-center h-20 rounded-[2.5rem] premium-shadow z-40 max-w-md mx-auto">
             <button class="nav-item active" data-view="learn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                <span class="text-[10px] font-bold uppercase">Learn</span>
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                </div>
+                <span class="text-[8px] font-black uppercase tracking-widest active-label">Path</span>
             </button>
             <button class="nav-item" data-view="practice">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span class="text-[10px] font-bold uppercase">Review</span>
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </div>
+                <span class="text-[8px] font-black uppercase tracking-widest active-label">Ritual</span>
             </button>
             <button class="nav-item" data-view="stats">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <span class="text-[10px] font-bold uppercase">Stats</span>
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <span class="text-[8px] font-black uppercase tracking-widest active-label">Spirit</span>
             </button>
             <button class="nav-item" data-view="settings">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span class="text-[10px] font-bold uppercase">Settings</span>
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <span class="text-[8px] font-black uppercase tracking-widest active-label">Tuning</span>
             </button>
         </nav>
     </div>
@@ -123,4 +158,5 @@
         }
     </script>
 </body>
+
 </html>

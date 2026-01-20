@@ -41,12 +41,10 @@ class ToneEngine {
     playAudio(text) {
         if (!window.speechSynthesis) {
             console.error('Speech synthesis not supported');
-            return;
+            return 'unsupported';
         }
 
-        console.log('Attempting to play audio for:', text);
         window.speechSynthesis.cancel();
-
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'zh-CN';
         utterance.rate = 0.8;
@@ -54,33 +52,38 @@ class ToneEngine {
         let voices = window.speechSynthesis.getVoices();
 
         if (voices.length === 0) {
-            console.warn('Voices not loaded yet, retrying...');
             setTimeout(() => this.playAudio(text), 200);
-            return;
+            return 'loading';
         }
 
-        // Broaden search criteria for Mandarin/Chinese voices
         const zhVoice = voices.find(v =>
             v.lang.toLowerCase().includes('zh') ||
             v.lang.toLowerCase().includes('cn') ||
             v.name.toLowerCase().includes('chinese') ||
-            v.name.toLowerCase().includes('mandarin') ||
-            v.name.toLowerCase().includes('putonghua')
+            v.name.toLowerCase().includes('mandarin')
         );
 
         if (zhVoice) {
-            console.log('Using voice:', zhVoice.name, '[', zhVoice.lang, ']');
             utterance.voice = zhVoice;
-            // Update lang to match the specific voice found
             utterance.lang = zhVoice.lang;
+            window.speechSynthesis.speak(utterance);
+            return 'success';
         } else {
-            console.warn('Mandarin voice not found. Available voices:', voices.map(v => `${v.name} (${v.lang})`));
-            console.warn('Falling back to default language tag: zh-CN');
-            utterance.lang = 'zh-CN';
+            // Fallback for when no Mandarin voice is installed in the OS
+            console.warn('Mandarin voice missing in OS. Falling back to default tags.');
+            window.speechSynthesis.speak(utterance);
+            return 'no-voice';
         }
+    }
 
-        utterance.onerror = (e) => console.error('Utterance error:', e);
-        window.speechSynthesis.speak(utterance);
+    hasMandarinVoice() {
+        if (!window.speechSynthesis) return false;
+        const voices = window.speechSynthesis.getVoices();
+        return voices.some(v =>
+            v.lang.toLowerCase().includes('zh') ||
+            v.lang.toLowerCase().includes('cn') ||
+            v.name.toLowerCase().includes('chinese')
+        );
     }
 
     highlightTone(toneId) {
