@@ -16,6 +16,18 @@ class MandarinFlow {
         this.setupNavigation();
         this.renderView('learn');
         this.updateHeader();
+
+        // Warm up speech synthesis on first user interaction (critical for mobile)
+        const warmUpSpeech = () => {
+            if (window.speechSynthesis) {
+                const u = new SpeechSynthesisUtterance('');
+                window.speechSynthesis.speak(u);
+            }
+            window.removeEventListener('click', warmUpSpeech);
+            window.removeEventListener('touchstart', warmUpSpeech);
+        };
+        window.addEventListener('click', warmUpSpeech);
+        window.addEventListener('touchstart', warmUpSpeech);
     }
 
     setupNavigation() {
@@ -245,8 +257,8 @@ class MandarinFlow {
                         <h2 class="text-7xl hanzi text-jade-800">${item.char}</h2>
                         <div class="flex items-center justify-center gap-2">
                             <span class="text-2xl font-bold text-gold-600">${item.pinyin}</span>
-                            <button id="play-audio-btn" class="bg-jade-100 p-2 rounded-full text-jade-600 active:scale-90 transition-transform">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <button id="play-audio-btn" class="bg-jade-100 p-3 rounded-full text-jade-600 active:scale-90 transition-transform shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                                 </svg>
                             </button>

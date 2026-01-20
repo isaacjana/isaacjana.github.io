@@ -39,10 +39,36 @@ class ToneEngine {
      * Plays the audio for a character using Web Speech API
      */
     playAudio(text) {
-        if (!window.speechSynthesis) return;
+        if (!window.speechSynthesis) {
+            console.error('Speech synthesis not supported');
+            return;
+        }
+
+        console.log('Attempting to play audio for:', text);
+        window.speechSynthesis.cancel();
+
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'zh-CN';
         utterance.rate = 0.8;
+
+        let voices = window.speechSynthesis.getVoices();
+
+        // If voices aren't loaded yet, we might need to wait or try again
+        if (voices.length === 0) {
+            console.warn('Voices not loaded yet, retrying...');
+            setTimeout(() => this.playAudio(text), 100);
+            return;
+        }
+
+        const zhVoice = voices.find(v => v.lang.startsWith('zh') || v.name.includes('Chinese'));
+        if (zhVoice) {
+            console.log('Using voice:', zhVoice.name);
+            utterance.voice = zhVoice;
+        } else {
+            console.warn('Mandarin voice not found, using default language setting.');
+        }
+
+        utterance.onerror = (e) => console.error('Utterance error:', e);
         window.speechSynthesis.speak(utterance);
     }
 
@@ -56,6 +82,15 @@ class ToneEngine {
                 btn.classList.add('bg-white/50');
             }
         });
+    }
+}
+
+// Ensure voices are loaded (some browsers load them asynchronously)
+if (window.speechSynthesis) {
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.getVoices();
+        };
     }
 }
 
