@@ -53,19 +53,30 @@ class ToneEngine {
 
         let voices = window.speechSynthesis.getVoices();
 
-        // If voices aren't loaded yet, we might need to wait or try again
         if (voices.length === 0) {
             console.warn('Voices not loaded yet, retrying...');
-            setTimeout(() => this.playAudio(text), 100);
+            setTimeout(() => this.playAudio(text), 200);
             return;
         }
 
-        const zhVoice = voices.find(v => v.lang.startsWith('zh') || v.name.includes('Chinese'));
+        // Broaden search criteria for Mandarin/Chinese voices
+        const zhVoice = voices.find(v =>
+            v.lang.toLowerCase().includes('zh') ||
+            v.lang.toLowerCase().includes('cn') ||
+            v.name.toLowerCase().includes('chinese') ||
+            v.name.toLowerCase().includes('mandarin') ||
+            v.name.toLowerCase().includes('putonghua')
+        );
+
         if (zhVoice) {
-            console.log('Using voice:', zhVoice.name);
+            console.log('Using voice:', zhVoice.name, '[', zhVoice.lang, ']');
             utterance.voice = zhVoice;
+            // Update lang to match the specific voice found
+            utterance.lang = zhVoice.lang;
         } else {
-            console.warn('Mandarin voice not found, using default language setting.');
+            console.warn('Mandarin voice not found. Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+            console.warn('Falling back to default language tag: zh-CN');
+            utterance.lang = 'zh-CN';
         }
 
         utterance.onerror = (e) => console.error('Utterance error:', e);
