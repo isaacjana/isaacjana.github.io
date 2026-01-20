@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --jade-50: #f1f8f3;
+    --jade-100: #ddeee1;
+    --jade-200: #bddbc8;
+    --jade-300: #8ebfa4;
+    --jade-400: #5fa07d;
+    --jade-500: #3e845f;
+    --jade-600: #2d5a27; /* Deep Jade */
+    --jade-700: #25513d;
+    --jade-800: #1f4233;
+    --jade-900: #1b382b;
+    
+    --gold-50: #fefce8;
+    --gold-100: #fef9c3;
+    --gold-200: #fef08a;
+    --gold-300: #fde047;
+    --gold-400: #facc15;
+    --gold-500: #eab308; /* Imperial Gold */
+    --gold-600: #ca8a04;
+  }
+
+  body {
+    @apply bg-jade-50 text-jade-900 overflow-x-hidden;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .jade-gradient {
+    @apply bg-gradient-to-br from-jade-600 to-jade-800;
+  }
+  
+  .gold-gradient {
+    @apply bg-gradient-to-br from-gold-400 to-gold-600;
+  }
+
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-xl;
+  }
+
+  .nav-item {
+    @apply flex flex-col items-center justify-center gap-1 text-jade-400 transition-colors;
+  }
+  
+  .nav-item.active {
+    @apply text-jade-700;
+  }
+
+  .shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-jade-50;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-jade-200 rounded-full;
+}
+
+/* Typography for Hanzi */
+.hanzi {
+  font-family: 'Noto Sans SC', sans-serif;
+  font-weight: 500;
+}
+
+/* Guardian Evolution Animation */
+.guardian-pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}

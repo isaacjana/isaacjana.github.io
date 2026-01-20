@@ -1,0 +1,591 @@
+{
+    "curriculum": [
+        {
+            "id": "level_1",
+            "title": "The First Steps",
+            "description": "Foundational greetings and the numerical system.",
+            "lessons": [
+                {
+                    "id": "lesson_1_1",
+                    "title": "Essential Greetings",
+                    "items": [
+                        {
+                            "id": "char_1",
+                            "char": "你",
+                            "pinyin": "nǐ",
+                            "meaning": "You",
+                            "tone": 3,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_2",
+                            "char": "好",
+                            "pinyin": "hǎo",
+                            "meaning": "Good",
+                            "tone": 3,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_3",
+                            "char": "您",
+                            "pinyin": "nín",
+                            "meaning": "You (Polite)",
+                            "tone": 2,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_4",
+                            "char": "老师",
+                            "pinyin": "lǎo shī",
+                            "meaning": "Teacher",
+                            "tone": 3,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_5",
+                            "char": "同学",
+                            "pinyin": "tóng xué",
+                            "meaning": "Classmate",
+                            "tone": 2,
+                            "difficulty": 2
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_1_2",
+                    "title": "Numbers 1-5",
+                    "items": [
+                        {
+                            "id": "char_6",
+                            "char": "一",
+                            "pinyin": "yī",
+                            "meaning": "One",
+                            "tone": 1,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_7",
+                            "char": "二",
+                            "pinyin": "èr",
+                            "meaning": "Two",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_8",
+                            "char": "三",
+                            "pinyin": "sān",
+                            "meaning": "Three",
+                            "tone": 1,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_9",
+                            "char": "四",
+                            "pinyin": "sì",
+                            "meaning": "Four",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_10",
+                            "char": "五",
+                            "pinyin": "wǔ",
+                            "meaning": "Five",
+                            "tone": 3,
+                            "difficulty": 1
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_1_3",
+                    "title": "Numbers 6-10",
+                    "items": [
+                        {
+                            "id": "char_11",
+                            "char": "六",
+                            "pinyin": "liù",
+                            "meaning": "Six",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_12",
+                            "char": "七",
+                            "pinyin": "qī",
+                            "meaning": "Seven",
+                            "tone": 1,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_13",
+                            "char": "八",
+                            "pinyin": "bā",
+                            "meaning": "Eight",
+                            "tone": 1,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_14",
+                            "char": "九",
+                            "pinyin": "jiǔ",
+                            "meaning": "Nine",
+                            "tone": 3,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_15",
+                            "char": "十",
+                            "pinyin": "shí",
+                            "meaning": "Ten",
+                            "tone": 2,
+                            "difficulty": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "level_2",
+            "title": "People & Identity",
+            "description": "Learn to talk about yourself and those around you.",
+            "lessons": [
+                {
+                    "id": "lesson_2_1",
+                    "title": "Pronouns",
+                    "items": [
+                        {
+                            "id": "char_16",
+                            "char": "我",
+                            "pinyin": "wǒ",
+                            "meaning": "I / Me",
+                            "tone": 3,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_17",
+                            "char": "他",
+                            "pinyin": "tā",
+                            "meaning": "He / Him",
+                            "tone": 1,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_18",
+                            "char": "她",
+                            "pinyin": "tā",
+                            "meaning": "She / Her",
+                            "tone": 1,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_19",
+                            "char": "们",
+                            "pinyin": "men",
+                            "meaning": "Plural Marker",
+                            "tone": 5,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_20",
+                            "char": "谁",
+                            "pinyin": "shéi",
+                            "meaning": "Who",
+                            "tone": 2,
+                            "difficulty": 2
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_2_2",
+                    "title": "Family Circle",
+                    "items": [
+                        {
+                            "id": "char_21",
+                            "char": "爸爸",
+                            "pinyin": "bà ba",
+                            "meaning": "Dad",
+                            "tone": 4,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_22",
+                            "char": "妈妈",
+                            "pinyin": "mā ma",
+                            "meaning": "Mom",
+                            "tone": 1,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_23",
+                            "char": "哥哥",
+                            "pinyin": "gē ge",
+                            "meaning": "Older Brother",
+                            "tone": 1,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_24",
+                            "char": "姐姐",
+                            "pinyin": "jiě jie",
+                            "meaning": "Older Sister",
+                            "tone": 3,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_25",
+                            "char": "家",
+                            "pinyin": "jiā",
+                            "meaning": "Home / Family",
+                            "tone": 1,
+                            "difficulty": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "level_3",
+            "title": "Daily Life Verbs",
+            "description": "Essential actions for surviving and thriving.",
+            "lessons": [
+                {
+                    "id": "lesson_3_1",
+                    "title": "The Essentials",
+                    "items": [
+                        {
+                            "id": "char_26",
+                            "char": "是",
+                            "pinyin": "shì",
+                            "meaning": "To be",
+                            "tone": 4,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_27",
+                            "char": "有",
+                            "pinyin": "yǒu",
+                            "meaning": "To have",
+                            "tone": 3,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_28",
+                            "char": "去",
+                            "pinyin": "qù",
+                            "meaning": "To go",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_29",
+                            "char": "来",
+                            "pinyin": "lái",
+                            "meaning": "To come",
+                            "tone": 2,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_30",
+                            "char": "在",
+                            "pinyin": "zài",
+                            "meaning": "To be at/located",
+                            "tone": 4,
+                            "difficulty": 2
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_3_2",
+                    "title": "Eating & Drinking",
+                    "items": [
+                        {
+                            "id": "char_31",
+                            "char": "吃",
+                            "pinyin": "chī",
+                            "meaning": "To eat",
+                            "tone": 1,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_32",
+                            "char": "喝",
+                            "pinyin": "hē",
+                            "meaning": "To drink",
+                            "tone": 1,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_33",
+                            "char": "水",
+                            "pinyin": "shuǐ",
+                            "meaning": "Water",
+                            "tone": 3,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_34",
+                            "char": "茶",
+                            "pinyin": "chá",
+                            "meaning": "Tea",
+                            "tone": 2,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_35",
+                            "char": "米饭",
+                            "pinyin": "mǐ fàn",
+                            "meaning": "Cooked Rice",
+                            "tone": 3,
+                            "difficulty": 3
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_3_3",
+                    "title": "Communication",
+                    "items": [
+                        {
+                            "id": "char_36",
+                            "char": "说",
+                            "pinyin": "shuō",
+                            "meaning": "To speak",
+                            "tone": 1,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_37",
+                            "char": "看",
+                            "pinyin": "kàn",
+                            "meaning": "To see / read",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_38",
+                            "char": "听",
+                            "pinyin": "tīng",
+                            "meaning": "To listen",
+                            "tone": 1,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_39",
+                            "char": "写",
+                            "pinyin": "xiě",
+                            "meaning": "To write",
+                            "tone": 3,
+                            "difficulty": 3
+                        },
+                        {
+                            "id": "char_40",
+                            "char": "叫",
+                            "pinyin": "jiào",
+                            "meaning": "To be called",
+                            "tone": 4,
+                            "difficulty": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "level_4",
+            "title": "Nature & Surroundings",
+            "description": "Connecting with the world through basic descriptors.",
+            "lessons": [
+                {
+                    "id": "lesson_4_1",
+                    "title": "The Universe",
+                    "items": [
+                        {
+                            "id": "char_41",
+                            "char": "天",
+                            "pinyin": "tiān",
+                            "meaning": "Sky / Day",
+                            "tone": 1,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_42",
+                            "char": "地",
+                            "pinyin": "de",
+                            "meaning": "Earth / Ground",
+                            "tone": 4,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_43",
+                            "char": "日",
+                            "pinyin": "rì",
+                            "meaning": "Sun / Day",
+                            "tone": 4,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_44",
+                            "char": "月",
+                            "pinyin": "yuè",
+                            "meaning": "Moon / Month",
+                            "tone": 4,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_45",
+                            "char": "山",
+                            "pinyin": "shān",
+                            "meaning": "Mountain",
+                            "tone": 1,
+                            "difficulty": 1
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_4_2",
+                    "title": "Colors",
+                    "items": [
+                        {
+                            "id": "char_46",
+                            "char": "红",
+                            "pinyin": "hóng",
+                            "meaning": "Red",
+                            "tone": 2,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_47",
+                            "char": "蓝",
+                            "pinyin": "lán",
+                            "meaning": "Blue",
+                            "tone": 2,
+                            "difficulty": 3
+                        },
+                        {
+                            "id": "char_48",
+                            "char": "绿",
+                            "pinyin": "lǜ",
+                            "meaning": "Green",
+                            "tone": 4,
+                            "difficulty": 3
+                        },
+                        {
+                            "id": "char_49",
+                            "char": "大",
+                            "pinyin": "dà",
+                            "meaning": "Big",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_50",
+                            "char": "小",
+                            "pinyin": "xiǎo",
+                            "meaning": "Small",
+                            "tone": 3,
+                            "difficulty": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "level_5",
+            "title": "Time & Location",
+            "description": "Mastering when and where things happen.",
+            "lessons": [
+                {
+                    "id": "lesson_5_1",
+                    "title": "Temporal markers",
+                    "items": [
+                        {
+                            "id": "char_51",
+                            "char": "年",
+                            "pinyin": "nián",
+                            "meaning": "Year",
+                            "tone": 2,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_52",
+                            "char": "现在",
+                            "pinyin": "xiàn zài",
+                            "meaning": "Now",
+                            "tone": 4,
+                            "difficulty": 3
+                        },
+                        {
+                            "id": "char_53",
+                            "char": "点",
+                            "pinyin": "diǎn",
+                            "meaning": "O'clock",
+                            "tone": 3,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_54",
+                            "char": "今天",
+                            "pinyin": "jīn tiān",
+                            "meaning": "Today",
+                            "tone": 1,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_55",
+                            "char": "明天",
+                            "pinyin": "míng tiān",
+                            "meaning": "Tomorrow",
+                            "tone": 2,
+                            "difficulty": 2
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_5_2",
+                    "title": "Positions",
+                    "items": [
+                        {
+                            "id": "char_56",
+                            "char": "上",
+                            "pinyin": "shàng",
+                            "meaning": "Up / Above",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_57",
+                            "char": "下",
+                            "pinyin": "xià",
+                            "meaning": "Down / Below",
+                            "tone": 4,
+                            "difficulty": 1
+                        },
+                        {
+                            "id": "char_58",
+                            "char": "左",
+                            "pinyin": "zuǒ",
+                            "meaning": "Left",
+                            "tone": 3,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_59",
+                            "char": "右",
+                            "pinyin": "yòu",
+                            "meaning": "Right",
+                            "tone": 4,
+                            "difficulty": 2
+                        },
+                        {
+                            "id": "char_60",
+                            "char": "中",
+                            "pinyin": "zhōng",
+                            "meaning": "Middle / Center",
+                            "tone": 1,
+                            "difficulty": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
