@@ -170,7 +170,12 @@ function loadView(viewId) {
 // ==========================================
 
 function renderAnalytics($el) {
-    import('./modules/views.js').then(module => module.renderAnalytics($el));
+    import('./modules/views.js').then(module => {
+        const unsub = module.renderAnalytics($el);
+        if (typeof unsub === 'function') {
+            listeners.push(unsub);
+        }
+    });
 }
 
 function initCharts(labels, salesData, productData) {
