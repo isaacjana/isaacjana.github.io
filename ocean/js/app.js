@@ -208,14 +208,40 @@ function renderAnalytics($el) {
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+        // Chart Data Prep
+        const last7Days = [...Array(7)].map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            return d.toLocaleDateString('en-MY', { weekday: 'short' });
+        }).reverse();
+
+        const salesData = Array(7).fill(0);
+        const productStats = {};
+
         orders.forEach(o => {
             const total = parseFloat(o.total || 0);
             const date = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date();
+            const dateStr = date.toLocaleDateString('en-MY', { weekday: 'short' });
 
             if (['pending', 'accepted', 'delivering'].includes(o.status)) active++;
-            if (['completed', 'accepted', 'delivering'].includes(o.status)) { // count committed revenue
+
+            if (['completed', 'accepted', 'delivering'].includes(o.status)) {
+                // Revenue Stats
                 if (date >= startOfDay) daily += total;
                 if (date >= startOfMonth) monthly += total;
+
+                // Chart: Sales (Last 7 Days)
+                const dayIndex = last7Days.indexOf(dateStr);
+                if (dayIndex !== -1) {
+                    salesData[dayIndex] += total;
+                }
+
+                // Chart: Top Products
+                if (o.items) {
+                    o.items.forEach(i => {
+                        productStats[i.name] = (productStats[i.name] || 0) + i.qty;
+                    });
+                }
             }
         });
 
@@ -223,8 +249,12 @@ function renderAnalytics($el) {
         $('#stat-monthly').text(`RM ${monthly.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
         $('#stat-orders').text(active);
 
-        // Chart Init (Mock Data until advanced aggregation is built)
-        initCharts(orders);
+        // Prepare Top 5 Products
+        const sortedProducts = Object.entries(productStats)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5);
+
+        initCharts(last7Days, salesData, sortedProducts);
     });
     listeners.push(unsub);
 
@@ -235,39 +265,65 @@ function renderAnalytics($el) {
     listeners.push(unsubClients);
 }
 
-function initCharts(orders) {
-    // Simple mock logic for visualization
+function initCharts(labels, salesData, productData) {
     const ctx1 = document.getElementById('salesChart');
     if (ctx1) {
-        new Chart(ctx1, {
+        // Destroy existing chart if any
+        if (window.salesChartInstance) window.salesChartInstance.destroy();
+
+        window.salesChartInstance = new Chart(ctx1, {
             type: 'line',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: labels,
                 datasets: [{
                     label: 'Revenue (RM)',
-                    data: [1200, 1900, 1500, 2100, 1800, 2500, 3200], // Placeholder
-                    borderColor: '#1e40af',
-                    backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                    data: salesData,
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#0ea5e9',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
                     tension: 0.4,
                     fill: true
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
+                    x: { grid: { display: false } }
+                }
+            }
         });
     }
 
     const ctx2 = document.getElementById('productsChart');
     if (ctx2) {
-        new Chart(ctx2, {
+        if (window.productsChartInstance) window.productsChartInstance.destroy();
+
+        window.productsChartInstance = new Chart(ctx2, {
             type: 'doughnut',
             data: {
-                labels: ['Lobster', 'Grouper', 'Crab', 'Prawns'],
+                labels: productData.map(([name]) => name),
                 datasets: [{
-                    data: [35, 25, 25, 15], // Placeholder
-                    backgroundColor: ['#0ea5e9', '#1e40af', '#0f2847', '#38bdf8']
+                    data: productData.map(([, qty]) => qty),
+                    backgroundColor: ['#0ea5e9', '#1e40af', '#0f2847', '#38bdf8', '#7dd3fc', '#e0f2fe'],
+                    borderWidth: 0,
+                    hoverOffset: 4
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } }
+                },
+                cutout: '70%'
+            }
         });
     }
 }
@@ -668,17 +724,23 @@ function renderInvoices($el) {
 
     const unsub = dbAPI.getInvoices((invoices) => {
         if (invoices.length === 0) {
-            $('#invoices-list').html(`<tr><td colspan="5" class="empty-state"><p class="empty-state-text">No invoices generated.</p></td></tr>`);
+            $('#invoices-list').html(`<tr><td colspan="6" class="empty-state"><p class="empty-state-text">No invoices generated.</p></td></tr>`);
             return;
         }
 
         const rows = invoices.map(i => `
             <tr class="table-row-hover">
-                <td class="font-mono text-gray-600">NV-${i.id.slice(0, 6)}</td>
-                <td class="font-mono text-xs">#${i.orderId.slice(0, 6)}</td>
-                <td class="font-bold">RM ${i.amount.toFixed(2)}</td>
+                <td class="font-mono text-gray-600 font-bold">${i.invoiceRef || 'INV-' + i.id.slice(0, 6)}</td>
+                <td class="font-mono text-xs text-gray-400">#${i.orderId.slice(0, 6)}</td>
+                <td class="font-bold text-gray-800">RM ${i.amount.toFixed(2)}</td>
                 <td class="text-sm text-gray-500">${new Date(i.createdAt.seconds * 1000).toLocaleDateString()}</td>
                 <td><span class="badge badge-completed">Validated</span></td>
+                <td>
+                    <button onclick='generateInvoicePDF(${JSON.stringify(i).replace(/'/g, "&apos;")})' class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        PDF
+                    </button>
+                </td>
             </tr>
         `).join('');
         $('#invoices-list').html(rows);
@@ -991,11 +1053,125 @@ window.pickJob = async (id) => {
 }
 
 window.createInvoice = async (orderId) => {
-    const doc = await db.collection('orders').doc(orderId).get();
-    await dbAPI.generateInvoice(orderId, doc.data());
-    await db.collection('orders').doc(orderId).update({ invoiced: true });
-    showToast("Invoice generated successfully", "success");
+    try {
+        const doc = await db.collection('orders').doc(orderId).get();
+        if (!doc.exists) throw new Error("Order not found");
+
+        const orderData = doc.data();
+        const invoiceRef = `INV-${new Date().getFullYear()}${new Date().getMonth() + 1}-${Math.floor(Math.random() * 10000)}`;
+
+        // Prepare invoice data
+        const invoiceData = {
+            orderId,
+            invoiceRef,
+            clientId: orderData.clientId,
+            clientName: orderData.clientName,
+            storeName: orderData.storeName,
+            address: orderData.deliveryAddress,
+            items: orderData.items,
+            amount: parseFloat(orderData.total),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            // LHDN Specifics
+            tin: "C2584567890",
+            msic: "46312",
+            sst: "W10-1808-32000000"
+        };
+
+        // 1. Generate & Download PDF
+        await generateInvoicePDF(invoiceData);
+
+        // 2. Save to DB
+        await dbAPI.generateInvoice(orderId, invoiceData);
+
+        // 3. Mark Order as Invoiced
+        await db.collection('orders').doc(orderId).update({ invoiced: true });
+
+        showToast("Invoice generated & downloaded", "success");
+    } catch (e) {
+        console.error(e);
+        showToast("Error generating invoice", "error");
+    }
 }
+
+window.generateInvoicePDF = async (data) => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFillColor(15, 40, 71); // #0f2847 Ocean Dark
+    doc.rect(0, 0, 210, 40, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("OCEAN LIVE SEAFOOD", 15, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Premium Live Seafood Supplier", 15, 26);
+    doc.text("Kuching, Sarawak | +60 82-123 456", 15, 31);
+
+    doc.text("INVOICE", 180, 20, { align: 'right' });
+    doc.text(`#${data.invoiceRef || 'PENDING'}`, 180, 26, { align: 'right' });
+
+    // Details
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL TO:", 15, 55);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(data.clientName || 'Client', 15, 62);
+    doc.text(data.storeName || '', 15, 67);
+    const splitAddr = doc.splitTextToSize(data.address || '', 80);
+    doc.text(splitAddr, 15, 72);
+
+    // LHDN Info
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 140, 62);
+    doc.text(`TIN: ${data.tin || 'C2584567890'}`, 140, 67);
+    doc.text(`SST: ${data.sst || 'W10-1808-32000000'}`, 140, 72);
+    doc.text(`MSIC: ${data.msic || '46312'}`, 140, 77);
+
+    // Items Table
+    const tableData = data.items.map((item, i) => [
+        i + 1,
+        item.name,
+        `${item.qty} ${item.unit || 'units'}`,
+        `RM ${item.finalPrice ? parseFloat(item.finalPrice).toFixed(2) : parseFloat(item.price).toFixed(2)}`,
+        `RM ${(item.itemTotal || (item.price * item.qty)).toFixed(2)}`
+    ]);
+
+    doc.autoTable({
+        startY: 90,
+        head: [['#', 'Description', 'Qty', 'Unit Price', 'Total']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [15, 40, 71], textColor: 255 },
+        styles: { fontSize: 9 },
+        columnStyles: {
+            0: { dataKey: 'id', cellWidth: 15 },
+            4: { halign: 'right' }
+        }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+
+    // Total
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 40, 71);
+    doc.text(`Grand Total: RM ${parseFloat(data.amount).toFixed(2)}`, 195, finalY, { align: 'right' });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150, 150, 150);
+    doc.text("Thank you for your business. Electronic Invoice generated by Ocean System.", 105, 280, { align: 'center' });
+
+    doc.save(`Invoice_${data.invoiceRef}.pdf`);
+};
 
 window.deleteProduct = async (id) => {
     if (confirm("Are you sure you want to delete this product?")) {

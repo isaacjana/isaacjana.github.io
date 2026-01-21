@@ -25,6 +25,10 @@
     <!-- Chart.js for Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- jsPDF for Invoices -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         /* Active Nav Indicator */
         .active-nav {
@@ -231,19 +235,9 @@
 
         <!-- Content Area -->
         <div class="content-wrapper" id="main-view">
-            <!-- Loading State -->
             <div id="view-loading" class="flex flex-col items-center justify-center h-[60vh]">
-                <div class="relative">
-                    <div class="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin"
-                        style="border-top-color: #0ea5e9;"></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                        </svg>
-                    </div>
-                </div>
-                <p class="mt-4 text-gray-500 font-medium">Loading dashboard...</p>
+                <div class="ocean-spinner mb-4"></div>
+                <p class="text-blue-900 font-semibold text-lg animate-pulse">Loading Ocean System...</p>
             </div>
 
             <!-- Dynamic Content Sections will be injected here -->
@@ -255,6 +249,12 @@
 
     <!-- Modal Container -->
     <div id="modal-container"></div>
+
+    <!-- Background Waves -->
+    <div class="wave-container fixed bottom-0 left-0 w-full h-48 -z-10 pointer-events-none opacity-40">
+        <div class="wave wave-1"></div>
+        <div class="wave wave-2"></div>
+    </div>
 
     <script src="js/firebase-config.js"></script>
     <script src="js/db.js"></script>
