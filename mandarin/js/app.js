@@ -106,6 +106,16 @@ class MandarinFlow {
                 </div>
                 
                 <div class="relative flex flex-col items-center">
+                    <!-- Global Actions -->
+                    ${this.progress.getReviewItems().length > 0 ? `
+                        <div class="w-full px-4 -mt-6 mb-8 relative z-20 slide-up">
+                            <button id="quick-review-btn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-sm uppercase tracking-widest premium-shadow flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <span class="text-xl animate-pulse">⚔️</span>
+                                <span>Defeat ${this.progress.getReviewItems().length} Weaknesses</span>
+                            </button>
+                        </div>
+                    ` : ''}
+
                     <!-- Lesson Path Connector -->
                     <div class="absolute top-0 bottom-0 w-1 bg-gradient-to-b from-jade-200 via-jade-100 to-transparent rounded-full z-0 opacity-50"></div>
         `;
@@ -143,6 +153,14 @@ class MandarinFlow {
 
         html += `</div></div>`;
         container.innerHTML = html;
+
+        const revBtn = document.getElementById('quick-review-btn');
+        if (revBtn) {
+            revBtn.addEventListener('click', () => {
+                this.soundManager.playClick();
+                this.startReviewSession(this.progress.getReviewItems());
+            });
+        }
 
         container.querySelectorAll('.lesson-btn').forEach(btn => {
             btn.addEventListener('click', () => {

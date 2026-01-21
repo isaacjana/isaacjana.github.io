@@ -267,6 +267,61 @@
                             "difficulty": 2
                         }
                     ]
+                },
+                {
+                    "id": "lesson_2_3",
+                    "title": "Introductions",
+                    "items": [
+                        {
+                            "id": "sent_2_1",
+                            "type": "sentence",
+                            "chinese": "我叫李明",
+                            "pinyin": "wǒ jiào lǐ míng",
+                            "meaning": "My name is Li Ming",
+                            "tokens": [
+                                "我",
+                                "叫",
+                                "李",
+                                "明"
+                            ]
+                        },
+                        {
+                            "id": "sent_2_2",
+                            "type": "sentence",
+                            "chinese": "你是谁",
+                            "pinyin": "nǐ shì shéi",
+                            "meaning": "Who are you?",
+                            "tokens": [
+                                "你",
+                                "是",
+                                "谁"
+                            ]
+                        },
+                        {
+                            "id": "sent_2_3",
+                            "type": "sentence",
+                            "chinese": "他是我的老师",
+                            "pinyin": "tā shì wǒ de lǎo shī",
+                            "meaning": "He is my teacher",
+                            "tokens": [
+                                "他",
+                                "是",
+                                "我的",
+                                "老师"
+                            ]
+                        },
+                        {
+                            "id": "sent_2_4",
+                            "type": "sentence",
+                            "chinese": "大家好",
+                            "pinyin": "dà jiā hǎo",
+                            "meaning": "Hello everyone",
+                            "tokens": [
+                                "大家",
+                                "好"
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -410,6 +465,73 @@
                             "meaning": "To be called",
                             "tone": 4,
                             "difficulty": 2
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_3_4",
+                    "title": "Survival Phrases",
+                    "items": [
+                        {
+                            "id": "sent_3_1",
+                            "type": "sentence",
+                            "chinese": "我不明白",
+                            "pinyin": "wǒ bù míng bai",
+                            "meaning": "I don't understand",
+                            "tokens": [
+                                "我",
+                                "不",
+                                "明白"
+                            ]
+                        },
+                        {
+                            "id": "sent_3_2",
+                            "type": "sentence",
+                            "chinese": "请帮我",
+                            "pinyin": "qǐng bāng wǒ",
+                            "meaning": "Please help me",
+                            "tokens": [
+                                "请",
+                                "帮",
+                                "我"
+                            ]
+                        },
+                        {
+                            "id": "sent_3_3",
+                            "type": "sentence",
+                            "chinese": "谢谢你",
+                            "pinyin": "xiè xie nǐ",
+                            "meaning": "Thank you",
+                            "tokens": [
+                                "谢谢",
+                                "你"
+                            ]
+                        },
+                        {
+                            "id": "sent_3_4",
+                            "type": "sentence",
+                            "chinese": "对不起",
+                            "pinyin": "duì bu qǐ",
+                            "meaning": "Sorry",
+                            "tokens": [
+                                "对",
+                                "不",
+                                "起"
+                            ]
+                        },
+                        {
+                            "id": "sent_3_5",
+                            "type": "sentence",
+                            "chinese": "你会说英语吗",
+                            "pinyin": "nǐ huì shuō yīng yǔ ma",
+                            "meaning": "Can you speak English?",
+                            "tokens": [
+                                "你",
+                                "会",
+                                "说",
+                                "英语",
+                                "吗"
+                            ]
                         }
                     ]
                 }
@@ -663,6 +785,62 @@
                             "difficulty": 1
                         }
                     ]
+                },
+                {
+                    "id": "lesson_6_2",
+                    "title": "Deep Emotions",
+                    "items": [
+                        {
+                            "id": "sent_6_1",
+                            "type": "sentence",
+                            "chinese": "我很高兴",
+                            "pinyin": "wǒ hěn gāo xìng",
+                            "meaning": "I am very happy",
+                            "tokens": [
+                                "我",
+                                "很",
+                                "高兴"
+                            ]
+                        },
+                        {
+                            "id": "sent_6_2",
+                            "type": "sentence",
+                            "chinese": "我不怕",
+                            "pinyin": "wǒ bú pà",
+                            "meaning": "I am not afraid",
+                            "tokens": [
+                                "我",
+                                "不",
+                                "怕"
+                            ]
+                        },
+                        {
+                            "id": "sent_6_3",
+                            "type": "sentence",
+                            "chinese": "我爱爸爸妈妈",
+                            "pinyin": "wǒ ài bà ba mā ma",
+                            "meaning": "I love Mom and Dad",
+                            "tokens": [
+                                "我",
+                                "爱",
+                                "爸爸",
+                                "妈妈"
+                            ]
+                        },
+                        {
+                            "id": "sent_6_4",
+                            "type": "sentence",
+                            "chinese": "你的心很好",
+                            "pinyin": "nǐ de xīn hěn hǎo",
+                            "meaning": "Your heart is good",
+                            "tokens": [
+                                "你的",
+                                "心",
+                                "很",
+                                "好"
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -716,6 +894,70 @@
                             "difficulty": 2
                         }
                     ]
+                },
+                {
+                    "id": "lesson_7_2",
+                    "title": "Market Talk",
+                    "items": [
+                        {
+                            "id": "sent_7_1",
+                            "type": "sentence",
+                            "chinese": "这个多少钱",
+                            "pinyin": "zhè ge duō shao qián",
+                            "meaning": "How much is this?",
+                            "tokens": [
+                                "这个",
+                                "多少",
+                                "钱"
+                            ]
+                        },
+                        {
+                            "id": "sent_7_2",
+                            "type": "sentence",
+                            "chinese": "太贵了",
+                            "pinyin": "tài guì le",
+                            "meaning": "Too expensive",
+                            "tokens": [
+                                "太",
+                                "贵",
+                                "了"
+                            ]
+                        },
+                        {
+                            "id": "sent_7_3",
+                            "type": "sentence",
+                            "chinese": "我要这个",
+                            "pinyin": "wǒ yào zhè ge",
+                            "meaning": "I want this",
+                            "tokens": [
+                                "我",
+                                "要",
+                                "这个"
+                            ]
+                        },
+                        {
+                            "id": "sent_7_4",
+                            "type": "sentence",
+                            "chinese": "不要辣",
+                            "pinyin": "bú yào là",
+                            "meaning": "No spicy",
+                            "tokens": [
+                                "不要",
+                                "辣"
+                            ]
+                        },
+                        {
+                            "id": "sent_7_5",
+                            "type": "sentence",
+                            "chinese": "服务员买单",
+                            "pinyin": "fú wù yuán mǎi dān",
+                            "meaning": "Waiter, bill please",
+                            "tokens": [
+                                "服务员",
+                                "买单"
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -767,6 +1009,62 @@
                             "meaning": "Path / Way",
                             "tone": 4,
                             "difficulty": 3
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_8_2",
+                    "title": "The Navigator",
+                    "items": [
+                        {
+                            "id": "sent_8_1",
+                            "type": "sentence",
+                            "chinese": "火车站在这儿",
+                            "pinyin": "huǒ chē zhàn zài nǎr",
+                            "meaning": "Where is the train station?",
+                            "tokens": [
+                                "火车",
+                                "站",
+                                "在",
+                                "这儿"
+                            ]
+                        },
+                        {
+                            "id": "sent_8_2",
+                            "type": "sentence",
+                            "chinese": "我要去北京",
+                            "pinyin": "wǒ yào qù běi jīng",
+                            "meaning": "I want to go to Beijing",
+                            "tokens": [
+                                "我",
+                                "要",
+                                "去",
+                                "北京"
+                            ]
+                        },
+                        {
+                            "id": "sent_8_3",
+                            "type": "sentence",
+                            "chinese": "向右转",
+                            "pinyin": "xiàng yòu zhuǎn",
+                            "meaning": "Turn right",
+                            "tokens": [
+                                "向",
+                                "右",
+                                "转"
+                            ]
+                        },
+                        {
+                            "id": "sent_8_4",
+                            "type": "sentence",
+                            "chinese": "停在这里",
+                            "pinyin": "tíng zài zhè lǐ",
+                            "meaning": "Stop here",
+                            "tokens": [
+                                "停",
+                                "在",
+                                "这里"
+                            ]
                         }
                     ]
                 }
