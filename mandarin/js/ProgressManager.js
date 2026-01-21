@@ -35,6 +35,11 @@ class ProgressManager {
             xp: 0,
             streak: 0,
             lastActive: null,
+            dailyQuests: {
+                date: null,
+                tasks: []
+            },
+            xpHistory: {}, // 'YYYY-MM-DD': amount
             mastery: {} // charId: { n, ef, interval, nextReview, history: [] }
         };
     }
@@ -82,26 +87,38 @@ class ProgressManager {
         // Calculate next review (milliseconds)
         const dayInMs = 24 * 60 * 60 * 1000;
         item.nextReview = Date.now() + (item.interval * dayInMs);
-        
+
         // Add to history
         item.history.push({ date: Date.now(), quality });
 
         this.progress.mastery[charId] = item;
-        
+
         // Add XP
         this.addXP(quality * 10);
-        
+
+        // Check Quests
+        this.checkQuests('review', 1);
+
         this.saveProgress();
     }
 
     addXP(amount) {
         this.progress.xp += amount;
+
+        // Track History
+        const today = new Date().toDateString();
+        if (!this.progress.xpHistory) this.progress.xpHistory = {};
+        this.progress.xpHistory[today] = (this.progress.xpHistory[today] || 0) + amount;
+
         this.updateStreak();
+        this.checkQuests('xp', amount);
         this.saveProgress();
     }
 
     updateStreak() {
         const today = new Date().toDateString();
+        this.checkDailyReset();
+
         if (this.progress.lastActive === today) return;
 
         const lastDate = this.progress.lastActive ? new Date(this.progress.lastActive) : null;
@@ -110,11 +127,51 @@ class ProgressManager {
 
         if (lastDate && lastDate.toDateString() === yesterday.toDateString()) {
             this.progress.streak++;
-        } else {
+        } else if (!lastDate || lastDate.toDateString() !== today) {
+            // Only reset if it wasn't today (already handled by first check) 
+            // and wasn't yesterday.
             this.progress.streak = 1;
         }
 
         this.progress.lastActive = today;
+    }
+
+    checkDailyReset() {
+        const today = new Date().toDateString();
+        if (this.progress.dailyQuests.date !== today) {
+            // Generate New Quests
+            this.progress.dailyQuests = {
+                date: today,
+                tasks: [
+                    { id: 'xp_100', type: 'xp', target: 100, current: 0, title: 'Gain 100 Qi (XP)', reward: 50, completed: false },
+                    { id: 'review_5', type: 'review', target: 5, current: 0, title: 'Review 5 Scrolls', reward: 30, completed: false },
+                    { id: 'perfect_3', type: 'perfect', target: 3, current: 0, title: '3 Perfect Invocations', reward: 40, completed: false }
+                ]
+            };
+        }
+    }
+
+    checkQuests(type, amount) {
+        let updated = false;
+        this.progress.dailyQuests.tasks.forEach(task => {
+            if (!task.completed && task.type === type) {
+                task.current += amount;
+                if (task.current >= task.target) {
+                    task.current = task.target;
+                    task.completed = true;
+                    this.addXP(task.reward); // Recurse? No, reward adds XP, which triggers checkQuests('xp').
+                    // Be careful of infinite loops if we had an "earn reward" quest type. We don't.
+                    // But 'xp' quest reward triggers 'xp' check again. 
+                    // Safe because the 'xp' quest will be marked completed before recursion or doesn't match 'xp' loop condition?
+                    // Actually addXP calls checkQuests('xp'). 
+                    // To avoid stack overflow: if task just completed, mark it first.
+                    updated = true;
+                    // Trigger toast in UI? (Need a callback or event system. For now, passive.)
+                }
+                updated = true;
+            }
+        });
+        if (updated) this.saveProgress();
     }
 
     getGuardianStage() {
@@ -133,13 +190,29 @@ class ProgressManager {
     }
 
     getStats() {
+        this.checkDailyReset();
         const mastered = Object.values(this.progress.mastery).filter(m => m.interval > 30).length;
+
+        // Prepare chart data (last 7 days)
+        const history = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toDateString();
+            history.push({
+                label: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
+                value: this.progress.xpHistory ? (this.progress.xpHistory[key] || 0) : 0
+            });
+        }
+
         return {
             xp: this.progress.xp,
             streak: this.progress.streak,
             charsLearned: Object.keys(this.progress.mastery).length,
             charsMastered: mastered,
-            guardian: this.getGuardianStage()
+            guardian: this.getGuardianStage(),
+            quests: this.progress.dailyQuests.tasks,
+            chartData: history
         };
     }
 }

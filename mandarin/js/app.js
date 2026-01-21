@@ -206,25 +206,59 @@ class MandarinFlow {
 
     renderStatsView(container) {
         const stats = this.progress.getStats();
+
+        // Calculate max value for chart scaling (default to 100 if low)
+        const maxVal = Math.max(100, ...stats.chartData.map(d => d.value));
+
+        const chartHtml = stats.chartData.map(d => `
+            <div class="flex-1 flex flex-col items-center gap-2 group">
+                <div class="w-full bg-jade-50 rounded-lg relative overflow-hidden h-24 flex items-end justify-center">
+                     <div class="w-full bg-jade-400 group-hover:bg-jade-500 transition-colors duration-500 rounded-t-lg" style="height: ${(d.value / maxVal) * 100}%"></div>
+                </div>
+                <span class="text-[8px] text-jade-300 font-bold uppercase tracking-wider">${d.label}</span>
+            </div>
+        `).join('');
+
+        const questsHtml = stats.quests.map(q => `
+            <div class="flex items-center gap-4 p-3 bg-white/40 rounded-2xl border border-jade-50">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg ${q.completed ? 'bg-gold-400 text-white premium-shadow-gold' : 'bg-jade-100 text-jade-400'}">
+                    ${q.completed ? '✓' : (q.type === 'xp' ? '⚡' : (q.type === 'review' ? '📚' : '🎯'))}
+                </div>
+                <div class="flex-1 space-y-1">
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-jade-800">${q.title}</p>
+                        <span class="text-[9px] font-black text-gold-500 bg-gold-50 px-2 py-0.5 rounded-full">+${q.reward} XP</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-jade-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-jade-500 transition-all duration-500" style="width: ${(q.current / q.target) * 100}%"></div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
         container.innerHTML = `
-            <div class="space-y-8 slide-up">
-                <h2 class="text-xs font-black text-jade-300 uppercase tracking-[0.4em] text-center">Your Dragon Spirit</h2>
+            <div class="space-y-8 slide-up pb-20">
+                <div class="text-center space-y-2">
+                    <h2 class="text-xs font-black text-jade-300 uppercase tracking-[0.4em]">Spirit Cultivation</h2>
+                    <h1 class="text-3xl font-black text-jade-800">My Journey</h1>
+                </div>
                 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="glass-card rounded-3xl p-6 text-center premium-shadow">
+                    <div class="glass-card rounded-3xl p-5 text-center premium-shadow">
                         <div class="text-3xl font-black text-jade-700">${stats.charsLearned}</div>
-                        <div class="text-[9px] uppercase font-black tracking-widest text-jade-300 mt-1">Learned</div>
+                        <div class="text-[9px] uppercase font-black tracking-widest text-jade-300 mt-1">Chars Learned</div>
                     </div>
-                    <div class="glass-card rounded-3xl p-6 text-center premium-shadow">
+                    <div class="glass-card rounded-3xl p-5 text-center premium-shadow">
                         <div class="text-3xl font-black text-gold-500">${stats.streak}</div>
-                        <div class="text-[9px] uppercase font-black tracking-widest text-jade-300 mt-1">Streak</div>
+                        <div class="text-[9px] uppercase font-black tracking-widest text-jade-300 mt-1">Day Streak</div>
                     </div>
                 </div>
 
-                <div class="glass-card rounded-[3rem] p-10 flex flex-col items-center text-center space-y-8 premium-shadow relative overflow-hidden">
+                <!-- Guardian Card -->
+                <div class="glass-card rounded-[3rem] p-8 flex flex-col items-center text-center space-y-6 premium-shadow relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-b from-jade-50/50 to-transparent"></div>
-                    <div class="relative">
-                        <div class="w-40 h-40 rounded-[2.5rem] jade-gradient border-8 border-white flex items-center justify-center text-7xl premium-shadow-gold guardian-glow float">
+                    <div class="relative z-10">
+                        <div class="w-32 h-32 rounded-[2.5rem] jade-gradient border-8 border-white flex items-center justify-center text-6xl premium-shadow-gold guardian-glow float">
                             ${stats.guardian === 'Egg' ? '🥚' : (stats.guardian === 'Hatchling' ? '🐥' : (stats.guardian === 'Drakeling' ? '🐉' : '🐲'))}
                         </div>
                         <div class="absolute -bottom-2 -right-2 bg-gold-500 text-white w-10 h-10 rounded-2xl flex items-center justify-center border-4 border-white premium-shadow-gold font-black text-xs">
@@ -232,16 +266,32 @@ class MandarinFlow {
                         </div>
                     </div>
                     
-                    <div class="space-y-2">
+                    <div class="space-y-1 relative z-10">
                         <h3 class="text-2xl font-black text-jade-800 tracking-tight">${stats.guardian} Spirit</h3>
                         <p class="text-[10px] font-black text-jade-300 uppercase tracking-[0.2em]">Ascension Progress</p>
                     </div>
 
-                    <div class="w-full space-y-3">
-                        <div class="w-full bg-jade-100/50 h-4 rounded-full overflow-hidden border border-white p-1">
+                    <div class="w-full space-y-2 relative z-10">
+                        <div class="w-full bg-white/50 h-3 rounded-full overflow-hidden border border-white p-0.5">
                             <div class="bg-gradient-to-r from-gold-400 to-gold-600 h-full rounded-full transition-all duration-1000 shadow-sm" style="width: ${(stats.xp % 500) / 5}%"></div>
                         </div>
                         <p class="text-[9px] text-jade-400 font-bold uppercase tracking-widest">${500 - (stats.xp % 500)} XP TO NEXT EVOLUTION</p>
+                    </div>
+                </div>
+
+                <!-- Daily Quests -->
+                <div class="space-y-4">
+                    <h3 class="text-xs font-black text-jade-400 uppercase tracking-widest px-2">Daily Cultivation</h3>
+                    <div class="space-y-3">
+                        ${questsHtml}
+                    </div>
+                </div>
+
+                <!-- Weekly Chart -->
+                <div class="glass-card p-6 rounded-[2rem] premium-shadow space-y-4">
+                    <h3 class="text-xs font-black text-jade-400 uppercase tracking-widest">Qi Flow (7 Days)</h3>
+                    <div class="flex items-end gap-2 h-32 px-2">
+                        ${chartHtml}
                     </div>
                 </div>
             </div>
@@ -591,6 +641,7 @@ class MandarinFlow {
 
     showSuccess(item) {
         this.soundManager.playSuccess();
+        this.progress.checkQuests('perfect', 1);
         confetti({
             particleCount: 200,
             spread: 100,
