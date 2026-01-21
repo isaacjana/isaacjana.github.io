@@ -1,41 +1,47 @@
 import ProgressManager from './ProgressManager.js';
 import CanvasEngine from './CanvasEngine.js';
 import ToneEngine from './ToneEngine.js';
+import SoundManager from './SoundManager.js';
 
 class MandarinFlow {
     constructor() {
         this.progress = new ProgressManager();
         this.canvasEngine = null;
         this.toneEngine = null;
+        this.soundManager = new SoundManager();
         this.currentView = 'learn';
         this.init();
     }
 
     async init() {
-        this.toneEngine = new ToneEngine(null); // Initialize early for voice checks
+        this.toneEngine = new ToneEngine(null);
         await this.progress.loadCurriculum();
         this.setupNavigation();
         this.renderView('learn');
         this.updateHeader();
 
-        // Warm up speech synthesis on first user interaction (critical for mobile)
-        const warmUpSpeech = () => {
+        // Warm up speech and audio
+        const warmUp = () => {
+            this.soundManager.resume();
             if (window.speechSynthesis) {
                 const u = new SpeechSynthesisUtterance('');
                 window.speechSynthesis.speak(u);
             }
-            window.removeEventListener('click', warmUpSpeech);
-            window.removeEventListener('touchstart', warmUpSpeech);
+            window.removeEventListener('click', warmUp);
+            window.removeEventListener('touchstart', warmUp);
         };
-        window.addEventListener('click', warmUpSpeech);
-        window.addEventListener('touchstart', warmUpSpeech);
+        window.addEventListener('click', warmUp);
+        window.addEventListener('touchstart', warmUp);
     }
 
     setupNavigation() {
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.addEventListener('click', () => {
                 const view = btn.dataset.view;
-                this.switchView(view);
+                if (view !== this.currentView) {
+                    this.soundManager.playClick();
+                    this.switchView(view);
+                }
             });
         });
     }
@@ -43,8 +49,17 @@ class MandarinFlow {
     switchView(view) {
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
         document.querySelector(`[data-view="${view}"]`).classList.add('active');
-        this.currentView = view;
-        this.renderView(view);
+
+        // Transition Logic
+        const main = document.getElementById('main-view');
+        main.classList.remove('slide-up');
+        main.classList.add('slide-down-exit');
+
+        setTimeout(() => {
+            this.currentView = view;
+            this.renderView(view);
+            main.classList.remove('slide-down-exit');
+        }, 280); // Slightly less than CSS animation duration
     }
 
     updateHeader() {
@@ -59,7 +74,7 @@ class MandarinFlow {
     renderView(view) {
         const main = document.getElementById('main-view');
         main.innerHTML = '';
-        main.className = 'p-6 slide-up';
+        main.className = 'p-6 slide-up'; // Reset classes and add entry animation
 
         switch (view) {
             case 'learn':
@@ -132,6 +147,7 @@ class MandarinFlow {
         container.querySelectorAll('.lesson-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.lessonId;
+                this.soundManager.playClick();
                 btn.classList.add('scale-125', 'opacity-0');
                 setTimeout(() => this.startLesson(id), 400);
             });
@@ -157,7 +173,10 @@ class MandarinFlow {
                     </button>
                 </div>
             `;
-            document.getElementById('go-explore').addEventListener('click', () => this.switchView('learn'));
+            document.getElementById('go-explore').addEventListener('click', () => {
+                this.soundManager.playClick();
+                this.switchView('learn')
+            });
             return;
         }
 
@@ -179,7 +198,10 @@ class MandarinFlow {
             </div>
         `;
 
-        document.getElementById('start-review').addEventListener('click', () => this.startReviewSession(reviewItems));
+        document.getElementById('start-review').addEventListener('click', () => {
+            this.soundManager.playClick();
+            this.startReviewSession(reviewItems);
+        });
     }
 
     renderStatsView(container) {
@@ -234,20 +256,10 @@ class MandarinFlow {
                     <div class="p-6 flex justify-between items-center bg-white/40">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 rounded-2xl bg-jade-100 border border-jade-200 flex items-center justify-center text-lg">🔊</div>
-                            <span class="font-bold text-jade-800 text-sm">Audio Feedback</span>
+                            <span class="font-bold text-jade-800 text-sm">Game Audio</span>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked class="sr-only peer">
-                            <div class="w-11 h-6 bg-jade-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-jade-600"></div>
-                        </label>
-                    </div>
-                    <div class="p-6 flex justify-between items-center bg-white/40">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-2xl bg-jade-100 border border-jade-200 flex items-center justify-center text-lg">📳</div>
-                            <span class="font-bold text-jade-800 text-sm">Haptic Pulse</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked class="sr-only peer">
+                            <input type="checkbox" id="audio-toggle" checked class="sr-only peer">
                             <div class="w-11 h-6 bg-jade-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-jade-600"></div>
                         </label>
                     </div>
@@ -258,13 +270,20 @@ class MandarinFlow {
                     </div>
                 </div>
                 <div class="text-center space-y-2">
-                    <p class="text-[9px] text-jade-200 font-black uppercase tracking-[0.3em]">MandarinFlow Elite v1.2.0</p>
+                    <p class="text-[9px] text-jade-200 font-black uppercase tracking-[0.3em]">MandarinFlow Elite v1.3.0</p>
                     <p class="text-[8px] text-jade-100 italic">Built for absolute masters.</p>
                 </div>
             </div>
         `;
 
+        const audioToggle = document.getElementById('audio-toggle');
+        audioToggle.checked = this.soundManager.enabled;
+        audioToggle.addEventListener('change', (e) => {
+            this.soundManager.setEnabled(e.target.checked);
+        });
+
         document.getElementById('reset-data').addEventListener('click', () => {
+            this.soundManager.playClick();
             if (confirm('Are you sure? This will wipe all your progress forever!')) {
                 localStorage.clear();
                 window.location.reload();
@@ -367,15 +386,18 @@ class MandarinFlow {
             this.canvasEngine.drawGhost(item.char);
 
             document.getElementById('play-audio-btn').addEventListener('click', () => {
+                this.soundManager.playClick();
                 this.toneEngine.playAudio(item.char);
             });
 
             document.getElementById('exit-session').addEventListener('click', () => {
+                this.soundManager.playClick();
                 this.renderView(this.currentView);
             });
 
             document.getElementById('validate-btn').addEventListener('click', async () => {
                 const btn = document.getElementById('validate-btn');
+                this.soundManager.playClick();
                 btn.disabled = true;
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<span class="animate-pulse tracking-widest">INVOKING...</span>';
@@ -408,6 +430,7 @@ class MandarinFlow {
     }
 
     showSuccess(item) {
+        this.soundManager.playSuccess();
         confetti({
             particleCount: 200,
             spread: 100,
@@ -441,6 +464,7 @@ class MandarinFlow {
     }
 
     showFailure() {
+        this.soundManager.playError();
         const container = document.getElementById('drawing-canvas').parentElement;
         container.classList.add('shake');
         setTimeout(() => container.classList.remove('shake'), 500);
@@ -449,6 +473,7 @@ class MandarinFlow {
     }
 
     showSessionComplete() {
+        this.soundManager.playLevelUp();
         const main = document.getElementById('main-view');
         main.innerHTML = `
             <div class="flex flex-col items-center justify-center py-10 text-center space-y-10 scale-in min-h-[70vh]">

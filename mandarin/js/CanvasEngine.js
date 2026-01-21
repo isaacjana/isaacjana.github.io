@@ -56,20 +56,53 @@ class CanvasEngine {
     startDrawing(e) {
         this.isDrawing = true;
         const pos = this.getPos(e);
-        this.ctx.beginPath();
-        this.ctx.moveTo(pos.x, pos.y);
+        this.lastPoint = pos;
+        this.lastTime = Date.now();
+        this.lastWidth = 8; // Initial width
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.strokeStyle = '#2D5A27'; // Dark Jade
         this.currentStroke = [{ x: pos.x, y: pos.y }];
     }
 
     draw(e) {
         if (!this.isDrawing) return;
+
         const pos = this.getPos(e);
-        this.ctx.lineTo(pos.x, pos.y);
-        this.ctx.lineWidth = 10;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        this.ctx.strokeStyle = '#2D5A27'; // Dark Jade
+        const time = Date.now();
+
+        // Calculate velocity
+        const dist = Math.sqrt(Math.pow(pos.x - this.lastPoint.x, 2) + Math.pow(pos.y - this.lastPoint.y, 2));
+        const dt = time - this.lastTime;
+        const velocity = dist / (dt || 1); // Avoid div by zero
+
+        // Calculate dynamic width (faster = thinner, slower = thicker)
+        // Base width 12, min width 4, responsiveness factor
+        const targetWidth = Math.max(4, Math.min(16, 20 / (velocity + 1)));
+
+        // Smooth changes in width
+        const newWidth = this.lastWidth + (targetWidth - this.lastWidth) * 0.2;
+
+        this.ctx.beginPath();
+        this.ctx.lineWidth = newWidth;
+        this.ctx.moveTo(this.lastPoint.x, this.lastPoint.y);
+
+        // Use quadratic curve for smoothing if distance is sufficient, otherwise line
+        if (dist > 2) {
+            // Control point is midway
+            const cx = (this.lastPoint.x + pos.x) / 2;
+            const cy = (this.lastPoint.y + pos.y) / 2;
+            this.ctx.quadraticCurveTo(cx, cy, pos.x, pos.y);
+        } else {
+            this.ctx.lineTo(pos.x, pos.y);
+        }
+
         this.ctx.stroke();
+
+        this.lastPoint = pos;
+        this.lastTime = time;
+        this.lastWidth = newWidth;
+
         this.currentStroke.push({ x: pos.x, y: pos.y });
     }
 
@@ -77,6 +110,8 @@ class CanvasEngine {
         if (this.isDrawing) {
             this.strokes.push(this.currentStroke);
             this.isDrawing = false;
+            // Reset for next stroke
+            this.lastPoint = null;
         }
     }
 
