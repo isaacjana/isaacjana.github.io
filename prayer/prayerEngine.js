@@ -1,34 +1,50 @@
+// prayerEngine.js - Enhanced Prayer Generation Engine
+import { openers, closers, prayerTemplates, virtues } from './prayerData.js';
 
-// prayerEngine.js
-import { openers, closers, prayerTemplates } from './prayerData.js';
+function getRandomItem(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 export function generatePrayer(category, tone, intention) {
-    // 1. Select Opener
-    const openerList = openers[tone] || openers['traditional'];
-    const opener = openerList[Math.floor(Math.random() * openerList.length)];
+    const validTones = ['traditional', 'simple'];
+    const validCategories = Object.keys(prayerTemplates);
 
-    // 2. Select Template
-    // Ensure category exists, else fallback to 'generic' (if logic allows, or handle error)
-    // Here we map 'meals', 'gatherings', 'trials' from UI values.
-    let catKey = category;
-    if (!prayerTemplates[catKey]) {
-        catKey = 'generic';
-    }
+    tone = validTones.includes(tone) ? tone : 'traditional';
+    category = validCategories.includes(category) ? category : 'trials';
 
-    // If category is trials/generic but intention is empty, maybe switch to generic? 
-    // But let's assume UI validation or fallback text.
+    const opener = getRandomItem(openers[tone]);
+    let content = getRandomItem(prayerTemplates[category][tone]);
+    const virtue = getRandomItem(virtues[tone]);
 
-    const templateList = prayerTemplates[catKey][tone] || prayerTemplates[catKey]['traditional'];
-    let content = templateList[Math.floor(Math.random() * templateList.length)];
+    const intentionText = (intention && intention.trim() !== "")
+        ? intention.trim()
+        : getDefaultIntention(category);
 
-    // 3. Inject Intention
-    const intentionText = (intention && intention.trim() !== "") ? intention.trim() : "our intentions";
-    content = content.replace("[User Intention]", intentionText);
+    content = content.replace("[USER_INTENTION]", intentionText);
+    content = content.replace("[VIRTUE]", virtue);
 
-    // 4. Select Closer
-    const closerList = closers[tone] || closers['traditional'];
-    const closer = closerList[Math.floor(Math.random() * closerList.length)];
+    const closer = getRandomItem(closers[tone]);
+    const prayer = `${opener} ${content}, ${closer}`;
 
-    // Assemble
-    return `${opener} ${content} ${closer}`;
+    return { prayer, metadata: { category, tone, intention: intentionText, virtue } };
+}
+
+function getDefaultIntention(category) {
+    const defaults = {
+        meals: "this meal and those who share it",
+        gatherings: "those gathered here",
+        trials: "our struggles and hardships",
+        thanksgiving: "Your many blessings",
+        guidance: "the path before us"
+    };
+    return defaults[category] || "our intentions";
+}
+
+export function getInspirationQuote() {
+    const quotes = [
+        { text: "Pray as though everything depended on God.", author: "St. Ignatius" },
+        { text: "Prayer is the raising of one's mind and heart to God.", author: "St. John Damascene" },
+        { text: "The prayer of a righteous person is powerful.", author: "James 5:16" }
+    ];
+    return getRandomItem(quotes);
 }

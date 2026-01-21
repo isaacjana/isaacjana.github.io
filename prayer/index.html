@@ -1,223 +1,449 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oratio - Prayer Generator</title>
-    <meta name="description" content="A sacramental prayer generator for daily life.">
-    <!-- Tailwind CSS -->
+    <title>Oratio - Catholic Prayer Generator</title>
+    <meta name="description" content="Generate beautiful Catholic prayers for meals, gatherings, trials, and more.">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        parchment: '#FDFBF7',
-                        gold: '#D4AF37',
-                        crimson: '#800000',
-                        ink: '#2B2B2B',
-                        paper: '#F5F5F0'
+                        parchment: '#FDF8F0',
+                        gold: '#C9A227',
+                        'gold-light': '#E8D48A',
+                        crimson: '#8B0000',
+                        'crimson-dark': '#5C0000',
+                        ink: '#1A1A1A',
+                        paper: '#FAF7F2'
                     },
                     fontFamily: {
-                        serif: ['Lora', 'serif'],
+                        serif: ['Lora', 'Georgia', 'serif'],
                         display: ['Cinzel', 'serif'],
-                        sans: ['Roboto', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'pulse-gold': 'pulseGold 2s infinite',
+                        'float': 'float 3s ease-in-out infinite',
                     }
                 }
             }
         }
     </script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseGold {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(201, 162, 39, 0);
+            }
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
         body {
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d4af37' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+            background: linear-gradient(135deg, #FDF8F0 0%, #F5EDE0 50%, #FDF8F0 100%);
+            background-attachment: fixed;
         }
+
+        .ornate-border {
+            background: linear-gradient(135deg, #C9A227 0%, #E8D48A 50%, #C9A227 100%);
+            padding: 2px;
+        }
+
         .prayer-card {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #E5E5E5;
             position: relative;
+            background: linear-gradient(to bottom, #FFFFFF, #FAF7F2);
         }
-        .prayer-card::before {
-            content: '';
+
+        .prayer-card::before,
+        .prayer-card::after {
+            content: '❧';
             position: absolute;
-            top: 4px; left: 4px; right: 4px; bottom: 4px;
-            border: 1px solid #D4AF37;
-            pointer-events: none;
+            font-size: 1.5rem;
+            color: #C9A227;
+            opacity: 0.6;
         }
-        .active-tab {
-            background-color: #800000;
-            color: #FDFBF7;
-            border-color: #800000;
+
+        .prayer-card::before {
+            top: 1rem;
+            left: 1rem;
         }
-        .inactive-tab {
-            background-color: transparent;
-            color: #2B2B2B;
-            border-color: #D4AF37;
+
+        .prayer-card::after {
+            bottom: 1rem;
+            right: 1rem;
+            transform: rotate(180deg);
+        }
+
+        .category-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .category-btn.active {
+            background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+        }
+
+        .category-btn:not(.active):hover {
+            border-color: #C9A227;
+            background: rgba(201, 162, 39, 0.1);
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #C9A227 0%, #A88A1E 100%);
+            transition: all 0.3s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(201, 162, 39, 0.4);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .static-prayer-btn {
+            transition: all 0.2s ease;
+        }
+
+        .static-prayer-btn:hover {
+            background: linear-gradient(135deg, #C9A227 0%, #E8D48A 100%);
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .toast {
+            animation: slideUp 0.3s ease-out, fadeIn 0.3s ease-out;
+        }
+
+        .cross-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cross-divider::before,
+        .cross-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #C9A227, transparent);
         }
     </style>
 </head>
-<body class="bg-parchment text-ink min-h-screen flex flex-col font-serif selection:bg-gold selection:text-white">
 
-    <header class="py-6 text-center border-b-4 border-gold bg-white bg-opacity-80 sticky top-0 z-10 shadow-sm">
-        <h1 class="text-4xl md:text-5xl font-display font-bold text-crimson tracking-wider">ORATIO</h1>
-        <p class="text-sm md:text-base italic text-gray-600 mt-2">Sacred prayer, simply gathered.</p>
+<body class="text-ink min-h-screen flex flex-col font-serif selection:bg-gold selection:text-white">
+
+    <!-- Header -->
+    <header class="py-6 text-center bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b-2 border-gold shadow-sm">
+        <div class="container mx-auto px-4">
+            <h1 class="text-3xl md:text-4xl font-display font-bold text-crimson tracking-widest">✝ ORATIO ✝</h1>
+            <p class="text-sm italic text-gray-500 mt-1 font-serif">Sacred prayer, simply gathered</p>
+        </div>
     </header>
 
     <main class="flex-grow container mx-auto px-4 py-8 max-w-2xl">
-        
+
+        <!-- Inspiration Quote -->
+        <div id="quoteSection" class="text-center mb-8 animate-fade-in">
+            <p class="text-sm italic text-gray-500">"<span id="quoteText"></span>"</p>
+            <p class="text-xs text-gold mt-1">— <span id="quoteAuthor"></span></p>
+        </div>
+
         <!-- Controls Section -->
-        <section class="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-8">
+        <section
+            class="bg-white/90 backdrop-blur-sm p-6 md:p-8 rounded-xl shadow-lg border border-gold/30 mb-8 animate-slide-up">
+
             <!-- Category Selection -->
             <div class="mb-6">
-                <label class="block text-sm font-sans font-bold text-gray-500 uppercase tracking-wide mb-3">Intention Type</label>
-                <div class="grid grid-cols-3 gap-3">
-                    <button class="category-btn active-tab py-2 px-4 rounded border transition duration-300 font-sans text-sm font-medium hover:bg-crimson hover:text-white" data-category="meals">Meals</button>
-                    <button class="category-btn inactive-tab py-2 px-4 rounded border transition duration-300 font-sans text-sm font-medium hover:bg-crimson hover:text-white" data-category="gatherings">Gathering</button>
-                    <button class="category-btn inactive-tab py-2 px-4 rounded border transition duration-300 font-sans text-sm font-medium hover:bg-crimson hover:text-white" data-category="trials">Trials</button>
+                <label class="block text-xs font-sans font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                    <span class="inline-block mr-2">📿</span> Intention Type
+                </label>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <button
+                        class="category-btn active py-3 px-3 rounded-lg border-2 border-crimson font-sans text-sm font-medium flex flex-col items-center gap-1"
+                        data-category="meals">
+                        <span class="text-lg">🍞</span>
+                        <span>Meals</span>
+                    </button>
+                    <button
+                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1"
+                        data-category="gatherings">
+                        <span class="text-lg">👥</span>
+                        <span>Gathering</span>
+                    </button>
+                    <button
+                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1"
+                        data-category="trials">
+                        <span class="text-lg">✝️</span>
+                        <span>Trials</span>
+                    </button>
+                    <button
+                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1"
+                        data-category="thanksgiving">
+                        <span class="text-lg">🙏</span>
+                        <span>Thanks</span>
+                    </button>
+                    <button
+                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1 col-span-2 md:col-span-1"
+                        data-category="guidance">
+                        <span class="text-lg">💡</span>
+                        <span>Guidance</span>
+                    </button>
                 </div>
             </div>
 
             <!-- Intention Input -->
             <div class="mb-6">
-                <label for="intentionInput" class="block text-sm font-sans font-bold text-gray-500 uppercase tracking-wide mb-3">Who or what are we praying for?</label>
-                <input type="text" id="intentionInput" placeholder="e.g., peace in our home, healing for a friend..." 
-                       class="w-full bg-paper border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold font-serif text-lg placeholder-gray-400 transition">
+                <label for="intentionInput"
+                    class="block text-xs font-sans font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                    <span class="inline-block mr-2">✍️</span> Your Intention
+                </label>
+                <input type="text" id="intentionInput" placeholder="e.g., peace in our home, healing for a friend..."
+                    class="w-full bg-paper border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 font-serif text-lg placeholder-gray-400 transition-all duration-300">
+                <p class="text-xs text-gray-400 mt-2 italic">Leave blank for a general prayer</p>
             </div>
 
-            <!-- Tone Switcher & Generate -->
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center space-x-3 bg-paper px-4 py-2 rounded-full border border-gray-200">
-                    <span class="text-sm font-sans text-gray-600">Tone:</span>
-                    <label class="inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toneSwitch" class="sr-only peer">
-                        <div class="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-crimson"></div>
-                        <span class="ml-3 text-sm font-sans font-medium text-gray-700" id="toneLabel">Traditional</span>
-                    </label>
+            <!-- Tone Switcher -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
+                <div class="flex items-center gap-3 bg-paper px-4 py-2 rounded-full border border-gray-200">
+                    <span class="text-xs font-sans font-semibold text-gray-500 uppercase">Tone:</span>
+                    <button id="toneTraditional"
+                        class="tone-btn px-3 py-1 rounded-full text-sm font-sans font-medium bg-crimson text-white transition-all">Traditional</button>
+                    <button id="toneSimple"
+                        class="tone-btn px-3 py-1 rounded-full text-sm font-sans font-medium text-gray-600 hover:bg-gray-100 transition-all">Simple</button>
                 </div>
 
-                <button id="generateBtn" class="w-full md:w-auto bg-gold hover:bg-yellow-600 text-white font-sans font-bold py-3 px-8 rounded shadow-md transform transition hover:-translate-y-1 hover:shadow-lg">
-                    Generate Prayer
+                <button id="generateBtn"
+                    class="generate-btn w-full sm:w-auto text-white font-sans font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2">
+                    <span>✨</span> Generate Prayer
                 </button>
             </div>
         </section>
 
         <!-- Output Section -->
-        <section id="prayerOutputSection" class="relative hidden opacity-0 transition-opacity duration-700 ease-in-out">
-            <div class="prayer-card bg-white p-8 md:p-12 text-center rounded-sm">
-                <div class="mb-6 text-crimson text-3xl opacity-50 font-display">✠</div>
-                <p id="prayerText" class="text-xl md:text-2xl leading-relaxed text-gray-800 italic">
-                    <!-- Prayer goes here -->
-                </p>
-                <div class="mt-8 flex justify-center">
-                    <button id="copyBtn" class="text-gold hover:text-crimson font-sans text-sm font-bold uppercase tracking-widest transition flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy Prayer
-                    </button>
+        <section id="prayerOutputSection" class="hidden mb-8">
+            <div class="ornate-border rounded-lg">
+                <div class="prayer-card p-8 md:p-10 text-center rounded-lg">
+                    <div class="cross-divider text-crimson text-2xl opacity-60 font-display mb-6">✝</div>
+                    <p id="prayerText" class="text-xl md:text-2xl leading-relaxed text-gray-800 italic px-4"></p>
+                    <div class="cross-divider text-crimson text-2xl opacity-60 font-display mt-6">✝</div>
+
+                    <div class="mt-8 flex flex-wrap justify-center gap-3">
+                        <button id="copyBtn"
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gold text-gold hover:bg-gold hover:text-white transition-all font-sans text-sm font-semibold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy
+                        </button>
+                        <button id="regenerateBtn"
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-300 text-gray-600 hover:border-crimson hover:text-crimson transition-all font-sans text-sm font-semibold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            New Variation
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Static Prayers (Footer/Quick Access) -->
-        <section class="mt-12 border-t border-gold/30 pt-8">
-            <h3 class="text-center font-display text-xl text-gray-500 mb-6">Common Prayers</h3>
-            <div class="flex flex-wrap justify-center gap-4">
-                <button class="static-prayer-btn px-4 py-2 bg-white border border-gray-300 rounded hover:border-gold hover:text-gold transition font-sans text-sm" data-key="grace">Meal Grace</button>
-                <button class="static-prayer-btn px-4 py-2 bg-white border border-gray-300 rounded hover:border-gold hover:text-gold transition font-sans text-sm" data-key="glory">Glory Be</button>
-                <button class="static-prayer-btn px-4 py-2 bg-white border border-gray-300 rounded hover:border-gold hover:text-gold transition font-sans text-sm" data-key="memorare">Memorare</button>
+        <!-- Static Prayers -->
+        <section class="mt-8">
+            <h3 class="cross-divider text-center font-display text-lg text-gray-400 mb-6">Common Prayers</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="grace">🍞 Grace Before Meals</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="graceAfter">🙏 Grace After Meals</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="glory">✨ Glory Be</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="ourFather">📖 Our Father</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="hailMary">🌹 Hail Mary</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="memorare">💐 Memorare</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="angelGuardian">👼 Guardian Angel</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="stMichael">⚔️ St. Michael</button>
+                <button
+                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
+                    data-key="serenity">☮️ Serenity</button>
             </div>
         </section>
 
     </main>
 
-    <footer class="py-6 text-center text-gray-400 text-sm font-sans">
-        <p>&copy; 2026 Oratio. Ad Maiorem Dei Gloriam.</p>
+    <!-- Toast Notification -->
+    <div id="toast"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-xl hidden font-sans text-sm z-50">
+    </div>
+
+    <footer class="py-6 text-center text-gray-400 text-xs font-sans border-t border-gold/20 bg-white/50">
+        <p>✝ Ad Maiorem Dei Gloriam ✝</p>
     </footer>
 
-    <!-- Logic -->
     <script type="module">
-        import { generatePrayer } from './prayerEngine.js';
+        import { generatePrayer, getInspirationQuote } from './prayerEngine.js';
         import { staticPrayers } from './prayerData.js';
 
-        const state = {
-            category: 'meals',
-            tone: 'traditional',
-            intention: ''
-        };
+        const state = { category: 'meals', tone: 'traditional', intention: '' };
 
         // DOM Elements
+        const $ = id => document.getElementById(id);
         const categoryBtns = document.querySelectorAll('.category-btn');
-        const intentionInput = document.getElementById('intentionInput');
-        const toneSwitch = document.getElementById('toneSwitch');
-        const toneLabel = document.getElementById('toneLabel');
-        const generateBtn = document.getElementById('generateBtn');
-        const prayerOutputSection = document.getElementById('prayerOutputSection');
-        const prayerText = document.getElementById('prayerText');
-        const copyBtn = document.getElementById('copyBtn');
+        const intentionInput = $('intentionInput');
+        const generateBtn = $('generateBtn');
+        const prayerOutputSection = $('prayerOutputSection');
+        const prayerText = $('prayerText');
+        const copyBtn = $('copyBtn');
+        const regenerateBtn = $('regenerateBtn');
         const staticBtns = document.querySelectorAll('.static-prayer-btn');
+        const toast = $('toast');
+        const toneTraditional = $('toneTraditional');
+        const toneSimple = $('toneSimple');
 
-        // Event Listeners
+        // Initialize
+        function init() {
+            const quote = getInspirationQuote();
+            $('quoteText').textContent = quote.text;
+            $('quoteAuthor').textContent = quote.author;
+        }
+
+        // Category Selection
         categoryBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Update State
                 state.category = btn.dataset.category;
-                
-                // Update UI
                 categoryBtns.forEach(b => {
-                    b.classList.remove('active-tab');
-                    b.classList.add('inactive-tab');
+                    b.classList.remove('active');
+                    b.classList.add('border-gray-200');
+                    b.classList.remove('border-crimson');
                 });
-                btn.classList.add('active-tab');
-                btn.classList.remove('inactive-tab');
+                btn.classList.add('active', 'border-crimson');
+                btn.classList.remove('border-gray-200');
             });
         });
 
-        toneSwitch.addEventListener('change', (e) => {
-            state.tone = e.target.checked ? 'simple' : 'traditional';
-            toneLabel.innerText = state.tone.charAt(0).toUpperCase() + state.tone.slice(1);
+        // Tone Selection
+        toneTraditional.addEventListener('click', () => {
+            state.tone = 'traditional';
+            toneTraditional.classList.add('bg-crimson', 'text-white');
+            toneTraditional.classList.remove('text-gray-600');
+            toneSimple.classList.remove('bg-crimson', 'text-white');
+            toneSimple.classList.add('text-gray-600');
         });
 
-        generateBtn.addEventListener('click', () => {
+        toneSimple.addEventListener('click', () => {
+            state.tone = 'simple';
+            toneSimple.classList.add('bg-crimson', 'text-white');
+            toneSimple.classList.remove('text-gray-600');
+            toneTraditional.classList.remove('bg-crimson', 'text-white');
+            toneTraditional.classList.add('text-gray-600');
+        });
+
+        // Generate Prayer
+        function doGenerate() {
             state.intention = intentionInput.value;
-            const prayer = generatePrayer(state.category, state.tone, state.intention);
-            displayPrayer(prayer);
-        });
+            const result = generatePrayer(state.category, state.tone, state.intention);
+            displayPrayer(result.prayer);
+        }
 
+        generateBtn.addEventListener('click', doGenerate);
+        regenerateBtn.addEventListener('click', doGenerate);
+
+        // Static Prayers
         staticBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 const key = btn.dataset.key;
                 if (staticPrayers[key]) {
-                    displayPrayer(staticPrayers[key]);
+                    displayPrayer(staticPrayers[key].text);
                 }
             });
         });
 
+        // Copy
         copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(prayerText.innerText).then(() => {
-                const originalText = copyBtn.innerHTML;
-                copyBtn.innerHTML = '<span class="text-green-600">Copied!</span>';
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalText;
-                }, 2000);
-            });
+            navigator.clipboard.writeText(prayerText.innerText).then(() => showToast('Prayer copied to clipboard ✓'));
         });
 
         function displayPrayer(text) {
             prayerOutputSection.classList.remove('hidden');
-            // Trigger reflow for transition
-            void prayerOutputSection.offsetWidth;
-            prayerOutputSection.classList.remove('opacity-0');
-            
+            prayerOutputSection.style.animation = 'none';
+            prayerOutputSection.offsetHeight; // Trigger reflow
+            prayerOutputSection.style.animation = 'slideUp 0.5s ease-out';
             prayerText.innerText = text;
-            
-            // Scroll to prayer on mobile
-            if (window.innerWidth < 768) {
-                prayerOutputSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            prayerOutputSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        init();
     </script>
 </body>
+
 </html>
