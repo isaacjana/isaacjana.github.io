@@ -633,6 +633,59 @@
                             "difficulty": 1
                         }
                     ]
+                },
+                {
+                    "id": "lesson_4_3",
+                    "title": "Scenic Views",
+                    "items": [
+                        {
+                            "id": "sent_4_1",
+                            "type": "sentence",
+                            "chinese": "山很大",
+                            "pinyin": "shān hěn dà",
+                            "meaning": "The mountain is very big",
+                            "tokens": [
+                                "山",
+                                "很",
+                                "大"
+                            ]
+                        },
+                        {
+                            "id": "sent_4_2",
+                            "type": "sentence",
+                            "chinese": "天是蓝的",
+                            "pinyin": "tiān shì lán de",
+                            "meaning": "The sky is blue",
+                            "tokens": [
+                                "天",
+                                "是",
+                                "蓝的"
+                            ]
+                        },
+                        {
+                            "id": "sent_4_3",
+                            "type": "sentence",
+                            "chinese": "看月亮",
+                            "pinyin": "kàn yuè liang",
+                            "meaning": "Look at the moon",
+                            "tokens": [
+                                "看",
+                                "月亮"
+                            ]
+                        },
+                        {
+                            "id": "sent_4_4",
+                            "type": "sentence",
+                            "chinese": "这里很小",
+                            "pinyin": "zhè lǐ hěn xiǎo",
+                            "meaning": "It is small here",
+                            "tokens": [
+                                "这里",
+                                "很",
+                                "小"
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -730,6 +783,63 @@
                             "meaning": "Middle / Center",
                             "tone": 1,
                             "difficulty": 1
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_5_3",
+                    "title": "Making Plans",
+                    "items": [
+                        {
+                            "id": "sent_5_1",
+                            "type": "sentence",
+                            "chinese": "我们什么时候去",
+                            "pinyin": "wǒ men shén me shí hou qù",
+                            "meaning": "When are we going?",
+                            "tokens": [
+                                "我们",
+                                "什么",
+                                "时候",
+                                "去"
+                            ]
+                        },
+                        {
+                            "id": "sent_5_2",
+                            "type": "sentence",
+                            "chinese": "明天八点",
+                            "pinyin": "míng tiān bā diǎn",
+                            "meaning": "Tomorrow at 8 o'clock",
+                            "tokens": [
+                                "明天",
+                                "八",
+                                "点"
+                            ]
+                        },
+                        {
+                            "id": "sent_5_3",
+                            "type": "sentence",
+                            "chinese": "你现在在哪儿",
+                            "pinyin": "nǐ xiàn zài zài nǎr",
+                            "meaning": "Where are you now?",
+                            "tokens": [
+                                "你",
+                                "现在",
+                                "在",
+                                "哪儿"
+                            ]
+                        },
+                        {
+                            "id": "sent_5_4",
+                            "type": "sentence",
+                            "chinese": "你在上面吗",
+                            "pinyin": "nǐ zài shàng mian ma",
+                            "meaning": "Are you up there?",
+                            "tokens": [
+                                "你",
+                                "在",
+                                "上面",
+                                "吗"
+                            ]
                         }
                     ]
                 }
