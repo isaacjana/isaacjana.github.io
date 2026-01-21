@@ -58,6 +58,16 @@ const dbAPI = {
     },
     deleteProduct: (id) => db.collection('products').doc(id).delete(),
 
+    // --- Stores / Users Management ---
+    updateUser: (uid, data) => {
+        return db.collection('users').doc(uid).update(data);
+    },
+    getStore: async (storeId) => {
+        const snapshot = await db.collection('users').where('storeId', '==', storeId).limit(1).get();
+        if (!snapshot.empty) return snapshot.docs[0].data();
+        return null;
+    },
+
     // --- Orders ---
     createOrder: (order) => {
         // order: { clientId, driverId: null, items: [{productId, name, price, qty, unit}], total, status: 'pending' }

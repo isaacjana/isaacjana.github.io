@@ -57,6 +57,9 @@ $(document).ready(function () {
     $('#open-sidebar').click(toggleSidebar);
     $('#close-sidebar').click(toggleSidebar);
     $('#sidebar-overlay').click(toggleSidebar);
+
+    // Initialize Modules
+    import('./modules/actions.js').then(module => module.attachGlobalActions());
 });
 
 function signOut() {
@@ -65,6 +68,15 @@ function signOut() {
 
 function initDashboard(role) {
     renderNav(role);
+
+    // check pending for client
+    if (role === 'client' && !currentUser.storeId) {
+        import('./modules/views.js').then(module => {
+            module.renderPendingAssignment($('#main-view').empty());
+        });
+        return;
+    }
+
     // Determine default view based on role
     const defaultView = role === 'admin' ? 'analytics' : (role === 'driver' ? 'jobs' : 'shop');
     loadView(defaultView);
@@ -144,125 +156,7 @@ function loadView(viewId) {
 // ==========================================
 
 function renderAnalytics($el) {
-    $el.html(`
-        <div class="page-header">
-            <h2 class="page-title">Dashboard Overview</h2>
-             <div class="text-sm text-gray-500 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100">
-                Today: ${new Date().toLocaleDateString('en-MY', { dateStyle: 'long' })}
-            </div>
-        </div>
-
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="stat-card stat-card-animated">
-                <div class="stat-icon blue"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                <div class="stat-label">Daily Revenue</div>
-                <div class="stat-value" id="stat-daily">RM 0</div>
-                <div class="stat-change up"><span>+12.5%</span> vs yesterday</div>
-            </div>
-            <div class="stat-card stat-card-animated">
-                <div class="stat-icon green"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg></div>
-                <div class="stat-label">Monthly Revenue</div>
-                <div class="stat-value" id="stat-monthly">RM 0</div>
-                <div class="stat-change up"><span>+5.2%</span> vs last month</div>
-            </div>
-            <div class="stat-card stat-card-animated">
-                <div class="stat-icon orange"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg></div>
-                <div class="stat-label">Active Orders</div>
-                <div class="stat-value" id="stat-orders">0</div>
-                <div class="stat-change down text-gray-500 bg-gray-100"><span class="text-gray-600">Processing</span></div>
-            </div>
-             <div class="stat-card stat-card-animated">
-                <div class="stat-icon purple"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
-                <div class="stat-label">Total Clients</div>
-                <div class="stat-value" id="stat-clients">0</div>
-                <div class="stat-change up"><span>New</span> added recently</div>
-            </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="card h-[400px]">
-                <div class="card-header">
-                    <h3 class="card-title">Sales Trends</h3>
-                </div>
-                <div class="card-body h-full relative p-4">
-                    <canvas id="salesChart"></canvas>
-                </div>
-            </div>
-            <div class="card h-[400px]">
-                <div class="card-header">
-                    <h3 class="card-title">Top Products</h3>
-                </div>
-                 <div class="card-body h-full relative p-4 flex items-center justify-center">
-                    <canvas id="productsChart"></canvas>
-                </div>
-            </div>
-        </div>
-    `);
-
-    // Logic: Fetch Order Data
-    const unsub = dbAPI.getOrders('admin', null, (orders) => {
-        let daily = 0, monthly = 0, active = 0;
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        // Chart Data Prep
-        const last7Days = [...Array(7)].map((_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            return d.toLocaleDateString('en-MY', { weekday: 'short' });
-        }).reverse();
-
-        const salesData = Array(7).fill(0);
-        const productStats = {};
-
-        orders.forEach(o => {
-            const total = parseFloat(o.total || 0);
-            const date = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date();
-            const dateStr = date.toLocaleDateString('en-MY', { weekday: 'short' });
-
-            if (['pending', 'accepted', 'delivering'].includes(o.status)) active++;
-
-            if (['completed', 'accepted', 'delivering'].includes(o.status)) {
-                // Revenue Stats
-                if (date >= startOfDay) daily += total;
-                if (date >= startOfMonth) monthly += total;
-
-                // Chart: Sales (Last 7 Days)
-                const dayIndex = last7Days.indexOf(dateStr);
-                if (dayIndex !== -1) {
-                    salesData[dayIndex] += total;
-                }
-
-                // Chart: Top Products
-                if (o.items) {
-                    o.items.forEach(i => {
-                        productStats[i.name] = (productStats[i.name] || 0) + i.qty;
-                    });
-                }
-            }
-        });
-
-        $('#stat-daily').text(`RM ${daily.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
-        $('#stat-monthly').text(`RM ${monthly.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
-        $('#stat-orders').text(active);
-
-        // Prepare Top 5 Products
-        const sortedProducts = Object.entries(productStats)
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 5);
-
-        initCharts(last7Days, salesData, sortedProducts);
-    });
-    listeners.push(unsub);
-
-    // Fetch clients count
-    const unsubClients = dbAPI.getUsers('client', (users) => {
-        $('#stat-clients').text(users.length);
-    });
-    listeners.push(unsubClients);
+    import('./modules/views.js').then(module => module.renderAnalytics($el));
 }
 
 function initCharts(labels, salesData, productData) {
@@ -659,44 +553,8 @@ function renderDriverDeliveries($el) {
 }
 
 function renderClients($el) {
-    if (!$('#add-client-fab').length) {
-        $('body').append(`<button id="add-client-fab" onclick="openAddClientModal()" class="fab"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>`);
-    }
-
-    $el.html(`
-        <div class="page-header">
-            <h2 class="page-title">Client Management</h2>
-        </div>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Client</th>
-                        <th>Store</th>
-                        <th>Location</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="clients-list"></tbody>
-            </table>
-        </div>
-    `);
-
     const unsub = dbAPI.getUsers('client', (users) => {
-        const rows = users.map(u => `
-            <tr class="table-row-hover">
-                <td>
-                    <div class="font-bold text-gray-900">${u.name}</div>
-                    <div class="text-xs text-gray-500">${u.email}</div>
-                </td>
-                <td>${u.storeName || '-'}</td>
-                <td class="max-w-xs truncate">${u.address || '-'}</td>
-                <td>
-                    <button onclick="openManagePricesModal('${u.uid}', '${u.name}')" class="btn btn-secondary text-xs h-8 px-3">Custom Prices</button>
-                </td>
-            </tr>
-        `).join('');
-        $('#clients-list').html(rows);
+        import('./modules/views.js').then(module => module.renderClients($el, users));
     });
     listeners.push(unsub);
 }
