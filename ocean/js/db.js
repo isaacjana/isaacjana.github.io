@@ -119,15 +119,11 @@ const dbAPI = {
     },
 
     // --- Invoices ---
-    generateInvoice: (orderId, orderData) => {
+    generateInvoice: (orderId, invoiceData) => {
         return db.collection('invoices').add({
-            orderId,
-            clientId: orderData.clientId,
-            amount: orderData.total,
-            items: orderData.items,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            // LHDN placeholder details
-            lhdnStatus: 'pending_validation'
+            ...invoiceData,
+            // Ensure LHDN status is set if not present (though app.js doesn't set it yet)
+            lhdnStatus: invoiceData.lhdnStatus || 'pending_validation'
         });
     },
     getInvoices: (callback) => {
