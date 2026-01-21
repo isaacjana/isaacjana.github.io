@@ -140,6 +140,32 @@
                             "meaning": "Ten",
                             "tone": 2,
                             "difficulty": 1
+                        },
+                        {
+                            "id": "sent_1_1",
+                            "type": "sentence",
+                            "chinese": "你好老师",
+                            "pinyin": "nǐ hǎo lǎo shī",
+                            "meaning": "Hello teacher",
+                            "tokens": [
+                                "你",
+                                "好",
+                                "老师"
+                            ]
+                        },
+                        {
+                            "id": "sent_1_2",
+                            "type": "sentence",
+                            "chinese": "一二三四五",
+                            "pinyin": "yī èr sān sì wǔ",
+                            "meaning": "One two three four five",
+                            "tokens": [
+                                "一",
+                                "二",
+                                "三",
+                                "四",
+                                "五"
+                            ]
                         }
                     ]
                 }

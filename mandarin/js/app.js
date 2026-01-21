@@ -320,113 +320,273 @@ class MandarinFlow {
 
         const renderStep = () => {
             const item = items[currentIndex];
-            main.innerHTML = `
-                <div class="space-y-8 flex flex-col items-center slide-up pb-20">
-                    <div class="flex justify-between w-full items-center">
-                        <button id="exit-session" class="w-10 h-10 rounded-2xl bg-white/50 flex items-center justify-center text-jade-400 premium-shadow">✕</button>
-                        <div class="flex-1 px-6">
-                            <div class="h-1.5 bg-jade-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-jade-600 rounded-full transition-all duration-700" style="width: ${(currentIndex / items.length) * 100}%"></div>
-                            </div>
-                        </div>
-                        <span class="text-[10px] font-black text-jade-300 uppercase tracking-widest">${currentIndex + 1}/${items.length}</span>
-                    </div>
+            main.innerHTML = ''; // Clear previous
 
-                    <div class="text-center space-y-4">
-                        <span class="text-jade-400 text-[9px] font-black uppercase tracking-[0.3em]">Imperial Archives</span>
-                        <div class="space-y-2">
-                            <h2 class="text-7xl hanzi text-jade-800 drop-shadow-sm scale-in">${item.char}</h2>
-                            <div class="flex items-center justify-center gap-3">
-                                <span class="text-2xl font-black text-gold-500 tracking-tight">${item.pinyin}</span>
-                                <button id="play-audio-btn" class="w-10 h-10 rounded-2xl bg-gold-50 text-gold-600 flex items-center justify-center active:scale-95 transition-all premium-shadow-gold">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-jade-400 italic text-sm font-medium tracking-tight">"${item.meaning}"</p>
-                    </div>
+            if (item.type === 'sentence') {
+                this.renderSentenceChallenge(item, main, () => nextStep());
+            } else {
+                this.renderCharacterChallenge(item, main, () => nextStep());
+            }
+        };
 
-                    ${!this.toneEngine.hasMandarinVoice() ? `
-                        <div class="bg-amber-50/80 backdrop-blur-sm border border-amber-100 rounded-2xl p-4 text-[10px] text-amber-700 flex items-start gap-3 max-w-[300px] scale-in">
-                            <span class="text-xl">💡</span>
-                            <div class="space-y-1">
-                                <p class="font-black uppercase tracking-wider">Voice Not Found</p>
-                                <p class="leading-relaxed opacity-80">Install the Chinese language pack in system settings for full immersion.</p>
-                            </div>
-                        </div>
-                    ` : ''}
-
-                    <!-- Drawing Portal -->
-                    <div class="relative w-full aspect-square max-w-[320px] glass-card rounded-[3rem] overflow-hidden premium-shadow group">
-                        <canvas id="drawing-canvas" width="320" height="320" class="w-full h-full cursor-crosshair relative z-10"></canvas>
-                        <div id="tone-area" class="absolute inset-0 hidden p-6 flex flex-col justify-center z-20 bg-white/90 backdrop-blur-md"></div>
-                        <!-- Background Grid -->
-                        <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 z-0 opacity-10">
-                            <div class="border-r border-b border-jade-900"></div>
-                            <div class="border-b border-jade-900"></div>
-                            <div class="border-r border-jade-900"></div>
-                            <div class=""></div>
-                        </div>
-                    </div>
-
-                    <div class="w-full px-4 pt-4">
-                        <button id="validate-btn" class="w-full py-5 rounded-[2rem] jade-gradient text-white font-black text-xs uppercase tracking-[0.3em] premium-shadow active:scale-[0.98] transition-all relative overflow-hidden">
-                            <span class="relative z-10">Transcribe Character</span>
-                            <div class="absolute inset-0 bg-white/10 opacity-0 active:opacity-100 transition-opacity"></div>
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            this.canvasEngine = new CanvasEngine('drawing-canvas');
-            this.toneEngine = new ToneEngine('tone-area');
-
-            this.canvasEngine.drawGhost(item.char);
-
-            document.getElementById('play-audio-btn').addEventListener('click', () => {
-                this.soundManager.playClick();
-                this.toneEngine.playAudio(item.char);
-            });
-
-            document.getElementById('exit-session').addEventListener('click', () => {
-                this.soundManager.playClick();
-                this.renderView(this.currentView);
-            });
-
-            document.getElementById('validate-btn').addEventListener('click', async () => {
-                const btn = document.getElementById('validate-btn');
-                this.soundManager.playClick();
-                btn.disabled = true;
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<span class="animate-pulse tracking-widest">INVOKING...</span>';
-
-                const result = await this.canvasEngine.predict();
-
-                if (result.match) {
-                    this.showSuccess(item);
-                    this.progress.updateMastery(item.id, 5);
-                    this.updateHeader();
-
-                    setTimeout(() => {
-                        currentIndex++;
-                        if (currentIndex < items.length) {
-                            renderStep();
-                        } else {
-                            this.showSessionComplete();
-                        }
-                    }, 1800);
-                } else {
-                    this.showFailure();
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                    this.progress.updateMastery(item.id, 1);
-                }
-            });
+        const nextStep = () => {
+            currentIndex++;
+            if (currentIndex < items.length) {
+                renderStep();
+            } else {
+                this.showSessionComplete();
+            }
         };
 
         renderStep();
+    }
+
+    renderCharacterChallenge(item, container, onComplete) {
+        container.innerHTML = `
+            <div class="space-y-8 flex flex-col items-center slide-up pb-20">
+                <div class="flex justify-between w-full items-center">
+                    <button id="exit-session" class="w-10 h-10 rounded-2xl bg-white/50 flex items-center justify-center text-jade-400 premium-shadow">✕</button>
+                    <div class="flex-1 px-6">
+                        <div class="h-1.5 bg-jade-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-jade-600 rounded-full transition-all duration-700 w-full animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center space-y-4">
+                    <span class="text-jade-400 text-[9px] font-black uppercase tracking-[0.3em]">Imperial Archives</span>
+                    <div class="space-y-2">
+                        <h2 class="text-7xl hanzi text-jade-800 drop-shadow-sm scale-in">${item.char}</h2>
+                        <div class="flex items-center justify-center gap-3">
+                            <span class="text-2xl font-black text-gold-500 tracking-tight">${item.pinyin}</span>
+                            <button id="play-audio-btn" class="w-10 h-10 rounded-2xl bg-gold-50 text-gold-600 flex items-center justify-center active:scale-95 transition-all premium-shadow-gold">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-jade-400 italic text-sm font-medium tracking-tight">"${item.meaning}"</p>
+                </div>
+
+                ${!this.toneEngine.hasMandarinVoice() ? `
+                    <div class="bg-amber-50/80 backdrop-blur-sm border border-amber-100 rounded-2xl p-4 text-[10px] text-amber-700 flex items-start gap-3 max-w-[300px] scale-in">
+                        <span class="text-xl">💡</span>
+                        <div class="space-y-1">
+                            <p class="font-black uppercase tracking-wider">Voice Not Found</p>
+                            <p class="leading-relaxed opacity-80">Install the Chinese language pack in system settings for full immersion.</p>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Drawing Portal -->
+                <div class="relative w-full aspect-square max-w-[320px] glass-card rounded-[3rem] overflow-hidden premium-shadow group">
+                    <canvas id="drawing-canvas" width="320" height="320" class="w-full h-full cursor-crosshair relative z-10"></canvas>
+                    <div id="tone-area" class="absolute inset-0 hidden p-6 flex flex-col justify-center z-20 bg-white/90 backdrop-blur-md"></div>
+                    <!-- Background Grid -->
+                    <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 z-0 opacity-10">
+                        <div class="border-r border-b border-jade-900"></div>
+                        <div class="border-b border-jade-900"></div>
+                        <div class="border-r border-jade-900"></div>
+                        <div class=""></div>
+                    </div>
+                </div>
+
+                <div class="w-full px-4 pt-4">
+                    <button id="validate-btn" class="w-full py-5 rounded-[2rem] jade-gradient text-white font-black text-xs uppercase tracking-[0.3em] premium-shadow active:scale-[0.98] transition-all relative overflow-hidden">
+                        <span class="relative z-10">Transcribe Character</span>
+                        <div class="absolute inset-0 bg-white/10 opacity-0 active:opacity-100 transition-opacity"></div>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.canvasEngine = new CanvasEngine('drawing-canvas');
+        this.toneEngine = new ToneEngine('tone-area');
+
+        this.canvasEngine.drawGhost(item.char);
+
+        document.getElementById('play-audio-btn').addEventListener('click', () => {
+            this.soundManager.playClick();
+            this.toneEngine.playAudio(item.char);
+        });
+
+        document.getElementById('exit-session').addEventListener('click', () => {
+            this.soundManager.playClick();
+            this.renderView(this.currentView);
+        });
+
+        document.getElementById('validate-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('validate-btn');
+            this.soundManager.playClick();
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="animate-pulse tracking-widest">INVOKING...</span>';
+
+            const result = await this.canvasEngine.predict();
+
+            if (result.match) {
+                this.showSuccess(item);
+                this.progress.updateMastery(item.id, 5);
+                this.updateHeader();
+
+                setTimeout(() => {
+                    onComplete();
+                }, 1800);
+            } else {
+                this.showFailure();
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                this.progress.updateMastery(item.id, 1);
+            }
+        });
+    }
+
+    renderSentenceChallenge(item, container, onComplete) {
+        // Shuffle tokens for the puzzle
+        const shuffled = [...item.tokens].sort(() => Math.random() - 0.5);
+        let userSelection = []; // Array of { id, text }
+
+        // Helper to refresh the puzzle UI state
+        const refreshUI = () => {
+            // We need to re-render the whole Puzzle View if we want to be clean, 
+            // but let's just update the two containers to avoid flicker.
+
+            // 1. Render Target Slots
+            const slotContainer = document.getElementById('target-slots');
+            slotContainer.innerHTML = '';
+
+            if (userSelection.length === 0) {
+                slotContainer.innerHTML = '<span class="text-jade-300 text-xs italic font-medium opacity-60">Tap words to arrange them</span>';
+            } else {
+                userSelection.forEach((tok, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'word-stone px-4 py-3 bg-white border-b-4 border-jade-200 rounded-xl text-lg font-black text-jade-800 premium-shadow pop-in hover:-translate-y-1 transition-transform';
+                    btn.textContent = tok.text;
+                    btn.onclick = () => {
+                        this.soundManager.playClick();
+                        userSelection.splice(idx, 1);
+                        refreshUI();
+                    };
+                    slotContainer.appendChild(btn);
+                });
+            }
+
+            // 2. Render Source Bank
+            const bankContainer = document.getElementById('source-tokens');
+            bankContainer.innerHTML = '';
+
+            // Create a pool of available tokens (all tokens minus those currentlySelected by ID)
+            // We need to track unique instances because a sentence might have duplicate words "ta ta"
+            // So we use unique IDs for tokens.
+
+            availableTokens.forEach(tok => {
+                // If token is in userSelection, don't show it in bank
+                if (userSelection.find(s => s.uid === tok.uid)) return;
+
+                const btn = document.createElement('button');
+                btn.className = 'word-stone px-4 py-3 bg-jade-100 border-b-4 border-jade-200 rounded-xl text-lg font-bold text-jade-700 shadow-sm active:scale-95 transition-all';
+                btn.textContent = tok.text;
+                btn.onclick = () => {
+                    this.soundManager.playClick();
+                    userSelection.push(tok);
+                    refreshUI();
+                };
+                bankContainer.appendChild(btn);
+            });
+
+            // 3. Update Check Button
+            const checkBtn = document.getElementById('check-btn');
+            const isComplete = userSelection.length === item.tokens.length;
+            checkBtn.disabled = !isComplete;
+            if (isComplete) {
+                checkBtn.classList.remove('opacity-50', 'grayscale');
+            } else {
+                checkBtn.classList.add('opacity-50', 'grayscale');
+            }
+        };
+
+        // Prepare tokens with unique IDs
+        const availableTokens = shuffled.map((text, idx) => ({ uid: idx, text }));
+
+        // Initial Layout
+        container.innerHTML = `
+            <div class="space-y-8 flex flex-col items-center slide-up pb-20 w-full">
+                <div class="flex justify-between w-full items-center">
+                    <button id="exit-session" class="w-10 h-10 rounded-2xl bg-white/50 flex items-center justify-center text-jade-400 premium-shadow">✕</button>
+                    <span class="text-[10px] font-black text-jade-300 uppercase tracking-widest">SENTENCE CONSTRUCTION</span>
+                </div>
+
+                <div class="text-center space-y-4">
+                    <span class="text-jade-400 text-[9px] font-black uppercase tracking-[0.3em]">Meaning</span>
+                    <div class="bg-white/40 p-6 rounded-3xl border border-white/20 premium-shadow">
+                        <h2 class="text-xl font-bold text-jade-800 opacity-90 leading-relaxed">"${item.meaning}"</h2>
+                    </div>
+                     <button id="play-sentence-audio" class="w-12 h-12 mt-4 rounded-full bg-gold-50 text-gold-600 flex items-center justify-center active:scale-95 transition-all premium-shadow-gold mx-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Construction Zone -->
+                <div class="w-full space-y-2">
+                     <p class="text-[9px] font-black text-jade-300 uppercase tracking-widest text-center">Your Formation</p>
+                    <div class="slot-container flex flex-wrap gap-2 justify-center p-4 bg-jade-50/50 rounded-2xl min-h-[100px] items-center transition-all" id="target-slots">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Word Bank -->
+                <div class="flex flex-wrap gap-3 justify-center p-2 mb-10 min-h-[80px]" id="source-tokens">
+                    <!-- Filled by JS -->
+                </div>
+
+                <div class="w-full px-4 pt-4 mt-auto">
+                    <button id="check-btn" class="w-full py-5 rounded-[2rem] jade-gradient text-white font-black text-xs uppercase tracking-[0.3em] premium-shadow active:scale-[0.98] transition-all opacity-50 grayscale" disabled>
+                        Verify Alignment
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('exit-session').addEventListener('click', () => {
+            this.soundManager.playClick();
+            this.renderView(this.currentView);
+        });
+
+        document.getElementById('play-sentence-audio').addEventListener('click', () => {
+            this.soundManager.playClick();
+            this.toneEngine.playAudio(item.chinese);
+        });
+
+        document.getElementById('check-btn').addEventListener('click', () => {
+            const attempt = userSelection.map(t => t.text).join('');
+            if (attempt === item.chinese || attempt === item.chinese.replace(/\s/g, '')) {
+                // Success
+                this.soundManager.playSuccess();
+                confetti({
+                    particleCount: 150, spread: 80, origin: { y: 0.6 },
+                    colors: ['#2d5a27', '#f59e0b', '#ffffff'], ticks: 200
+                });
+
+                const toast = document.createElement('div');
+                toast.className = 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gold-500 font-black text-4xl uppercase tracking-widest drop-shadow-sm scale-in whitespace-nowrap z-50 pointer-events-none';
+                toast.innerText = 'Excellent!';
+                document.getElementById('main-view').appendChild(toast);
+
+                setTimeout(onComplete, 1500);
+            } else {
+                // Failure
+                this.soundManager.playError();
+                const container = document.getElementById('target-slots');
+                container.classList.add('shake');
+                setTimeout(() => container.classList.remove('shake'), 500);
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            }
+        });
+
+        refreshUI();
     }
 
     showSuccess(item) {
