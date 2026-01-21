@@ -1002,19 +1002,44 @@ window.generateInvoicePDF = async (data) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    // Load logo image
+    const loadLogo = () => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = () => resolve(null);
+            img.src = 'assets/logo.png';
+        });
+    };
+
+    const logoData = await loadLogo();
+
     // Header
     doc.setFillColor(15, 40, 71); // #0f2847 Ocean Dark
     doc.rect(0, 0, 210, 40, 'F');
 
+    // Add logo to header (if loaded successfully)
+    if (logoData) {
+        doc.addImage(logoData, 'PNG', 10, 6, 30, 28);
+    }
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text("OCEAN LIVE SEAFOOD", 15, 20);
+    doc.text("OCEAN LIVE SEAFOOD", logoData ? 42 : 15, 20);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("Premium Live Seafood Supplier", 15, 26);
-    doc.text("Kuching, Sarawak | +60 82-123 456", 15, 31);
+    doc.text("Premium Live Seafood Supplier", logoData ? 42 : 15, 26);
+    doc.text("Kuching, Sarawak | +60 82-123 456", logoData ? 42 : 15, 31);
 
     doc.text("INVOICE", 180, 20, { align: 'right' });
     doc.text(`#${data.invoiceRef || 'PENDING'}`, 180, 26, { align: 'right' });
