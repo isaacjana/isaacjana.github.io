@@ -378,7 +378,7 @@ class MandarinFlow {
                 const btn = document.getElementById('validate-btn');
                 btn.disabled = true;
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '<span class="animate-pulse">Consulting the Sages...</span>';
+                btn.innerHTML = '<span class="animate-pulse tracking-widest">INVOKING...</span>';
 
                 const result = await this.canvasEngine.predict();
 
@@ -409,11 +409,12 @@ class MandarinFlow {
 
     showSuccess(item) {
         confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.7 },
-            colors: ['#2d5a27', '#f59e0b', '#ffffff'],
-            ticks: 200
+            particleCount: 200,
+            spread: 100,
+            origin: { y: 0.6 },
+            colors: ['#2d5a27', '#f59e0b', '#fbbf24', '#ffffff'],
+            gravity: 0.8,
+            ticks: 300
         });
 
         if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
@@ -430,6 +431,13 @@ class MandarinFlow {
                 this.toneEngine.playAudio(item.char);
             }
         });
+
+        // Add visual success toast
+        const toast = document.createElement('div');
+        toast.className = 'absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gold-500 font-black text-4xl uppercase tracking-widest drop-shadow-sm scale-in whitespace-nowrap z-50 pointer-events-none';
+        toast.innerText = ['Divine!', 'Perfect!', 'Sublime!', 'Masterful!'][Math.floor(Math.random() * 4)];
+        document.getElementById('main-view').appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
     }
 
     showFailure() {
@@ -445,9 +453,9 @@ class MandarinFlow {
         main.innerHTML = `
             <div class="flex flex-col items-center justify-center py-10 text-center space-y-10 scale-in min-h-[70vh]">
                 <div class="relative">
-                    <div class="text-9xl float">🏮</div>
-                    <div class="absolute -top-6 -right-6 w-20 h-20 gold-gradient rounded-3xl flex items-center justify-center border-8 border-white premium-shadow-gold guardian-glow rotate-12">
-                        <span class="text-white font-black text-sm">+100</span>
+                    <div class="text-9xl float">🐲</div>
+                    <div class="absolute -top-6 -right-6 w-24 h-24 gold-gradient rounded-full flex items-center justify-center border-8 border-white premium-shadow-gold guardian-glow rotate-12 z-20">
+                        <span class="text-white font-black text-xl drop-shadow-md">+100</span>
                     </div>
                 </div>
                 
