@@ -77,6 +77,23 @@ export function attachGlobalActions() {
                 $('#input-store-id').val(id);
             };
 
+            // Auto-populate store details on ID change
+            $('#input-store-id').on('blur', async function () {
+                const sid = $(this).val().trim();
+                if (!sid) return;
+
+                try {
+                    const existingStoreUser = await dbAPI.getStore(sid);
+                    if (existingStoreUser) {
+                        $('input[name="storeName"]').val(existingStoreUser.storeName || '');
+                        $('textarea[name="address"]').val(existingStoreUser.address || '');
+                        showToast('Existing store details loaded.', 'info');
+                    }
+                } catch (err) {
+                    console.error("Error fetching store:", err);
+                }
+            });
+
         } catch (e) {
             console.error(e);
             showToast("Error loading client", "error");
