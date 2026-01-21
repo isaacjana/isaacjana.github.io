@@ -1230,6 +1230,63 @@
                             "difficulty": 2
                         }
                     ]
+                },
+                {
+                    "id": "lesson_9_2",
+                    "title": "Nature's Wisdom",
+                    "items": [
+                        {
+                            "id": "sent_9_1",
+                            "type": "sentence",
+                            "chinese": "雨下得很大",
+                            "pinyin": "yǔ xià de hěn dà",
+                            "meaning": "The rain is very heavy",
+                            "tokens": [
+                                "雨",
+                                "下",
+                                "得",
+                                "很",
+                                "大"
+                            ]
+                        },
+                        {
+                            "id": "sent_9_2",
+                            "type": "sentence",
+                            "chinese": "小心火",
+                            "pinyin": "xiǎo xīn huǒ",
+                            "meaning": "Be careful with fire",
+                            "tokens": [
+                                "小心",
+                                "火"
+                            ]
+                        },
+                        {
+                            "id": "sent_9_3",
+                            "type": "sentence",
+                            "chinese": "今天的风很大",
+                            "pinyin": "jīn tiān de fēng hěn dà",
+                            "meaning": "The wind is strong today",
+                            "tokens": [
+                                "今天",
+                                "的",
+                                "风",
+                                "很",
+                                "大"
+                            ]
+                        },
+                        {
+                            "id": "sent_9_4",
+                            "type": "sentence",
+                            "chinese": "水和电",
+                            "pinyin": "shuǐ hé diàn",
+                            "meaning": "Water and electricity",
+                            "tokens": [
+                                "水",
+                                "和",
+                                "电"
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -1281,6 +1338,64 @@
                             "meaning": "Jade",
                             "tone": 4,
                             "difficulty": 2
+                        }
+                    ]
+                },
+                {
+                    "id": "lesson_10_2",
+                    "title": "Ancient Wisdom",
+                    "items": [
+                        {
+                            "id": "sent_10_1",
+                            "type": "sentence",
+                            "chinese": "熟能生巧",
+                            "pinyin": "shú néng shēng qiǎo",
+                            "meaning": "Practice makes perfect",
+                            "tokens": [
+                                "熟",
+                                "能",
+                                "生",
+                                "巧"
+                            ]
+                        },
+                        {
+                            "id": "sent_10_2",
+                            "type": "sentence",
+                            "chinese": "沉默是金",
+                            "pinyin": "chén mò shì jīn",
+                            "meaning": "Silence is gold",
+                            "tokens": [
+                                "沉默",
+                                "是",
+                                "金"
+                            ]
+                        },
+                        {
+                            "id": "sent_10_3",
+                            "type": "sentence",
+                            "chinese": "知识就是力量",
+                            "pinyin": "zhī shi jiù shì lì liàng",
+                            "meaning": "Knowledge is power",
+                            "tokens": [
+                                "知识",
+                                "就是",
+                                "力量"
+                            ]
+                        },
+                        {
+                            "id": "sent_10_4",
+                            "type": "sentence",
+                            "chinese": "玉不琢不成器",
+                            "pinyin": "yù bù zhuó bù chéng qì",
+                            "meaning": "Jade requires polishing (No pain, no gain)",
+                            "tokens": [
+                                "玉",
+                                "不",
+                                "琢",
+                                "不",
+                                "成",
+                                "器"
+                            ]
                         }
                     ]
                 }

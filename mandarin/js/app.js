@@ -121,6 +121,14 @@ class MandarinFlow {
         `;
 
         this.progress.curriculum.forEach((level, lIndex) => {
+            if (lIndex === 0) {
+                html += `<div class="w-full text-center py-6 relative z-10"><h1 class="text-xl font-black text-jade-800/80 drop-shadow-sm">Foundation</h1><p class="text-[9px] text-jade-400 uppercase tracking-widest">Beginner Stage</p></div>`;
+            } else if (lIndex === 3) {
+                html += `<div class="w-full text-center py-6 relative z-10 mt-12 border-t border-jade-100/30 pt-12"><h1 class="text-xl font-black text-jade-800/80 drop-shadow-sm">Expansion</h1><p class="text-[9px] text-jade-400 uppercase tracking-widest">Intermediate Stage</p></div>`;
+            } else if (lIndex === 6) {
+                html += `<div class="w-full text-center py-6 relative z-10 mt-12 border-t border-jade-100/30 pt-12"><h1 class="text-xl font-black text-jade-800/80 drop-shadow-sm">Mastery</h1><p class="text-[9px] text-gold-500 uppercase tracking-widest">Advanced Stage</p></div>`;
+            }
+
             html += `
                 <div class="w-full text-center py-6 mt-8 z-10 relative">
                     <span class="bg-jade-50 px-4 text-[10px] font-black uppercase tracking-[0.3em] text-jade-300">Level ${lIndex + 1}</span>
@@ -175,51 +183,86 @@ class MandarinFlow {
     renderPracticeView(container) {
         const reviewItems = this.progress.getReviewItems();
 
-        if (reviewItems.length === 0) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-24 text-center space-y-8 scale-in">
-                    <div class="relative">
-                        <div class="text-8xl float">✨</div>
-                        <div class="absolute -top-4 -right-4 w-12 h-12 jade-gradient rounded-full border-4 border-white premium-shadow flex items-center justify-center text-white font-black text-xs">OK</div>
-                    </div>
-                    <div class="space-y-2">
-                        <h2 class="text-2xl font-black text-jade-800">Zen State Achieved</h2>
-                        <p class="text-jade-400 max-w-xs text-xs font-medium uppercase tracking-widest leading-relaxed">Your memory is currently peak performance. No reviews needed.</p>
-                    </div>
-                    <button id="go-explore" class="px-8 py-3 rounded-2xl jade-gradient text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl premium-shadow active:scale-95 transition-all">
-                        Explore Path
-                    </button>
-                </div>
-            `;
-            document.getElementById('go-explore').addEventListener('click', () => {
-                this.soundManager.playClick();
-                this.switchView('learn')
-            });
-            return;
-        }
-
         container.innerHTML = `
-            <div class="space-y-8 slide-up">
-                <div class="glass-card rounded-[2.5rem] p-10 text-center premium-shadow relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gold-400/10 rounded-full -mr-16 -mt-16"></div>
-                    <div class="relative z-10 space-y-6">
-                        <div class="inline-flex items-center gap-2 bg-gold-50 text-gold-600 px-4 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
-                            <span class="animate-pulse">●</span> Review Ready
-                        </div>
-                        <h2 class="text-3xl font-black text-jade-800 tracking-tight">Daily Ritual</h2>
-                        <p class="text-jade-400 text-xs font-medium uppercase tracking-widest">Master ${reviewItems.length} characters</p>
-                        <button id="start-review" class="w-full py-5 rounded-3xl gold-gradient text-white font-black text-sm uppercase tracking-[0.2em] shadow-2xl premium-shadow-gold active:scale-95 transition-all">
-                            Burn Incense & Begin
-                        </button>
-                    </div>
+            <div class="space-y-6 slide-up pb-20">
+                <div class="text-center space-y-2">
+                    <h2 class="text-xs font-black text-jade-300 uppercase tracking-[0.4em]">Sharpen Your Mind</h2>
+                    <h1 class="text-3xl font-black text-jade-800">Training Dojo</h1>
                 </div>
+
+                <!-- Mode 1: SRS Review -->
+                <button id="start-review" class="w-full glass-card p-6 rounded-[2rem] premium-shadow flex items-center gap-5 group transition-all active:scale-95 ${reviewItems.length === 0 ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:border-gold-300 ring-2 ring-transparent hover:ring-gold-200'}" ${reviewItems.length === 0 ? 'disabled' : ''}>
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold-400 to-amber-600 flex items-center justify-center text-3xl text-white shadow-lg group-hover:scale-110 transition-transform">
+                        🧠
+                    </div>
+                    <div class="flex-1 text-left">
+                        <h3 class="text-lg font-black text-jade-800">Memory Recall</h3>
+                        <p class="text-[10px] text-jade-400 font-bold uppercase tracking-wider mt-1">${reviewItems.length === 0 ? 'Mind Clear' : `${reviewItems.length} Pending`}</p>
+                    </div>
+                    ${reviewItems.length > 0 ? '<div class="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-black animate-bounce premium-shadow">' + reviewItems.length + '</div>' : ''}
+                </button>
+
+                <!-- Mode 2: Tone Drill -->
+                 <button id="start-tone-drill" class="w-full glass-card p-6 rounded-[2rem] premium-shadow flex items-center gap-5 group transition-all active:scale-95 hover:border-jade-400 ring-2 ring-transparent hover:ring-jade-200">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-jade-400 to-emerald-600 flex items-center justify-center text-3xl text-white shadow-lg group-hover:scale-110 transition-transform">
+                        🎵
+                    </div>
+                    <div class="flex-1 text-left">
+                        <h3 class="text-lg font-black text-jade-800">Tone Tuner</h3>
+                         <p class="text-[10px] text-jade-400 font-bold uppercase tracking-wider mt-1">Quickfire Practice</p>
+                    </div>
+                     <div class="w-8 h-8 rounded-full bg-jade-100 text-jade-500 flex items-center justify-center text-lg font-black group-hover:translate-x-1 transition-transform">→</div>
+                </button>
+
+                 <!-- Mode 3: Sentence Builder (New) -->
+                 <button id="start-sentence-drill" class="w-full glass-card p-6 rounded-[2rem] premium-shadow flex items-center gap-5 group transition-all active:scale-95 hover:border-indigo-400 ring-2 ring-transparent hover:ring-indigo-200">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center text-3xl text-white shadow-lg group-hover:scale-110 transition-transform">
+                        🧩
+                    </div>
+                    <div class="flex-1 text-left">
+                        <h3 class="text-lg font-black text-jade-800">Sentence Flow</h3>
+                         <p class="text-[10px] text-jade-400 font-bold uppercase tracking-wider mt-1">Construct Phrases</p>
+                    </div>
+                     <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-lg font-black group-hover:translate-x-1 transition-transform">→</div>
+                </button>
             </div>
         `;
 
-        document.getElementById('start-review').addEventListener('click', () => {
+        if (reviewItems.length > 0) {
+            document.getElementById('start-review').addEventListener('click', () => {
+                this.soundManager.playClick();
+                this.startReviewSession(reviewItems);
+            });
+        }
+
+        document.getElementById('start-tone-drill').addEventListener('click', () => {
             this.soundManager.playClick();
-            this.startReviewSession(reviewItems);
+            this.startMixDrill('char'); // Reusing a mix logic
         });
+
+        document.getElementById('start-sentence-drill').addEventListener('click', () => {
+            this.soundManager.playClick();
+            this.startMixDrill('sentence');
+        });
+    }
+
+    startMixDrill(type) {
+        const pool = [];
+        this.progress.curriculum.forEach(l => l.lessons.forEach(lesson => {
+            lesson.items.forEach(item => {
+                if (!type || item.type === type || (!type && !item.type && item.char)) { // Handle char items having no type field vs sentence type
+                    if (type === 'char' && !item.char) return; // Skip if strict char
+                    if (type === 'sentence' && item.type !== 'sentence') return;
+                    pool.push(item);
+                }
+            });
+        }));
+
+        if (pool.length === 0) return alert('No content found for this mode!');
+
+        // Shuffle and pick 10
+        const sessionItems = pool.sort(() => 0.5 - Math.random()).slice(0, 10);
+        this.runSession(sessionItems);
     }
 
     renderStatsView(container) {
