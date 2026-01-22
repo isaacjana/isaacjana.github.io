@@ -621,9 +621,9 @@ function renderInvoices($el) {
                 <td class="text-sm text-gray-500">${new Date(i.createdAt.seconds * 1000).toLocaleDateString()}</td>
                 <td><span class="badge badge-completed">Validated</span></td>
                 <td>
-                    <button onclick='generateInvoicePDF(${JSON.stringify(i).replace(/'/g, "&apos;")})' class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-medium">
+                    <button onclick='generateInvoicePDF(${JSON.stringify(i).replace(/'/g, "&apos;")})' class="btn btn-ghost text-xs py-1 px-3 h-8 text-blue-600 hover:bg-blue-50">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        PDF
+                        Download PDF
                     </button>
                 </td>
             </tr>
@@ -1024,13 +1024,17 @@ window.generateInvoicePDF = async (data) => {
 
     const logoData = await loadLogo();
 
-    // Header
+    // Header Background
     doc.setFillColor(15, 40, 71); // #0f2847 Ocean Dark
     doc.rect(0, 0, 210, 40, 'F');
 
+    // Logo Background (White Circle for contrast)
+    doc.setFillColor(255, 255, 255);
+    doc.circle(25, 20, 16, 'F');
+
     // Add logo to header (if loaded successfully)
     if (logoData) {
-        doc.addImage(logoData, 'PNG', 10, 6, 30, 28);
+        doc.addImage(logoData, 'PNG', 11, 6, 28, 28);
     }
 
     doc.setTextColor(255, 255, 255);
@@ -1453,60 +1457,170 @@ window.saveQuickInvoice = async () => {
     }
 };
 
-window.generateQuickReceiptPDF = (data) => {
+// ==========================================
+// PREMIUIM RECEIPT GENERATOR (Quick Invoice)
+// ==========================================
+window.generateQuickReceiptPDF = async (data) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Header
-    doc.setFontSize(18);
-    doc.text("OCEAN LIVE SEAFOOD", 105, 20, null, null, "center");
+    // -- Load Logo Helper --
+    const loadLogo = () => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = () => resolve(null);
+            img.src = 'assets/logo.png';
+        });
+    };
+    const logoData = await loadLogo();
+
+    // -- Premium Header --
+    doc.setFillColor(15, 40, 71); // Dark Blue Header
+    doc.rect(0, 0, 210, 50, 'F'); // Taller header for receipt
+
+    // Logo Background Cirle
+    doc.setFillColor(255, 255, 255);
+    doc.circle(25, 25, 18, 'F');
+
+    if (logoData) {
+        doc.addImage(logoData, 'PNG', 10, 10, 30, 30);
+    }
+
+    // Header Text
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("OCEAN LIVE SEAFOOD", 50, 22);
 
     doc.setFontSize(10);
-    doc.text("Official Receipt", 105, 26, null, null, "center");
-    doc.text(`Date: ${new Date().toLocaleString()}`, 105, 32, null, null, "center");
-    doc.text(`Ref: ${data.invoiceNo}`, 105, 38, null, null, "center");
+    doc.setFont("helvetica", "normal");
+    doc.text("Premium Live Seafood Supplier", 50, 28);
+    doc.text("Kuching, Sarawak | +60 82-123 456", 50, 33);
+    doc.text("www.ocean-seafood.com", 50, 38);
 
-    // Customer Info
+    // Receipt Badge
+    doc.setFillColor(14, 165, 233); // Ocean Blue
+    doc.roundedRect(145, 15, 50, 20, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("RECEIPT", 170, 27, { align: 'center' });
+
+    // -- Info Section --
+    const startY = 65;
+
+    // Left: Customer
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
-    doc.text(`Billed To: ${data.customerName}`, 20, 50);
-    if (data.icPassport) doc.text(`Identify No: ${data.icPassport}`, 20, 56);
-    doc.text(`Payment: ${data.paymentMethod}`, 20, 62);
+    doc.setFont("helvetica", "bold");
+    doc.text("SOLD TO:", 15, startY);
 
-    // Table
-    const tableData = data.items.map(i => [i.desc, `RM ${i.amount.toFixed(2)}`]);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(data.customerName || "Walk-in Customer", 15, startY + 6);
+    if (data.icPassport) {
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`ID: ${data.icPassport}`, 15, startY + 11);
+    }
+
+    // Right: Details
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Receipt Details:", 130, startY);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`Date:`, 130, startY + 6);
+    doc.text(`${new Date().toLocaleString()}`, 200, startY + 6, { align: 'right' });
+
+    doc.text(`Receipt No:`, 130, startY + 11);
+    doc.text(`${data.invoiceNo}`, 200, startY + 11, { align: 'right' });
+
+    doc.text(`Payment:`, 130, startY + 16);
+    doc.text(`${data.paymentMethod}`, 200, startY + 16, { align: 'right' });
+
+    // -- Items Table --
+    const tableData = data.items.map(i => [
+        i.desc,
+        `RM ${i.amount.toFixed(2)}`
+    ]);
 
     doc.autoTable({
-        startY: 70,
-        head: [['Description', 'Amount']],
+        startY: startY + 25,
+        head: [['Item Description', 'Amount (RM)']],
         body: tableData,
-        theme: 'plain',
-        styles: { fontSize: 10 },
-        headStyles: { fontStyle: 'bold' },
-        columnStyles: { 1: { halign: 'right' } }
+        theme: 'striped',
+        headStyles: {
+            fillColor: [15, 40, 71],
+            textColor: 255,
+            fontStyle: 'bold'
+        },
+        styles: {
+            fontSize: 10,
+            cellPadding: 3
+        },
+        columnStyles: {
+            0: { cellWidth: 'auto' },
+            1: { halign: 'right', cellWidth: 40 }
+        }
     });
 
-    // Totals
-    let finalY = doc.lastAutoTable.finalY + 10;
+    let finalY = doc.lastAutoTable.finalY + 5;
 
-    doc.text(`Subtotal:`, 140, finalY);
-    doc.text(`RM ${data.subtotal.toFixed(2)}`, 190, finalY, null, null, 'right');
+    // -- Totals Section --
+    const boxX = 130;
+    const boxWidth = 75;
+    const padding = 2;
 
-    finalY += 6;
-    doc.text(`SST (6%):`, 140, finalY);
-    doc.text(`RM ${data.sst.toFixed(2)}`, 190, finalY, null, null, 'right');
+    // Subtotal
+    doc.setFontSize(10);
+    doc.text(`Subtotal:`, 135, finalY + 5);
+    doc.text(`RM ${data.subtotal.toFixed(2)}`, 200, finalY + 5, { align: 'right' });
 
+    // SST
+    if (data.sst > 0) {
+        finalY += 6;
+        doc.text(`SST (6%):`, 135, finalY + 5);
+        doc.text(`RM ${data.sst.toFixed(2)}`, 200, finalY + 5, { align: 'right' });
+    }
+
+    // Divider
     finalY += 8;
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`TOTAL:`, 140, finalY);
-    doc.text(`RM ${data.total.toFixed(2)}`, 190, finalY, null, null, 'right');
+    doc.setDrawColor(200, 200, 200);
+    doc.line(130, finalY, 205, finalY);
 
-    // Footer
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'normal');
+    // Grand Total
+    finalY += 7;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 40, 71);
+    doc.text(`TOTAL:`, 135, finalY + 5);
+    doc.text(`RM ${data.total.toFixed(2)}`, 200, finalY + 5, { align: 'right' });
+
+    // -- Footer --
     const pageHeight = doc.internal.pageSize.height;
-    doc.text("Thank you for your business!", 105, pageHeight - 20, null, null, "center");
-    doc.text("Generated via Ocean System", 105, pageHeight - 15, null, null, "center");
+
+    // Dotted line
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineDash([1, 1], 0);
+    doc.line(10, pageHeight - 35, 200, pageHeight - 35);
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Thank you for choosing Ocean Live Seafood.", 105, pageHeight - 25, { align: 'center' });
+    doc.text("Goods sold are not returnable. Please retain this receipt for proof of purchase.", 105, pageHeight - 20, { align: 'center' });
+    doc.text(`Generated by Ocean System | ${data.invoiceNo}`, 105, pageHeight - 15, { align: 'center' });
 
     doc.save(`Receipt-${data.invoiceNo}.pdf`);
 };
