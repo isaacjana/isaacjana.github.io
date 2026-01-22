@@ -249,25 +249,28 @@ function renderStock($el) {
     }
 
     $el.html(`
-        <div class="page-header">
+        <div class="page-header animate-slide-in-right">
             <h2 class="page-title">Live Stock Management</h2>
+            <p class="text-gray-500">Manage real-time inventory and pricing.</p>
         </div>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Product Details</th>
-                        <th>Supplier</th>
-                        <th>Live Stock</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="stock-list">
-                    <!-- Loaded dynamically -->
-                    <tr><td colspan="5" class="p-8 text-center"><div class="shimmer w-full h-12 rounded"></div></td></tr>
-                </tbody>
-            </table>
+        <div class="card animate-slide-up">
+            <div class="table-container">
+                <table class="data-table w-full">
+                    <thead>
+                        <tr>
+                            <th>Product Details</th>
+                            <th>Supplier</th>
+                            <th>Live Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-list">
+                        <!-- Loaded dynamically -->
+                        <tr><td colspan="5" class="p-8 text-center"><div class="shimmer w-full h-12 rounded"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     `);
 
@@ -334,7 +337,7 @@ function renderShop($el) {
     }
 
     let headerHtml = `
-        <div class="page-header">
+        <div class="page-header animate-slide-in-right">
             <div>
                 <h2 class="page-title">Live Seafood Catalog</h2>
                 <p class="text-gray-500">Premium selection, delivered live.</p>
@@ -344,21 +347,27 @@ function renderShop($el) {
 
     if (isAdminMode) {
         headerHtml = `
-        <div class="page-header bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h2 class="text-xl font-bold text-yellow-900">Ordering for: ${window.adminOrderContext.clientName}</h2>
-                    <p class="text-yellow-700 text-sm">${window.adminOrderContext.storeName}</p>
+        <div class="admin-order-banner animate-slide-up">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Admin Mode</span>
                 </div>
-                <button onclick="window.adminOrderContext = null; loadView('orders');" class="btn btn-ghost text-yellow-800 hover:bg-yellow-100">Cancel</button>
+                <h2 class="text-xl font-bold text-yellow-900 leading-tight">Ordering for: ${window.adminOrderContext.clientName}</h2>
+                <p class="text-yellow-700 text-sm flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    ${window.adminOrderContext.storeName || 'No Store Name'}
+                </p>
             </div>
+            <button onclick="window.adminOrderContext = null; loadView('orders');" class="btn btn-ghost text-red-700 hover:bg-red-100 hover:text-red-800 border-red-200">
+                Cancel Order
+            </button>
         </div>
         `;
     }
 
     $el.html(`
         ${headerHtml}
-        <div class="product-grid" id="shop-container">
+        <div class="product-grid animate-slide-up" id="shop-container">
             <!-- Loading -->
              ${Array(6).fill('<div class="product-card h-96"><div class="skeleton w-full h-48"></div><div class="p-4 space-y-3"><div class="skeleton w-3/4 h-6"></div><div class="skeleton w-1/2 h-4"></div></div></div>').join('')}
         </div>
@@ -420,29 +429,34 @@ function renderShop($el) {
 
 function renderOrdersAdmin($el) {
     $el.html(`
-        <div class="page-header flex justify-between items-center">
-            <h2 class="page-title">Order Management</h2>
-            <button onclick="openAdminNewOrderModal()" class="btn btn-primary flex items-center gap-2">
+        <div class="page-header flex justify-between items-center animate-slide-in-right">
+            <div>
+                <h2 class="page-title">Order Management</h2>
+                <p class="text-gray-500">Track and fulfill client orders.</p>
+            </div>
+            <button onclick="openAdminNewOrderModal()" class="btn btn-primary flex items-center gap-2 hover-lift">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 New Order
             </button>
         </div>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th width="10%">ID</th>
-                        <th width="20%">Client</th>
-                        <th width="15%">Status</th>
-                        <th width="15%">Total</th>
-                        <th width="20%">Driver</th>
-                        <th width="20%">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="orders-list">
-                    <tr><td colspan="6" class="p-8 text-center"><div class="shimmer w-full h-12 rounded"></div></td></tr>
-                </tbody>
-            </table>
+        <div class="card animate-slide-up">
+            <div class="table-container">
+                <table class="data-table w-full">
+                    <thead>
+                        <tr>
+                            <th width="10%">ID</th>
+                            <th width="20%">Client</th>
+                            <th width="15%">Status</th>
+                            <th width="15%">Total</th>
+                            <th width="20%">Driver</th>
+                            <th width="20%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-list">
+                        <tr><td colspan="6" class="p-8 text-center"><div class="shimmer w-full h-12 rounded"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     `);
 
@@ -483,32 +497,38 @@ function renderOrdersAdmin($el) {
 
 function renderOrdersClient($el) {
     $el.html(`
-        <div class="page-header">
-            <h2 class="page-title">My Order History</h2>
+        <div class="page-header animate-slide-in-right">
+            <div>
+                <h2 class="page-title">My Order History</h2>
+                <p class="text-gray-500">View and track your live seafood requests.</p>
+            </div>
         </div>
-        <div class="grid grid-cols-1 gap-4" id="client-orders-list"></div>
+        <div class="grid grid-cols-1 gap-4 animate-slide-up" id="client-orders-list"></div>
     `);
 
     const unsub = dbAPI.getOrders('client', currentUser.uid, (orders) => {
         if (orders.length === 0) {
-            $('#client-orders-list').html('<div class="empty-state"><div class="empty-state-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg></div><p class="empty-state-text">You haven\'t placed any orders yet.</p></div>');
+            $('#client-orders-list').html('<div class="empty-state"><div class="empty-state-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg></div><h3 class="empty-state-title">No Orders Yet</h3><p class="empty-state-text">You haven\'t placed any orders yet. Visit the catalog to get started.</p></div>');
             return;
         }
 
         const cards = orders.map(o => `
-            <div class="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover-lift">
                 <div>
                     <div class="flex items-center gap-3 mb-2">
                         <h3 class="font-bold text-lg text-gray-900">Order #${o.id.slice(0, 8)}</h3>
                         <span class="badge badge-${o.status.toLowerCase()}">${o.status}</span>
                     </div>
-                    <div class="text-sm text-gray-500 mb-2">${new Date(o.createdAt.seconds * 1000).toLocaleString()}</div>
+                    <div class="text-sm text-gray-500 mb-3 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        ${new Date(o.createdAt.seconds * 1000).toLocaleString()}
+                    </div>
                     <div class="flex gap-2 flex-wrap">
-                        ${o.items.map(i => `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">${i.name} x${i.qty}</span>`).join('')}
+                        ${o.items.map(i => `<span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-1 rounded text-xs font-medium">${i.name} x${i.qty}</span>`).join('')}
                     </div>
                 </div>
                 <div class="text-right">
-                    <p class="text-xs text-gray-500 uppercase">Total Amount</p>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Total Amount</p>
                     <p class="text-2xl font-bold text-blue-900 mb-2">${o.total > 0 ? 'RM ' + parseFloat(o.total).toFixed(2) : '<span class="text-sm text-gray-400 italic">Pending Quote</span>'}</p>
                     ${o.invoiced ?
                 `<button onclick="clientDownloadInvoice('${o.id}')" class="text-blue-600 text-xs font-bold hover:underline flex items-center gap-1 justify-end ml-auto">
@@ -526,11 +546,13 @@ function renderOrdersClient($el) {
 
 function renderDriverJobs($el) {
     $el.html(`
-        <div class="page-header">
-            <h2 class="page-title">Available Deliveries</h2>
-            <p class="text-gray-500">Pick a job to start delivery.</p>
+        <div class="page-header animate-slide-in-right">
+            <div>
+                <h2 class="page-title">Available Deliveries</h2>
+                <p class="text-gray-500">Pick a job to start delivery.</p>
+            </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="jobs-grid"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up" id="jobs-grid"></div>
     `);
 
     // Drivers see orders that are 'accepted' but have no driver assigned
@@ -538,28 +560,30 @@ function renderDriverJobs($el) {
         const available = orders.filter(o => o.status === 'accepted' && !o.driverId);
 
         if (available.length === 0) {
-            $('#jobs-grid').html('<div class="col-span-full empty-state"><div class="empty-state-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div><p class="empty-state-text">No jobs available right now. Check back later.</p></div>');
+            $('#jobs-grid').html('<div class="col-span-full empty-state"><div class="empty-state-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div><h3 class="empty-state-title">No Early Catch!</h3><p class="empty-state-text">No jobs available right now. Check back later.</p></div>');
             return;
         }
 
         const cards = available.map(o => `
-            <div class="card p-6 border-l-4 border-blue-500 flex flex-col h-full">
+            <div class="card p-6 border-l-4 border-blue-500 flex flex-col h-full hover-lift">
                 <div class="flex justify-between items-start mb-4">
                      <div>
-                        <span class="text-xs font-mono text-gray-400">#${o.id.slice(0, 6)}</span>
-                        <h3 class="font-bold text-lg">${o.storeName || 'Client Store'}</h3>
+                        <span class="text-xs font-mono text-gray-400 uppercase tracking-tighter">Job #${o.id.slice(0, 6)}</span>
+                        <h3 class="font-bold text-lg text-gray-900">${o.storeName || 'Client Store'}</h3>
                      </div>
-                     <span class="font-bold text-blue-600">RM ${o.total}</span>
+                     <span class="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">RM ${o.total}</span>
                 </div>
                 
-                <div class="flex-1 space-y-3 mb-6">
-                    <div class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        <p class="text-sm text-gray-600">${o.deliveryAddress || 'No address provided'}</p>
+                <div class="flex-1 space-y-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <div class="p-2 bg-gray-50 rounded-lg text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <p class="text-sm text-gray-600 leading-relaxed">${o.deliveryAddress || 'No address provided'}</p>
                     </div>
                 </div>
 
-                <button onclick="pickJob('${o.id}')" class="btn btn-primary w-full shadow-lg shadow-blue-200">
+                <button onclick="pickJob('${o.id}')" class="btn btn-primary w-full shadow-lg shadow-blue-200 py-3">
                     Accept Job
                 </button>
             </div>
@@ -571,10 +595,13 @@ function renderDriverJobs($el) {
 
 function renderDriverDeliveries($el) {
     $el.html(`
-        <div class="page-header">
-            <h2 class="page-title">My Deliveries</h2>
+        <div class="page-header animate-slide-in-right">
+            <div>
+                <h2 class="page-title">My Deliveries</h2>
+                <p class="text-gray-500">Track and manage your active seafood deliveries.</p>
+            </div>
         </div>
-        <div class="space-y-4" id="my-deliveries-list"></div>
+        <div class="space-y-4 animate-slide-up" id="my-deliveries-list"></div>
     `);
 
     const uid = auth.currentUser.uid;
@@ -582,35 +609,38 @@ function renderDriverDeliveries($el) {
         const mine = orders.filter(o => o.driverId === uid && o.status !== 'completed');
 
         if (mine.length === 0) {
-            $('#my-deliveries-list').html('<div class="empty-state"><p class="empty-state-text">You have no active deliveries.</p></div>');
+            $('#my-deliveries-list').html('<div class="empty-state"><div class="empty-state-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div><h3 class="empty-state-title">No Active Jobs</h3><p class="empty-state-text">You have no active deliveries. Grab one from the available jobs list!</p></div>');
             return;
         }
 
         const cards = mine.map(o => `
-            <div class="bg-white rounded-xl p-6 shadow-card border border-blue-100 flex flex-col md:flex-row gap-6 relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+            <div class="card p-6 flex flex-col md:flex-row gap-6 relative overflow-hidden hover-lift">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
                 
                 <div class="flex-1">
-                     <div class="flex items-center gap-3 mb-2">
-                        <h3 class="font-bold text-xl text-gray-900">Order #${o.id.slice(0, 6)}</h3>
+                     <div class="flex items-center gap-3 mb-4">
+                        <span class="text-xs font-mono text-gray-400 uppercase tracking-tighter">Order #${o.id.slice(0, 6)}</span>
                         <span class="badge badge-${o.status.toLowerCase()}">${o.status}</span>
                      </div>
-                     <div class="bg-gray-50 p-4 rounded-lg mb-4">
-                        <p class="font-bold text-gray-800">${o.storeName || 'Client'}</p>
-                        <p class="text-gray-600 mb-2">${o.deliveryAddress}</p>
-                        <button onclick="window.open('https://maps.google.com/?q=' + encodeURIComponent('${o.deliveryAddress}'))" class="text-blue-600 text-sm font-semibold flex items-center gap-1 hover:underline">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-                            Navigate
+                     <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                        <h4 class="font-bold text-gray-900 text-lg mb-1">${o.storeName || 'Client'}</h4>
+                        <div class="flex items-start gap-2 text-gray-600 mb-4">
+                            <svg class="w-4 h-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <span class="text-sm leading-relaxed">${o.deliveryAddress}</span>
+                        </div>
+                        <button onclick="window.open('https://maps.google.com/?q=' + encodeURIComponent('${o.deliveryAddress}'))" class="btn btn-secondary w-full md:w-auto px-4 py-2 text-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                            Get Directions
                         </button>
                      </div>
                 </div>
                 
-                <div class="flex flex-col justify-center gap-3 md:w-48">
+                <div class="flex flex-col justify-center gap-3 md:w-56">
                     ${o.status === 'accepted' || o.status === 'associating_driver' ?
-                `<button onclick="updateStatus('${o.id}', 'delivering')" class="btn btn-warning w-full">Start Delivery</button>` : ''
+                `<button onclick="updateStatus('${o.id}', 'delivering')" class="btn btn-warning w-full py-4 text-sm font-bold uppercase tracking-wide">Start Delivery</button>` : ''
             }
                     ${o.status === 'delivering' ?
-                `<button onclick="updateStatus('${o.id}', 'completed')" class="btn btn-success w-full">Complete Order</button>` : ''
+                `<button onclick="updateStatus('${o.id}', 'completed')" class="btn btn-success w-full py-4 text-sm font-bold uppercase tracking-wide">Complete Order</button>` : ''
             }
                 </div>
             </div>
@@ -629,23 +659,30 @@ function renderClients($el) {
 
 function renderInvoices($el) {
     $el.html(`
-        <div class="page-header">
-            <h2 class="page-title">Invoices</h2>
+        <div class="page-header animate-slide-in-right">
+            <div>
+                <h2 class="page-title">Invoices</h2>
+                <p class="text-gray-500">Manage and download customer invoices.</p>
+            </div>
         </div>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Invoice #</th>
-                        <th>Order Ref</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>LHDN Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="invoices-list"></tbody>
-            </table>
+        <div class="card animate-slide-up">
+            <div class="table-container">
+                <table class="data-table w-full">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Order Ref</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoices-list">
+                        <tr><td colspan="6" class="p-8 text-center"><div class="shimmer w-full h-12 rounded"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     `);
 
@@ -718,39 +755,47 @@ function showToast(message, type = 'info') {
 window.openAddProductModal = () => {
     const html = `
      <div class="modal-backdrop" id="modal-bg">
-        <div class="modal slide-in">
+        <div class="modal slide-in" style="max-width: 500px;">
             <div class="modal-header">
-                <h3 class="modal-title">Add New Product</h3>
+                <div class="modal-title">
+                    <div class="p-2 bg-blue-50 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    </div>
+                    <h3 class="font-black text-gray-900">New Product</h3>
+                </div>
                 <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <form id="add-product-form">
-                <div class="modal-body space-y-4">
-                     <div>
+                <div class="modal-body space-y-5">
+                     <div class="animate-slide-up" style="animation-delay: 0.1s">
                         <label class="form-label">Product Name</label>
-                        <input type="text" class="form-input" name="name" required>
+                        <input type="text" class="form-input w-full" name="name" placeholder="e.g. Tiger Prawn XL" required>
                      </div>
-                     <div>
-                        <label class="form-label">Supplier</label>
-                        <input type="text" class="form-input" name="supplier" required>
+                     <div class="animate-slide-up" style="animation-delay: 0.2s">
+                        <label class="form-label">Supplier Source</label>
+                        <input type="text" class="form-input w-full" name="supplier" placeholder="e.g. Sabah Catchment Co." required>
                      </div>
-                     <div class="grid grid-cols-2 gap-4">
+                     <div class="grid grid-cols-2 gap-4 animate-slide-up" style="animation-delay: 0.3s">
                         <div>
-                            <label class="form-label">Price (RM)</label>
-                            <input type="number" step="0.01" class="form-input" name="price" required>
+                            <label class="form-label">Default Price (RM)</label>
+                            <input type="number" step="0.01" class="form-input w-full" name="price" placeholder="0.00" required>
                         </div>
                         <div>
-                            <label class="form-label">Unit</label>
-                            <input type="text" class="form-input" name="unit" placeholder="kg, pcs" required>
+                            <label class="form-label">Sale Unit</label>
+                            <input type="text" class="form-input w-full" name="unit" placeholder="kg, pcs, box" required>
                         </div>
                      </div>
-                     <div>
-                        <label class="form-label">Initial Quantity</label>
-                        <input type="number" class="form-input" name="quantity" required>
+                     <div class="animate-slide-up" style="animation-delay: 0.4s">
+                        <label class="form-label">Starting Inventory</label>
+                        <div class="relative">
+                            <input type="number" class="form-input w-full pl-10" name="quantity" placeholder="0" required>
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        </div>
                      </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" onclick="$('#modal-bg').remove()" class="btn btn-ghost">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Product</button>
+                <div class="modal-footer gap-3">
+                    <button type="button" onclick="$('#modal-bg').remove()" class="btn btn-secondary px-6">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-8">Register Product</button>
                 </div>
             </form>
         </div>
@@ -913,6 +958,10 @@ window.openAdminNewOrderModal = () => {
 };
 
 window.startAdminOrder = async (clientId, clientName, storeName, address) => {
+    // 0. Reset Cart
+    cart = [];
+    $('#cart-badge').addClass('hidden');
+
     // 1. Fetch custom prices for this client
     showToast("Preparing catalog...", "info");
 
@@ -941,26 +990,46 @@ window.startAdminOrder = async (clientId, clientName, storeName, address) => {
 window.openRestockModal = (id, name, currentSupplier) => {
     const html = `
      <div class="modal-backdrop" id="modal-bg">
-        <div class="modal">
+        <div class="modal slide-in" style="max-width: 450px;">
             <div class="modal-header">
-                <h3 class="modal-title">Restock Inventory</h3>
+                <div class="modal-title">
+                    <div class="p-2 bg-blue-50 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                    </div>
+                    <h3 class="font-black text-gray-900">Restock Stock</h3>
+                </div>
                 <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <form id="restock-form">
-                <div class="modal-body space-y-4">
-                    <p class="text-gray-500">Updating stock for <strong>${name}</strong></p>
-                    <div>
-                        <label class="form-label">Supplier</label>
-                        <input type="text" class="form-input" name="supplier" value="${currentSupplier}" required>
+                <div class="modal-body space-y-5">
+                    <div class="p-4 bg-gray-50 rounded-2xl flex items-center gap-3 border border-gray-100 mb-2">
+                        <div class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-blue-600">
+                            ${name.charAt(0)}
+                        </div>
+                        <div>
+                            <p class="text-[10px] uppercase font-bold tracking-widest text-gray-400">Inventory Item</p>
+                            <p class="font-black text-gray-900 leading-tight">${name}</p>
+                        </div>
                     </div>
-                    <div>
-                        <label class="form-label">Quantity to Add</label>
-                        <input type="number" class="form-input" name="quantity" required min="1">
+
+                    <div class="animate-slide-up" style="animation-delay: 0.1s">
+                        <label class="form-label">Current Supplier</label>
+                        <div class="relative">
+                            <input type="text" class="form-input w-full pl-10" name="supplier" value="${currentSupplier}" required>
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        </div>
+                    </div>
+                    <div class="animate-slide-up" style="animation-delay: 0.2s">
+                        <label class="form-label">Inbound Quantity</label>
+                        <div class="relative">
+                            <input type="number" class="form-input w-full pl-10 text-lg font-black" name="quantity" required min="1" placeholder="0">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" onclick="$('#modal-bg').remove()" class="btn btn-ghost">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Confirm & Update</button>
+                <div class="modal-footer gap-3">
+                    <button type="button" onclick="$('#modal-bg').remove()" class="btn btn-secondary px-6">Discard</button>
+                    <button type="submit" class="btn btn-primary px-8">Update Inventory</button>
                 </div>
             </form>
         </div>
@@ -992,61 +1061,96 @@ window.openProcessOrderModal = async (orderId, clientId) => {
 
     const html = `
      <div class="modal-backdrop" id="modal-bg">
-        <div class="modal" style="max-width: 800px;">
+        <div class="modal slide-in" style="max-width: 800px;">
             <div class="modal-header">
-                <h3 class="modal-title">Process Quote: #${orderId.slice(0, 6)}</h3>
+                <div class="modal-title">
+                    <div class="p-2 bg-blue-50 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-gray-900">Process Quote</h3>
+                        <p class="text-xs text-gray-400 font-medium">ORDER ID: #${orderId.slice(0, 8).toUpperCase()}</p>
+                    </div>
+                </div>
                 <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <div class="modal-body">
-                <div class="bg-blue-50 p-4 rounded-lg mb-4 flex justify-between items-center">
+                <div class="bg-gray-50/50 border border-gray-100 p-5 rounded-2xl mb-6 flex justify-between items-center animate-pulse-soft">
                     <div>
-                        <p class="font-bold text-blue-900">${orderData.clientName}</p>
-                        <p class="text-sm text-blue-700">${orderData.storeName}</p>
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-blue-600 mb-1">Customer Details</p>
+                        <p class="text-lg font-black text-gray-900 leading-tight">${orderData.clientName}</p>
+                        <p class="text-sm text-gray-500 font-medium flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            ${orderData.storeName}
+                        </p>
                     </div>
                     <div class="text-right">
-                        <p class="text-xs text-gray-500 uppercase">Items</p>
-                        <p class="font-bold">${orderData.items.length}</p>
+                        <div class="inline-flex flex-col items-end">
+                            <p class="text-[10px] uppercase font-bold tracking-widest text-gray-400 mb-1">Items for Review</p>
+                            <span class="bg-blue-600 text-white text-lg font-black px-4 py-1.5 rounded-xl shadow-lg shadow-blue-200">
+                                ${orderData.items.length}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 
-                <table class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="border-b text-gray-500">
-                            <th class="pb-2">Product</th>
-                            <th class="pb-2">Qty</th>
-                            <th class="pb-2 text-right">Price (RM)</th>
-                            <th class="pb-2 text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="space-y-2">
-                        ${orderData.items.map((item, idx) => `
-                        <tr class="border-b border-gray-100">
-                            <td class="py-3">${item.name}</td>
-                            <td class="py-3 font-bold">${item.qty}</td>
-                            <td class="py-3 text-right">
-                                <input type="number" step="0.01" class="border rounded p-1 w-24 text-right" 
-                                       value="${item.price}" 
-                                       onchange="updateProcessTotal(${idx}, this.value, ${item.qty})">
-                            </td>
-                            <td class="py-3 text-right font-bold text-gray-800" id="item-total-${idx}">
-                                RM ${(item.price * item.qty).toFixed(2)}
-                            </td>
-                        </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                <div class="overflow-hidden rounded-2xl border border-gray-100 shadow-sm mb-6">
+                    <table class="w-full text-left text-sm data-table">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500">
+                                <th class="py-4 px-5">Product Details</th>
+                                <th class="py-4 px-5">Qty</th>
+                                <th class="py-4 px-5 text-right">Final Price (RM)</th>
+                                <th class="py-4 px-5 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50 bg-white">
+                            ${orderData.items.map((item, idx) => `
+                            <tr class="hover:bg-blue-50/30 transition-colors">
+                                <td class="py-4 px-5 font-bold text-gray-900">${item.name}</td>
+                                <td class="py-4 px-5">
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-black text-xs">
+                                        ${item.qty} ${item.unit || 'KG'}
+                                    </span>
+                                </td>
+                                <td class="py-4 px-5 text-right">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="text-[10px] font-bold text-gray-300 uppercase">RM</span>
+                                        <input type="number" step="0.01" class="form-input w-24 text-right font-black text-blue-600 !py-1.5 !px-2" 
+                                            value="${item.price}" 
+                                            onchange="updateProcessTotal(${idx}, this.value, ${item.qty})">
+                                    </div>
+                                </td>
+                                <td class="py-4 px-5 text-right font-black text-gray-900" id="item-total-${idx}">
+                                    RM ${(item.price * item.qty).toFixed(2)}
+                                </td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
                 
-                <div class="flex justify-between items-center mt-6 pt-4 border-t px-4">
-                    <span class="text-lg font-bold">Grand Total</span>
-                    <span class="text-2xl font-bold text-blue-600" id="grand-total">RM ${window.tempQuoteItems.reduce((a, b) => a + b.itemTotal, 0).toFixed(2)}</span>
+                <div class="flex justify-between items-center p-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl shadow-blue-200 animate-slide-up">
+                    <div>
+                        <p class="text-white/70 text-xs font-black uppercase tracking-widest mb-1">Final Agreed Total</p>
+                        <p class="text-white/60 text-[10px] font-medium">Includes all adjustments & taxes</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-3xl font-black text-white" id="grand-total">RM ${window.tempQuoteItems.reduce((a, b) => a + b.itemTotal, 0).toFixed(2)}</span>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button onclick="$('#modal-bg').remove()" class="btn btn-ghost">Cancel</button>
-                <button onclick="confirmQuote('${orderId}')" class="btn btn-primary">Send Quote & Accept</button>
+            <div class="modal-footer gap-3">
+                <button onclick="$('#modal-bg').remove()" class="btn btn-secondary px-8">Discard</button>
+                <button onclick="confirmQuote('${orderId}')" class="btn btn-primary px-10 group">
+                    <span class="flex items-center gap-2">
+                        Send Quote & Accept
+                        <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </span>
+                </button>
             </div>
         </div>
-     </div>
+    </div>
     `;
     $('#modal-container').html(html);
 };
@@ -1267,33 +1371,47 @@ window.deleteProduct = async (id) => {
 window.openAddClientModal = () => {
     const html = `
      <div class="modal-backdrop" id="modal-bg">
-        <div class="modal slide-in">
+        <div class="modal slide-in" style="max-width: 500px;">
             <div class="modal-header">
-                <h3 class="modal-title">Register New Client</h3>
+                <div class="modal-title">
+                    <div class="p-2 bg-blue-50 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                    </div>
+                    <h3 class="font-black text-gray-900">Add Customer</h3>
+                </div>
                 <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <form id="add-client-form">
-                <div class="modal-body space-y-4">
-                     <div>
-                        <label class="form-label">Client Name</label>
-                        <input type="text" class="form-input" name="name" required>
+                <div class="modal-body space-y-5">
+                     <div class="animate-slide-up" style="animation-delay: 0.1s">
+                        <label class="form-label">Full Name</label>
+                        <div class="relative">
+                            <input type="text" class="form-input w-full pl-10" name="name" placeholder="e.g. John Doe" required>
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
                      </div>
-                     <div>
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-input" name="email" required>
+                     <div class="animate-slide-up" style="animation-delay: 0.2s">
+                        <label class="form-label">Email Address</label>
+                        <div class="relative">
+                            <input type="email" class="form-input w-full pl-10" name="email" placeholder="john@example.com" required>
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
                      </div>
-                     <div>
-                        <label class="form-label">Store Name</label>
-                        <input type="text" class="form-input" name="storeName" required>
+                     <div class="animate-slide-up" style="animation-delay: 0.3s">
+                        <label class="form-label">Store / Business Name</label>
+                        <div class="relative">
+                            <input type="text" class="form-input w-full pl-10" name="storeName" placeholder="e.g. Seafood Paradise" required>
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        </div>
                      </div>
-                     <div>
-                        <label class="form-label">Delivery Address</label>
-                        <textarea class="form-input h-24" name="address" required></textarea>
+                     <div class="animate-slide-up" style="animation-delay: 0.4s">
+                        <label class="form-label">Default Delivery Location</label>
+                        <textarea class="form-input w-full h-24 !pt-2" name="address" placeholder="Enter full delivery address..." required></textarea>
                      </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" onclick="$('#modal-bg').remove()" class="btn btn-ghost">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Client</button>
+                <div class="modal-footer gap-3">
+                    <button type="button" onclick="$('#modal-bg').remove()" class="btn btn-secondary px-6">Discard</button>
+                    <button type="submit" class="btn btn-primary px-8">Save Customer</button>
                 </div>
             </form>
         </div>
@@ -1326,29 +1444,53 @@ window.openManagePricesModal = async (uid, clientName) => {
 
     const html = `
      <div class="modal-backdrop" id="modal-bg">
-        <div class="modal" style="max-width: 600px;">
+        <div class="modal slide-in" style="max-width: 600px;">
             <div class="modal-header">
-                <h3 class="modal-title">Custom Prices: ${clientName}</h3>
+                <div class="modal-title">
+                    <div class="p-2 bg-blue-50 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-gray-900">Custom Pricing</h3>
+                        <p class="text-xs text-gray-400 font-medium">CLIENT: ${clientName.toUpperCase()}</p>
+                    </div>
+                </div>
                 <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <div class="modal-body">
-                <p class="text-sm text-gray-500 mb-4">Set specific pricing for this client. If left blank, standard pricing applies.</p>
-                <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
-                    ${products.map(p => `
-                        <div class="flex items-center justify-between gap-4 p-3 bg-gray-50 rounded-lg">
-                            <span class="font-medium">${p.name} <span class="text-xs text-gray-400">(${p.unit})</span></span>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-gray-400">RM</span>
-                                <input type="number" step="0.01" value="${p.price}" 
-                                    class="form-input w-24 text-right" 
-                                    onchange="saveClientPrice('${uid}', '${p.id}', this.value)">
+                <div class="bg-blue-50/50 p-4 rounded-2xl mb-6 border border-blue-100/50">
+                    <p class="text-xs text-blue-700 font-medium leading-relaxed">
+                        <span class="font-black">Note:</span> Set specific pricing for this client. If a field is left blank or equals the base price, the standard catalog price will be used automatically.
+                    </p>
+                </div>
+
+                <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                    ${products.map((p, idx) => `
+                        <div class="flex items-center justify-between gap-4 p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 transition-all hover:shadow-md hover:shadow-blue-500/5 animate-slide-up" style="animation-delay: ${idx * 0.05}s">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black text-gray-400 text-xs">
+                                    ${p.unit.toUpperCase()}
+                                </div>
+                                <div>
+                                    <p class="font-black text-gray-900">${p.name}</p>
+                                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Base: RM ${p.price.toFixed(2)}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[10px] font-black text-gray-300 uppercase">Custom</span>
+                                <div class="relative">
+                                    <input type="number" step="0.01" value="${p.price}" 
+                                        class="form-input w-28 text-right font-black text-blue-600 !py-2" 
+                                        onchange="saveClientPrice('${uid}', '${p.id}', this.value)">
+                                    <span class="absolute left-3 top-2.5 text-xs font-bold text-gray-400">RM</span>
+                                </div>
                             </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
             <div class="modal-footer">
-                <button onclick="$('#modal-bg').remove()" class="btn btn-primary">Done</button>
+                <button onclick="$('#modal-bg').remove()" class="btn btn-primary w-full py-4 shadow-xl shadow-blue-500/20">Finish & Save All Changes</button>
             </div>
         </div>
      </div>
@@ -1386,11 +1528,14 @@ function renderQuickInvoice($el) {
     }
 
     $el.html(`
-        <div class="page-header">
-            <h2 class="page-title">Quick Invoice / POS</h2>
+        <div class="page-header animate-slide-in-right">
+            <div>
+                <h2 class="page-title">Quick Invoice / POS</h2>
+                <p class="text-gray-500">Fast transaction processing for walk-in customers.</p>
+            </div>
         </div>
 
-        <div class="pos-grid">
+        <div class="pos-grid animate-slide-up">
             <!-- Left: Invoice Form -->
             <div class="card p-6">
                 <div class="flex justify-between items-center mb-6">
@@ -1803,80 +1948,3 @@ window.exportQuickHistoryCSV = () => {
     document.body.removeChild(link);
 };
 
-window.openAdminNewOrderModal = () => {
-    // 1. Fetch all clients
-    const unsub = dbAPI.getUsers('client', (users) => {
-        unsub(); // One-time fetch
-
-        const html = `
-         <div class="modal-backdrop" id="modal-bg">
-            <div class="modal slide-in" style="max-width: 600px;">
-                <div class="modal-header">
-                    <h3 class="modal-title">Select Client for New Order</h3>
-                    <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                </div>
-                <div class="modal-body">
-                    <div class="relative mb-4">
-                        <input type="text" id="client-search" class="form-input pl-10" placeholder="Search client or store name...">
-                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                    <div class="space-y-2 max-h-[50vh] overflow-y-auto" id="client-select-list">
-                        ${users.map(u => `
-                            <div onclick="startAdminOrder('${u.uid}', '${(u.name || '').replace(/'/g, "&apos;")}', '${(u.storeName || '').replace(/'/g, "&apos;")}', '${(u.address || '').replace(/\n/g, " ").replace(/'/g, "&apos;")}')" 
-                                 class="p-4 border rounded-lg hover:bg-blue-50 cursor-pointer transition-colors group">
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <p class="font-bold text-gray-900 group-hover:text-blue-700">${u.name}</p>
-                                        <p class="text-sm text-gray-500">${u.storeName || 'No Store Name'}</p>
-                                    </div>
-                                    <svg class="w-5 h-5 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-         </div>
-        `;
-        $('#modal-container').html(html);
-
-        // Simple search filter
-        $('#client-search').on('keyup', function () {
-            const val = $(this).val().toLowerCase();
-            $('#client-select-list > div').each(function () {
-                const text = $(this).text().toLowerCase();
-                $(this).toggle(text.indexOf(val) > -1);
-            });
-        });
-    });
-};
-
-window.startAdminOrder = async (clientId, clientName, storeName, address) => {
-    // 0. Reset Cart
-    cart = [];
-    $('#cart-badge').addClass('hidden');
-
-    // 1. Fetch custom prices for this client
-    showToast("Preparing catalog...", "info");
-
-    // We need a way to get all custom prices. 
-    // Since dbAPI.getCustomPrice is singular, let's just fetch the whole collection snapshot here manually.
-    const pricesSnapshot = await db.collection('users').doc(clientId).collection('customPrices').get();
-    const customPrices = {};
-    pricesSnapshot.forEach(doc => {
-        customPrices[doc.id] = doc.data().price;
-    });
-
-    // 2. Set Context
-    window.adminOrderContext = {
-        clientId,
-        clientName,
-        storeName,
-        address,
-        customPrices
-    };
-
-    // 3. Close modal & Load Shop
-    $('#modal-bg').remove();
-    loadView('shop');
-};
