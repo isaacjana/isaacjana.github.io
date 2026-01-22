@@ -132,6 +132,21 @@ const dbAPI = {
             snapshot.forEach(doc => invoices.push({ id: doc.id, ...doc.data() }));
             callback(invoices);
         });
+    },
+
+    // --- Quick Transactions (POS) ---
+    saveQuickTransaction: (data) => {
+        return db.collection('quick_transactions').add({
+            ...data,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    },
+    getQuickTransactions: (callback) => {
+        return db.collection('quick_transactions').orderBy('createdAt', 'desc').limit(50).onSnapshot(snapshot => {
+            const txs = [];
+            snapshot.forEach(doc => txs.push({ id: doc.id, ...doc.data() }));
+            callback(txs);
+        });
     }
 };
 

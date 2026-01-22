@@ -98,6 +98,7 @@ function renderNav(role) {
         items.push({ id: 'stock', label: 'Live Stock', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' });
         items.push({ id: 'orders', label: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' });
         items.push({ id: 'invoices', label: 'Invoices', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' });
+        items.push({ id: 'quick-invoice', label: 'Quick Invoice', icon: 'M9 7h6m0 4h6m-6 4h6M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' });
         items.push({ id: 'clients', label: 'Clients', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' });
     } else if (role === 'client') {
         items.push({ id: 'shop', label: 'Live Seafood', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' });
@@ -159,6 +160,7 @@ function loadView(viewId) {
             case 'jobs': renderDriverJobs($content); break;
             case 'my-deliveries': renderDriverDeliveries($content); break;
             case 'invoices': renderInvoices($content); break;
+            case 'quick-invoice': renderQuickInvoice($content); break;
             case 'clients': renderClients($content); break;
             default: $content.html('<div class="empty-state"><p class="empty-state-text">View under maintenance</p></div>');
         }
@@ -1206,4 +1208,335 @@ window.saveClientPrice = async (userId, productId, price) => {
     if (!price) return;
     await dbAPI.setCustomPrice(userId, productId, price);
     showToast("Price updated for client", "success");
+};
+
+// ==========================================
+// QUICK INVOICE (POS) MODULE
+// ==========================================
+
+function renderQuickInvoice($el) {
+    if (!$('#quick-inv-style').length) {
+        $('head').append(`
+            <style id="quick-inv-style">
+                .pos-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; }
+                @media (max-width: 1024px) { .pos-grid { grid-template-columns: 1fr; } }
+                .pay-method-radio { display: none; }
+                .pay-method-card {
+                    border: 2px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem;
+                    cursor: pointer; transition: all 0.2s; text-align: center;
+                }
+                .pay-method-radio:checked + .pay-method-card {
+                    border-color: #0ea5e9; background: #e0f2fe; color: #0369a1;
+                    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+                }
+            </style>
+        `);
+    }
+
+    $el.html(`
+        <div class="page-header">
+            <h2 class="page-title">Quick Invoice / POS</h2>
+        </div>
+
+        <div class="pos-grid">
+            <!-- Left: Invoice Form -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="card-title">New Transaction</h3>
+                    <div class="text-xs text-gray-500 font-mono">ID: AUTO-GEN</div>
+                </div>
+
+                <form id="quick-invoice-form" onsubmit="event.preventDefault(); saveQuickInvoice();" class="space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="form-label">Customer Name</label>
+                            <input type="text" id="qi-name" class="form-input" placeholder="Walk-in / Name" required>
+                        </div>
+                        <div>
+                            <label class="form-label">IC / Passport (Optional)</label>
+                            <input type="text" id="qi-ic" class="form-input" placeholder="e.g. 900101-13-1234">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="form-label">Items</label>
+                            <button type="button" onclick="addQuickInvoiceItem()" class="text-sm text-blue-600 font-semibold hover:underline">+ Add Item</button>
+                        </div>
+                        <div id="qi-items-list" class="space-y-3">
+                            <!-- Items go here -->
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="qi-sst" class="w-4 h-4 text-blue-600 rounded" onchange="calcQuickTotal()">
+                                <span class="text-sm font-medium text-gray-700">Include 6% SST</span>
+                            </label>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Subtotal: <span id="qi-subtotal">RM 0.00</span></div>
+                                <div class="text-sm text-gray-500">SST (6%): <span id="qi-sst-amt">RM 0.00</span></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-50 p-4 rounded-xl">
+                            <span class="font-bold text-gray-700">Total Amount</span>
+                            <span class="font-bold text-2xl text-blue-900" id="qi-total">RM 0.00</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label mb-3">Payment Method</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <label>
+                                <input type="radio" name="payment" value="S Pay Global" class="pay-method-radio" checked>
+                                <div class="pay-method-card font-semibold text-sm">S Pay Global</div>
+                            </label>
+                            <label>
+                                <input type="radio" name="payment" value="DuitNow" class="pay-method-radio">
+                                <div class="pay-method-card font-semibold text-sm">DuitNow</div>
+                            </label>
+                            <label>
+                                <input type="radio" name="payment" value="Cash" class="pay-method-radio">
+                                <div class="pay-method-card font-semibold text-sm">Cash</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 pt-2">
+                        <button type="button" onclick="resetQuickForm()" class="btn btn-ghost flex-1">Clear</button>
+                        <button type="submit" class="btn btn-primary flex-1">Generate Receipt</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Right: History -->
+            <div class="flex flex-col gap-6">
+                <div class="card flex-1 flex flex-col">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent History</h3>
+                        <button onclick="exportQuickHistoryCSV()" class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Export CSV</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-0" style="max-height: 600px;">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                <tr>
+                                    <th class="p-3">Info</th>
+                                    <th class="p-3 text-right">Amount</th>
+                                    <th class="p-3 text-center">Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qi-history-list">
+                                <tr><td colspan="3" class="p-4 text-center text-gray-400">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+
+    // Add first item row
+    addQuickInvoiceItem();
+
+    // Listen to history
+    const unsub = dbAPI.getQuickTransactions((txs) => {
+        if (txs.length === 0) {
+            $('#qi-items-list').html(`<tr><td colspan="3" class="p-4 text-center text-gray-400">No recent transactions</td></tr>`);
+            return;
+        }
+
+        const rows = txs.map(t => `
+            <tr class="border-b border-gray-50 hover:bg-gray-50/50">
+                <td class="p-3">
+                    <div class="font-bold text-gray-800">${t.customerName}</div>
+                    <div class="text-xs text-gray-500">${new Date(t.createdAt?.seconds * 1000 || Date.now()).toLocaleDateString()} • ${t.paymentMethod}</div>
+                </td>
+                <td class="p-3 text-right font-mono font-bold text-gray-700">RM ${t.total.toFixed(2)}</td>
+                <td class="p-3 text-center">
+                    <button onclick='generateQuickReceiptPDF(${JSON.stringify(t).replace(/'/g, "&apos;")})' class="text-blue-500 hover:text-blue-700 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        $('#qi-history-list').html(rows);
+
+        // Store for export
+        window.currentHistory = txs;
+    });
+    listeners.push(unsub);
+}
+
+window.addQuickInvoiceItem = () => {
+    const id = Date.now() + Math.random().toString(36).substr(2, 5);
+    const row = `
+        <div class="flex gap-2 items-start qi-item-row" id="row-${id}">
+            <input type="text" class="form-input flex-1 description" placeholder="Item Description" required onchange="calcQuickTotal()">
+            <input type="number" step="0.01" class="form-input w-24 text-right amount" placeholder="0.00" required onchange="calcQuickTotal()">
+            <button type="button" onclick="removeQuickItem('${id}')" class="text-red-400 hover:text-red-600 p-2 mt-0.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    `;
+    $('#qi-items-list').append(row);
+};
+
+window.removeQuickItem = (id) => {
+    if ($('.qi-item-row').length > 1) {
+        $(`#row-${id}`).remove();
+        calcQuickTotal();
+    }
+};
+
+window.calcQuickTotal = () => {
+    let subtotal = 0;
+    $('.qi-item-row').each(function () {
+        const val = parseFloat($(this).find('.amount').val()) || 0;
+        subtotal += val;
+    });
+
+    const hasSST = $('#qi-sst').is(':checked');
+    const sst = hasSST ? subtotal * 0.06 : 0;
+    const total = subtotal + sst;
+
+    $('#qi-subtotal').text('RM ' + subtotal.toFixed(2));
+    $('#qi-sst-amt').text('RM ' + sst.toFixed(2));
+    $('#qi-total').text('RM ' + total.toFixed(2));
+
+    return { subtotal, sst, total };
+};
+
+window.resetQuickForm = () => {
+    $('#quick-invoice-form')[0].reset();
+    $('#qi-items-list').empty();
+    addQuickInvoiceItem();
+    calcQuickTotal();
+};
+
+window.saveQuickInvoice = async () => {
+    const name = $('#qi-name').val();
+    const ic = $('#qi-ic').val();
+    const paymentMethod = $('input[name="payment"]:checked').val();
+    const hasSST = $('#qi-sst').is(':checked');
+
+    const items = [];
+    $('.qi-item-row').each(function () {
+        items.push({
+            desc: $(this).find('.description').val(),
+            amount: parseFloat($(this).find('.amount').val()) || 0
+        });
+    });
+
+    const { subtotal, sst, total } = calcQuickTotal();
+
+    const data = {
+        customerName: name,
+        icPassport: ic || null,
+        items: items,
+        subtotal,
+        sst,
+        total,
+        hasSST,
+        paymentMethod,
+        invoiceNo: 'POS-' + Date.now().toString().slice(-6)
+    };
+
+    try {
+        await dbAPI.saveQuickTransaction(data);
+        showToast('Transaction saved!', 'success');
+        generateQuickReceiptPDF(data);
+        resetQuickForm();
+    } catch (e) {
+        console.error(e);
+        showToast('Error saving transaction', 'error');
+    }
+};
+
+window.generateQuickReceiptPDF = (data) => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(18);
+    doc.text("OCEAN LIVE SEAFOOD", 105, 20, null, null, "center");
+
+    doc.setFontSize(10);
+    doc.text("Official Receipt", 105, 26, null, null, "center");
+    doc.text(`Date: ${new Date().toLocaleString()}`, 105, 32, null, null, "center");
+    doc.text(`Ref: ${data.invoiceNo}`, 105, 38, null, null, "center");
+
+    // Customer Info
+    doc.setFontSize(10);
+    doc.text(`Billed To: ${data.customerName}`, 20, 50);
+    if (data.icPassport) doc.text(`Identify No: ${data.icPassport}`, 20, 56);
+    doc.text(`Payment: ${data.paymentMethod}`, 20, 62);
+
+    // Table
+    const tableData = data.items.map(i => [i.desc, `RM ${i.amount.toFixed(2)}`]);
+
+    doc.autoTable({
+        startY: 70,
+        head: [['Description', 'Amount']],
+        body: tableData,
+        theme: 'plain',
+        styles: { fontSize: 10 },
+        headStyles: { fontStyle: 'bold' },
+        columnStyles: { 1: { halign: 'right' } }
+    });
+
+    // Totals
+    let finalY = doc.lastAutoTable.finalY + 10;
+
+    doc.text(`Subtotal:`, 140, finalY);
+    doc.text(`RM ${data.subtotal.toFixed(2)}`, 190, finalY, null, null, 'right');
+
+    finalY += 6;
+    doc.text(`SST (6%):`, 140, finalY);
+    doc.text(`RM ${data.sst.toFixed(2)}`, 190, finalY, null, null, 'right');
+
+    finalY += 8;
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`TOTAL:`, 140, finalY);
+    doc.text(`RM ${data.total.toFixed(2)}`, 190, finalY, null, null, 'right');
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
+    const pageHeight = doc.internal.pageSize.height;
+    doc.text("Thank you for your business!", 105, pageHeight - 20, null, null, "center");
+    doc.text("Generated via Ocean System", 105, pageHeight - 15, null, null, "center");
+
+    doc.save(`Receipt-${data.invoiceNo}.pdf`);
+};
+
+window.exportQuickHistoryCSV = () => {
+    if (!window.currentHistory || window.currentHistory.length === 0) {
+        showToast("No history to export", "warning");
+        return;
+    }
+
+    const headers = ["Date", "Invoice No", "Customer", "IC/Passport", "Payment Method", "Items", "Subtotal", "SST", "Total"];
+    const rows = window.currentHistory.map(h => [
+        new Date(h.createdAt?.seconds * 1000).toISOString(),
+        h.invoiceNo,
+        `"${h.customerName}"`,
+        h.icPassport || "",
+        h.paymentMethod,
+        `"${h.items.map(i => i.desc).join('; ')}"`,
+        h.subtotal,
+        h.sst,
+        h.total
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
