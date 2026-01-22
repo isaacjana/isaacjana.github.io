@@ -320,6 +320,10 @@ function renderStock($el) {
 }
 
 function renderShop($el) {
+    // Check if acting as Admin for a client
+    const isAdminMode = typeof window.adminOrderContext !== 'undefined' && window.adminOrderContext !== null;
+
+    // FAB Logic
     if (!$('#cart-fab').length) {
         $('body').append(`
             <button id="cart-fab" onclick="goToCart()" class="fab">
@@ -329,13 +333,31 @@ function renderShop($el) {
          `);
     }
 
-    $el.html(`
+    let headerHtml = `
         <div class="page-header">
             <div>
                 <h2 class="page-title">Live Seafood Catalog</h2>
                 <p class="text-gray-500">Premium selection, delivered live.</p>
             </div>
         </div>
+    `;
+
+    if (isAdminMode) {
+        headerHtml = `
+        <div class="page-header bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-yellow-900">Ordering for: ${window.adminOrderContext.clientName}</h2>
+                    <p class="text-yellow-700 text-sm">${window.adminOrderContext.storeName}</p>
+                </div>
+                <button onclick="window.adminOrderContext = null; loadView('orders');" class="btn btn-ghost text-yellow-800 hover:bg-yellow-100">Cancel</button>
+            </div>
+        </div>
+        `;
+    }
+
+    $el.html(`
+        ${headerHtml}
         <div class="product-grid" id="shop-container">
             <!-- Loading -->
              ${Array(6).fill('<div class="product-card h-96"><div class="skeleton w-full h-48"></div><div class="p-4 space-y-3"><div class="skeleton w-3/4 h-6"></div><div class="skeleton w-1/2 h-4"></div></div></div>').join('')}
@@ -348,14 +370,25 @@ function renderShop($el) {
             return;
         }
 
-        const cards = products.map(p => `
+        const cards = products.map(p => {
+            // Determine Price
+            let displayPrice = p.price;
+            let isCustomPrice = false;
+
+            if (isAdminMode && window.adminOrderContext.customPrices[p.id]) {
+                displayPrice = window.adminOrderContext.customPrices[p.id];
+                isCustomPrice = true;
+            }
+
+            return `
             <div class="product-card product-card-hover group">
                 <div class="product-image">
                     <img src="https://source.unsplash.com/800x600/?seafood,${p.name}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/400x300?text=Ocean+Live'">
+                    ${!isAdminMode ? `
                     <div class="product-stock-badge">
                         <div class="stock-indicator ${p.quantity > 0 ? 'in-stock' : 'out-of-stock'}"></div>
                         ${p.quantity} left
-                    </div>
+                    </div>` : ''} 
                 </div>
                 <div class="product-content">
                     <h3 class="product-name">${p.name}</h3>
@@ -364,18 +397,22 @@ function renderShop($el) {
                     <div class="product-footer">
                         <div>
                             <span class="text-xs text-gray-500 uppercase">Est. Price</span>
-                            <div class="product-price">RM ${p.price}<span class="text-sm font-normal text-gray-400">/${p.unit}</span></div>
+                            <div class="product-price ${isCustomPrice ? 'text-green-600' : ''}">
+                                RM ${displayPrice}
+                                <span class="text-sm font-normal text-gray-400">/${p.unit}</span>
+                            </div>
+                            ${isCustomPrice ? '<span class="text-xs text-green-600 font-bold">Custom Price Applied</span>' : ''}
                         </div>
                         <div class="flex items-center gap-2">
                              <input type="number" id="qty-${p.id}" value="1" min="1" max="${p.quantity}" class="qty-input">
-                             <button onclick="addToCart('${p.id}', '${p.name}', ${p.price}, parseInt($('#qty-${p.id}').val()))" class="btn btn-primary px-3 py-2 rounded-lg">
+                             <button onclick="addToCart('${p.id}', '${p.name}', ${displayPrice}, parseInt($('#qty-${p.id}').val()))" class="btn btn-primary px-3 py-2 rounded-lg">
                                 + Add
                              </button>
                         </div>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
         $('#shop-container').html(cards);
     });
     listeners.push(unsub);
@@ -383,8 +420,12 @@ function renderShop($el) {
 
 function renderOrdersAdmin($el) {
     $el.html(`
-        <div class="page-header">
+        <div class="page-header flex justify-between items-center">
             <h2 class="page-title">Order Management</h2>
+            <button onclick="openAdminNewOrderModal()" class="btn btn-primary flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                New Order
+            </button>
         </div>
         <div class="table-container">
             <table class="data-table">
@@ -600,6 +641,7 @@ function renderInvoices($el) {
                         <th>Amount</th>
                         <th>Date</th>
                         <th>LHDN Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="invoices-list"></tbody>
@@ -769,25 +811,131 @@ window.goToCart = () => {
 
 window.submitOrder = async () => {
     try {
-        const order = {
-            clientId: auth.currentUser.uid,
-            clientName: currentUser.name || 'Unknown',
-            storeName: currentUser.storeName || '',
-            deliveryAddress: currentUser.address || 'No address provided',
-            items: cart,
-            total: 0,
-            status: 'requested',
-            driverId: null
-        };
-        await dbAPI.createOrder(order);
+        const isAdminOrder = typeof window.adminOrderContext !== 'undefined' && window.adminOrderContext !== null;
+        let orderData = {};
+
+        if (isAdminOrder) {
+            // Admin creating order for client
+            // Calculate total immediately as prices are confirmed
+            const total = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+
+            orderData = {
+                clientId: window.adminOrderContext.clientId,
+                clientName: window.adminOrderContext.clientName,
+                storeName: window.adminOrderContext.storeName,
+                deliveryAddress: window.adminOrderContext.address || 'Address on file',
+                items: cart.map(i => ({ ...i, finalPrice: i.price })), // Lock in price
+                total: total,
+                status: 'accepted', // Auto-accept since admin created it
+                driverId: null,
+                createdBy: 'admin'
+            };
+        } else {
+            // Standard client request
+            orderData = {
+                clientId: auth.currentUser.uid,
+                clientName: currentUser.name || 'Unknown',
+                storeName: currentUser.storeName || '',
+                deliveryAddress: currentUser.address || 'No address provided',
+                items: cart,
+                total: 0,
+                status: 'requested',
+                driverId: null
+            };
+        }
+
+        await dbAPI.createOrder(orderData);
         cart = [];
         $('#cart-badge').addClass('hidden');
         $('#modal-bg').remove();
-        showToast("Order submitted! Waiting for quote.", "success");
-        loadView('my-orders');
+
+        if (isAdminOrder) {
+            showToast("Order created & marked as Accepted", "success");
+            window.adminOrderContext = null; // Clear context
+            loadView('orders');
+        } else {
+            showToast("Order submitted! Waiting for quote.", "success");
+            loadView('my-orders');
+        }
+
     } catch (e) {
+        console.error(e);
         showToast("Failed to submit order", "error");
     }
+};
+
+window.openAdminNewOrderModal = () => {
+    // 1. Fetch all clients
+    const unsub = dbAPI.getUsers('client', (users) => {
+        unsub(); // One-time fetch
+
+        const html = `
+         <div class="modal-backdrop" id="modal-bg">
+            <div class="modal slide-in" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Select Client for New Order</h3>
+                    <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+                <div class="modal-body">
+                    <div class="relative mb-4">
+                        <input type="text" id="client-search" class="form-input pl-10" placeholder="Search client or store name...">
+                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <div class="space-y-2 max-h-[50vh] overflow-y-auto" id="client-select-list">
+                        ${users.map(u => `
+                            <div onclick="startAdminOrder('${u.uid}', '${u.name?.replace(/'/g, "&apos;")}', '${u.storeName?.replace(/'/g, "&apos;") || ''}', '${u.address?.replace(/\n/g, " ")?.replace(/'/g, "&apos;") || ''}')" 
+                                 class="p-4 border rounded-lg hover:bg-blue-50 cursor-pointer transition-colors group">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="font-bold text-gray-900 group-hover:text-blue-700">${u.name}</p>
+                                        <p class="text-sm text-gray-500">${u.storeName || 'No Store Name'}</p>
+                                    </div>
+                                    <svg class="w-5 h-5 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+         </div>
+        `;
+        $('#modal-container').html(html);
+
+        // Simple search filter
+        $('#client-search').on('keyup', function () {
+            const val = $(this).val().toLowerCase();
+            $('#client-select-list > div').each(function () {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.indexOf(val) > -1);
+            });
+        });
+    });
+};
+
+window.startAdminOrder = async (clientId, clientName, storeName, address) => {
+    // 1. Fetch custom prices for this client
+    showToast("Preparing catalog...", "info");
+
+    // We need a way to get all custom prices. 
+    // Since dbAPI.getCustomPrice is singular, let's just fetch the whole collection snapshot here manually.
+    const pricesSnapshot = await db.collection('users').doc(clientId).collection('customPrices').get();
+    const customPrices = {};
+    pricesSnapshot.forEach(doc => {
+        customPrices[doc.id] = doc.data().price;
+    });
+
+    // 2. Set Context
+    window.adminOrderContext = {
+        clientId,
+        clientName,
+        storeName,
+        address,
+        customPrices
+    };
+
+    // 3. Close modal & Load Shop
+    $('#modal-bg').remove();
+    loadView('shop');
 };
 
 window.openRestockModal = (id, name, currentSupplier) => {
@@ -1653,4 +1801,82 @@ window.exportQuickHistoryCSV = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+};
+
+window.openAdminNewOrderModal = () => {
+    // 1. Fetch all clients
+    const unsub = dbAPI.getUsers('client', (users) => {
+        unsub(); // One-time fetch
+
+        const html = `
+         <div class="modal-backdrop" id="modal-bg">
+            <div class="modal slide-in" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Select Client for New Order</h3>
+                    <button onclick="$('#modal-bg').remove()" class="modal-close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+                <div class="modal-body">
+                    <div class="relative mb-4">
+                        <input type="text" id="client-search" class="form-input pl-10" placeholder="Search client or store name...">
+                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <div class="space-y-2 max-h-[50vh] overflow-y-auto" id="client-select-list">
+                        ${users.map(u => `
+                            <div onclick="startAdminOrder('${u.uid}', '${(u.name || '').replace(/'/g, "&apos;")}', '${(u.storeName || '').replace(/'/g, "&apos;")}', '${(u.address || '').replace(/\n/g, " ").replace(/'/g, "&apos;")}')" 
+                                 class="p-4 border rounded-lg hover:bg-blue-50 cursor-pointer transition-colors group">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="font-bold text-gray-900 group-hover:text-blue-700">${u.name}</p>
+                                        <p class="text-sm text-gray-500">${u.storeName || 'No Store Name'}</p>
+                                    </div>
+                                    <svg class="w-5 h-5 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+         </div>
+        `;
+        $('#modal-container').html(html);
+
+        // Simple search filter
+        $('#client-search').on('keyup', function () {
+            const val = $(this).val().toLowerCase();
+            $('#client-select-list > div').each(function () {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.indexOf(val) > -1);
+            });
+        });
+    });
+};
+
+window.startAdminOrder = async (clientId, clientName, storeName, address) => {
+    // 0. Reset Cart
+    cart = [];
+    $('#cart-badge').addClass('hidden');
+
+    // 1. Fetch custom prices for this client
+    showToast("Preparing catalog...", "info");
+
+    // We need a way to get all custom prices. 
+    // Since dbAPI.getCustomPrice is singular, let's just fetch the whole collection snapshot here manually.
+    const pricesSnapshot = await db.collection('users').doc(clientId).collection('customPrices').get();
+    const customPrices = {};
+    pricesSnapshot.forEach(doc => {
+        customPrices[doc.id] = doc.data().price;
+    });
+
+    // 2. Set Context
+    window.adminOrderContext = {
+        clientId,
+        clientName,
+        storeName,
+        address,
+        customPrices
+    };
+
+    // 3. Close modal & Load Shop
+    $('#modal-bg').remove();
+    loadView('shop');
 };

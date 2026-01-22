@@ -37,5 +37,10 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null && isAdmin();
     }
+
+    // Quick Transactions (POS)
+    match /quick_transactions/{txId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
   }
 }
