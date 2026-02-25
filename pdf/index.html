@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Tools — All-in-One PDF Solutions</title>
+    <meta name="description"
+        content="Free online PDF tools to merge, split, compress, convert, edit, sign, and protect your PDF files. No registration required.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        surface: {
+                            50: '#fafafa',
+                            100: '#f5f5f5',
+                            200: '#e5e5e5',
+                            300: '#d4d4d4',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                        'scale-in': 'scaleIn 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        },
+                        scaleIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.9)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- PDF Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- JSZip for multi-file downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c4c4c4;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a3a3a3;
+        }
+
+        /* Hero gradient mesh */
+        .hero-mesh {
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(239, 68, 68, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
+                linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+        }
+
+        /* Filter pill active state */
+        .filter-pill {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .filter-pill.active {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .filter-pill:not(.active):hover {
+            background: #f5f5f5;
+            transform: translateY(-1px);
+        }
+
+        /* Tool card */
+        .tool-card {
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.03), rgba(59, 130, 246, 0.03));
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);
+        }
+
+        .tool-card:hover::before {
+            opacity: 1;
+        }
+
+        .tool-card:hover .tool-icon {
+            transform: scale(1.1);
+        }
+
+        .tool-card:hover .tool-title {
+            color: #dc2626;
+        }
+
+        .tool-icon {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tool-title {
+            transition: color 0.3s ease;
+        }
+
+        /* Modal overlay */
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed #d4d4d4;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .drop-zone:hover {
+            border-color: #a3a3a3;
+            background: rgba(0, 0, 0, 0.01);
+        }
+
+        /* Progress bar */
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #ef4444, #f97316, #ef4444);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+        }
+
+        /* Badge */
+        .badge-new {
+            background: linear-gradient(135deg, #10b981, #059669);
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-coming-soon {
+            background: linear-gradient(135deg, #a3a3a3, #737373);
+            font-size: 0.55rem;
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* Disabled tool card */
+        .tool-card-disabled {
+            cursor: default !important;
+            opacity: 0.65;
+        }
+
+        .tool-card-disabled:hover {
+            transform: none !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .tool-card-disabled:hover::before {
+            opacity: 0 !important;
+        }
+
+        .tool-card-disabled:hover .tool-icon {
+            transform: none !important;
+        }
+
+        .tool-card-disabled:hover .tool-title {
+            color: inherit !important;
+        }
+
+        /* Stagger animation */
+        .stagger-item {
+            opacity: 0;
+            animation: slideUp 0.5s ease-out forwards;
+        }
+
+        /* Toast */
+        .toast {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        /* File list item */
+        .file-item {
+            animation: scaleIn 0.3s ease-out forwards;
+        }
+
+        /* Floating orb decorations */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ========== HEADER / NAVBAR ========== -->
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-surface-200/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-3 group" id="logo-link">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/20 group-hover:shadow-red-500/40 transition-shadow">
+                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold text-surface-900 tracking-tight">PDF<span
+                            class="text-red-500">Tools</span></span>
+                </a>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex items-center gap-1">
+                    <a href="#tools"
+                        class="px-4 py-2 text-sm font-medium text-surface-700 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">Tools</a>
+                    <a href="#features"
+                        class="px-4 py-2 text-sm font-medium text-surface-700 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">Features</a>
+                    <a href="#"
+                        class="px-4 py-2 text-sm font-medium text-surface-700 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">API</a>
+                    <a href="#"
+                        class="ml-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 rounded-xl hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 transition-all">Get
+                        Started</a>
+                </nav>
+
+                <!-- Mobile menu button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-surface-100 transition-colors">
+                    <svg class="w-6 h-6 text-surface-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-surface-200/60 bg-white">
+            <div class="px-4 py-3 space-y-1">
+                <a href="#tools"
+                    class="block px-4 py-2.5 text-sm font-medium text-surface-700 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">Tools</a>
+                <a href="#features"
+                    class="block px-4 py-2.5 text-sm font-medium text-surface-700 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">Features</a>
+                <a href="#"
+                    class="block px-4 py-2.5 text-sm font-medium text-surface-700 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">API</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== HERO SECTION ========== -->
+    <section class="hero-mesh relative py-16 sm:py-24 overflow-hidden">
+        <!-- Decorative orbs -->
+        <div class="orb w-72 h-72 bg-red-400/20 top-10 -left-20 animate-float"></div>
+        <div class="orb w-96 h-96 bg-blue-400/10 -top-20 right-0 animate-float" style="animation-delay: -3s;"></div>
+        <div class="orb w-48 h-48 bg-purple-400/10 bottom-0 left-1/3 animate-float" style="animation-delay: -1.5s;">
+        </div>
+
+        <div class="relative max-w-4xl mx-auto px-4 text-center">
+            <div
+                class="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 border border-red-100 rounded-full text-red-600 text-sm font-medium mb-6 animate-fade-in">
+                <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                100% Free — No Registration Required
+            </div>
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-surface-900 leading-tight animate-slide-up">
+                Every tool you need to<br>
+                <span class="bg-gradient-to-r from-red-500 via-orange-500 to-red-600 bg-clip-text text-transparent">work
+                    with PDFs</span>
+            </h1>
+            <p class="mt-6 text-lg sm:text-xl text-surface-500 max-w-2xl mx-auto animate-slide-up"
+                style="animation-delay: 0.15s;">
+                Merge, split, compress, convert, rotate, unlock, and watermark PDFs — all processed directly in your
+                browser. Your files never leave your device.
+            </p>
+            <div class="mt-8 flex flex-wrap justify-center gap-4 animate-slide-up" style="animation-delay: 0.3s;">
+                <a href="#tools"
+                    class="px-8 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 rounded-2xl hover:from-red-600 hover:to-red-700 shadow-xl shadow-red-500/25 hover:shadow-red-500/40 hover:-translate-y-0.5 transition-all">
+                    Explore All Tools
+                </a>
+                <a href="#features"
+                    class="px-8 py-3.5 text-base font-semibold text-surface-700 bg-white border border-surface-200 rounded-2xl hover:border-surface-300 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+                    Learn More
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== TOOLS SECTION ========== -->
+    <section id="tools" class="py-12 sm:py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            <!-- Category Filter -->
+            <div class="flex flex-wrap justify-center gap-2 mb-10" id="category-filters">
+                <button
+                    class="filter-pill active px-5 py-2.5 text-sm font-semibold rounded-full border border-transparent"
+                    data-category="all">
+                    All
+                </button>
+                <button
+                    class="filter-pill px-5 py-2.5 text-sm font-semibold rounded-full border border-surface-200 text-surface-600 bg-white"
+                    data-category="organize">
+                    Organize PDF
+                </button>
+                <button
+                    class="filter-pill px-5 py-2.5 text-sm font-semibold rounded-full border border-surface-200 text-surface-600 bg-white"
+                    data-category="optimize">
+                    Optimize PDF
+                </button>
+                <button
+                    class="filter-pill px-5 py-2.5 text-sm font-semibold rounded-full border border-surface-200 text-surface-600 bg-white"
+                    data-category="convert">
+                    Convert PDF
+                </button>
+                <button
+                    class="filter-pill px-5 py-2.5 text-sm font-semibold rounded-full border border-surface-200 text-surface-600 bg-white"
+                    data-category="edit">
+                    Edit PDF
+                </button>
+                <button
+                    class="filter-pill px-5 py-2.5 text-sm font-semibold rounded-full border border-surface-200 text-surface-600 bg-white"
+                    data-category="security">
+                    PDF Security
+                </button>
+                <button
+                    class="filter-pill px-5 py-2.5 text-sm font-semibold rounded-full border border-surface-200 text-surface-600 bg-white"
+                    data-category="intelligence">
+                    PDF Intelligence
+                </button>
+            </div>
+
+            <!-- Tools Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5" id="tools-grid">
+                <!-- Cards injected by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FEATURES SECTION ========== -->
+    <section id="features" class="py-16 bg-white border-t border-surface-100">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-surface-900">Why Choose <span
+                        class="text-red-500">PDF</span>Tools?</h2>
+                <p class="mt-4 text-surface-500 text-lg max-w-2xl mx-auto">Your files are processed entirely in the
+                    browser. Nothing is uploaded to any server.</p>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div
+                    class="p-6 rounded-2xl bg-surface-50 border border-surface-100 hover:shadow-lg hover:-translate-y-1 transition-all">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center text-white mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-surface-900 mb-2">100% Private</h3>
+                    <p class="text-surface-500 text-sm leading-relaxed">All processing happens in your browser. Your
+                        files never leave your device — no uploads, no servers.</p>
+                </div>
+                <!-- Feature 2 -->
+                <div
+                    class="p-6 rounded-2xl bg-surface-50 border border-surface-100 hover:shadow-lg hover:-translate-y-1 transition-all">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-surface-900 mb-2">Lightning Fast</h3>
+                    <p class="text-surface-500 text-sm leading-relaxed">Powered by WebAssembly and modern browser APIs
+                        for near-instant PDF processing.</p>
+                </div>
+                <!-- Feature 3 -->
+                <div
+                    class="p-6 rounded-2xl bg-surface-50 border border-surface-100 hover:shadow-lg hover:-translate-y-1 transition-all">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center text-white mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-surface-900 mb-2">Completely Free</h3>
+                    <p class="text-surface-500 text-sm leading-relaxed">No hidden fees. No file size limits. No
+                        registration. Just open and use — forever free.</p>
+                </div>
+                <!-- Feature 4 -->
+                <div
+                    class="p-6 rounded-2xl bg-surface-50 border border-surface-100 hover:shadow-lg hover:-translate-y-1 transition-all">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-surface-900 mb-2">Works Everywhere</h3>
+                    <p class="text-surface-500 text-sm leading-relaxed">Compatible with all modern browsers on desktop,
+                        tablet, and mobile devices.</p>
+                </div>
+                <!-- Feature 5 -->
+                <div
+                    class="p-6 rounded-2xl bg-surface-50 border border-surface-100 hover:shadow-lg hover:-translate-y-1 transition-all">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-white mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-surface-900 mb-2">High Quality</h3>
+                    <p class="text-surface-500 text-sm leading-relaxed">Maintain original quality in conversions. Smart
+                        compression keeps files small without losing clarity.</p>
+                </div>
+                <!-- Feature 6 -->
+                <div
+                    class="p-6 rounded-2xl bg-surface-50 border border-surface-100 hover:shadow-lg hover:-translate-y-1 transition-all">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center text-white mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-surface-900 mb-2">Batch Processing</h3>
+                    <p class="text-surface-500 text-sm leading-relaxed">Process multiple files at once. Upload all your
+                        PDFs and get results in a single click.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="bg-surface-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div
+                            class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
+                            </svg>
+                        </div>
+                        <span class="text-lg font-bold">PDF<span class="text-red-400">Tools</span></span>
+                    </div>
+                    <p class="text-surface-300 text-sm leading-relaxed">Every tool you need to work with PDFs in one
+                        place. Free, private, and fast.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4 text-surface-200">PDF Tools</h4>
+                    <ul class="space-y-2 text-sm text-surface-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Merge PDF</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Split PDF</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Compress PDF</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Convert PDF</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4 text-surface-200">Product</h4>
+                    <ul class="space-y-2 text-sm text-surface-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Desktop App</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Mobile App</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4 text-surface-200">Company</h4>
+                    <ul class="space-y-2 text-sm text-surface-400">
+                        <li><a href="#" class="hover:text-white transition-colors">About</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-surface-800 mt-10 pt-6 text-center text-sm text-surface-500">
+                &copy; 2026 PDFTools. All rights reserved. Built with ❤️ — 100% Client-Side.
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========== TOOL MODAL ========== -->
+    <div id="tool-modal" class="fixed inset-0 z-[100] hidden items-center justify-center">
+        <div class="modal-overlay absolute inset-0" id="modal-overlay"></div>
+        <div class="relative z-10 flex items-center justify-center min-h-screen w-full p-4">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in"
+                id="modal-content">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between px-6 py-5 border-b border-surface-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center" id="modal-icon-wrapper">
+                            <span id="modal-icon" class="text-2xl"></span>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-surface-900" id="modal-title">Tool Name</h2>
+                            <p class="text-sm text-surface-500" id="modal-subtitle">Description</p>
+                        </div>
+                    </div>
+                    <button id="modal-close"
+                        class="p-2 rounded-xl hover:bg-surface-100 transition-colors text-surface-400 hover:text-surface-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-6" id="modal-body">
+                    <!-- Phase 1: Upload -->
+                    <div id="phase-upload">
+                        <input type="file" id="file-input" class="hidden" multiple
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                        <div class="drop-zone rounded-2xl p-10 text-center cursor-pointer" id="drop-zone">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-surface-700 font-semibold">Drop your files here or <span
+                                            class="text-red-500">browse</span></p>
+                                    <p class="text-sm text-surface-400 mt-1" id="accepted-formats">Accepted: PDF files
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- File List -->
+                        <div id="file-list" class="mt-4 space-y-2 hidden"></div>
+
+                        <!-- Tool-specific options -->
+                        <div id="tool-options" class="mt-5 hidden"></div>
+
+                        <!-- Action Button -->
+                        <button id="process-btn"
+                            class="mt-6 w-full py-3.5 text-base font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 rounded-2xl hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all hidden">
+                            Process
+                        </button>
+                    </div>
+
+                    <!-- Phase 2: Processing -->
+                    <div id="phase-processing" class="hidden text-center py-10">
+                        <div class="w-16 h-16 mx-auto rounded-2xl bg-red-50 flex items-center justify-center mb-5">
+                            <svg class="w-8 h-8 text-red-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-surface-900 mb-2">Processing your files...</h3>
+                        <p class="text-sm text-surface-500 mb-6">This may take a moment depending on file size.</p>
+                        <div class="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
+                            <div class="progress-bar-fill h-full rounded-full transition-all duration-300"
+                                style="width: 0%" id="progress-bar"></div>
+                        </div>
+                        <p class="text-sm text-surface-400 mt-2" id="progress-text">0%</p>
+                    </div>
+
+                    <!-- Phase 3: Download -->
+                    <div id="phase-download" class="hidden text-center py-10">
+                        <div class="w-16 h-16 mx-auto rounded-2xl bg-green-50 flex items-center justify-center mb-5">
+                            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-surface-900 mb-2">Done! Your file is ready.</h3>
+                        <p class="text-sm text-surface-500 mb-6" id="result-info">Processed successfully.</p>
+                        <button id="download-btn"
+                            class="px-8 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-2xl hover:from-green-600 hover:to-green-700 shadow-lg shadow-green-500/25 transition-all">
+                            <span class="flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Download
+                            </span>
+                        </button>
+                        <button id="process-another-btn"
+                            class="mt-3 block mx-auto text-sm font-medium text-surface-500 hover:text-red-500 transition-colors">
+                            Process another file
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TOAST CONTAINER ========== -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[200] space-y-3"></div>
+
+    <!-- ========== MAIN SCRIPT ========== -->
+    <script src="app.js"></script>
+</body>
+
+</html>

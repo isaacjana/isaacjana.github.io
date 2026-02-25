@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no text-size-adjust: none">
+    <title>TinySteps | Early Years Activity Planner</title>
+
+    <!-- PWA & SEO -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="description" content="Personalized early years activity planning for parents.">
+    <link rel="manifest"
+        href="data:application/manifest+json;base64,ewogICJnameIjogIlRpbnlTdGVwcyIsCiAgInNob3J0X25hbWUiOiAiVGlueVN0ZXBzIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmOWZhZmIiLAogICJ0aGVtZV9jb2xvciI6ICIjNjM2NmYxIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCNFBHSnZkeUJ6YUdWdVpIUnZaeUI0YVd4cGRtbGxlRDBpTVRBNU5pSStQSE4yWnlCM2FXUjBhRDBpTTA4eU16QStQSE4yWnlCM2FXUjBhRDBpTVRBNU5pSWdabWxzYkQwaU5qTTJOallpSStQSE4yWnlCMmFXUjBhRDBpTWpBZ01qQWdNakFnTWpBZ0lpQjJaV1p6WlhSdllXWjBJRDBpTlRRdU1qQWdOREF1TWpBZ0lqNDhMMk4yWnlBKyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0iIzYzNjZmMSIvPjxwYXRoIGQ9Ik0zNSA2NWMxMC0xNSAyMC0xNSAzMCAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
+
+    <!-- External Assets -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#f43f5e',
+                        accent: '#10b981',
+                        background: '#f8fafc',
+                        card: '#ffffff',
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+                        'premium': '0 20px 40px -10px rgba(99, 102, 241, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+            color: #1e293b;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .nav-item.active {
+            color: #6366f1;
+        }
+
+        .nav-item.active i {
+            transform: translateY(-3px);
+        }
+
+        .nav-item i {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .activity-card {
+            transition: all 0.3s ease;
+        }
+
+        .activity-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .activity-card:active {
+            transform: scale(0.97);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #debug-panel {
+            z-index: 10000;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #debug-panel.open {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body class="bg-background pb-28">
+
+    <!-- APP CORE STRUCTURE -->
+    <div id="app" class="max-w-md mx-auto min-h-screen relative px-4 pt-8">
+
+        <!-- HEADER -->
+        <header class="flex justify-between items-center mb-8 px-2">
+            <div>
+                <h1 id="logo"
+                    class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-600 cursor-pointer select-none">
+                    TinySteps
+                </h1>
+                <p class="text-slate-500 text-[13px] font-semibold tracking-wide uppercase mt-1" id="current-stage">
+                    Initializing...</p>
+            </div>
+            <button onclick="app.showNotification()"
+                class="w-12 h-12 rounded-2xl glass shadow-soft flex items-center justify-center text-slate-600 relative overflow-hidden">
+                <i class="fa-regular fa-bell"></i>
+                <span class="absolute top-3 right-3 w-2 h-2 bg-secondary rounded-full border-2 border-white"></span>
+            </button>
+        </header>
+
+        <!-- MAIN VIEW PORT -->
+        <main id="view-container" class="min-h-[60vh]"></main>
+
+        <!-- NAVIGATION -->
+        <nav
+            class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md glass rounded-[2.5rem] shadow-premium flex justify-around items-center py-4 px-2 border border-white/60 z-40">
+            <button onclick="app.navigate('plan')" id="nav-plan"
+                class="nav-item active flex flex-col items-center space-y-1.5 w-1/4">
+                <i class="fa-solid fa-calendar-day text-xl"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Plan</span>
+            </button>
+            <button onclick="app.navigate('library')" id="nav-library"
+                class="nav-item flex flex-col items-center space-y-1.5 w-1/4">
+                <i class="fa-solid fa-shapes text-xl"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Library</span>
+            </button>
+            <button onclick="app.navigate('pantry')" id="nav-pantry"
+                class="nav-item flex flex-col items-center space-y-1.5 w-1/4">
+                <i class="fa-solid fa-wand-sparkles text-xl"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Pantry</span>
+            </button>
+            <button onclick="app.navigate('profile')" id="nav-profile"
+                class="nav-item flex flex-col items-center space-y-1.5 w-1/4">
+                <i class="fa-solid fa-user-circle text-xl"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Profile</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODALS -->
+    <div id="onboarding-modal"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md hidden">
+        <div class="bg-white rounded-[3rem] w-full max-w-sm p-10 shadow-2xl scale-in">
+            <h2 class="text-3xl font-bold mb-3">Hello! 👋</h2>
+            <p class="text-slate-500 mb-8 leading-relaxed">Let's build a developmental roadmap for your child.</p>
+            <form id="onboarding-form" class="space-y-6">
+                <div>
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Child's
+                        Name</label>
+                    <input type="text" id="parent-name" required placeholder="Type here..."
+                        class="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-6 py-4 focus:bg-white focus:border-primary/20 transition-all outline-none text-slate-800 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Birth
+                        Date</label>
+                    <input type="date" id="baby-dob" required
+                        class="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-6 py-4 focus:bg-white focus:border-primary/20 transition-all outline-none text-slate-800 font-bold">
+                </div>
+                <button type="submit"
+                    class="w-full bg-primary hover:bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95">
+                    Start Learning
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="activity-modal"
+        class="fixed inset-0 z-[110] flex items-end justify-center bg-slate-900/40 backdrop-blur-sm hidden">
+        <div id="modal-content"
+            class="bg-white rounded-t-[3.5rem] w-full max-w-md p-10 shadow-2xl transform transition-transform duration-300 translate-y-full">
+        </div>
+    </div>
+
+    <!-- DEBUG PANEL -->
+    <div id="debug-panel"
+        class="fixed bottom-0 left-0 right-0 glass shadow-2xl rounded-t-[3rem] p-10 max-h-[85vh] overflow-y-auto hidden">
+        <div class="flex justify-between items-center mb-8">
+            <h3 class="text-2xl font-black flex items-center"><i
+                    class="fa-solid fa-terminal text-primary mr-4"></i>DevTools</h3>
+            <button onclick="app.closeDebug()"
+                class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-10">
+            <button onclick="tester.simulateWeekChange()"
+                class="p-6 bg-white rounded-3xl shadow-soft hover:shadow-md transition-all text-left">
+                <i class="fa-solid fa-rotate-right text-indigo-500 text-xl mb-3"></i>
+                <div class="text-sm font-black">Refresh Plan</div>
+            </button>
+            <button onclick="tester.resetOnboarding()"
+                class="p-6 bg-white rounded-3xl shadow-soft hover:shadow-md transition-all text-left">
+                <i class="fa-solid fa-trash-can text-secondary text-xl mb-3"></i>
+                <div class="text-sm font-black">Reset App</div>
+            </button>
+            <button onclick="tester.unlockAll()"
+                class="p-6 bg-white rounded-3xl shadow-soft hover:shadow-md transition-all text-left">
+                <i class="fa-solid fa-bolt text-accent text-xl mb-3"></i>
+                <div class="text-sm font-black">Complete All</div>
+            </button>
+            <button onclick="tester.injectMockData()"
+                class="p-6 bg-white rounded-3xl shadow-soft hover:shadow-md transition-all text-left">
+                <i class="fa-solid fa-database text-amber-500 text-xl mb-3"></i>
+                <div class="text-sm font-black">Inject History</div>
+            </button>
+        </div>
+        <div class="bg-slate-900 rounded-[2rem] p-6 shadow-inner">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Diagnostic Stream</span>
+                <span id="test-status"
+                    class="text-[9px] font-black px-3 py-1 rounded-full bg-slate-800 text-slate-400">WAITING</span>
+            </div>
+            <div id="test-log"
+                class="font-mono text-[11px] text-green-400/80 space-y-2 max-h-40 overflow-y-auto no-scrollbar"></div>
+            <button onclick="tester.runTests()"
+                class="w-full mt-6 bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold py-4 rounded-2xl border border-white/10 transition-all">Execute
+                Full Diagnostics</button>
+        </div>
+    </div>
+
+    <!-- CORE SCRIPTS -->
+    <script>
+        /** 
+         * DATA LAYER 
+         * Expanded activities database (50 items)
+         */
+        const ACTIVITIES_DB = [
+            // 0-6 Months
+            { id: 1, age_range: [0, 6], category: 'Physical', title: 'Tummy Time Fun', materials: ['Mirror', 'Soft Mat'], instructions: 'Place baby on tummy with a mirror in front. Encourage head lifting.', duration: '5m', mood: 'Energetic' },
+            { id: 2, age_range: [0, 6], category: 'Sensory', title: 'High Contrast Cards', materials: ['B&W Cards'], instructions: 'Show patterns 8-12 inches from face.', duration: '10m', mood: 'Calm' },
+            { id: 3, age_range: [0, 6], category: 'Sensory', title: 'Texture Touch', materials: ['Silk', 'Wool'], instructions: 'Stroke baby’s palms with different fabrics.', duration: '5m', mood: 'Calm' },
+            { id: 4, age_range: [0, 6], category: 'Physical', title: 'Bicycle Legs', materials: ['None'], instructions: 'Gently cycle baby’s legs to aid digestion.', duration: '3m', mood: 'Fussy' },
+            { id: 5, age_range: [0, 12], category: 'Language', title: 'Mirror Talk', materials: ['Mirror'], instructions: 'Imitate baby’s babbles while looking in mirror.', duration: '10m', mood: 'Energetic' },
+            { id: 23, age_range: [0, 6], category: 'Sensory', title: 'Floating Bubbles', materials: ['Bubbles'], instructions: 'Blow bubbles above baby for visual tracking.', duration: '5m', mood: 'Calm' },
+            { id: 24, age_range: [0, 6], category: 'Physical', title: 'Kick the Baloon', materials: ['Balloon', 'String'], instructions: 'Tie balloon loosely to ankle for cause-and-effect.', duration: '10m', mood: 'Energetic' },
+            { id: 25, age_range: [0, 12], category: 'Language', title: 'Singing Names', materials: ['None'], instructions: 'Sing baby’s name in different tones and rhythms.', duration: '5m', mood: 'Energetic' },
+
+            // 6-12 Months
+            { id: 6, age_range: [6, 12], category: 'Physical', title: 'Crawl Tunnel', materials: ['Box'], instructions: 'Make a tunnel using a large cardboard box.', duration: '15m', mood: 'Energetic' },
+            { id: 7, age_range: [6, 12], category: 'Sensory', title: 'Discovery Basket', materials: ['Whisk', 'Spoon'], instructions: 'Explore safe kitchen items in a basket.', duration: '15m', mood: 'Calm' },
+            { id: 26, age_range: [6, 12], category: 'Cognitive', title: 'Where’s the Toy?', materials: ['Scarf', 'Toy'], instructions: 'Hide toy under scarf and ask "Where is it?".', duration: '8m', mood: 'Calm' },
+            { id: 27, age_range: [6, 18], category: 'Sensory', title: 'Water Splash', materials: ['Plastic Tub'], instructions: 'Sitting play with shallow water and cups.', duration: '15m', mood: 'Energetic' },
+            { id: 28, age_range: [6, 18], category: 'Creative', title: 'Edible Paint', materials: ['Yogurt', 'Food dye'], instructions: 'Finger paint on high chair tray with dyed yogurt.', duration: '20m', mood: 'Energetic' },
+            { id: 29, age_range: [6, 12], category: 'Physical', title: 'Pull-Up Station', materials: ['Sturdy Sofa'], instructions: 'Place favorite toy on sofa to encourage standing.', duration: '10m', mood: 'Energetic' },
+
+            // 12-24 Months
+            { id: 8, age_range: [12, 24], category: 'Cognitive', title: 'Simple Sort', materials: ['Cups', 'Balls'], instructions: 'Match colored balls to colored cups.', duration: '12m', mood: 'Calm' },
+            { id: 9, age_range: [12, 24], category: 'Physical', title: 'Box Push', materials: ['Box', 'Books'], instructions: 'Fill box with books and push across carpet.', duration: '15m', mood: 'Energetic' },
+            { id: 30, age_range: [12, 36], category: 'Lifeskills', title: 'Spoon Scoop', materials: ['Rice', 'Spoons', 'Bowls'], instructions: 'Practice scooping rice from one bowl to another.', duration: '15m', mood: 'Calm' },
+            { id: 31, age_range: [12, 24], category: 'Language', title: 'Animal Parade', materials: ['Animal Toys'], instructions: 'Walk toys across the floor making their sounds.', duration: '10m', mood: 'Energetic' },
+            { id: 32, age_range: [12, 48], category: 'Sensory', title: 'Nature Walk', materials: ['Bucket'], instructions: 'Collect leaves, rocks, and twigs in a bucket.', duration: '30m', mood: 'Energetic' },
+            { id: 33, age_range: [12, 24], category: 'Cognitive', title: 'Shape Slot', materials: ['Shape Sorter'], instructions: 'Guide baby to fit shapes into correct holes.', duration: '10m', mood: 'Calm' },
+            { id: 34, age_range: [12, 60], category: 'Sensory', title: 'Sticky Tape Wall', materials: ['Painter\'s Tape'], instructions: 'Stick tape to wall and have child peel it off.', duration: '15m', mood: 'Fussy' },
+
+            // 24-36 Months
+            { id: 10, age_range: [24, 36], category: 'Creative', title: 'Leaf Painting', materials: ['Leaves', 'Paint'], instructions: 'Dip leaves in paint and press onto paper.', duration: '20m', mood: 'Energetic' },
+            { id: 11, age_range: [24, 48], category: 'Physical', title: 'Tape Balance', materials: ['Tape'], instructions: 'Walk heel-to-toe along a tape line on floor.', duration: '10m', mood: 'Energetic' },
+            { id: 35, age_range: [24, 36], category: 'Cognitive', title: 'Color Match', materials: ['Laundry Clips', 'Paper'], instructions: 'Match colored clips to colored paper strips.', duration: '15m', mood: 'Calm' },
+            { id: 36, age_range: [24, 60], category: 'Creative', title: 'Playdough Bakary', materials: ['Playdough', 'Cutters'], instructions: 'Make "cookies" and "bread" using dough.', duration: '30m', mood: 'Calm' },
+            { id: 37, age_range: [24, 48], category: 'Lifeskills', title: 'Sock Match', materials: ['Socks'], instructions: 'Find matching pairs of socks in laundry.', duration: '12m', mood: 'Calm' },
+            { id: 38, age_range: [24, 60], category: 'Physical', title: 'Balloon Tennis', materials: ['Balloon', 'Paper Plate'], instructions: 'Keep balloon in air using paper plate paddles.', duration: '15m', mood: 'Energetic' },
+            { id: 39, age_range: [24, 36], category: 'Language', title: 'Story Retell', materials: ['Picture Book'], instructions: 'Look at pictures and let child tell the story.', duration: '10m', mood: 'Calm' },
+
+            // 36-60 Months
+            { id: 12, age_range: [36, 60], category: 'Cognitive', title: 'Pattern Power', materials: ['Blocks'], instructions: 'Copy a simple block pattern: Red-Blue-Red.', duration: '15m', mood: 'Calm' },
+            { id: 13, age_range: [36, 60], category: 'Physical', title: 'Obstacle Course', materials: ['Pillows', 'Chairs'], instructions: 'Crawl over, under, and around household items.', duration: '20m', mood: 'Energetic' },
+            { id: 40, age_range: [36, 60], category: 'Creative', title: 'Shadow Puppets', materials: ['Flashlight', 'Wall'], instructions: 'Create animal shapes using hands and light.', duration: '15m', mood: 'Calm' },
+            { id: 41, age_range: [36, 60], category: 'Lifeskills', title: 'Table Setting', materials: ['Plates', 'Cutlery'], instructions: 'Help set the table for a family meal.', duration: '10m', mood: 'Calm' },
+            { id: 42, age_range: [36, 60], category: 'Physical', title: 'Simon Says', materials: ['None'], instructions: 'Follow commands only when "Simon says".', duration: '15m', mood: 'Energetic' },
+            { id: 43, age_range: [36, 60], category: 'Cognitive', title: 'Counting Steps', materials: ['Stairs'], instructions: 'Count aloud each step as you climb.', duration: '5m', mood: 'Calm' },
+            { id: 44, age_range: [36, 60], category: 'Creative', title: 'Cardboard Castle', materials: ['Boxes', 'Tape'], instructions: 'Build a fortress out of large delivery boxes.', duration: '45m', mood: 'Energetic' },
+            { id: 45, age_range: [36, 60], category: 'Lifeskills', title: 'Plant a Seed', materials: ['Pot', 'Seed', 'Dirt'], instructions: 'Plant a seed and learn about watering.', duration: '20m', mood: 'Calm' },
+
+            // Extra items for variety
+            { id: 46, age_range: [0, 60], category: 'Sensory', title: 'Rain Stick', materials: ['Bottle', 'Rice'], instructions: 'Fill bottle with rice to create rain sounds.', duration: '10m', mood: 'Calm' },
+            { id: 47, age_range: [12, 60], category: 'Physical', title: 'Parachute Play', materials: ['Bed Sheet'], instructions: 'Shake a bed sheet up and down with baby underneath.', duration: '10m', mood: 'Energetic' },
+            { id: 48, age_range: [18, 48], category: 'Creative', title: 'Sticker Scene', materials: ['Stickers', 'Paper'], instructions: 'Create a landscape using only stickers.', duration: '25m', mood: 'Calm' },
+            { id: 49, age_range: [6, 36], category: 'Cognitive', title: 'Light & Dark', materials: ['Flashlight'], instructions: 'Observe light on wall in a dimmed room.', duration: '10m', mood: 'Fussy' },
+            { id: 50, age_range: [12, 60], category: 'Sensory', title: 'Ice Rescue', materials: ['Ice', 'Toys'], instructions: 'Freeze small toys in ice and melt using warm water.', duration: '25m', mood: 'Energetic' },
+            { id: 51, age_range: [18, 36], category: 'Physical', title: 'Pillow Jump', materials: ['Pillows'], instructions: 'Jump from one pillow to another safely.', duration: '10m', mood: 'Energetic' },
+            { id: 52, age_range: [36, 60], category: 'Cognitive', title: 'Letter Hunt', materials: ['Newspaper'], instructions: 'Find all the "A" letters in a headline.', duration: '15m', mood: 'Calm' },
+            { id: 53, age_range: [0, 12], category: 'Language', title: 'Reading Rhythms', materials: ['Book'], instructions: 'Read with exaggerated emphasis and rhythm.', duration: '15m', mood: 'Calm' },
+            { id: 54, age_range: [0, 24], category: 'Sensory', title: 'Wind Chimes', materials: ['Metal Spoons'], instructions: 'Listen to the sound of spoons clinking together.', duration: '5m', mood: 'Fussy' },
+            { id: 55, age_range: [36, 60], category: 'Lifeskills', title: 'Folding Laundry', materials: ['Towels'], instructions: 'Practice folding simple square towels.', duration: '15m', mood: 'Calm' }
+        ];
+
+        /**
+         * SERVICE LAYER
+         * Core business logic and state management
+         */
+        class TinyService {
+            constructor() {
+                this.storageKey = 'tinysteps_pro_v1';
+                this.state = this.load();
+            }
+
+            load() {
+                const data = localStorage.getItem(this.storageKey);
+                return data ? JSON.parse(data) : {
+                    user: { name: '', dob: '', age: 0, onboarded: false },
+                    plan: [], history: [], settings: { debug: false }
+                };
+            }
+
+            save() {
+                localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+            }
+
+            getMonths(dob) {
+                const diff = new Date() - new Date(dob);
+                return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24 * 30.44)));
+            }
+
+            generatePlan(age) {
+                const pool = ACTIVITIES_DB.filter(a => age >= a.age_range[0] && age <= a.age_range[1]);
+                const shuffle = [...pool].sort(() => 0.5 - Math.random());
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+                this.state.plan = shuffle.slice(0, 5).map((a, i) => ({
+                    ...a, day: days[i], completed: false, uid: Date.now() + i
+                }));
+                this.save();
+                return this.state.plan;
+            }
+
+            toggleComplete(id) {
+                const item = this.state.plan.find(p => p.id === id);
+                if (item && !item.completed) {
+                    item.completed = true;
+                    this.state.history.push({ ...item, timestamp: Date.now() });
+                    this.save();
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        /**
+         * UI VIEW LAYER
+         * Component templates and rendering logic
+         */
+        const TinyUI = {
+            card: (item) => {
+                const icons = { Energetic: 'bolt', Calm: 'moon', Fussy: 'face-smile-upside-down' };
+                const colors = { Energetic: 'text-orange-500 bg-orange-50', Calm: 'text-indigo-500 bg-indigo-50', Fussy: 'text-pink-500 bg-pink-50' };
+
+                return `
+                    <div onclick="app.openDetail(${item.id})" class="activity-card bg-white rounded-[2.5rem] p-6 shadow-soft border border-white flex items-center justify-between group cursor-pointer mb-4">
+                        <div class="flex items-center space-x-5">
+                            <div class="w-16 h-16 rounded-3xl ${colors[item.mood]} flex items-center justify-center text-2xl transition-all group-hover:scale-110">
+                                <i class="fa-solid fa-${icons[item.mood]}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-slate-800 text-lg ${item.completed ? 'line-through opacity-30 italic' : ''}">${item.title}</h4>
+                                <div class="flex items-center space-x-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                    <span>${item.category}</span>
+                                    <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
+                                    <span>${item.duration}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all ${item.completed ? 'bg-accent/10 text-accent' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-100'}">
+                            <i class="fa-solid ${item.completed ? 'fa-check' : 'fa-chevron-right text-xs'}"></i>
+                        </div>
+                    </div>
+                `;
+            },
+
+            detail: (item, isPlan, isCompleted) => {
+                return `
+                    <div class="flex justify-between items-center mb-8">
+                        <span class="px-5 py-2 rounded-full bg-primary/10 text-primary text-[11px] font-black uppercase tracking-widest">${item.category}</span>
+                        <button onclick="app.closeDetail()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <h2 class="text-3xl font-black mb-6 leading-tight">${item.title}</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div class="bg-slate-50 p-5 rounded-3xl">
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Duration</div>
+                            <div class="text-sm font-bold"><i class="fa-regular fa-clock mr-3 text-primary"></i>${item.duration}</div>
+                        </div>
+                        <div class="bg-slate-50 p-5 rounded-3xl">
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Ideal Mood</div>
+                            <div class="text-sm font-bold"><i class="fa-solid fa-face-smile mr-3 text-primary"></i>${item.mood}</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h4 class="text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-4">Required Materials</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${item.materials.map(m => `<span class="px-4 py-2 bg-white border-2 border-slate-50 rounded-2xl text-[13px] font-bold text-slate-600">${m}</span>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="mb-10">
+                        <h4 class="text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-4">How to Play</h4>
+                        <p class="text-slate-600 text-[15px] leading-relaxed font-medium">${item.instructions}</p>
+                    </div>
+
+                    <div class="p-6 bg-secondary/5 rounded-3xl border border-secondary/10 flex items-start space-x-4 mb-10">
+                        <i class="fa-solid fa-triangle-exclamation text-secondary mt-1"></i>
+                        <p class="text-[12px] text-secondary font-bold leading-snug">Safety reminder: Supervise your child at all times during these activities.</p>
+                    </div>
+
+                    ${isPlan && !item.completed ? `
+                        <button onclick="app.complete(${item.id})" class="w-full bg-slate-900 border-b-4 border-slate-950 text-white font-black py-6 rounded-[2rem] shadow-2xl active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center space-x-3">
+                            <span>Activity Completed</span>
+                            <i class="fa-solid fa-check-double scale-110"></i>
+                        </button>
+                    ` : item.completed ? `
+                        <div class="w-full py-6 rounded-[2rem] bg-accent/10 border-2 border-accent/30 text-accent font-black text-center text-lg">
+                            <i class="fa-solid fa-trophy mr-3"></i>Milestone Unlocked!
+                        </div>
+                    ` : `<p class="text-center text-xs font-bold text-slate-400 italic">Add this to your weekly plan to track progress.</p>`}
+                `;
+            }
+        };
+
+        /**
+         * CONTROLLER LAYER
+         * Application orchestration and event handling
+         */
+        class TinyApp {
+            constructor() {
+                this.view = 'plan';
+                this.service = new TinyService();
+                this.init();
+            }
+
+            init() {
+                const s = this.service.state;
+                if (!s.user.onboarded) {
+                    document.getElementById('onboarding-modal').classList.remove('hidden');
+                } else {
+                    this.updateHeader();
+                    this.render();
+                }
+
+                document.getElementById('onboarding-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('parent-name').value;
+                    const dob = document.getElementById('baby-dob').value;
+                    const age = this.service.getMonths(dob);
+
+                    this.service.state.user = { name, dob, age, onboarded: true };
+                    this.service.generatePlan(age);
+                    this.service.save();
+
+                    document.getElementById('onboarding-modal').classList.add('hidden');
+                    this.updateHeader();
+                    this.render();
+                    confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 }, colors: ['#6366f1', '#10b981'] });
+                };
+            }
+
+            updateHeader() {
+                const age = this.service.state.user.age;
+                let stage = "Newborn";
+                if (age > 6) stage = "Sitter";
+                if (age > 12) stage = "Explorer";
+                if (age > 24) stage = "Discovery";
+                if (age > 36) stage = "Preschool";
+                document.getElementById('current-stage').innerHTML = `<span class="text-primary">${stage} Stage</span> • ${age}m`;
+            }
+
+            navigate(view) {
+                this.view = view;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.getElementById(`nav-${view}`).classList.add('active');
+                this.render();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+            }
+
+            render() {
+                const container = document.getElementById('view-container');
+                container.innerHTML = `<div class="fade-in">${this[`v_${this.view}`]()}</div>`;
+            }
+
+            v_plan() {
+                const plan = this.service.state.plan;
+                const done = plan.filter(p => p.completed).length;
+                const pct = (done / plan.length) * 100;
+
+                return `
+                    <div class="bg-primary rounded-[3rem] p-10 text-white mb-10 shadow-premium relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/20 rounded-full blur-3xl"></div>
+                        <h2 class="text-xs font-black uppercase tracking-[0.2em] mb-2 opacity-60">Weekly Sprint</h2>
+                        <div class="flex items-baseline space-x-3 mb-6">
+                            <span class="text-6xl font-black">${done}</span>
+                            <span class="text-2xl opacity-40">/ ${plan.length}</span>
+                        </div>
+                        <div class="w-full bg-black/10 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
+                            <div class="bg-white h-full rounded-full transition-all duration-1000" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                    <div class="px-2">
+                        <h3 class="text-lg font-black mb-6">Focus Activities</h3>
+                        ${plan.map(p => TinyUI.card(p)).join('')}
+                    </div>
+                `;
+            }
+
+            v_library() {
+                const moods = ['All', 'Energetic', 'Calm', 'Fussy'];
+                const age = this.service.state.user.age;
+                return `
+                    <div class="flex space-x-3 overflow-x-auto pb-6 px-2 no-scrollbar mb-4">
+                        ${moods.map(m => `<button onclick="app.filterLib('${m}')" class="mood-btn whitespace-nowrap px-8 py-4 rounded-[1.5rem] font-bold text-sm transition-all ${m === 'All' ? 'bg-primary text-white shadow-xl' : 'bg-white text-slate-500'}">${m}</button>`).join('')}
+                    </div>
+                    <div id="lib-results" class="space-y-4">
+                        ${ACTIVITIES_DB.filter(a => age >= a.age_range[0] && age <= a.age_range[1]).map(a => TinyUI.card(a)).join('')}
+                    </div>
+                `;
+            }
+
+            filterLib(mood) {
+                const age = this.service.state.user.age;
+                const results = mood === 'All'
+                    ? ACTIVITIES_DB.filter(a => age >= a.age_range[0] && age <= a.age_range[1])
+                    : ACTIVITIES_DB.filter(a => a.mood === mood && age >= a.age_range[0] && age <= a.age_range[1]);
+
+                document.querySelectorAll('.mood-btn').forEach(btn => {
+                    btn.classList.toggle('bg-primary', btn.innerText === mood);
+                    btn.classList.toggle('text-white', btn.innerText === mood);
+                    btn.classList.toggle('bg-white', btn.innerText !== mood);
+                    btn.classList.toggle('text-slate-500', btn.innerText !== mood);
+                });
+                document.getElementById('lib-results').innerHTML = results.map(a => TinyUI.card(a)).join('');
+            }
+
+            v_pantry() {
+                return `
+                    <div class="bg-white rounded-[3rem] p-10 shadow-soft mb-10 text-center border-t border-white">
+                        <div class="w-20 h-20 bg-primary/10 text-primary rounded-[2rem] flex items-center justify-center text-3xl mx-auto mb-6">
+                            <i class="fa-solid fa-kitchen-set"></i>
+                        </div>
+                        <h2 class="text-2xl font-black mb-3">Ingredient Search</h2>
+                        <p class="text-slate-500 text-sm mb-8 leading-relaxed">What do you have at home? We'll suggest activities based on your materials.</p>
+                        <textarea id="pantry-input" placeholder="e.g. Scarf, spoon, box..." class="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] px-6 py-5 focus:bg-white focus:border-primary/20 transition-all outline-none text-slate-800 font-bold mb-6 min-h-[100px]"></textarea>
+                        <button onclick="app.searchPantry()" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl">Discover Play</button>
+                    </div>
+                    <div id="pantry-results"></div>
+                `;
+            }
+
+            searchPantry() {
+                const text = document.getElementById('pantry-input').value.toLowerCase();
+                if (!text.trim()) return;
+                const terms = text.split(/[,;\n]/).map(t => t.trim()).filter(t => t.length > 0);
+                const results = ACTIVITIES_DB.filter(a => terms.some(t => a.materials.some(m => m.toLowerCase().includes(t))));
+
+                const resEl = document.getElementById('pantry-results');
+                if (results.length > 0) {
+                    resEl.innerHTML = `<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 px-4">Possible Match (${results.length})</h3>` + results.map(a => TinyUI.card(a)).join('');
+                } else {
+                    resEl.innerHTML = `<div class="text-center py-10 opacity-40 font-bold italic">No magic matches yet. Try simpler terms like "toy" or "box".</div>`;
+                }
+            }
+
+            v_profile() {
+                const user = this.service.state.user;
+                const stats = { total: this.service.state.history.length };
+                return `
+                    <div class="flex flex-col items-center mb-12">
+                        <div class="w-28 h-28 rounded-[2.5rem] bg-gradient-to-tr from-indigo-50 to-white shadow-soft flex items-center justify-center text-5xl mb-6 border-b-4 border-slate-100">👶</div>
+                        <h2 class="text-3xl font-black">${user.name}</h2>
+                        <p class="text-slate-400 font-black uppercase text-[10px] tracking-widest mt-2">Level: ${user.age} Months Old</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6 mb-12">
+                        <div class="bg-white p-8 rounded-[2rem] shadow-soft text-center group transition-all hover:bg-slate-900 border-b-4 border-slate-50 hover:border-slate-800">
+                            <div class="text-4xl font-black text-primary group-hover:text-white">${stats.total}</div>
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 group-hover:text-slate-500">Activities Done</div>
+                        </div>
+                         <div class="bg-white p-8 rounded-[2rem] shadow-soft text-center group transition-all hover:bg-slate-900 border-b-4 border-slate-50 hover:border-slate-800">
+                            <div class="text-4xl font-black text-accent group-hover:text-white">${Math.min(100, stats.total * 2)}</div>
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 group-hover:text-slate-500">Mastery Score</div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <button onclick="app.openDebug()" class="w-full flex justify-between items-center px-8 py-6 bg-white rounded-[2rem] shadow-soft font-bold text-slate-600 transition-all hover:pl-10">
+                            <span><i class="fa-solid fa-microchip mr-4 text-primary"></i> Diagnostics</span>
+                            <i class="fa-solid fa-chevron-right text-[10px] opacity-30"></i>
+                        </button>
+                    </div>
+                `;
+            }
+
+            openDetail(id) {
+                const item = ACTIVITIES_DB.find(a => a.id === id);
+                const planItem = this.service.state.plan.find(p => p.id === id);
+                const modal = document.getElementById('activity-modal');
+                const content = document.getElementById('modal-content');
+
+                content.innerHTML = TinyUI.detail(item, !!planItem, !!(planItem && planItem.completed));
+                modal.classList.remove('hidden');
+                setTimeout(() => content.classList.remove('translate-y-full'), 10);
+            }
+
+            closeDetail() {
+                const modal = document.getElementById('activity-modal');
+                const content = document.getElementById('modal-content');
+                content.classList.add('translate-y-full');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }
+
+            complete(id) {
+                if (this.service.toggleComplete(id)) {
+                    this.closeDetail();
+                    this.render();
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.9 } });
+                }
+            }
+
+            openDebug() {
+                const p = document.getElementById('debug-panel');
+                p.classList.remove('hidden');
+                setTimeout(() => p.classList.add('open'), 10);
+            }
+
+            closeDebug() {
+                const p = document.getElementById('debug-panel');
+                p.classList.remove('open');
+                setTimeout(() => p.classList.add('hidden'), 400);
+            }
+
+            showNotification() {
+                const tips = [
+                    "Language tip: Describe everything you do today to boost baby's vocabulary.",
+                    "Physical tip: A simple scarf can become a cape, a tail, or a magic rope!",
+                    "Safety tip: Small objects like buttons can be choking hazards for children under 3.",
+                    "Mood tip: If play gets too wild, try a 'Cloud Watching' session to calm down."
+                ];
+                alert(tips[Math.floor(Math.random() * tips.length)]);
+            }
+        }
+
+        /**
+         * TESTING LAYER
+         * Automated diagnostics for TDD stability
+         */
+        class TinyTester {
+            constructor() {
+                this.logEl = document.getElementById('test-log');
+                this.statusEl = document.getElementById('test-status');
+                this.taps = 0;
+                this.listen();
+            }
+
+            listen() {
+                document.getElementById('logo').onclick = () => {
+                    this.taps++;
+                    if (this.taps >= 3) { app.openDebug(); this.taps = 0; }
+                    setTimeout(() => this.taps = 0, 1000);
+                };
+            }
+
+            log(msg, success = true) {
+                const p = document.createElement('div');
+                p.className = success ? 'text-green-400' : 'text-rose-400';
+                p.innerHTML = `<span class="opacity-30 mr-2">${new Date().toLocaleTimeString()}</span> ${success ? '✓' : '✗'} ${msg}`;
+                this.logEl.appendChild(p);
+                this.logEl.scrollTop = this.logEl.scrollHeight;
+            }
+
+            async runTests() {
+                this.logEl.innerHTML = '';
+                this.statusEl.innerText = 'RUNNING';
+                this.statusEl.className = 'text-[9px] font-black px-3 py-1 rounded-full bg-primary text-white';
+
+                let fails = 0;
+
+                // Test 1: Content Balance
+                const chunks = [0, 12, 24, 36, 48];
+                chunks.forEach(c => {
+                    const count = ACTIVITIES_DB.filter(a => c >= a.age_range[0] && c <= a.age_range[1]).length;
+                    if (count < 5) { this.log(`Age Stage ${c}m has only ${count} items!`, false); fails++; }
+                    else { this.log(`Age Stage ${c}m coverage verified (${count} items)`); }
+                });
+
+                // Test 2: Plan Consistency
+                const p = app.service.generatePlan(12);
+                if (p.length === 5) { this.log("Weekly algorithm generates exactly 5 items"); }
+                else { this.log("Weekly algorithm failed count test", false); fails++; }
+
+                // Test 3: System Health
+                if (typeof confetti === 'function') this.log("Confetti component active");
+                else { this.log("External library failed to load", false); fails++; }
+
+                this.statusEl.innerText = fails > 0 ? 'FAILED' : 'STABLE';
+                this.statusEl.className = `text-[9px] font-black px-3 py-1 rounded-full ${fails > 0 ? 'bg-secondary' : 'bg-accent'} text-white`;
+                if (!fails) confetti({ particleCount: 50 });
+            }
+
+            simulateWeekChange() { app.service.generatePlan(app.service.state.user.age); app.render(); this.log('Simulated week turn-over'); }
+            resetOnboarding() { localStorage.clear(); window.location.reload(); }
+            unlockAll() { app.service.state.plan.forEach(p => p.completed = true); app.service.save(); app.render(); this.log('Force-levelled all items'); }
+            injectMockData() {
+                app.service.state.history = Array.from({ length: 20 }, (_, i) => ({ id: i, title: 'Mock ' + i, timestamp: Date.now() }));
+                app.service.save(); app.render(); this.log('Injected 20 mock history entries');
+            }
+        }
+
+        // BOOTSTRAP
+        const app = new TinyApp();
+        const tester = new TinyTester();
+    </script>
+</body>
+
+</html>
