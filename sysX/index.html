@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SysX — Low-Code UI/UX Builder</title>
+    <meta name="description"
+        content="SysX is a powerful low-code UI/UX builder with drag-and-drop components, visual flowchart logic, and wireframe templates.">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'sysx': {
+                            900: '#0a0e1a',
+                            800: '#111827',
+                            700: '#1a2236',
+                            600: '#243049',
+                            500: '#2e3f5c',
+                            400: '#4a5f82',
+                            300: '#6b82ab',
+                            200: '#94a8cd',
+                            100: '#c4d1e8',
+                        },
+                        'accent': {
+                            primary: '#6366f1',
+                            secondary: '#8b5cf6',
+                            tertiary: '#a78bfa',
+                            glow: '#818cf8',
+                            cyan: '#22d3ee',
+                            emerald: '#34d399',
+                            amber: '#fbbf24',
+                            rose: '#fb7185',
+                        }
+                    },
+                    fontFamily: {
+                        'display': ['Inter', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+
+    <!-- Leader Line for flowchart connections -->
+    <script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="font-display bg-sysx-900 text-white overflow-hidden h-screen">
+
+    <!-- ===== SPLASH SCREEN ===== -->
+    <div id="splash-screen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-sysx-900">
+        <div class="text-center">
+            <div class="splash-logo mb-6">
+                <span
+                    class="text-6xl font-extrabold bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-cyan bg-clip-text text-transparent">
+                    SysX
+                </span>
+            </div>
+            <p class="text-sysx-300 text-lg tracking-widest uppercase splash-subtitle">Low-Code Builder</p>
+            <div class="splash-loader mt-8">
+                <div class="w-48 h-1 bg-sysx-700 rounded-full mx-auto overflow-hidden">
+                    <div
+                        class="h-full bg-gradient-to-r from-accent-primary to-accent-cyan rounded-full splash-progress">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOP NAVBAR ===== -->
+    <nav id="top-navbar"
+        class="h-12 bg-sysx-800/90 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 z-50 relative">
+        <!-- Left: Logo + File Actions -->
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 mr-4">
+                <span
+                    class="text-xl font-extrabold bg-gradient-to-r from-accent-primary to-accent-cyan bg-clip-text text-transparent">SysX</span>
+                <span
+                    class="text-[10px] text-sysx-400 uppercase tracking-widest border border-sysx-600 rounded px-1.5 py-0.5">Beta</span>
+            </div>
+            <div class="flex items-center gap-1 text-xs">
+                <button id="btn-new-project" class="nav-btn" title="New Project">
+                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                    <span>New</span>
+                </button>
+                <button id="btn-save-project" class="nav-btn" title="Save Project">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                    <span>Save</span>
+                </button>
+                <button id="btn-load-project" class="nav-btn" title="Load Project">
+                    <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
+                    <span>Load</span>
+                </button>
+                <button id="btn-export-html" class="nav-btn" title="Export as HTML">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Export</span>
+                </button>
+                <div class="w-px h-5 bg-sysx-600 mx-2"></div>
+                <button id="btn-undo" class="nav-btn" title="Undo (Ctrl+Z)">
+                    <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button id="btn-redo" class="nav-btn" title="Redo (Ctrl+Y)">
+                    <i data-lucide="redo-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Center: Page Tabs -->
+        <div class="flex items-center gap-1" id="page-tabs-container">
+            <div class="flex items-center gap-1 bg-sysx-900/50 rounded-lg p-0.5" id="page-tabs">
+                <!-- Dynamically populated -->
+            </div>
+            <button id="btn-add-page"
+                class="w-6 h-6 flex items-center justify-center rounded text-sysx-400 hover:text-accent-primary hover:bg-sysx-700 transition-all"
+                title="Add Page">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+
+        <!-- Right: View + Preview -->
+        <div class="flex items-center gap-1 text-xs">
+            <button id="btn-wireframes" class="nav-btn" title="Wireframe Gallery">
+                <i data-lucide="layout-template" class="w-3.5 h-3.5"></i>
+                <span>Wireframes</span>
+            </button>
+            <button id="btn-flowchart" class="nav-btn" title="Flowchart Editor">
+                <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
+                <span>Flowchart</span>
+            </button>
+            <div class="w-px h-5 bg-sysx-600 mx-2"></div>
+            <button id="btn-preview" class="nav-btn-accent" title="Preview Mode">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span>Preview</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN WORKSPACE ===== -->
+    <div class="flex h-[calc(100vh-3rem)]">
+
+        <!-- ===== LEFT SIDEBAR: Component Palette ===== -->
+        <aside id="component-sidebar"
+            class="w-60 bg-sysx-800/60 backdrop-blur border-r border-white/5 flex flex-col overflow-hidden shrink-0">
+            <!-- Search -->
+            <div class="p-3 border-b border-white/5">
+                <div class="relative">
+                    <i data-lucide="search"
+                        class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-sysx-400"></i>
+                    <input type="text" id="component-search" placeholder="Search components..."
+                        class="w-full bg-sysx-900/60 border border-sysx-600/50 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-sysx-400 focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all outline-none">
+                </div>
+            </div>
+
+            <!-- Component Categories -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1" id="component-palette">
+                <!-- Layout Components -->
+                <div class="component-category" data-category="layout">
+                    <button class="category-header">
+                        <i data-lucide="layout" class="w-3.5 h-3.5 text-accent-primary"></i>
+                        <span>Layout</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-auto transition-transform cat-arrow"></i>
+                    </button>
+                    <div class="category-items">
+                        <div class="draggable-component" data-component="container">
+                            <i data-lucide="square" class="w-4 h-4"></i>
+                            <span>Container</span>
+                        </div>
+                        <div class="draggable-component" data-component="row">
+                            <i data-lucide="columns" class="w-4 h-4"></i>
+                            <span>Row</span>
+                        </div>
+                        <div class="draggable-component" data-component="column">
+                            <i data-lucide="rectangle-vertical" class="w-4 h-4"></i>
+                            <span>Column</span>
+                        </div>
+                        <div class="draggable-component" data-component="section">
+                            <i data-lucide="panel-top" class="w-4 h-4"></i>
+                            <span>Section</span>
+                        </div>
+                        <div class="draggable-component" data-component="divider">
+                            <i data-lucide="minus" class="w-4 h-4"></i>
+                            <span>Divider</span>
+                        </div>
+                        <div class="draggable-component" data-component="spacer">
+                            <i data-lucide="space" class="w-4 h-4"></i>
+                            <span>Spacer</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basic Components -->
+                <div class="component-category" data-category="basic">
+                    <button class="category-header">
+                        <i data-lucide="type" class="w-3.5 h-3.5 text-accent-cyan"></i>
+                        <span>Basic</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-auto transition-transform cat-arrow"></i>
+                    </button>
+                    <div class="category-items">
+                        <div class="draggable-component" data-component="heading">
+                            <i data-lucide="heading" class="w-4 h-4"></i>
+                            <span>Heading</span>
+                        </div>
+                        <div class="draggable-component" data-component="paragraph">
+                            <i data-lucide="align-left" class="w-4 h-4"></i>
+                            <span>Paragraph</span>
+                        </div>
+                        <div class="draggable-component" data-component="link">
+                            <i data-lucide="link" class="w-4 h-4"></i>
+                            <span>Link</span>
+                        </div>
+                        <div class="draggable-component" data-component="image">
+                            <i data-lucide="image" class="w-4 h-4"></i>
+                            <span>Image</span>
+                        </div>
+                        <div class="draggable-component" data-component="icon">
+                            <i data-lucide="smile" class="w-4 h-4"></i>
+                            <span>Icon</span>
+                        </div>
+                        <div class="draggable-component" data-component="list">
+                            <i data-lucide="list" class="w-4 h-4"></i>
+                            <span>List</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Components -->
+                <div class="component-category" data-category="form">
+                    <button class="category-header">
+                        <i data-lucide="text-cursor-input" class="w-3.5 h-3.5 text-accent-emerald"></i>
+                        <span>Form</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-auto transition-transform cat-arrow"></i>
+                    </button>
+                    <div class="category-items">
+                        <div class="draggable-component" data-component="button">
+                            <i data-lucide="rectangle-horizontal" class="w-4 h-4"></i>
+                            <span>Button</span>
+                        </div>
+                        <div class="draggable-component" data-component="input">
+                            <i data-lucide="text-cursor" class="w-4 h-4"></i>
+                            <span>Text Input</span>
+                        </div>
+                        <div class="draggable-component" data-component="textarea">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                            <span>Text Area</span>
+                        </div>
+                        <div class="draggable-component" data-component="select">
+                            <i data-lucide="chevron-down-square" class="w-4 h-4"></i>
+                            <span>Dropdown</span>
+                        </div>
+                        <div class="draggable-component" data-component="checkbox">
+                            <i data-lucide="check-square" class="w-4 h-4"></i>
+                            <span>Checkbox</span>
+                        </div>
+                        <div class="draggable-component" data-component="radio">
+                            <i data-lucide="circle-dot" class="w-4 h-4"></i>
+                            <span>Radio</span>
+                        </div>
+                        <div class="draggable-component" data-component="toggle">
+                            <i data-lucide="toggle-left" class="w-4 h-4"></i>
+                            <span>Toggle</span>
+                        </div>
+                        <div class="draggable-component" data-component="slider">
+                            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                            <span>Slider</span>
+                        </div>
+                        <div class="draggable-component" data-component="file-upload">
+                            <i data-lucide="upload" class="w-4 h-4"></i>
+                            <span>File Upload</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Display -->
+                <div class="component-category" data-category="data">
+                    <button class="category-header">
+                        <i data-lucide="table" class="w-3.5 h-3.5 text-accent-amber"></i>
+                        <span>Data Display</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-auto transition-transform cat-arrow"></i>
+                    </button>
+                    <div class="category-items">
+                        <div class="draggable-component" data-component="table">
+                            <i data-lucide="table" class="w-4 h-4"></i>
+                            <span>Table</span>
+                        </div>
+                        <div class="draggable-component" data-component="card">
+                            <i data-lucide="credit-card" class="w-4 h-4"></i>
+                            <span>Card</span>
+                        </div>
+                        <div class="draggable-component" data-component="badge">
+                            <i data-lucide="badge" class="w-4 h-4"></i>
+                            <span>Badge</span>
+                        </div>
+                        <div class="draggable-component" data-component="progress">
+                            <i data-lucide="loader" class="w-4 h-4"></i>
+                            <span>Progress Bar</span>
+                        </div>
+                        <div class="draggable-component" data-component="avatar">
+                            <i data-lucide="user-circle" class="w-4 h-4"></i>
+                            <span>Avatar</span>
+                        </div>
+                        <div class="draggable-component" data-component="chart">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                            <span>Chart</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="component-category" data-category="navigation">
+                    <button class="category-header">
+                        <i data-lucide="menu" class="w-3.5 h-3.5 text-accent-rose"></i>
+                        <span>Navigation</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-auto transition-transform cat-arrow"></i>
+                    </button>
+                    <div class="category-items">
+                        <div class="draggable-component" data-component="navbar">
+                            <i data-lucide="navigation" class="w-4 h-4"></i>
+                            <span>Navbar</span>
+                        </div>
+                        <div class="draggable-component" data-component="sidebar-nav">
+                            <i data-lucide="panel-left" class="w-4 h-4"></i>
+                            <span>Sidebar</span>
+                        </div>
+                        <div class="draggable-component" data-component="breadcrumb">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            <span>Breadcrumb</span>
+                        </div>
+                        <div class="draggable-component" data-component="tabs">
+                            <i data-lucide="folder" class="w-4 h-4"></i>
+                            <span>Tabs</span>
+                        </div>
+                        <div class="draggable-component" data-component="pagination">
+                            <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                            <span>Pagination</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback -->
+                <div class="component-category" data-category="feedback">
+                    <button class="category-header">
+                        <i data-lucide="bell" class="w-3.5 h-3.5 text-accent-secondary"></i>
+                        <span>Feedback</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-auto transition-transform cat-arrow"></i>
+                    </button>
+                    <div class="category-items">
+                        <div class="draggable-component" data-component="alert">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            <span>Alert</span>
+                        </div>
+                        <div class="draggable-component" data-component="toast">
+                            <i data-lucide="message-square" class="w-4 h-4"></i>
+                            <span>Toast</span>
+                        </div>
+                        <div class="draggable-component" data-component="modal">
+                            <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                            <span>Modal</span>
+                        </div>
+                        <div class="draggable-component" data-component="tooltip">
+                            <i data-lucide="info" class="w-4 h-4"></i>
+                            <span>Tooltip</span>
+                        </div>
+                        <div class="draggable-component" data-component="spinner">
+                            <i data-lucide="loader-2" class="w-4 h-4"></i>
+                            <span>Spinner</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Media -->
+                <div class="component-category" data-category="media">
+                    <button class="category-header">
+                        <i data-lucide="play-circle" class="w-3.5 h-3.5 text-accent-tertiary"></i>
+                        <span>Media</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 ml-auto transition-transform cat-arrow"></i>
+                    </button>
+                    <div class="category-items">
+                        <div class="draggable-component" data-component="video">
+                            <i data-lucide="video" class="w-4 h-4"></i>
+                            <span>Video</span>
+                        </div>
+                        <div class="draggable-component" data-component="carousel">
+                            <i data-lucide="gallery-horizontal" class="w-4 h-4"></i>
+                            <span>Carousel</span>
+                        </div>
+                        <div class="draggable-component" data-component="map">
+                            <i data-lucide="map-pin" class="w-4 h-4"></i>
+                            <span>Map</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer Panel Toggle -->
+            <div class="border-t border-white/5">
+                <button id="btn-toggle-layers"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-xs text-sysx-300 hover:text-white hover:bg-sysx-700/50 transition-all">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    <span>Layers</span>
+                    <i data-lucide="chevron-up" class="w-3 h-3 ml-auto"></i>
+                </button>
+                <div id="layers-panel" class="max-h-48 overflow-y-auto custom-scrollbar p-2 hidden">
+                    <div id="layer-tree" class="text-xs space-y-0.5">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ===== CENTER: Canvas Workspace ===== -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-sysx-900 relative">
+            <!-- Canvas Toolbar -->
+            <div class="h-9 bg-sysx-800/40 border-b border-white/5 flex items-center justify-between px-3 shrink-0">
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="text-sysx-400">Canvas:</span>
+                    <select id="canvas-device"
+                        class="bg-sysx-700 border border-sysx-600/50 rounded px-2 py-0.5 text-xs text-white outline-none">
+                        <option value="desktop">Desktop (1440px)</option>
+                        <option value="laptop">Laptop (1024px)</option>
+                        <option value="tablet">Tablet (768px)</option>
+                        <option value="mobile">Mobile (375px)</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btn-zoom-out" class="canvas-toolbar-btn" title="Zoom Out">
+                        <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <span id="zoom-level" class="text-xs text-sysx-300 min-w-[3rem] text-center">100%</span>
+                    <button id="btn-zoom-in" class="canvas-toolbar-btn" title="Zoom In">
+                        <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button id="btn-zoom-fit" class="canvas-toolbar-btn" title="Fit to Screen">
+                        <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <div class="w-px h-4 bg-sysx-600 mx-1"></div>
+                    <button id="btn-toggle-grid" class="canvas-toolbar-btn active" title="Toggle Grid">
+                        <i data-lucide="grid-3x3" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button id="btn-toggle-guides" class="canvas-toolbar-btn active" title="Toggle Guides">
+                        <i data-lucide="ruler" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div id="canvas-wrapper" class="flex-1 overflow-auto canvas-bg p-8 flex items-start justify-center">
+                <div id="canvas"
+                    class="relative bg-white rounded-lg shadow-2xl shadow-black/30 transition-all duration-300"
+                    style="width: 1440px; min-height: 900px;">
+                    <!-- Drop zone for components -->
+                    <div id="canvas-drop-zone" class="w-full min-h-full p-4 relative" style="min-height: 900px;">
+                        <!-- Dropped components go here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ===== RIGHT SIDEBAR: Properties Panel ===== -->
+        <aside id="properties-sidebar"
+            class="w-72 bg-sysx-800/60 backdrop-blur border-l border-white/5 flex flex-col overflow-hidden shrink-0">
+            <!-- Properties Header -->
+            <div class="p-3 border-b border-white/5 flex items-center justify-between">
+                <h3 class="text-xs font-semibold text-sysx-200 uppercase tracking-wider">Properties</h3>
+                <button id="btn-delete-component"
+                    class="p-1 rounded text-sysx-400 hover:text-accent-rose hover:bg-accent-rose/10 transition-all hidden"
+                    title="Delete">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <!-- No Selection State -->
+            <div id="no-selection-state" class="flex-1 flex items-center justify-center p-6">
+                <div class="text-center">
+                    <i data-lucide="mouse-pointer-click" class="w-10 h-10 text-sysx-600 mx-auto mb-3"></i>
+                    <p class="text-sm text-sysx-400">Select a component to edit its properties</p>
+                    <p class="text-xs text-sysx-500 mt-1">Or drag a component from the left panel</p>
+                </div>
+            </div>
+
+            <!-- Properties Content -->
+            <div id="properties-content" class="flex-1 overflow-y-auto custom-scrollbar hidden">
+                <!-- Component Info -->
+                <div class="p-3 border-b border-white/5">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i id="prop-component-icon" data-lucide="square" class="w-4 h-4 text-accent-primary"></i>
+                        <span id="prop-component-name" class="text-sm font-medium">Component</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-[10px] text-sysx-400 uppercase">ID</label>
+                        <input type="text" id="prop-component-id" class="prop-input flex-1" placeholder="component-id">
+                    </div>
+                </div>
+
+                <!-- Content Tab -->
+                <div class="prop-section" data-section="content">
+                    <button class="prop-section-header">
+                        <span>Content</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+                    </button>
+                    <div class="prop-section-body" id="prop-content-fields">
+                        <!-- Dynamically populated based on component type -->
+                    </div>
+                </div>
+
+                <!-- Style Tab -->
+                <div class="prop-section" data-section="style">
+                    <button class="prop-section-header">
+                        <span>Style</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+                    </button>
+                    <div class="prop-section-body" id="prop-style-fields">
+                        <!-- Sizing -->
+                        <div class="prop-group">
+                            <label class="prop-label">Size</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span class="text-[10px] text-sysx-500">Width</span>
+                                    <input type="text" id="prop-width" class="prop-input" placeholder="auto">
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-sysx-500">Height</span>
+                                    <input type="text" id="prop-height" class="prop-input" placeholder="auto">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Spacing -->
+                        <div class="prop-group">
+                            <label class="prop-label">Padding</label>
+                            <div class="grid grid-cols-4 gap-1">
+                                <input type="text" id="prop-pt" class="prop-input text-center" placeholder="T"
+                                    title="Top">
+                                <input type="text" id="prop-pr" class="prop-input text-center" placeholder="R"
+                                    title="Right">
+                                <input type="text" id="prop-pb" class="prop-input text-center" placeholder="B"
+                                    title="Bottom">
+                                <input type="text" id="prop-pl" class="prop-input text-center" placeholder="L"
+                                    title="Left">
+                            </div>
+                        </div>
+                        <div class="prop-group">
+                            <label class="prop-label">Margin</label>
+                            <div class="grid grid-cols-4 gap-1">
+                                <input type="text" id="prop-mt" class="prop-input text-center" placeholder="T">
+                                <input type="text" id="prop-mr" class="prop-input text-center" placeholder="R">
+                                <input type="text" id="prop-mb" class="prop-input text-center" placeholder="B">
+                                <input type="text" id="prop-ml" class="prop-input text-center" placeholder="L">
+                            </div>
+                        </div>
+
+                        <!-- Colors -->
+                        <div class="prop-group">
+                            <label class="prop-label">Colors</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-sysx-500 w-8">BG</span>
+                                    <input type="color" id="prop-bg-color" class="prop-color" value="#ffffff">
+                                    <input type="text" id="prop-bg-color-text" class="prop-input flex-1"
+                                        placeholder="#ffffff">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-sysx-500 w-8">Text</span>
+                                    <input type="color" id="prop-text-color" class="prop-color" value="#000000">
+                                    <input type="text" id="prop-text-color-text" class="prop-input flex-1"
+                                        placeholder="#000000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Typography -->
+                        <div class="prop-group">
+                            <label class="prop-label">Typography</label>
+                            <div class="space-y-2">
+                                <select id="prop-font-size" class="prop-select">
+                                    <option value="">Font Size</option>
+                                    <option value="12px">12px</option>
+                                    <option value="14px">14px</option>
+                                    <option value="16px">16px</option>
+                                    <option value="18px">18px</option>
+                                    <option value="20px">20px</option>
+                                    <option value="24px">24px</option>
+                                    <option value="30px">30px</option>
+                                    <option value="36px">36px</option>
+                                    <option value="48px">48px</option>
+                                    <option value="64px">64px</option>
+                                </select>
+                                <select id="prop-font-weight" class="prop-select">
+                                    <option value="">Font Weight</option>
+                                    <option value="300">Light</option>
+                                    <option value="400">Regular</option>
+                                    <option value="500">Medium</option>
+                                    <option value="600">Semibold</option>
+                                    <option value="700">Bold</option>
+                                    <option value="800">Extrabold</option>
+                                </select>
+                                <div class="flex items-center gap-1">
+                                    <button class="prop-toggle-btn" data-style="text-align" data-value="left"
+                                        title="Left">
+                                        <i data-lucide="align-left" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    <button class="prop-toggle-btn" data-style="text-align" data-value="center"
+                                        title="Center">
+                                        <i data-lucide="align-center" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    <button class="prop-toggle-btn" data-style="text-align" data-value="right"
+                                        title="Right">
+                                        <i data-lucide="align-right" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Border -->
+                        <div class="prop-group">
+                            <label class="prop-label">Border</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="text" id="prop-border-width" class="prop-input w-16" placeholder="0px">
+                                    <select id="prop-border-style" class="prop-select flex-1">
+                                        <option value="none">None</option>
+                                        <option value="solid">Solid</option>
+                                        <option value="dashed">Dashed</option>
+                                        <option value="dotted">Dotted</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-sysx-500 w-8">Clr</span>
+                                    <input type="color" id="prop-border-color" class="prop-color" value="#e5e7eb">
+                                    <input type="text" id="prop-border-color-text" class="prop-input flex-1"
+                                        placeholder="#e5e7eb">
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-sysx-500">Radius</span>
+                                    <input type="text" id="prop-border-radius" class="prop-input" placeholder="0px">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Display -->
+                        <div class="prop-group">
+                            <label class="prop-label">Display</label>
+                            <select id="prop-display" class="prop-select">
+                                <option value="block">Block</option>
+                                <option value="flex">Flex</option>
+                                <option value="grid">Grid</option>
+                                <option value="inline">Inline</option>
+                                <option value="inline-block">Inline Block</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+
+                        <!-- Flex Options (conditionally shown) -->
+                        <div id="flex-options" class="prop-group hidden">
+                            <label class="prop-label">Flex Options</label>
+                            <div class="space-y-2">
+                                <select id="prop-flex-direction" class="prop-select">
+                                    <option value="row">Row</option>
+                                    <option value="column">Column</option>
+                                </select>
+                                <select id="prop-justify-content" class="prop-select">
+                                    <option value="flex-start">Start</option>
+                                    <option value="center">Center</option>
+                                    <option value="flex-end">End</option>
+                                    <option value="space-between">Space Between</option>
+                                    <option value="space-around">Space Around</option>
+                                </select>
+                                <select id="prop-align-items" class="prop-select">
+                                    <option value="stretch">Stretch</option>
+                                    <option value="flex-start">Start</option>
+                                    <option value="center">Center</option>
+                                    <option value="flex-end">End</option>
+                                </select>
+                                <input type="text" id="prop-gap" class="prop-input" placeholder="Gap (e.g., 8px)">
+                            </div>
+                        </div>
+
+                        <!-- Shadow -->
+                        <div class="prop-group">
+                            <label class="prop-label">Shadow</label>
+                            <select id="prop-shadow" class="prop-select">
+                                <option value="none">None</option>
+                                <option value="0 1px 3px rgba(0,0,0,0.12)">Small</option>
+                                <option value="0 4px 6px rgba(0,0,0,0.1)">Medium</option>
+                                <option value="0 10px 25px rgba(0,0,0,0.15)">Large</option>
+                                <option value="0 20px 50px rgba(0,0,0,0.2)">XL</option>
+                            </select>
+                        </div>
+
+                        <!-- Opacity -->
+                        <div class="prop-group">
+                            <label class="prop-label">Opacity</label>
+                            <input type="range" id="prop-opacity" class="w-full" min="0" max="100" value="100">
+                            <span id="prop-opacity-value" class="text-[10px] text-sysx-400">100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Events Tab -->
+                <div class="prop-section" data-section="events">
+                    <button class="prop-section-header">
+                        <span>Events & Actions</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+                    </button>
+                    <div class="prop-section-body" id="prop-events-fields">
+                        <div class="prop-group">
+                            <label class="prop-label">On Click</label>
+                            <select id="prop-onclick-action" class="prop-select">
+                                <option value="">None</option>
+                                <option value="navigate">Navigate to Page</option>
+                                <option value="show-modal">Show Modal</option>
+                                <option value="hide-modal">Hide Modal</option>
+                                <option value="toggle-class">Toggle Class</option>
+                                <option value="show-alert">Show Alert</option>
+                                <option value="submit-form">Submit Form</option>
+                                <option value="custom">Custom (Flowchart)</option>
+                            </select>
+                            <div id="onclick-params" class="mt-2 hidden">
+                                <!-- Dynamically populated based on action -->
+                            </div>
+                        </div>
+                        <div class="prop-group">
+                            <label class="prop-label">On Hover</label>
+                            <select id="prop-onhover-action" class="prop-select">
+                                <option value="">None</option>
+                                <option value="change-color">Change Color</option>
+                                <option value="scale">Scale</option>
+                                <option value="show-tooltip">Show Tooltip</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ===== FLOWCHART MODAL ===== -->
+    <div id="flowchart-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="flowchart-overlay"></div>
+        <div
+            class="absolute inset-4 bg-sysx-800 rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
+            <!-- Flowchart Header -->
+            <div class="h-12 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="git-branch" class="w-5 h-5 text-accent-primary"></i>
+                    <h2 class="text-sm font-semibold">Flowchart Editor — Logic & Interactions</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btn-add-flow-node"
+                        class="text-xs bg-accent-primary/20 text-accent-primary border border-accent-primary/30 rounded-lg px-3 py-1 hover:bg-accent-primary/30 transition-all">
+                        <i data-lucide="plus" class="w-3 h-3 inline-block mr-1"></i> Add Node
+                    </button>
+                    <button id="btn-clear-flow"
+                        class="text-xs bg-sysx-700 text-sysx-300 rounded-lg px-3 py-1 hover:bg-sysx-600 transition-all">
+                        Clear All
+                    </button>
+                    <button id="btn-close-flowchart"
+                        class="p-1.5 rounded-lg text-sysx-400 hover:text-white hover:bg-sysx-700 transition-all">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flowchart Content -->
+            <div class="flex flex-1 overflow-hidden">
+                <!-- Flow Node Palette -->
+                <div class="w-52 border-r border-white/5 overflow-y-auto custom-scrollbar p-3 space-y-1 shrink-0">
+                    <p class="text-[10px] text-sysx-400 uppercase tracking-wider mb-2 px-1">Drag nodes to canvas</p>
+
+                    <div class="flow-node-item" data-flow-type="start">
+                        <div class="w-3 h-3 rounded-full bg-accent-emerald"></div>
+                        <span>Start / Trigger</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="event">
+                        <div class="w-3 h-3 rounded-full bg-accent-cyan"></div>
+                        <span>Event Listener</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="condition">
+                        <div class="w-3 h-3 rotate-45 bg-accent-amber"></div>
+                        <span>Condition</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="action">
+                        <div class="w-3 h-3 rounded bg-accent-primary"></div>
+                        <span>Action</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="navigate">
+                        <div class="w-3 h-3 rounded bg-accent-secondary"></div>
+                        <span>Navigate</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="set-value">
+                        <div class="w-3 h-3 rounded bg-accent-tertiary"></div>
+                        <span>Set Value</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="get-value">
+                        <div class="w-3 h-3 rounded bg-blue-400"></div>
+                        <span>Get Value</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="show-hide">
+                        <div class="w-3 h-3 rounded bg-pink-400"></div>
+                        <span>Show / Hide</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="api-call">
+                        <div class="w-3 h-3 rounded bg-orange-400"></div>
+                        <span>API Call</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="delay">
+                        <div class="w-3 h-3 rounded bg-gray-400"></div>
+                        <span>Delay</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="loop">
+                        <div class="w-3 h-3 rounded bg-teal-400"></div>
+                        <span>Loop</span>
+                    </div>
+                    <div class="flow-node-item" data-flow-type="end">
+                        <div class="w-3 h-3 rounded-full bg-accent-rose"></div>
+                        <span>End</span>
+                    </div>
+                </div>
+
+                <!-- Flow Canvas -->
+                <div id="flowchart-canvas-wrapper" class="flex-1 overflow-auto relative canvas-bg">
+                    <div id="flowchart-canvas" class="relative" style="width: 3000px; height: 2000px;">
+                        <!-- Flow nodes get dropped/created here -->
+                    </div>
+                </div>
+
+                <!-- Flow Node Properties -->
+                <div id="flow-node-properties"
+                    class="w-64 border-l border-white/5 overflow-y-auto custom-scrollbar p-3 shrink-0">
+                    <div id="flow-no-selection" class="flex items-center justify-center h-full">
+                        <p class="text-xs text-sysx-400 text-center">Select a flow node to edit its properties</p>
+                    </div>
+                    <div id="flow-properties-content" class="hidden space-y-3">
+                        <h4 class="text-xs font-semibold text-sysx-200 uppercase">Node Properties</h4>
+                        <div>
+                            <label class="prop-label">Label</label>
+                            <input type="text" id="flow-node-label" class="prop-input" placeholder="Node label">
+                        </div>
+                        <div id="flow-node-config">
+                            <!-- Dynamically populated based on node type -->
+                        </div>
+                        <button id="btn-delete-flow-node"
+                            class="w-full text-xs bg-accent-rose/20 text-accent-rose border border-accent-rose/30 rounded-lg px-3 py-1.5 hover:bg-accent-rose/30 transition-all mt-4">
+                            <i data-lucide="trash-2" class="w-3 h-3 inline-block mr-1"></i> Delete Node
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== WIREFRAME GALLERY MODAL ===== -->
+    <div id="wireframe-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="wireframe-overlay"></div>
+        <div
+            class="absolute inset-8 bg-sysx-800 rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
+            <!-- Wireframe Header -->
+            <div class="h-12 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="layout-template" class="w-5 h-5 text-accent-cyan"></i>
+                    <h2 class="text-sm font-semibold">Wireframe Gallery — Starter Templates</h2>
+                </div>
+                <button id="btn-close-wireframes"
+                    class="p-1.5 rounded-lg text-sysx-400 hover:text-white hover:bg-sysx-700 transition-all">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Wireframe Categories -->
+            <div class="flex items-center gap-2 px-4 py-2 border-b border-white/5 shrink-0">
+                <button class="wireframe-category-btn active" data-wf-cat="all">All</button>
+                <button class="wireframe-category-btn" data-wf-cat="landing">Landing Pages</button>
+                <button class="wireframe-category-btn" data-wf-cat="dashboard">Dashboards</button>
+                <button class="wireframe-category-btn" data-wf-cat="ecommerce">E-Commerce</button>
+                <button class="wireframe-category-btn" data-wf-cat="blog">Blog / Content</button>
+                <button class="wireframe-category-btn" data-wf-cat="auth">Auth / Forms</button>
+                <button class="wireframe-category-btn" data-wf-cat="portfolio">Portfolio</button>
+                <button class="wireframe-category-btn" data-wf-cat="saas">SaaS</button>
+                <button class="wireframe-category-btn" data-wf-cat="mobile">Mobile</button>
+            </div>
+
+            <!-- Wireframe Grid -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                <div id="wireframe-grid" class="grid grid-cols-3 gap-4">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PREVIEW MODAL ===== -->
+    <div id="preview-modal" class="fixed inset-0 z-[100] hidden bg-sysx-900">
+        <div class="h-12 bg-sysx-800 border-b border-white/5 flex items-center justify-between px-4">
+            <div class="flex items-center gap-3">
+                <i data-lucide="play" class="w-5 h-5 text-accent-emerald"></i>
+                <h2 class="text-sm font-semibold">Preview Mode</h2>
+            </div>
+            <div class="flex items-center gap-2">
+                <select id="preview-device"
+                    class="bg-sysx-700 border border-sysx-600/50 rounded px-2 py-1 text-xs text-white outline-none">
+                    <option value="desktop">Desktop</option>
+                    <option value="tablet">Tablet</option>
+                    <option value="mobile">Mobile</option>
+                </select>
+                <button id="btn-close-preview"
+                    class="p-1.5 rounded-lg text-sysx-400 hover:text-white hover:bg-sysx-700 transition-all">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 flex items-start justify-center overflow-auto p-8" style="height: calc(100vh - 3rem);">
+            <div id="preview-frame" class="bg-white rounded-lg shadow-2xl overflow-hidden transition-all duration-300">
+                <!-- Preview content rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CONTEXT MENU ===== -->
+    <div id="context-menu"
+        class="fixed z-[200] hidden bg-sysx-700 border border-white/10 rounded-xl shadow-2xl py-1 min-w-[180px]">
+        <button class="ctx-item" data-action="duplicate"><i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            Duplicate</button>
+        <button class="ctx-item" data-action="copy"><i data-lucide="clipboard" class="w-3.5 h-3.5"></i> Copy</button>
+        <button class="ctx-item" data-action="paste"><i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i>
+            Paste</button>
+        <div class="border-t border-white/5 my-1"></div>
+        <button class="ctx-item" data-action="bring-front"><i data-lucide="bring-to-front" class="w-3.5 h-3.5"></i>
+            Bring to Front</button>
+        <button class="ctx-item" data-action="send-back"><i data-lucide="send-to-back" class="w-3.5 h-3.5"></i> Send to
+            Back</button>
+        <div class="border-t border-white/5 my-1"></div>
+        <button class="ctx-item" data-action="lock"><i data-lucide="lock" class="w-3.5 h-3.5"></i> Lock</button>
+        <button class="ctx-item text-accent-rose" data-action="delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            Delete</button>
+    </div>
+
+    <!-- ===== TOAST NOTIFICATIONS ===== -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[300] space-y-2"></div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script src="js/components.js"></script>
+    <script src="js/wireframes.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/flowchart.js"></script>
+    <script src="js/properties.js"></script>
+    <script src="js/drag-drop.js"></script>
+    <script src="js/interactivity.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
