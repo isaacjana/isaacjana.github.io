@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="TypeWarrior — A fast, beautiful, and fun keyboard typing test. Track WPM, accuracy, and master your typing skills with multiple game modes." />
+  <meta name="theme-color" content="#1a1a2e" />
+  <title>TypeWarrior — Keyboard Typing Test</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌨️</text></svg>" />
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Particle Effects Canvas -->
+  <canvas id="effects-canvas"></canvas>
+
+  <div class="app-container">
+
+    <!-- ═══════ HEADER ═══════ -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">⌨️</span>
+        <div class="logo-text">type<span>warrior</span></div>
+      </div>
+      
+      <div class="header-controls">
+        <!-- Theme Switcher -->
+        <div class="theme-switcher" id="theme-switcher">
+          <button class="theme-btn active" data-theme="minimal-dark" title="Minimal Dark">🌙</button>
+          <button class="theme-btn" data-theme="minimal-light" title="Minimal Light">☀️</button>
+          <button class="theme-btn" data-theme="cyberpunk" title="Cyberpunk Neon">🌆</button>
+          <button class="theme-btn" data-theme="hacker" title="Hacker">💻</button>
+        </div>
+
+        <!-- Sound Controls -->
+        <button class="sound-toggle" id="sound-toggle" title="Toggle Sound">
+          <span class="sound-icon">🔇</span>
+          <span class="sound-label">Sound</span>
+        </button>
+        <select class="sound-type-select" id="sound-type" title="Sound Type">
+          <option value="mechanical">Mechanical</option>
+          <option value="typewriter">Typewriter</option>
+          <option value="arcade">Arcade</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- ═══════ MODE SELECTOR ═══════ -->
+    <section class="mode-selector">
+      <div class="mode-buttons">
+        <button class="mode-btn active" data-mode="time">
+          <span class="mode-icon">⏱️</span>time
+        </button>
+        <button class="mode-btn" data-mode="words">
+          <span class="mode-icon">📝</span>words
+        </button>
+        <button class="mode-btn" data-mode="sudden-death">
+          <span class="mode-icon">💀</span>sudden death
+        </button>
+        <button class="mode-btn" data-mode="developer">
+          <span class="mode-icon">🖥️</span>developer
+        </button>
+        <button class="mode-btn" data-mode="zen">
+          <span class="mode-icon">🧘</span>zen
+        </button>
+      </div>
+
+      <!-- Time sub-options -->
+      <div class="sub-options visible" id="time-options">
+        <button class="sub-btn time-btn" data-time="15">15s</button>
+        <button class="sub-btn time-btn active" data-time="30">30s</button>
+        <button class="sub-btn time-btn" data-time="60">60s</button>
+        <button class="sub-btn time-btn" data-time="120">120s</button>
+      </div>
+
+      <!-- Word count sub-options -->
+      <div class="sub-options" id="word-options">
+        <button class="sub-btn word-btn" data-words="10">10</button>
+        <button class="sub-btn word-btn" data-words="25">25</button>
+        <button class="sub-btn word-btn active" data-words="50">50</button>
+        <button class="sub-btn word-btn" data-words="100">100</button>
+      </div>
+    </section>
+
+    <!-- ═══════ PROGRESS BAR ═══════ -->
+    <div class="progress-container">
+      <div class="progress-fill" id="progress-fill"></div>
+      <div class="progress-car" id="progress-car">🏎️</div>
+    </div>
+
+    <!-- ═══════ LIVE STATS ═══════ -->
+    <div class="live-stats">
+      <div class="stat-item">
+        <span class="stat-value" id="live-wpm">0</span>
+        <span class="stat-label">wpm</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="live-accuracy">100%</span>
+        <span class="stat-label">accuracy</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="live-time">30s</span>
+        <span class="stat-label">time</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="live-combo">0</span>
+        <span class="stat-label" id="combo-label">combo</span>
+      </div>
+    </div>
+
+    <!-- ═══════ TYPING AREA ═══════ -->
+    <div class="typing-area" id="typing-area">
+      <div class="words-wrapper">
+        <!-- Words rendered here by JavaScript -->
+        <div class="words-container" id="words-container"></div>
+        
+        <!-- Animated caret -->
+        <div class="caret" id="caret"></div>
+        
+        <!-- Blur overlay when unfocused -->
+        <div class="blur-overlay" id="blur-overlay">
+          <span class="blur-overlay-text">👆 Click here or start typing to focus</span>
+        </div>
+      </div>
+      
+      <!-- Hidden input captures keystrokes -->
+      <input 
+        type="text" 
+        id="hidden-input" 
+        class="hidden-input" 
+        autocomplete="off" 
+        autocorrect="off" 
+        autocapitalize="off" 
+        spellcheck="false"
+        autofocus
+      />
+    </div>
+
+    <!-- ═══════ CONTROLS ═══════ -->
+    <div class="controls-bar">
+      <button class="restart-btn" id="restart-btn">
+        <span class="icon">↻</span>
+        restart
+        <span class="shortcut-hint">tab</span>
+      </button>
+    </div>
+
+    <!-- ═══════ FOOTER ═══════ -->
+    <footer class="footer">
+      <span class="footer-text">
+        <kbd>tab</kbd> restart &nbsp;•&nbsp; <kbd>esc</kbd> stop
+      </span>
+    </footer>
+  </div>
+
+  <!-- ═══════ RESULT MODAL ═══════ -->
+  <div class="result-overlay" id="result-overlay"></div>
+  <div class="result-modal" id="result-modal">
+    <div class="result-header">
+      <div class="result-title">⚔️ Test Complete!</div>
+      <div class="result-subtitle">Here's how you performed</div>
+    </div>
+
+    <!-- Main WPM display -->
+    <div class="result-main-stat">
+      <div class="result-wpm-value" id="result-wpm">0</div>
+      <div class="result-wpm-label">words per minute</div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="result-stats-grid">
+      <div class="result-stat">
+        <div class="result-stat-value" id="result-raw-wpm">0</div>
+        <div class="result-stat-label">Raw WPM</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-value" id="result-accuracy">0%</div>
+        <div class="result-stat-label">Accuracy</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-value" id="result-time">0s</div>
+        <div class="result-stat-label">Time</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-value" id="result-combo">0</div>
+        <div class="result-stat-label">Max Combo</div>
+      </div>
+    </div>
+
+    <!-- Keystroke breakdown -->
+    <div class="result-keystrokes">
+      <div class="keystroke-item">
+        <div class="keystroke-value correct-val" id="result-correct-chars">0</div>
+        <div class="keystroke-label">Correct</div>
+      </div>
+      <div class="keystroke-item">
+        <div class="keystroke-value incorrect-val" id="result-incorrect-chars">0</div>
+        <div class="keystroke-label">Incorrect</div>
+      </div>
+      <div class="keystroke-item">
+        <div class="keystroke-value extra-val" id="result-extra-chars">0</div>
+        <div class="keystroke-label">Extra</div>
+      </div>
+    </div>
+
+    <!-- WPM Chart -->
+    <div class="result-chart-container">
+      <canvas class="result-chart" id="result-chart"></canvas>
+    </div>
+
+    <!-- Actions -->
+    <div class="result-actions">
+      <button class="result-btn primary" id="result-restart-btn">
+        ↻ Try Again
+      </button>
+      <button class="result-btn secondary" id="result-close-btn">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- App Script (ES Module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
