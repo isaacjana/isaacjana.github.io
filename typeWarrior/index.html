@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="TypeWarrior — A fast, beautiful, and fun keyboard typing test. Track WPM, accuracy, and master your typing skills with multiple game modes." />
+  <meta name="description"
+    content="TypeWarrior — A fast, beautiful, and fun keyboard typing test. Track WPM, accuracy, and master your typing skills with multiple game modes." />
   <meta name="theme-color" content="#1a1a2e" />
   <title>TypeWarrior — Keyboard Typing Test</title>
-  
+
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌨️</text></svg>" />
-  
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌨️</text></svg>" />
+
   <!-- Stylesheet -->
   <link rel="stylesheet" href="css/styles.css" />
 </head>
+
 <body>
   <!-- Particle Effects Canvas -->
   <canvas id="effects-canvas"></canvas>
@@ -25,7 +29,7 @@
         <span class="logo-icon">⌨️</span>
         <div class="logo-text">type<span>warrior</span></div>
       </div>
-      
+
       <div class="header-controls">
         <!-- Theme Switcher -->
         <div class="theme-switcher" id="theme-switcher">
@@ -33,6 +37,8 @@
           <button class="theme-btn" data-theme="minimal-light" title="Minimal Light">☀️</button>
           <button class="theme-btn" data-theme="cyberpunk" title="Cyberpunk Neon">🌆</button>
           <button class="theme-btn" data-theme="hacker" title="Hacker">💻</button>
+          <button class="theme-btn" data-theme="serene-forest" title="Serene Forest">🌲</button>
+          <button class="theme-btn" data-theme="midnight-purple" title="Midnight Purple">🔮</button>
         </div>
 
         <!-- Sound Controls -->
@@ -45,6 +51,12 @@
           <option value="typewriter">Typewriter</option>
           <option value="arcade">Arcade</option>
         </select>
+
+        <!-- Focus Mode Toggle -->
+        <button class="sound-toggle" id="focus-toggle" title="Focus Mode (Alt+F)">
+          <span class="focus-icon">🎯</span>
+          <span class="focus-label">Focus</span>
+        </button>
       </div>
     </header>
 
@@ -109,6 +121,10 @@
         <span class="stat-value" id="live-combo">0</span>
         <span class="stat-label" id="combo-label">combo</span>
       </div>
+      <div class="stat-item pb-display">
+        <span class="stat-value" id="live-pb">0</span>
+        <span class="stat-label">pb</span>
+      </div>
     </div>
 
     <!-- ═══════ TYPING AREA ═══════ -->
@@ -116,27 +132,19 @@
       <div class="words-wrapper">
         <!-- Words rendered here by JavaScript -->
         <div class="words-container" id="words-container"></div>
-        
+
         <!-- Animated caret -->
         <div class="caret" id="caret"></div>
-        
+
         <!-- Blur overlay when unfocused -->
         <div class="blur-overlay" id="blur-overlay">
           <span class="blur-overlay-text">👆 Click here or start typing to focus</span>
         </div>
       </div>
-      
+
       <!-- Hidden input captures keystrokes -->
-      <input 
-        type="text" 
-        id="hidden-input" 
-        class="hidden-input" 
-        autocomplete="off" 
-        autocorrect="off" 
-        autocapitalize="off" 
-        spellcheck="false"
-        autofocus
-      />
+      <input type="text" id="hidden-input" class="hidden-input" autocomplete="off" autocorrect="off"
+        autocapitalize="off" spellcheck="false" autofocus />
     </div>
 
     <!-- ═══════ CONTROLS ═══════ -->
@@ -188,6 +196,10 @@
         <div class="result-stat-value" id="result-combo">0</div>
         <div class="result-stat-label">Max Combo</div>
       </div>
+      <div class="result-stat">
+        <div class="result-stat-value" id="result-consistency">0%</div>
+        <div class="result-stat-label">Consistency</div>
+      </div>
     </div>
 
     <!-- Keystroke breakdown -->
@@ -225,4 +237,5 @@
   <!-- App Script (ES Module) -->
   <script type="module" src="js/app.js"></script>
 </body>
+
 </html>

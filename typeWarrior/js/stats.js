@@ -22,6 +22,7 @@ export class StatsTracker {
         this.combo = 0;
         this.maxCombo = 0;
         this.extraChars = 0;
+        this.pb = parseInt(localStorage.getItem('tw-pb') || '0');
     }
 
     /** Mark the start of the test */
@@ -111,6 +112,29 @@ export class StatsTracker {
     end() {
         this.endTime = performance.now();
         this.snapshot(); // Final snapshot
+        this._saveBestWPM();
+    }
+
+    /** Save WPM to localStorage if it's a new personal best */
+    _saveBestWPM() {
+        const currentWpm = this.getWPM();
+        if (currentWpm > this.pb) {
+            this.pb = currentWpm;
+            localStorage.setItem('tw-pb', currentWpm.toString());
+        }
+    }
+
+    /** Calculate typing consistency (variance of snapshots) */
+    getConsistency() {
+        if (this.wpmHistory.length < 2) return 100;
+        const wpms = this.wpmHistory.map(h => h.wpm);
+        const avgWpm = wpms.reduce((a, b) => a + b, 0) / wpms.length;
+        if (avgWpm === 0) return 0;
+
+        // Mean absolute deviation
+        const deviation = wpms.reduce((acc, val) => acc + Math.abs(val - avgWpm), 0) / wpms.length;
+        let consistency = Math.max(0, 100 - (deviation / avgWpm) * 100);
+        return Math.round(consistency);
     }
 
     /** Get final results object */
@@ -119,6 +143,8 @@ export class StatsTracker {
             wpm: this.getWPM(),
             rawWpm: this.getRawWPM(),
             accuracy: this.getAccuracy(),
+            consistency: this.getConsistency(),
+            pb: this.pb,
             correctChars: this.correctChars,
             incorrectChars: this.incorrectChars,
             extraChars: this.extraChars,

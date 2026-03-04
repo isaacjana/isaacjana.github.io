@@ -73,6 +73,7 @@ class TypeWarriorApp {
             liveAccuracy: document.getElementById('live-accuracy'),
             liveTime: document.getElementById('live-time'),
             liveCombo: document.getElementById('live-combo'),
+            livePb: document.getElementById('live-pb'),
             comboLabel: document.getElementById('combo-label'),
 
             // Mode buttons
@@ -85,6 +86,7 @@ class TypeWarriorApp {
             // Controls
             restartBtn: document.getElementById('restart-btn'),
             soundToggle: document.getElementById('sound-toggle'),
+            focusToggle: document.getElementById('focus-toggle'),
             soundTypeSelect: document.getElementById('sound-type'),
 
             // Result modal
@@ -98,6 +100,7 @@ class TypeWarriorApp {
             resultIncorrectChars: document.getElementById('result-incorrect-chars'),
             resultExtraChars: document.getElementById('result-extra-chars'),
             resultCombo: document.getElementById('result-combo'),
+            resultConsistency: document.getElementById('result-consistency'),
             resultChart: document.getElementById('result-chart'),
             resultRestartBtn: document.getElementById('result-restart-btn'),
             resultCloseBtn: document.getElementById('result-close-btn'),
@@ -174,6 +177,11 @@ class TypeWarriorApp {
             });
         }
 
+        // Focus mode
+        this.elements.focusToggle.addEventListener('click', () => {
+            this._toggleFocusMode();
+        });
+
         // Result modal buttons
         this.elements.resultRestartBtn?.addEventListener('click', () => {
             this._hideResultModal();
@@ -200,6 +208,10 @@ class TypeWarriorApp {
                 } else {
                     this._startNewTest();
                 }
+            }
+            if (e.altKey && (e.key === 'f' || e.key === 'F')) {
+                e.preventDefault();
+                this._toggleFocusMode();
             }
         });
     }
@@ -248,10 +260,17 @@ class TypeWarriorApp {
         this._hideResultModal();
         this.engine.setup(this.config);
 
+        // Hide PB in developer mode
+        const pbStat = document.querySelector('.pb-display');
+        if (pbStat) {
+            pbStat.style.display = (this.config.mode === 'developer') ? 'none' : 'flex';
+        }
+
         // Reset live stats display
         this.elements.liveWpm.textContent = '0';
         this.elements.liveAccuracy.textContent = '100%';
         this.elements.liveCombo.textContent = '0';
+        this.elements.livePb.textContent = this.engine.stats.pb;
         this.elements.comboLabel.classList.remove('on-fire');
 
         if (this.config.mode === 'time') {
@@ -266,6 +285,7 @@ class TypeWarriorApp {
         this.elements.liveWpm.textContent = wpm;
         this.elements.liveAccuracy.textContent = accuracy + '%';
         this.elements.liveCombo.textContent = combo;
+        this.elements.livePb.textContent = Math.max(wpm, this.engine.stats.pb);
 
         if (this.config.mode === 'time') {
             this.elements.liveTime.textContent = timeRemaining + 's';
@@ -305,6 +325,7 @@ class TypeWarriorApp {
         this.elements.resultIncorrectChars.textContent = results.incorrectChars;
         this.elements.resultExtraChars.textContent = results.extraChars;
         this.elements.resultCombo.textContent = results.maxCombo;
+        this.elements.resultConsistency.textContent = results.consistency + '%';
 
         // Render chart
         if (results.history.length >= 2) {
@@ -354,6 +375,11 @@ class TypeWarriorApp {
         };
 
         requestAnimationFrame(animate);
+    }
+
+    _toggleFocusMode() {
+        const isActive = document.body.classList.toggle('focus-mode');
+        this.elements.focusToggle.classList.toggle('active', isActive);
     }
 }
 

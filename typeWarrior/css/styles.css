@@ -9,7 +9,9 @@
    ═══════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -50,11 +52,11 @@ html {
 
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  
+
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s ease;
   --transition-slow: 0.5s ease;
-  
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -84,7 +86,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(ellipse at 20% 50%, var(--accent-glow) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
   pointer-events: none;
@@ -417,13 +419,25 @@ body::before {
 }
 
 @keyframes pulse-urgent {
-  0%, 100% { opacity: 1; } 
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes fire-glow {
-  from { text-shadow: 0 0 4px var(--combo-fire); }
-  to { text-shadow: 0 0 12px var(--combo-fire), 0 0 24px rgba(255, 107, 53, 0.5); }
+  from {
+    text-shadow: 0 0 4px var(--combo-fire);
+  }
+
+  to {
+    text-shadow: 0 0 12px var(--combo-fire), 0 0 24px rgba(255, 107, 53, 0.5);
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -457,7 +471,7 @@ body::before {
 }
 
 /* Blur overlay when not focused */
-.words-container.blurred ~ .blur-overlay {
+.words-container.blurred~.blur-overlay {
   opacity: 1;
   pointer-events: auto;
 }
@@ -494,7 +508,8 @@ body::before {
   flex-wrap: wrap;
   gap: 8px 10px;
   line-height: 1.8;
-  max-height: calc(1.8em * 3 + 16px + 20px); /* ~3 lines */
+  max-height: calc(1.8em * 3 + 16px + 20px);
+  /* ~3 lines */
   overflow: hidden;
   font-family: var(--font-mono);
   font-size: 1.35rem;
@@ -517,8 +532,13 @@ body::before {
 }
 
 @keyframes fire-bounce {
-  from { transform: translateY(0) scale(1); }
-  to { transform: translateY(-5px) scale(1.1); }
+  from {
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    transform: translateY(-5px) scale(1.1);
+  }
 }
 
 /* Hidden input (captures keystrokes) */
@@ -583,11 +603,27 @@ body::before {
 }
 
 @keyframes letter-shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-3px); }
-  40% { transform: translateX(3px); }
-  60% { transform: translateX(-2px); }
-  80% { transform: translateX(2px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-3px);
+  }
+
+  40% {
+    transform: translateX(3px);
+  }
+
+  60% {
+    transform: translateX(-2px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -599,7 +635,8 @@ body::before {
   height: 1.6em;
   background: var(--caret);
   border-radius: 2px;
-  top: 24px; /* Match words-container padding */
+  top: 24px;
+  /* Match words-container padding */
   left: 28px;
   z-index: 3;
   pointer-events: none;
@@ -609,13 +646,20 @@ body::before {
 }
 
 /* Stop blinking when typing */
-.words-container:not(.blurred) ~ .caret {
+.words-container:not(.blurred)~.caret {
   animation: none;
 }
 
 @keyframes caret-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -835,10 +879,21 @@ body::before {
   font-weight: 600;
 }
 
-.keystroke-value.correct-val { color: var(--correct); }
-.keystroke-value.incorrect-val { color: var(--incorrect); }
-.keystroke-value.extra-val { color: var(--extra); }
-.keystroke-value.combo-val { color: var(--combo-fire); }
+.keystroke-value.correct-val {
+  color: var(--correct);
+}
+
+.keystroke-value.incorrect-val {
+  color: var(--incorrect);
+}
+
+.keystroke-value.extra-val {
+  color: var(--extra);
+}
+
+.keystroke-value.combo-val {
+  color: var(--combo-fire);
+}
 
 .keystroke-label {
   font-size: 10px;
@@ -916,18 +971,39 @@ body::before {
    ANIMATIONS
    ═══════════════════════════════════════════ */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 5px var(--accent-glow); }
-  50% { box-shadow: 0 0 20px var(--accent-glow), 0 0 40px rgba(226, 183, 20, 0.1); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--accent-glow);
+  }
+
+  50% {
+    box-shadow: 0 0 20px var(--accent-glow), 0 0 40px rgba(226, 183, 20, 0.1);
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -1012,6 +1088,45 @@ body::before {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
+}
+
+/* ═══════════════════════════════════════════
+   FOCUS MODE
+   ═══════════════════════════════════════════ */
+body.focus-mode .header,
+body.focus-mode .mode-selector,
+body.focus-mode .footer,
+body.focus-mode .controls-bar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+}
+
+body.focus-mode .live-stats {
+  opacity: 0.2;
+}
+
+body.focus-mode .live-stats:hover {
+  opacity: 1;
+}
+
+body.focus-mode .progress-container {
+  opacity: 0.3;
+}
+
+/* Ensure smooth transition for entering/exiting focus mode */
+.header,
+.mode-selector,
+.footer,
+.controls-bar,
+.live-stats,
+.progress-container {
+  transition: all 0.4s ease;
+}
+
+/* PB Stat Styling */
+.pb-display {
+  display: flex !important;
 }
 
 /* ═══════════════════════════════════════════
