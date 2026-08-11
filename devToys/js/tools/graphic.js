@@ -77,15 +77,15 @@ const GraphicTools = {
           const nb = m6 * r + m7 * g + m8 * b;
           const simHex = rgbToHex(nr, ng, nb);
 
-          html += `<div style="background:var(--bg-elevated);padding:12px;border-radius:var(--radius-md);border:1px solid var(--border-muted)">
+          html += `<div class="stat-card" style="text-align:left">
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
               <div style="width:40px;height:40px;border-radius:var(--radius-sm);background:${simHex};border:1px solid var(--border-default)"></div>
               <div>
                 <div style="font-size:13px;font-weight:600">${type.name}</div>
-                <div style="font-size:11px;color:var(--text-muted)">${type.desc}</div>
+                <div class="text-xs text-muted">${type.desc}</div>
               </div>
             </div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary)">${simHex}</div>
+            <div class="text-mono text-sm text-secondary">${simHex}</div>
           </div>`;
         });
         $('#cb-results').html(html);

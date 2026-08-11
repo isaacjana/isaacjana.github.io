@@ -307,9 +307,9 @@ Visit [GitHub](https://github.com) for more.
 
                 let html = '';
                 stats.forEach(s => {
-                    html += `<div style="background:var(--bg-elevated);padding:12px;border-radius:var(--radius-md);border:1px solid var(--border-muted)">
-            <div style="font-size:20px;font-weight:700;color:var(--accent-blue)">${s.value}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${s.label}</div>
+                    html += `<div class="stat-card">
+            <div class="stat-value">${s.value}</div>
+            <div class="stat-label">${s.label}</div>
           </div>`;
                 });
                 $('#ta-stats').html(html);

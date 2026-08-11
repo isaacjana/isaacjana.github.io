@@ -133,7 +133,7 @@ const ConverterTools = {
 
                 let html = '';
                 rows.forEach(([fmt, v]) => {
-                    html += `<tr><td style="font-family:inherit;color:var(--text-secondary)">${fmt}</td><td>${v}</td></tr>`;
+                    html += `<tr><td class="text-secondary" style="font-family:inherit">${fmt}</td><td>${v}</td></tr>`;
                 });
                 $('#date-output tbody').html(html);
             };

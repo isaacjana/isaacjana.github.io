@@ -820,11 +820,11 @@ Salad</textarea>
           return;
         }
         let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:8px">';
-        html += `<div style="background:var(--bg-elevated);padding:8px;border-radius:var(--radius-md);text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent-blue)">${sv.major}</div><div style="font-size:11px;color:var(--text-muted)">Major</div></div>`;
-        html += `<div style="background:var(--bg-elevated);padding:8px;border-radius:var(--radius-md);text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent-green)">${sv.minor}</div><div style="font-size:11px;color:var(--text-muted)">Minor</div></div>`;
-        html += `<div style="background:var(--bg-elevated);padding:8px;border-radius:var(--radius-md);text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent-orange)">${sv.patch}</div><div style="font-size:11px;color:var(--text-muted)">Patch</div></div>`;
-        if (sv.prerelease) html += `<div style="background:var(--bg-elevated);padding:8px;border-radius:var(--radius-md);text-align:center"><div style="font-size:14px;font-weight:600;color:var(--accent-purple)">${sv.prerelease}</div><div style="font-size:11px;color:var(--text-muted)">Pre-release</div></div>`;
-        if (sv.build) html += `<div style="background:var(--bg-elevated);padding:8px;border-radius:var(--radius-md);text-align:center"><div style="font-size:14px;font-weight:600;color:var(--accent-pink)">${sv.build}</div><div style="font-size:11px;color:var(--text-muted)">Build</div></div>`;
+        html += `<div class="stat-card"><div class="stat-value" style="color:var(--accent-blue)">${sv.major}</div><div class="stat-label">Major</div></div>`;
+        html += `<div class="stat-card"><div class="stat-value" style="color:var(--accent-green)">${sv.minor}</div><div class="stat-label">Minor</div></div>`;
+        html += `<div class="stat-card"><div class="stat-value" style="color:var(--accent-orange)">${sv.patch}</div><div class="stat-label">Patch</div></div>`;
+        if (sv.prerelease) html += `<div class="stat-card"><div class="stat-value" style="font-size:14px;color:var(--accent-purple)">${sv.prerelease}</div><div class="stat-label">Pre-release</div></div>`;
+        if (sv.build) html += `<div class="stat-card"><div class="stat-value" style="font-size:14px;color:var(--accent-pink)">${sv.build}</div><div class="stat-label">Build</div></div>`;
         html += '</div>';
         $('#sv-parsed').html(html);
       };

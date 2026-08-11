@@ -4,12 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="DevToys - A Swiss Army knife for developers. 40+ client-side tools for encoding, converting, formatting, generating, and testing data.">
+  <meta name="keywords" content="developer tools, JSON formatter, Base64, UUID generator, regex tester, hash generator, QR code, URL encoder">
+  <meta name="author" content="DevToys">
+  <meta name="theme-color" content="#0d1117">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="DevToys - Developer Tools">
+  <meta property="og:description" content="40+ client-side developer tools: encoders, formatters, generators, converters & more. No server needed.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://isaacjana.github.io/devToys/">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="DevToys - Developer Tools">
+  <meta name="twitter:description" content="40+ client-side developer tools: encoders, formatters, generators, converters & more.">
+
   <title>DevToys - Developer Tools</title>
 
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>">
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts (preconnect + preload) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
@@ -17,20 +32,32 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- QR Code Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 
   <!-- Custom Styles -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <!-- Skip to content (accessibility) -->
+  <a href="#content-body" class="skip-link">Skip to content</a>
+
+  <noscript>
+    <div style="padding:32px;text-align:center;color:#e6edf3;background:#0d1117;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;">
+      <div>
+        <h1>🛠️ DevToys</h1>
+        <p style="margin-top:12px;color:#8b949e;">JavaScript is required to run DevToys. Please enable JavaScript in your browser settings.</p>
+      </div>
+    </div>
+  </noscript>
+
   <div class="app-container">
     <!-- Mobile Overlay -->
     <div class="sidebar-overlay"></div>
 
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Tool navigation">
       <div class="sidebar-header">
-        <a href="#" class="sidebar-logo" onclick="navigateTo('home'); return false;">
+        <a href="#" class="sidebar-logo" onclick="navigateTo('home'); return false;" aria-label="DevToys Home">
           <div class="sidebar-logo-icon">🛠️</div>
           <span class="sidebar-logo-text">DevToys</span>
         </a>
@@ -39,20 +66,25 @@
       <div class="sidebar-search">
         <div class="search-input-wrapper">
           <i class="fas fa-search"></i>
-          <input type="text" class="search-input" id="sidebar-search" placeholder="Search tools..." autocomplete="off">
+          <input type="text" class="search-input" id="sidebar-search" placeholder="Search tools..." autocomplete="off" aria-label="Search tools">
+          <span class="search-shortcut-hint" id="search-shortcut-hint">Ctrl+K</span>
         </div>
       </div>
 
-      <nav class="sidebar-nav" id="sidebar-nav">
+      <nav class="sidebar-nav" id="sidebar-nav" aria-label="Tools list">
         <!-- Built dynamically by app.js -->
       </nav>
+
+      <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Collapse sidebar" aria-label="Toggle sidebar">
+        <i class="fas fa-chevron-left"></i>
+      </button>
     </aside>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" role="main">
       <header class="content-header">
         <div class="content-header-left">
-          <button class="mobile-menu-btn" id="mobile-menu-btn">
+          <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu">
             <i class="fas fa-bars"></i>
           </button>
           <h1 class="content-title" id="content-title">All Tools</h1>
@@ -63,25 +95,30 @@
       <div class="content-body" id="content-body">
         <!-- Tool content rendered here -->
       </div>
+
+      <footer class="app-footer">
+        <span id="footer-tool-count"></span>
+        <span>Built with ♥ for developers</span>
+      </footer>
     </main>
   </div>
 
   <!-- Toast Container -->
-  <div class="toast-container" id="toast-container"></div>
+  <div class="toast-container" id="toast-container" role="alert" aria-live="polite"></div>
 
   <!-- jQuery -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" defer></script>
 
   <!-- App Scripts (order matters!) -->
-  <script src="js/toolRegistry.js"></script>
-  <script src="js/tools/converters.js"></script>
-  <script src="js/tools/encodersDecoders.js"></script>
-  <script src="js/tools/formatters.js"></script>
-  <script src="js/tools/generators.js"></script>
-  <script src="js/tools/text.js"></script>
-  <script src="js/tools/graphic.js"></script>
-  <script src="js/tools/testers.js"></script>
-  <script src="js/tools/thirdParty.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/toolRegistry.js" defer></script>
+  <script src="js/tools/converters.js" defer></script>
+  <script src="js/tools/encodersDecoders.js" defer></script>
+  <script src="js/tools/formatters.js" defer></script>
+  <script src="js/tools/generators.js" defer></script>
+  <script src="js/tools/text.js" defer></script>
+  <script src="js/tools/graphic.js" defer></script>
+  <script src="js/tools/testers.js" defer></script>
+  <script src="js/tools/thirdParty.js" defer></script>
+  <script src="js/app.js" defer></script>
 </body>
 </html>

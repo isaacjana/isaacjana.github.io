@@ -81,7 +81,7 @@ const GeneratorTools = {
           let hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
           if (upper) hash = hash.toUpperCase();
           html += `<tr>
-            <td style="font-family:inherit;color:var(--text-secondary);white-space:nowrap">${algo}</td>
+            <td class="text-secondary nowrap" style="font-family:inherit">${algo}</td>
             <td style="word-break:break-all">${hash}</td>
             <td style="width:40px"><button class="btn btn-ghost btn-sm" onclick="copyToClipboard('${hash}')"><i class="fas fa-copy"></i></button></td>
           </tr>`;
@@ -91,7 +91,7 @@ const GeneratorTools = {
         const md5hash = md5(typeof data === 'string' ? data : arrayBufferToString(buffer));
         const md5display = upper ? md5hash.toUpperCase() : md5hash;
         html = `<tr>
-          <td style="font-family:inherit;color:var(--text-secondary);white-space:nowrap">MD5</td>
+          <td class="text-secondary nowrap" style="font-family:inherit">MD5</td>
           <td style="word-break:break-all">${md5display}</td>
           <td style="width:40px"><button class="btn btn-ghost btn-sm" onclick="copyToClipboard('${md5display}')"><i class="fas fa-copy"></i></button></td>
         </tr>` + html;

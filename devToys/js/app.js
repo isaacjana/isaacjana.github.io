@@ -23,8 +23,22 @@ $(document).ready(() => {
     registerToolRenderers();
     buildSidebar();
     bindEvents();
+    updateFooter();
+    detectOS();
     navigateFromHash();
 });
+
+// ── Detect OS for shortcut hint ──
+function detectOS() {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const hint = isMac ? '⌘K' : 'Ctrl+K';
+    $('#search-shortcut-hint').text(hint);
+}
+
+// ── Footer ──
+function updateFooter() {
+    $('#footer-tool-count').text(`${TOOLS.length} tools available`);
+}
 
 // ── Sidebar Builder ──
 function buildSidebar() {
@@ -33,7 +47,7 @@ function buildSidebar() {
 
     // Home item
     nav.append(`
-    <div class="nav-item" data-tool="home" id="nav-home">
+    <div class="nav-item" data-tool="home" id="nav-home" tabindex="0" role="button" aria-label="All Tools">
       <i class="fas fa-home"></i>
       <span>All Tools</span>
     </div>
@@ -45,18 +59,18 @@ function buildSidebar() {
 
         const catEl = $(`
       <div class="nav-category" data-category="${cat.id}">
-        <div class="nav-category-header">
+        <div class="nav-category-header" tabindex="0" role="button" aria-expanded="true" aria-label="Toggle ${cat.name} category">
           <span class="nav-category-title">${cat.name}</span>
           <i class="fas fa-chevron-down nav-category-chevron"></i>
         </div>
-        <div class="nav-category-items"></div>
+        <div class="nav-category-items" role="group" aria-label="${cat.name} tools"></div>
       </div>
     `);
 
         const items = catEl.find('.nav-category-items');
         tools.forEach(tool => {
             items.append(`
-        <div class="nav-item" data-tool="${tool.id}">
+        <div class="nav-item" data-tool="${tool.id}" tabindex="0" role="button" aria-label="${tool.name}: ${tool.description}">
           <i class="${tool.icon}"></i>
           <span>${tool.name}</span>
         </div>
@@ -75,16 +89,35 @@ function bindEvents() {
         navigateTo(toolId);
     });
 
-    // Category collapse
-    $(document).on('click', '.nav-category-header', function () {
-        $(this).closest('.nav-category').toggleClass('collapsed');
+    // Nav item keyboard (Enter/Space)
+    $(document).on('keydown', '.nav-item', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const toolId = $(this).data('tool');
+            navigateTo(toolId);
+        }
     });
 
-    // Search
-    $('#sidebar-search').on('input', function () {
+    // Category collapse
+    $(document).on('click', '.nav-category-header', function () {
+        const cat = $(this).closest('.nav-category');
+        cat.toggleClass('collapsed');
+        $(this).attr('aria-expanded', !cat.hasClass('collapsed'));
+    });
+
+    // Category collapse keyboard
+    $(document).on('keydown', '.nav-category-header', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            $(this).click();
+        }
+    });
+
+    // Search (debounced)
+    $('#sidebar-search').on('input', debounce(function () {
         const query = $(this).val().trim();
         filterSidebar(query);
-    });
+    }, 150));
 
     // Tool card clicks (home grid)
     $(document).on('click', '.tool-card', function () {
@@ -112,8 +145,51 @@ function bindEvents() {
         $('.sidebar-overlay').removeClass('visible');
     });
 
+    // Sidebar collapse (desktop)
+    $('#sidebar-collapse-btn').on('click', () => {
+        const sidebar = $('#sidebar');
+        sidebar.toggleClass('collapsed');
+        const isCollapsed = sidebar.hasClass('collapsed');
+        localStorage.setItem('devtoys-sidebar-collapsed', isCollapsed);
+    });
+
+    // Restore sidebar collapsed state
+    if (localStorage.getItem('devtoys-sidebar-collapsed') === 'true') {
+        $('#sidebar').addClass('collapsed');
+    }
+
     // Hash change
     $(window).on('hashchange', navigateFromHash);
+
+    // Keyboard shortcuts
+    $(document).on('keydown', function (e) {
+        // Ctrl+K / Cmd+K — focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchInput = $('#sidebar-search');
+            searchInput.focus().select();
+            // If sidebar is collapsed, expand it
+            $('#sidebar').removeClass('collapsed');
+            // If on mobile, open sidebar
+            if ($(window).width() <= 768) {
+                $('.sidebar').addClass('open');
+                $('.sidebar-overlay').addClass('visible');
+            }
+        }
+
+        // Escape — clear search or navigate home
+        if (e.key === 'Escape') {
+            const searchInput = $('#sidebar-search');
+            if (searchInput.is(':focus') && searchInput.val()) {
+                searchInput.val('');
+                filterSidebar('');
+            } else if (searchInput.is(':focus')) {
+                searchInput.blur();
+            } else if (currentToolId !== 'home') {
+                navigateTo('home');
+            }
+        }
+    });
 }
 
 // ── Navigation ──
@@ -134,17 +210,33 @@ function navigateTo(toolId, fromHash = false) {
     }
 
     // Update active state
-    $('.nav-item').removeClass('active');
-    $(`.nav-item[data-tool="${id}"]`).addClass('active');
+    $('.nav-item').removeClass('active').attr('aria-current', null);
+    $(`.nav-item[data-tool="${id}"]`).addClass('active').attr('aria-current', 'page');
 
     // Close mobile menu
     $('.sidebar').removeClass('open');
     $('.sidebar-overlay').removeClass('visible');
+
+    // Scroll content to top
+    $('#content-body').scrollTop(0);
+
+    // Remember last tool
+    localStorage.setItem('devtoys-last-tool', id);
 }
 
 function navigateFromHash() {
     const hash = window.location.hash.replace('#', '');
-    const target = hash || 'home';
+    let target = hash || null;
+
+    // If no hash, try to restore last tool
+    if (!target) {
+        const lastTool = localStorage.getItem('devtoys-last-tool');
+        if (lastTool && lastTool !== 'home' && getToolById(lastTool)) {
+            target = lastTool;
+        } else {
+            target = 'home';
+        }
+    }
 
     if (target === currentToolId) return;
 
@@ -163,6 +255,7 @@ function renderHome() {
 
     const body = $('#content-body');
     let html = '';
+    let cardIndex = 0;
 
     const toolsByCategory = getToolsByCategory();
 
@@ -176,7 +269,7 @@ function renderHome() {
 
         tools.forEach(tool => {
             html += `
-        <div class="tool-card" data-tool="${tool.id}">
+        <div class="tool-card" data-tool="${tool.id}" style="--i:${cardIndex}" tabindex="0" role="button" aria-label="${tool.name}: ${tool.description}">
           <div class="tool-card-icon" style="background:${tool.gradient}">
             <i class="${tool.icon}"></i>
           </div>
@@ -185,12 +278,21 @@ function renderHome() {
             <div class="tool-card-desc">${tool.description}</div>
           </div>
         </div>`;
+            cardIndex++;
         });
 
         html += `</div></div>`;
     });
 
     body.html(html);
+
+    // Enable keyboard activation of cards
+    body.find('.tool-card').on('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            $(this).click();
+        }
+    });
 }
 
 // ── Render Tool ──
@@ -284,9 +386,11 @@ function copyToClipboard(text) {
 }
 
 function showToast(message, type = 'info') {
-    const toast = $(`<div class="toast toast-${type}"><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}</div>`);
+    const iconMap = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+    const icon = iconMap[type] || iconMap.info;
+    const toast = $(`<div class="toast toast-${type}"><i class="fas fa-${icon}"></i> ${message}</div>`);
     $('#toast-container').append(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => toast.remove(), 3200);
 }
 
 function debounce(fn, delay) {
