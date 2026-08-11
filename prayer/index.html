@@ -1,24 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-parchment">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oratio - Catholic Prayer Generator</title>
-    <meta name="description" content="Generate beautiful Catholic prayers for meals, gatherings, trials, and more.">
+    <title>Oratio - Catholic Prayer Generator & Companion</title>
+    <meta name="description"
+        content="Generate beautiful Catholic prayers for meals, gatherings, trials, healing, and guidance. Includes Latin prayers, Audio Read-Aloud, Rosary companion, and personal prayer journal.">
+    
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
                         parchment: '#FDF8F0',
+                        'parchment-dark': '#F4EAD8',
                         gold: '#C9A227',
                         'gold-light': '#E8D48A',
+                        'gold-dark': '#9A7B1C',
                         crimson: '#8B0000',
                         'crimson-dark': '#5C0000',
+                        'crimson-light': '#B22222',
                         ink: '#1A1A1A',
-                        paper: '#FAF7F2'
+                        paper: '#FAF7F2',
+                        // Dark mode palette
+                        'night-bg': '#121110',
+                        'night-card': '#1C1A17',
+                        'night-paper': '#26231F',
+                        'night-border': '#4A3E25'
                     },
                     fontFamily: {
                         serif: ['Lora', 'Georgia', 'serif'],
@@ -26,8 +38,8 @@
                         sans: ['Inter', 'system-ui', 'sans-serif'],
                     },
                     animation: {
-                        'fade-in': 'fadeIn 0.6s ease-out',
-                        'slide-up': 'slideUp 0.5s ease-out',
+                        'fade-in': 'fadeIn 0.4s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
                         'pulse-gold': 'pulseGold 2s infinite',
                         'float': 'float 3s ease-in-out infinite',
                     }
@@ -36,68 +48,71 @@
         }
     </script>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <style>
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes pulseGold {
-
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.4);
-            }
-
-            50% {
-                box-shadow: 0 0 0 10px rgba(201, 162, 39, 0);
-            }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(201, 162, 39, 0); }
         }
 
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-5px);
-            }
+        /* Dynamic Font Size Control */
+        :root {
+            --prayer-font-size: 1.25rem;
         }
 
+        .prayer-text-dynamic {
+            font-size: var(--prayer-font-size);
+            line-height: 1.7;
+        }
+
+        /* Dual Theme Customization */
         body {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .theme-parchment body {
             background: linear-gradient(135deg, #FDF8F0 0%, #F5EDE0 50%, #FDF8F0 100%);
             background-attachment: fixed;
+            color: #1A1A1A;
         }
 
+        .theme-dark body {
+            background: linear-gradient(135deg, #121110 0%, #1A1815 50%, #0E0D0C 100%);
+            background-attachment: fixed;
+            color: #E6E1D5;
+        }
+
+        /* Ornate Manuscript Accents */
         .ornate-border {
-            background: linear-gradient(135deg, #C9A227 0%, #E8D48A 50%, #C9A227 100%);
+            background: linear-gradient(135deg, #C9A227 0%, #E8D48A 50%, #9A7B1C 100%);
             padding: 2px;
+            box-shadow: 0 10px 30px -5px rgba(201, 162, 39, 0.2);
+        }
+
+        .theme-dark .ornate-border {
+            background: linear-gradient(135deg, #E8D48A 0%, #9A7B1C 50%, #E8D48A 100%);
+            box-shadow: 0 10px 35px -5px rgba(232, 212, 138, 0.15);
         }
 
         .prayer-card {
             position: relative;
             background: linear-gradient(to bottom, #FFFFFF, #FAF7F2);
+            transition: background 0.3s ease;
+        }
+
+        .theme-dark .prayer-card {
+            background: linear-gradient(to bottom, #1C1A17, #24201B);
         }
 
         .prayer-card::before,
@@ -109,59 +124,67 @@
             opacity: 0.6;
         }
 
-        .prayer-card::before {
-            top: 1rem;
-            left: 1rem;
-        }
-
-        .prayer-card::after {
-            bottom: 1rem;
-            right: 1rem;
-            transform: rotate(180deg);
-        }
+        .prayer-card::before { top: 1rem; left: 1rem; }
+        .prayer-card::after { bottom: 1rem; right: 1rem; transform: rotate(180deg); }
 
         .category-btn {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .category-btn.active {
             background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
             color: white;
+            border-color: #8B0000;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
         }
 
+        .theme-dark .category-btn.active {
+            background: linear-gradient(135deg, #A81C1C 0%, #680A0A 100%);
+            border-color: #E8D48A;
+            box-shadow: 0 4px 15px rgba(232, 212, 138, 0.25);
+        }
+
         .category-btn:not(.active):hover {
             border-color: #C9A227;
-            background: rgba(201, 162, 39, 0.1);
+            background: rgba(201, 162, 39, 0.08);
         }
 
         .generate-btn {
-            background: linear-gradient(135deg, #C9A227 0%, #A88A1E 100%);
+            background: linear-gradient(135deg, #C9A227 0%, #9A7B1C 100%);
             transition: all 0.3s ease;
         }
 
         .generate-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(201, 162, 39, 0.4);
+            box-shadow: 0 6px 20px rgba(201, 162, 39, 0.45);
         }
 
-        .generate-btn:active {
-            transform: translateY(0);
-        }
+        .generate-btn:active { transform: translateY(0); }
 
-        .static-prayer-btn {
+        .nav-tab-btn {
+            position: relative;
             transition: all 0.2s ease;
         }
 
-        .static-prayer-btn:hover {
-            background: linear-gradient(135deg, #C9A227 0%, #E8D48A 100%);
-            color: white;
-            transform: scale(1.02);
+        .nav-tab-btn.active {
+            color: #8B0000;
+            font-weight: 700;
         }
 
-        .toast {
-            animation: slideUp 0.3s ease-out, fadeIn 0.3s ease-out;
+        .theme-dark .nav-tab-btn.active {
+            color: #E8D48A;
+        }
+
+        .nav-tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #C9A227;
+            border-radius: 2px;
         }
 
         .cross-divider {
@@ -180,268 +203,831 @@
     </style>
 </head>
 
-<body class="text-ink min-h-screen flex flex-col font-serif selection:bg-gold selection:text-white">
+<body class="min-h-screen flex flex-col font-serif selection:bg-gold selection:text-white">
 
-    <!-- Header -->
-    <header class="py-6 text-center bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b-2 border-gold shadow-sm">
-        <div class="container mx-auto px-4">
-            <h1 class="text-3xl md:text-4xl font-display font-bold text-crimson tracking-widest">✝ ORATIO ✝</h1>
-            <p class="text-sm italic text-gray-500 mt-1 font-serif">Sacred prayer, simply gathered</p>
+    <!-- Header & Navigation Bar -->
+    <header class="py-4 bg-white/80 dark:bg-night-card/90 backdrop-blur-md sticky top-0 z-50 border-b-2 border-gold shadow-sm transition-colors duration-300">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Branding -->
+            <div class="flex items-center gap-3">
+                <span class="text-2xl text-crimson dark:text-gold animate-pulse-gold rounded-full px-2">✝</span>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-display font-bold tracking-widest text-crimson dark:text-gold">ORATIO</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-sans tracking-wide">Sacred Catholic Prayer Companion</p>
+                </div>
+            </div>
+
+            <!-- Main Navigation Tabs -->
+            <nav class="flex items-center gap-1 sm:gap-4 font-sans text-sm">
+                <button id="tabGenerator" class="nav-tab-btn active px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
+                    <span>✨</span> Generator
+                </button>
+                <button id="tabLibrary" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
+                    <span>📖</span> Common Prayers
+                </button>
+                <button id="tabRosary" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
+                    <span>📿</span> Rosary
+                </button>
+                <button id="tabJournal" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
+                    <span>💖</span> Journal <span id="journalCountBadge" class="hidden ml-1 px-1.5 py-0.5 text-xs bg-crimson text-white rounded-full font-bold">0</span>
+                </button>
+            </nav>
+
+            <!-- Utility Controls (Theme, Sound Chime, Font Size) -->
+            <div class="flex items-center gap-2 font-sans">
+                <!-- Cathedral Bell Chime Button -->
+                <button id="chimeBtn" title="Play Sacred Cathedral Bell Chime" class="p-2 rounded-lg border border-gray-300 dark:border-night-border hover:border-gold hover:bg-gold/10 text-gold transition-all">
+                    🔔
+                </button>
+
+                <!-- Font Size Selector -->
+                <div class="flex items-center bg-gray-100 dark:bg-night-paper rounded-lg p-1 border border-gray-200 dark:border-night-border">
+                    <button class="font-size-btn text-xs px-2 py-1 rounded hover:bg-white dark:hover:bg-night-card font-semibold text-gray-600 dark:text-gray-300" data-size="1rem">S</button>
+                    <button class="font-size-btn text-xs px-2 py-1 rounded bg-white dark:bg-night-card font-bold text-crimson dark:text-gold shadow-sm" data-size="1.25rem">M</button>
+                    <button class="font-size-btn text-xs px-2 py-1 rounded hover:bg-white dark:hover:bg-night-card font-semibold text-gray-600 dark:text-gray-300" data-size="1.4rem">L</button>
+                </div>
+
+                <!-- Theme Switcher -->
+                <button id="themeToggleBtn" title="Toggle Light Parchment / Dark Monastic Mode"
+                    class="p-2 rounded-lg border border-gray-300 dark:border-night-border hover:border-gold text-gray-700 dark:text-gold transition-all flex items-center gap-1 text-xs font-semibold">
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
         </div>
     </header>
 
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-2xl">
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
 
-        <!-- Inspiration Quote -->
-        <div id="quoteSection" class="text-center mb-8 animate-fade-in">
-            <p class="text-sm italic text-gray-500">"<span id="quoteText"></span>"</p>
-            <p class="text-xs text-gold mt-1">— <span id="quoteAuthor"></span></p>
-        </div>
-
-        <!-- Controls Section -->
-        <section
-            class="bg-white/90 backdrop-blur-sm p-6 md:p-8 rounded-xl shadow-lg border border-gold/30 mb-8 animate-slide-up">
-
-            <!-- Category Selection -->
-            <div class="mb-6">
-                <label class="block text-xs font-sans font-semibold text-gray-400 uppercase tracking-widest mb-3">
-                    <span class="inline-block mr-2">📿</span> Intention Type
-                </label>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    <button
-                        class="category-btn active py-3 px-3 rounded-lg border-2 border-crimson font-sans text-sm font-medium flex flex-col items-center gap-1"
-                        data-category="meals">
-                        <span class="text-lg">🍞</span>
-                        <span>Meals</span>
-                    </button>
-                    <button
-                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1"
-                        data-category="gatherings">
-                        <span class="text-lg">👥</span>
-                        <span>Gathering</span>
-                    </button>
-                    <button
-                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1"
-                        data-category="trials">
-                        <span class="text-lg">✝️</span>
-                        <span>Trials</span>
-                    </button>
-                    <button
-                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1"
-                        data-category="thanksgiving">
-                        <span class="text-lg">🙏</span>
-                        <span>Thanks</span>
-                    </button>
-                    <button
-                        class="category-btn py-3 px-3 rounded-lg border-2 border-gray-200 font-sans text-sm font-medium flex flex-col items-center gap-1 col-span-2 md:col-span-1"
-                        data-category="guidance">
-                        <span class="text-lg">💡</span>
-                        <span>Guidance</span>
-                    </button>
+        <!-- ============================================================== -->
+        <!-- VIEW 1: PRAYER GENERATOR -->
+        <!-- ============================================================== -->
+        <div id="viewGenerator" class="tab-view space-y-8 animate-fade-in">
+            
+            <!-- Inspiration Quote Banner -->
+            <div id="quoteSection" class="bg-white/70 dark:bg-night-card/70 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-gold/30 text-center shadow-sm relative">
+                <p class="text-sm md:text-base italic text-gray-800 dark:text-gray-200">"<span id="quoteText"></span>"</p>
+                <p id="quoteLatin" class="text-xs italic text-gray-500 dark:text-gray-400 mt-1 hidden"></p>
+                <div class="flex items-center justify-center gap-3 mt-2">
+                    <p class="text-xs text-gold font-semibold">— <span id="quoteAuthor"></span></p>
+                    <button id="refreshQuoteBtn" title="New Inspiration Quote" class="text-xs text-gray-400 hover:text-gold transition-colors">🔄</button>
                 </div>
             </div>
 
-            <!-- Intention Input -->
-            <div class="mb-6">
-                <label for="intentionInput"
-                    class="block text-xs font-sans font-semibold text-gray-400 uppercase tracking-widest mb-3">
-                    <span class="inline-block mr-2">✍️</span> Your Intention
-                </label>
-                <input type="text" id="intentionInput" placeholder="e.g., peace in our home, healing for a friend..."
-                    class="w-full bg-paper border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 font-serif text-lg placeholder-gray-400 transition-all duration-300">
-                <p class="text-xs text-gray-400 mt-2 italic">Leave blank for a general prayer</p>
-            </div>
-
-            <!-- Tone Switcher -->
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
-                <div class="flex items-center gap-3 bg-paper px-4 py-2 rounded-full border border-gray-200">
-                    <span class="text-xs font-sans font-semibold text-gray-500 uppercase">Tone:</span>
-                    <button id="toneTraditional"
-                        class="tone-btn px-3 py-1 rounded-full text-sm font-sans font-medium bg-crimson text-white transition-all">Traditional</button>
-                    <button id="toneSimple"
-                        class="tone-btn px-3 py-1 rounded-full text-sm font-sans font-medium text-gray-600 hover:bg-gray-100 transition-all">Simple</button>
-                </div>
-
-                <button id="generateBtn"
-                    class="generate-btn w-full sm:w-auto text-white font-sans font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2">
-                    <span>✨</span> Generate Prayer
-                </button>
-            </div>
-        </section>
-
-        <!-- Output Section -->
-        <section id="prayerOutputSection" class="hidden mb-8">
-            <div class="ornate-border rounded-lg">
-                <div class="prayer-card p-8 md:p-10 text-center rounded-lg">
-                    <div class="cross-divider text-crimson text-2xl opacity-60 font-display mb-6">✝</div>
-                    <p id="prayerText" class="text-xl md:text-2xl leading-relaxed text-gray-800 italic px-4"></p>
-                    <div class="cross-divider text-crimson text-2xl opacity-60 font-display mt-6">✝</div>
-
-                    <div class="mt-8 flex flex-wrap justify-center gap-3">
-                        <button id="copyBtn"
-                            class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gold text-gold hover:bg-gold hover:text-white transition-all font-sans text-sm font-semibold">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            Copy
+            <!-- Controls Card -->
+            <section class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-6 md:p-8 rounded-xl shadow-lg border border-gold/40">
+                
+                <!-- Category Selection -->
+                <div class="mb-6">
+                    <label class="block text-xs font-sans font-bold text-gold uppercase tracking-wider mb-3">
+                        📿 Step 1: Select Prayer Intention Category
+                    </label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                        <button class="category-btn active py-3 px-2 rounded-lg border-2 border-crimson dark:border-gold font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="meals">
+                            <span class="text-xl">🍞</span>
+                            <span>Meals</span>
                         </button>
-                        <button id="regenerateBtn"
-                            class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-300 text-gray-600 hover:border-crimson hover:text-crimson transition-all font-sans text-sm font-semibold">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            New Variation
+                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="gatherings">
+                            <span class="text-xl">👥</span>
+                            <span>Gathering</span>
+                        </button>
+                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="trials">
+                            <span class="text-xl">✝️</span>
+                            <span>Trials</span>
+                        </button>
+                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="thanksgiving">
+                            <span class="text-xl">🙏</span>
+                            <span>Thanks</span>
+                        </button>
+                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="guidance">
+                            <span class="text-xl">💡</span>
+                            <span>Guidance</span>
+                        </button>
+                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="protection">
+                            <span class="text-xl">🛡️</span>
+                            <span>Protection</span>
+                        </button>
+                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="healing">
+                            <span class="text-xl">🕊️</span>
+                            <span>Healing</span>
                         </button>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- Static Prayers -->
-        <section class="mt-8">
-            <h3 class="cross-divider text-center font-display text-lg text-gray-400 mb-6">Common Prayers</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="grace">🍞 Grace Before Meals</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="graceAfter">🙏 Grace After Meals</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="glory">✨ Glory Be</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="ourFather">📖 Our Father</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="hailMary">🌹 Hail Mary</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="memorare">💐 Memorare</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="angelGuardian">👼 Guardian Angel</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="stMichael">⚔️ St. Michael</button>
-                <button
-                    class="static-prayer-btn p-3 bg-white/80 border border-gray-200 rounded-lg font-sans text-sm text-center"
-                    data-key="serenity">☮️ Serenity</button>
+                <!-- Preset Intention Tag Pills -->
+                <div class="mb-6">
+                    <label class="block text-xs font-sans font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                        💡 Quick Preset Intentions (Optional):
+                    </label>
+                    <div id="intentionPresetsContainer" class="flex flex-wrap gap-2">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- Custom Intention Input -->
+                <div class="mb-6">
+                    <label for="intentionInput" class="block text-xs font-sans font-bold text-gold uppercase tracking-wider mb-2">
+                        ✍️ Step 2: Custom Intention / Person / Request
+                    </label>
+                    <input type="text" id="intentionInput" placeholder="e.g., peace in our home, healing for my grandmother, discernment..."
+                        class="w-full bg-paper dark:bg-night-paper border-2 border-gray-200 dark:border-night-border rounded-lg px-4 py-3 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 font-serif text-base md:text-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 transition-all duration-300">
+                </div>
+
+                <!-- Tone & Mode Switcher Bar -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100 dark:border-night-border">
+                    <div class="flex items-center gap-2 bg-paper dark:bg-night-paper px-3 py-1.5 rounded-full border border-gray-200 dark:border-night-border text-xs font-sans">
+                        <span class="font-bold text-gray-500 uppercase mr-1">Tone:</span>
+                        <button id="toneTraditional" class="tone-btn px-3 py-1 rounded-full font-medium bg-crimson text-white dark:bg-gold dark:text-night-bg transition-all">Traditional</button>
+                        <button id="toneSimple" class="tone-btn px-3 py-1 rounded-full font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-night-card transition-all">Simple</button>
+                        <button id="toneLatin" class="tone-btn px-3 py-1 rounded-full font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-night-card transition-all">Latin 🏛️</button>
+                    </div>
+
+                    <button id="generateBtn" class="generate-btn w-full sm:w-auto text-white font-sans font-bold py-3.5 px-8 rounded-lg flex items-center justify-center gap-2 text-base">
+                        <span>✨</span> Generate Prayer
+                    </button>
+                </div>
+            </section>
+
+            <!-- Prayer Output Section -->
+            <section id="prayerOutputSection" class="hidden animate-slide-up">
+                <div class="ornate-border rounded-xl">
+                    <div class="prayer-card p-6 md:p-10 text-center rounded-xl relative">
+                        <div class="cross-divider text-crimson dark:text-gold text-2xl opacity-70 font-display mb-6">✝</div>
+                        
+                        <p id="prayerText" class="prayer-text-dynamic text-gray-800 dark:text-gray-100 italic px-2 md:px-6"></p>
+
+                        <div class="cross-divider text-crimson dark:text-gold text-2xl opacity-70 font-display mt-6">✝</div>
+
+                        <!-- Action Toolbar -->
+                        <div class="mt-8 flex flex-wrap justify-center items-center gap-3 font-sans text-sm font-semibold">
+                            <!-- Text to Speech Play/Stop Button -->
+                            <button id="ttsBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg transition-all">
+                                <span id="ttsIcon">🔊</span> <span id="ttsLabel">Listen (Audio)</span>
+                            </button>
+
+                            <!-- Save to Journal Button -->
+                            <button id="saveJournalBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-crimson dark:border-crimson-light text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white transition-all">
+                                <span id="journalIcon">💖</span> Save to Journal
+                            </button>
+
+                            <!-- Copy Button -->
+                            <button id="copyBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-300 dark:border-night-border text-gray-700 dark:text-gray-300 hover:border-gold transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy
+                            </button>
+
+                            <!-- Regenerate Button -->
+                            <button id="regenerateBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-300 dark:border-night-border text-gray-600 dark:text-gray-400 hover:border-crimson hover:text-crimson transition-all">
+                                🔄 New Variation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 2: COMMON PRAYERS LIBRARY & LATIN TRANSLATIONS -->
+        <!-- ============================================================== -->
+        <div id="viewLibrary" class="tab-view hidden space-y-6 animate-fade-in">
+            <div class="bg-white/80 dark:bg-night-card/80 backdrop-blur-md p-6 rounded-xl border border-gold/30">
+                <h2 class="text-xl md:text-2xl font-display font-bold text-crimson dark:text-gold mb-2">Sacred Common Prayers Library</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 font-sans mb-6">Browse timeless traditional prayers with optional Latin translation modes.</p>
+
+                <!-- Search & Filters -->
+                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                    <div class="relative flex-grow">
+                        <input type="text" id="librarySearchInput" placeholder="🔍 Search prayers by title or text..."
+                            class="w-full bg-paper dark:bg-night-paper border border-gray-300 dark:border-night-border rounded-lg pl-10 pr-4 py-2.5 font-sans text-sm focus:outline-none focus:border-gold">
+                        <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+                    </div>
+
+                    <!-- Mode Selector for Common Prayers -->
+                    <div class="flex items-center gap-1 bg-paper dark:bg-night-paper p-1 rounded-lg border border-gray-200 dark:border-night-border font-sans text-xs">
+                        <button id="libLangEng" class="px-3 py-1.5 rounded-md font-bold bg-crimson text-white dark:bg-gold dark:text-night-bg">English</button>
+                        <button id="libLangLat" class="px-3 py-1.5 rounded-md font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200">Latin</button>
+                        <button id="libLangBoth" class="px-3 py-1.5 rounded-md font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200">Bilingual</button>
+                    </div>
+                </div>
+
+                <!-- Grid of Static Prayers -->
+                <div id="prayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Rendered dynamically -->
+                </div>
             </div>
-        </section>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 3: ROSARY & MYSTERIES COMPANION -->
+        <!-- ============================================================== -->
+        <div id="viewRosary" class="tab-view hidden space-y-6 animate-fade-in">
+            <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-6 md:p-8 rounded-xl border border-gold/40 shadow-md">
+                
+                <!-- Header & Today's Mystery Auto-Detection -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200 dark:border-night-border">
+                    <div>
+                        <span class="text-xs font-sans font-bold uppercase text-gold tracking-widest">Holy Rosary Guide</span>
+                        <h2 id="rosaryMysteryTitle" class="text-2xl font-display font-bold text-crimson dark:text-gold mt-1">The Mysteries of the Rosary</h2>
+                        <p id="rosaryMysteryDays" class="text-xs text-gray-500 dark:text-gray-400 font-sans mt-0.5"></p>
+                    </div>
+                    
+                    <div id="todayMysteryBadge" class="bg-gold/10 border border-gold px-4 py-2 rounded-lg text-xs font-sans text-center">
+                        <span class="block text-gray-500 dark:text-gray-400">Today's Recommended:</span>
+                        <span id="todayMysteryName" class="font-bold text-crimson dark:text-gold text-sm"></span>
+                    </div>
+                </div>
+
+                <!-- Mystery Selector Tabs -->
+                <div class="flex flex-wrap gap-2 my-6 font-sans text-xs">
+                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-bold bg-crimson text-white" data-mystery="joyful">Joyful</button>
+                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-medium hover:border-gold" data-mystery="luminous">Luminous</button>
+                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-medium hover:border-gold" data-mystery="sorrowful">Sorrowful</button>
+                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-medium hover:border-gold" data-mystery="glorious">Glorious</button>
+                </div>
+
+                <!-- Interactive Decade Bead Counter Widget -->
+                <div class="bg-paper dark:bg-night-paper p-4 rounded-xl border border-gold/30 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">📿</span>
+                        <div>
+                            <h4 class="font-sans font-bold text-sm text-gray-900 dark:text-gray-100">Decade Bead Counter</h4>
+                            <p class="text-xs text-gray-500 font-sans">Click beads to count Hail Marys (1 to 10)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 font-sans">
+                        <div id="beadContainer" class="flex gap-1.5">
+                            <!-- 10 Bead dots rendered via JS -->
+                        </div>
+                        <button id="resetBeadsBtn" title="Reset Counter" class="ml-2 text-xs px-2.5 py-1 bg-gray-200 dark:bg-night-card rounded text-gray-700 dark:text-gray-300 font-bold hover:bg-crimson hover:text-white">Reset</button>
+                    </div>
+                </div>
+
+                <!-- List of 5 Mysteries -->
+                <div id="mysteriesList" class="space-y-4">
+                    <!-- Rendered via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 4: SAVED PRAYER JOURNAL -->
+        <!-- ============================================================== -->
+        <div id="viewJournal" class="tab-view hidden space-y-6 animate-fade-in">
+            <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-6 md:p-8 rounded-xl border border-gold/40 shadow-md">
+                <div class="flex items-center justify-between pb-6 border-b border-gray-200 dark:border-night-border mb-6">
+                    <div>
+                        <h2 class="text-2xl font-display font-bold text-crimson dark:text-gold">My Prayer Journal</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-sans">Your saved personal intentions & sacred prayers.</p>
+                    </div>
+                    <button id="clearJournalBtn" class="text-xs font-sans text-red-500 hover:underline">Clear All</button>
+                </div>
+
+                <div id="journalEmptyState" class="text-center py-12 space-y-3">
+                    <span class="text-4xl block opacity-60">📖</span>
+                    <p class="text-lg font-serif italic text-gray-600 dark:text-gray-400">No saved prayers yet.</p>
+                    <p class="text-xs text-gray-400 font-sans">Click "Save to Journal 💖" on any generated or common prayer to keep it here.</p>
+                </div>
+
+                <div id="journalList" class="space-y-4">
+                    <!-- Rendered via JS -->
+                </div>
+            </div>
+        </div>
 
     </main>
 
     <!-- Toast Notification -->
-    <div id="toast"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-xl hidden font-sans text-sm z-50">
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gold text-white dark:text-night-bg px-6 py-3 rounded-lg shadow-2xl hidden font-sans text-sm z-50 transition-all font-semibold">
     </div>
 
-    <footer class="py-6 text-center text-gray-400 text-xs font-sans border-t border-gold/20 bg-white/50">
-        <p>✝ Ad Maiorem Dei Gloriam ✝</p>
+    <!-- Footer -->
+    <footer class="py-6 text-center text-gray-400 text-xs font-sans border-t border-gold/20 bg-white/40 dark:bg-night-card/40">
+        <p class="font-display tracking-widest text-gold mb-1">✝ AD MAIOREM DEI GLORIAM ✝</p>
+        <p>Oratio • Sacred Catholic Prayer Companion & Library</p>
     </footer>
 
+    <!-- Main Module Script -->
     <script type="module">
-        import { generatePrayer, getInspirationQuote } from './prayerEngine.js';
-        import { staticPrayers } from './prayerData.js';
+        import { generatePrayer, getInspirationQuote, getTodayRosaryMystery, bellEngine, ttsCompanion, journalEngine } from './prayerEngine.js';
+        import { staticPrayers, rosaryMysteries, intentionPresets, categoryIcons } from './prayerData.js';
 
-        const state = { category: 'meals', tone: 'traditional', intention: '' };
+        // State Management
+        const state = {
+            category: 'meals',
+            tone: 'traditional',
+            intention: '',
+            currentPrayerText: '',
+            currentPrayerTitle: '',
+            libLangMode: 'English', // 'English', 'Latin', 'Bilingual'
+            activeTab: 'generator',
+            theme: localStorage.getItem('oratio_theme') || 'parchment',
+            beadCount: 0,
+            activeRosaryMysteryKey: 'joyful'
+        };
 
-        // DOM Elements
+        // DOM Elements Helper
         const $ = id => document.getElementById(id);
-        const categoryBtns = document.querySelectorAll('.category-btn');
-        const intentionInput = $('intentionInput');
-        const generateBtn = $('generateBtn');
-        const prayerOutputSection = $('prayerOutputSection');
-        const prayerText = $('prayerText');
-        const copyBtn = $('copyBtn');
-        const regenerateBtn = $('regenerateBtn');
-        const staticBtns = document.querySelectorAll('.static-prayer-btn');
-        const toast = $('toast');
-        const toneTraditional = $('toneTraditional');
-        const toneSimple = $('toneSimple');
 
-        // Initialize
+        // -------------------------------------------------------------
+        // Initialization
+        // -------------------------------------------------------------
         function init() {
-            const quote = getInspirationQuote();
-            $('quoteText').textContent = quote.text;
-            $('quoteAuthor').textContent = quote.author;
+            applyTheme(state.theme);
+            setupQuotes();
+            renderIntentionPresets();
+            renderCommonPrayers();
+            setupRosaryView();
+            updateJournalView();
+
+            // Set default prayer text in generator
+            doGenerate();
         }
 
-        // Category Selection
+        // -------------------------------------------------------------
+        // Navigation Tabs
+        // -------------------------------------------------------------
+        const tabs = {
+            generator: { btn: $('tabGenerator'), view: $('viewGenerator') },
+            library: { btn: $('tabLibrary'), view: $('viewLibrary') },
+            rosary: { btn: $('tabRosary'), view: $('viewRosary') },
+            journal: { btn: $('tabJournal'), view: $('viewJournal') }
+        };
+
+        Object.keys(tabs).forEach(tabKey => {
+            tabs[tabKey].btn.addEventListener('click', () => {
+                state.activeTab = tabKey;
+                Object.keys(tabs).forEach(k => {
+                    tabs[k].btn.classList.remove('active');
+                    tabs[k].view.classList.add('hidden');
+                });
+                tabs[tabKey].btn.classList.add('active');
+                tabs[tabKey].view.classList.remove('hidden');
+
+                if (tabKey === 'journal') updateJournalView();
+            });
+        });
+
+        // -------------------------------------------------------------
+        // Theme & Font Controls
+        // -------------------------------------------------------------
+        function applyTheme(t) {
+            state.theme = t;
+            localStorage.setItem('oratio_theme', t);
+            const htmlEl = document.documentElement;
+            if (t === 'dark') {
+                htmlEl.classList.remove('theme-parchment');
+                htmlEl.classList.add('theme-dark', 'dark');
+                $('themeIcon').textContent = '☀️ Light';
+            } else {
+                htmlEl.classList.remove('theme-dark', 'dark');
+                htmlEl.classList.add('theme-parchment');
+                $('themeIcon').textContent = '🌙 Dark';
+            }
+        }
+
+        $('themeToggleBtn').addEventListener('click', () => {
+            applyTheme(state.theme === 'dark' ? 'parchment' : 'dark');
+        });
+
+        // Font Size Adjuster
+        document.querySelectorAll('.font-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.font-size-btn').forEach(b => {
+                    b.classList.remove('bg-white', 'dark:bg-night-card', 'text-crimson', 'dark:text-gold', 'shadow-sm', 'font-bold');
+                    b.classList.add('font-semibold', 'text-gray-600', 'dark:text-gray-300');
+                });
+                btn.classList.add('bg-white', 'dark:bg-night-card', 'text-crimson', 'dark:text-gold', 'shadow-sm', 'font-bold');
+                btn.classList.remove('font-semibold', 'text-gray-600', 'dark:text-gray-300');
+                document.documentElement.style.setProperty('--prayer-font-size', btn.dataset.size);
+            });
+        });
+
+        // Cathedral Bell Chime
+        $('chimeBtn').addEventListener('click', () => {
+            bellEngine.playBell(432, 4.0);
+            showToast("🔔 Cathedral Bell Chime");
+        });
+
+        // -------------------------------------------------------------
+        // Quotes Engine
+        // -------------------------------------------------------------
+        function setupQuotes() {
+            const q = getInspirationQuote();
+            $('quoteText').textContent = q.text;
+            $('quoteAuthor').textContent = q.author;
+            if (q.latin) {
+                $('quoteLatin').textContent = q.latin;
+                $('quoteLatin').classList.remove('hidden');
+            } else {
+                $('quoteLatin').classList.add('hidden');
+            }
+        }
+
+        $('refreshQuoteBtn').addEventListener('click', setupQuotes);
+
+        // -------------------------------------------------------------
+        // Generator Controls & Logic
+        // -------------------------------------------------------------
+        const categoryBtns = document.querySelectorAll('.category-btn');
         categoryBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 state.category = btn.dataset.category;
-                categoryBtns.forEach(b => {
-                    b.classList.remove('active');
-                    b.classList.add('border-gray-200');
-                    b.classList.remove('border-crimson');
-                });
-                btn.classList.add('active', 'border-crimson');
-                btn.classList.remove('border-gray-200');
+                categoryBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
             });
         });
+
+        // Intention Preset Tag Pills
+        function renderIntentionPresets() {
+            const container = $('intentionPresetsContainer');
+            container.innerHTML = '';
+            intentionPresets.forEach(preset => {
+                const pill = document.createElement('button');
+                pill.className = 'px-3 py-1 rounded-full text-xs font-sans bg-gray-100 dark:bg-night-paper hover:bg-gold/20 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-night-border transition-all';
+                pill.textContent = `+ ${preset.label}`;
+                pill.addEventListener('click', () => {
+                    $('intentionInput').value = preset.text;
+                    state.intention = preset.text;
+                    showToast(`Selected: ${preset.label}`);
+                });
+                container.appendChild(pill);
+            });
+        }
 
         // Tone Selection
-        toneTraditional.addEventListener('click', () => {
-            state.tone = 'traditional';
-            toneTraditional.classList.add('bg-crimson', 'text-white');
-            toneTraditional.classList.remove('text-gray-600');
-            toneSimple.classList.remove('bg-crimson', 'text-white');
-            toneSimple.classList.add('text-gray-600');
-        });
+        const toneTraditional = $('toneTraditional');
+        const toneSimple = $('toneSimple');
+        const toneLatin = $('toneLatin');
 
-        toneSimple.addEventListener('click', () => {
-            state.tone = 'simple';
-            toneSimple.classList.add('bg-crimson', 'text-white');
-            toneSimple.classList.remove('text-gray-600');
-            toneTraditional.classList.remove('bg-crimson', 'text-white');
-            toneTraditional.classList.add('text-gray-600');
-        });
-
-        // Generate Prayer
-        function doGenerate() {
-            state.intention = intentionInput.value;
-            const result = generatePrayer(state.category, state.tone, state.intention);
-            displayPrayer(result.prayer);
-        }
-
-        generateBtn.addEventListener('click', doGenerate);
-        regenerateBtn.addEventListener('click', doGenerate);
-
-        // Static Prayers
-        staticBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const key = btn.dataset.key;
-                if (staticPrayers[key]) {
-                    displayPrayer(staticPrayers[key].text);
-                }
+        function setTone(t) {
+            state.tone = t;
+            [toneTraditional, toneSimple, toneLatin].forEach(btn => {
+                btn.classList.remove('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg');
+                btn.classList.add('text-gray-600', 'dark:text-gray-300');
             });
-        });
 
-        // Copy
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(prayerText.innerText).then(() => showToast('Prayer copied to clipboard ✓'));
-        });
-
-        function displayPrayer(text) {
-            prayerOutputSection.classList.remove('hidden');
-            prayerOutputSection.style.animation = 'none';
-            prayerOutputSection.offsetHeight; // Trigger reflow
-            prayerOutputSection.style.animation = 'slideUp 0.5s ease-out';
-            prayerText.innerText = text;
-            prayerOutputSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (t === 'traditional') toneTraditional.classList.add('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg');
+            if (t === 'simple') toneSimple.classList.add('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg');
+            if (t === 'latin') toneLatin.classList.add('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg');
         }
 
+        toneTraditional.addEventListener('click', () => setTone('traditional'));
+        toneSimple.addEventListener('click', () => setTone('simple'));
+        toneLatin.addEventListener('click', () => setTone('latin'));
+
+        // Generate Prayer Action
+        function doGenerate() {
+            state.intention = $('intentionInput').value;
+            const res = generatePrayer(state.category, state.tone, state.intention);
+            state.currentPrayerText = res.prayer;
+            state.currentPrayerTitle = `Intention for ${state.category.toUpperCase()}`;
+            displayPrayerOutput(res.prayer);
+            bellEngine.playBell(432, 2.5);
+        }
+
+        $('generateBtn').addEventListener('click', doGenerate);
+        $('regenerateBtn').addEventListener('click', doGenerate);
+
+        function displayPrayerOutput(text) {
+            const sec = $('prayerOutputSection');
+            sec.classList.remove('hidden');
+            $('prayerText').textContent = text;
+            updateSaveJournalBtnState();
+            sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Text-to-Speech
+        const ttsBtn = $('ttsBtn');
+        ttsBtn.addEventListener('click', () => {
+            if (ttsCompanion.isSpeaking) {
+                ttsCompanion.stop();
+                updateTTSBtnUI(false);
+            } else {
+                if (!state.currentPrayerText) return;
+                ttsCompanion.speak(state.currentPrayerText, () => updateTTSBtnUI(false), () => updateTTSBtnUI(true));
+            }
+        });
+
+        function updateTTSBtnUI(speaking) {
+            $('ttsIcon').textContent = speaking ? '⏹️' : '🔊';
+            $('ttsLabel').textContent = speaking ? 'Stop Audio' : 'Listen (Audio)';
+        }
+
+        // Save to Journal
+        const saveJournalBtn = $('saveJournalBtn');
+        saveJournalBtn.addEventListener('click', () => {
+            if (!state.currentPrayerText) return;
+            const saved = journalEngine.save({
+                title: state.currentPrayerTitle,
+                text: state.currentPrayerText,
+                category: state.category
+            });
+            if (saved) {
+                showToast("Saved to My Prayer Journal 💖");
+                updateSaveJournalBtnState();
+                updateJournalBadge();
+            } else {
+                showToast("Prayer already saved in Journal ✓");
+            }
+        });
+
+        function updateSaveJournalBtnState() {
+            const isSaved = journalEngine.isSaved(state.currentPrayerText);
+            if (isSaved) {
+                $('journalIcon').textContent = '💖';
+                saveJournalBtn.classList.add('bg-crimson', 'text-white');
+            } else {
+                $('journalIcon').textContent = '🤍';
+                saveJournalBtn.classList.remove('bg-crimson', 'text-white');
+            }
+        }
+
+        // Copy Text
+        $('copyBtn').addEventListener('click', () => {
+            if (!state.currentPrayerText) return;
+            navigator.clipboard.writeText(state.currentPrayerText).then(() => showToast('Prayer copied to clipboard ✓'));
+        });
+
+        // -------------------------------------------------------------
+        // Common Prayers Library Engine
+        // -------------------------------------------------------------
+        const libLangEng = $('libLangEng');
+        const libLangLat = $('libLangLat');
+        const libLangBoth = $('libLangBoth');
+
+        function setLibLangMode(mode) {
+            state.libLangMode = mode;
+            [libLangEng, libLangLat, libLangBoth].forEach(btn => {
+                btn.classList.remove('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg', 'font-bold');
+                btn.classList.add('font-medium', 'text-gray-600', 'dark:text-gray-300');
+            });
+            if (mode === 'English') libLangEng.classList.add('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg', 'font-bold');
+            if (mode === 'Latin') libLangLat.classList.add('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg', 'font-bold');
+            if (mode === 'Bilingual') libLangBoth.classList.add('bg-crimson', 'text-white', 'dark:bg-gold', 'dark:text-night-bg', 'font-bold');
+
+            renderCommonPrayers();
+        }
+
+        libLangEng.addEventListener('click', () => setLibLangMode('English'));
+        libLangLat.addEventListener('click', () => setLibLangMode('Latin'));
+        libLangBoth.addEventListener('click', () => setLibLangMode('Bilingual'));
+
+        $('librarySearchInput').addEventListener('input', renderCommonPrayers);
+
+        function renderCommonPrayers() {
+            const grid = $('prayersGrid');
+            grid.innerHTML = '';
+            const query = ($('librarySearchInput').value || '').toLowerCase();
+
+            Object.keys(staticPrayers).forEach(key => {
+                const item = staticPrayers[key];
+                const matches = item.title.toLowerCase().includes(query) ||
+                    (item.latinTitle && item.latinTitle.toLowerCase().includes(query)) ||
+                    item.text.toLowerCase().includes(query);
+
+                if (!matches) return;
+
+                const card = document.createElement('div');
+                card.className = 'bg-paper dark:bg-night-paper p-5 rounded-xl border border-gold/30 hover:border-gold transition-all flex flex-col justify-between shadow-sm';
+
+                let bodyHtml = '';
+                if (state.libLangMode === 'English') {
+                    bodyHtml = `<p class="prayer-text-dynamic text-gray-800 dark:text-gray-200 italic mb-4">${item.text}</p>`;
+                } else if (state.libLangMode === 'Latin') {
+                    bodyHtml = `<p class="prayer-text-dynamic text-gray-800 dark:text-gray-200 italic mb-4">${item.latinText || item.text}</p>`;
+                } else {
+                    // Bilingual Side by Side / Stack
+                    bodyHtml = `
+                        <div class="space-y-3 mb-4">
+                            <div class="p-3 bg-white/50 dark:bg-night-card/50 rounded-lg border-l-2 border-gold">
+                                <span class="text-xs font-sans font-bold text-gold uppercase block mb-1">English</span>
+                                <p class="text-sm italic text-gray-800 dark:text-gray-200">${item.text}</p>
+                            </div>
+                            <div class="p-3 bg-white/50 dark:bg-night-card/50 rounded-lg border-l-2 border-crimson">
+                                <span class="text-xs font-sans font-bold text-crimson dark:text-crimson-light uppercase block mb-1">Latin (Sacra Lingua)</span>
+                                <p class="text-sm italic text-gray-800 dark:text-gray-200">${item.latinText || item.text}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <h3 class="font-display font-bold text-lg text-crimson dark:text-gold">${item.title}</h3>
+                            ${item.latinTitle ? `<span class="text-xs font-sans italic text-gray-500">(${item.latinTitle})</span>` : ''}
+                        </div>
+                        ${bodyHtml}
+                    </div>
+                    <div class="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-night-border font-sans text-xs">
+                        <button class="copy-static-btn px-3 py-1.5 rounded border border-gray-300 dark:border-night-border hover:border-gold flex items-center gap-1">
+                            📋 Copy
+                        </button>
+                        <button class="listen-static-btn px-3 py-1.5 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg flex items-center gap-1">
+                            🔊 Listen
+                        </button>
+                        <button class="save-static-btn px-3 py-1.5 rounded border border-crimson text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white flex items-center gap-1 ml-auto">
+                            💖 Save
+                        </button>
+                    </div>
+                `;
+
+                // Add button click listeners
+                const textToUse = state.libLangMode === 'Latin' && item.latinText ? item.latinText : item.text;
+
+                card.querySelector('.copy-static-btn').addEventListener('click', () => {
+                    navigator.clipboard.writeText(textToUse).then(() => showToast(`Copied "${item.title}" ✓`));
+                });
+
+                card.querySelector('.listen-static-btn').addEventListener('click', () => {
+                    ttsCompanion.speak(textToUse);
+                    showToast(`Reading "${item.title}" 🔊`);
+                });
+
+                card.querySelector('.save-static-btn').addEventListener('click', () => {
+                    journalEngine.save({
+                        title: item.title,
+                        text: item.text,
+                        latinText: item.latinText,
+                        category: item.category
+                    });
+                    showToast(`Saved "${item.title}" to Journal 💖`);
+                    updateJournalBadge();
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // Rosary Companion Engine
+        // -------------------------------------------------------------
+        function setupRosaryView() {
+            const today = getTodayRosaryMystery();
+            state.activeRosaryMysteryKey = today.key;
+            $('todayMysteryName').textContent = today.name;
+
+            renderRosaryMysteries(today.key);
+            setupBeadCounter();
+
+            const rosaryTabBtns = document.querySelectorAll('.rosary-tab-btn');
+            rosaryTabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const key = btn.dataset.mystery;
+                    rosaryTabBtns.forEach(b => {
+                        b.classList.remove('bg-crimson', 'text-white', 'font-bold');
+                        b.classList.add('font-medium');
+                    });
+                    btn.classList.add('bg-crimson', 'text-white', 'font-bold');
+                    renderRosaryMysteries(key);
+                });
+            });
+        }
+
+        function renderRosaryMysteries(key) {
+            const data = rosaryMysteries[key];
+            $('rosaryMysteryTitle').textContent = data.name;
+            $('rosaryMysteryDays').textContent = `Traditionally prayed on: ${data.days}`;
+
+            const list = $('mysteriesList');
+            list.innerHTML = '';
+
+            data.items.forEach(m => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'bg-paper dark:bg-night-paper p-4 rounded-xl border border-gold/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
+                itemEl.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-full bg-gold/20 text-gold font-display font-bold flex items-center justify-center text-sm">${m.num}</span>
+                        <div>
+                            <h4 class="font-display font-bold text-base text-crimson dark:text-gold">${m.name}</h4>
+                            <p class="text-xs text-gray-500 font-sans">Fruit of the mystery: <span class="font-semibold text-gray-700 dark:text-gray-300">${m.fruit}</span></p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-sans px-3 py-1 bg-white dark:bg-night-card rounded-md border border-gray-200 dark:border-night-border text-gray-500">${m.scripture}</span>
+                `;
+                list.appendChild(itemEl);
+            });
+        }
+
+        function setupBeadCounter() {
+            const container = $('beadContainer');
+            container.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                const dot = document.createElement('button');
+                dot.className = 'w-6 h-6 rounded-full border-2 border-gold transition-all flex items-center justify-center text-xs font-bold text-gold hover:bg-gold/20';
+                dot.textContent = i;
+                dot.addEventListener('click', () => setBeadCount(i));
+                container.appendChild(dot);
+            }
+
+            $('resetBeadsBtn').addEventListener('click', () => setBeadCount(0));
+        }
+
+        function setBeadCount(n) {
+            state.beadCount = n;
+            const beads = $('beadContainer').children;
+            for (let i = 0; i < beads.length; i++) {
+                if (i < n) {
+                    beads[i].classList.add('bg-gold', 'text-white', 'dark:text-night-bg');
+                } else {
+                    beads[i].classList.remove('bg-gold', 'text-white', 'dark:text-night-bg');
+                }
+            }
+            if (n > 0) {
+                bellEngine.playBell(520 + (n * 20), 0.8);
+                showToast(`Decade Bead ${n} of 10`);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // Prayer Journal View Engine
+        // -------------------------------------------------------------
+        function updateJournalView() {
+            const list = journalEngine.getAll();
+            updateJournalBadge();
+
+            const container = $('journalList');
+            const emptyState = $('journalEmptyState');
+
+            if (list.length === 0) {
+                emptyState.classList.remove('hidden');
+                container.innerHTML = '';
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            container.innerHTML = '';
+
+            list.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-paper dark:bg-night-paper p-5 rounded-xl border border-gold/30 shadow-sm relative space-y-3';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="font-display font-bold text-lg text-crimson dark:text-gold">${item.title}</h3>
+                        <span class="text-xs font-sans text-gray-400">${item.dateSaved}</span>
+                    </div>
+                    <p class="prayer-text-dynamic italic text-gray-800 dark:text-gray-200">${item.text}</p>
+                    ${item.latinText ? `<p class="text-sm italic text-gray-500 border-l-2 border-crimson pl-3">${item.latinText}</p>` : ''}
+                    <div class="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-night-border font-sans text-xs">
+                        <button class="journal-copy-btn px-3 py-1 rounded border border-gray-300 dark:border-night-border hover:border-gold">📋 Copy</button>
+                        <button class="journal-listen-btn px-3 py-1 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg">🔊 Listen</button>
+                        <button class="journal-delete-btn px-3 py-1 rounded border border-red-300 text-red-500 hover:bg-red-500 hover:text-white ml-auto">🗑️ Remove</button>
+                    </div>
+                `;
+
+                card.querySelector('.journal-copy-btn').addEventListener('click', () => {
+                    navigator.clipboard.writeText(item.text).then(() => showToast("Copied to clipboard ✓"));
+                });
+
+                card.querySelector('.journal-listen-btn').addEventListener('click', () => {
+                    ttsCompanion.speak(item.text);
+                    showToast(`Reading "${item.title}" 🔊`);
+                });
+
+                card.querySelector('.journal-delete-btn').addEventListener('click', () => {
+                    journalEngine.remove(item.id);
+                    updateJournalView();
+                    showToast("Removed from Journal");
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function updateJournalBadge() {
+            const list = journalEngine.getAll();
+            const badge = $('journalCountBadge');
+            if (list.length > 0) {
+                badge.textContent = list.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        $('clearJournalBtn').addEventListener('click', () => {
+            if (confirm("Are you sure you want to clear all saved prayers in your journal?")) {
+                localStorage.removeItem('oratio_saved_prayers_v1');
+                updateJournalView();
+                showToast("Journal cleared.");
+            }
+        });
+
+        // -------------------------------------------------------------
+        // Toast Helper
+        // -------------------------------------------------------------
         function showToast(msg) {
+            const toast = $('toast');
             toast.textContent = msg;
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 2500);
         }
 
+        // Kick off
         init();
     </script>
 </body>
