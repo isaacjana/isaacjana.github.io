@@ -3,7 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Oratio - Catholic Prayer Generator & Companion</title>
     <meta name="description"
         content="Generate beautiful Catholic prayers for meals, gatherings, trials, healing, and guidance. Includes Latin prayers, Audio Read-Aloud, Rosary companion, and personal prayer journal.">
@@ -51,6 +54,39 @@
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <style>
+        /* Mobile Webview Optimizations */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            overscroll-behavior-y: none;
+            -webkit-user-select: none; /* Disable text selection for app-like feel */
+            user-select: none;
+        }
+        
+        /* Allow text selection only on specific elements where users might want to copy */
+        .prayer-text-dynamic, input, textarea, #quoteSection, #rosaryMysteryTitle, #rosaryMysteryDays, #todayMysteryName {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        button, a, input, select, textarea, .nav-tab-btn, .category-btn {
+            touch-action: manipulation;
+        }
+
+        /* Notch / Safe Area Handling */
+        header {
+            padding-top: max(1rem, env(safe-area-inset-top)) !important;
+        }
+        footer {
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
+        }
+        main {
+            padding-left: max(1rem, env(safe-area-inset-left));
+            padding-right: max(1rem, env(safe-area-inset-right));
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
