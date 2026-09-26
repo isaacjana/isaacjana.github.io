@@ -1,10 +1,11 @@
 /**
  * PennyWise Pro - Bank Accounts & Items Component
+ * Touch-optimized bank envelope cards and commitment rows in English
  */
 
 import { store } from '../store.js';
 import { formatRM } from '../utils/format.js';
-import { openItemModal, openBankModal, openCloneModal } from './modals.js';
+import { openItemModal, openBankModal, openCloneModal, openBankActionSheet, openConfirmModal } from './modals.js';
 import { openNotepadModal } from './notepadModal.js';
 import { showToast } from './toast.js';
 
@@ -33,25 +34,25 @@ export function initBankList() {
           <input 
             type="text" 
             id="search-budget-input" 
-            placeholder="Cari komitmen atau bank..." 
+            placeholder="Search commitments or banks..." 
             value="${query}"
           />
         </div>
 
         <div class="toolbar-actions">
-          <button id="btn-open-notepad" class="btn btn-secondary text-xs" title="Lihat format Notepad / ASCII text">
+          <button id="btn-open-notepad" class="btn btn-secondary text-xs" title="View Notepad ASCII format">
             <i class="fa-solid fa-file-lines text-sky"></i>
             <span>Notepad</span>
           </button>
 
-          <button id="btn-clone-month" class="btn btn-secondary text-xs" title="Salin bajet ke bulan seterusnya">
+          <button id="btn-clone-month" class="btn btn-secondary text-xs" title="Clone budget to another month">
             <i class="fa-regular fa-copy text-gold"></i>
-            <span>Salin Bajet</span>
+            <span>Clone Month</span>
           </button>
 
           <button id="btn-add-bank-top" class="btn btn-primary text-xs">
             <i class="fa-solid fa-plus"></i>
-            <span>Tambah Bank</span>
+            <span>Add Bank</span>
           </button>
         </div>
       </div>
@@ -61,10 +62,10 @@ export function initBankList() {
         ${filteredBanks.length === 0 ? `
           <div class="empty-state">
             <div class="empty-state-icon"><i class="fa-solid fa-folder-open"></i></div>
-            <h3 class="text-base font-bold mb-1">Tiada Komitmen Dijumpai</h3>
-            <p class="text-xs text-muted mb-4">Belum ada akaun bank atau perbelanjaan untuk bulan ini.</p>
+            <h3 class="text-base font-bold mb-1">No Commitments Found</h3>
+            <p class="text-xs text-muted mb-4">No bank accounts or expenses recorded for this month.</p>
             <button id="btn-empty-add-bank" class="btn btn-primary text-xs">
-              <i class="fa-solid fa-plus"></i> Tambah Bank Pertama
+              <i class="fa-solid fa-plus"></i> Add First Bank Account
             </button>
           </div>
         ` : filteredBanks.map((bank, bankIdx) => {
@@ -84,7 +85,7 @@ export function initBankList() {
                   </div>
                   <div>
                     <h3 class="bank-name">${bank.name}</h3>
-                    <p class="bank-meta">${paidCount}/${totalItems} dibayar • ${totalCode}</p>
+                    <p class="bank-meta">${paidCount}/${totalItems} paid • ${totalCode}</p>
                   </div>
                 </div>
 
@@ -94,39 +95,38 @@ export function initBankList() {
                     <p class="bank-subtotal-amount">${formatRM(bankTotal)}</p>
                   </div>
 
-                  <div class="dropdown-actions relative">
-                    <button class="btn btn-subtle btn-icon-sm btn-bank-menu" data-bank-id="${bank.id}" title="Pilihan Bank">
-                      <i class="fa-solid fa-ellipsis-vertical"></i>
-                    </button>
-                  </div>
+                  <button class="btn btn-subtle btn-icon btn-bank-menu" data-bank-id="${bank.id}" title="Bank Options">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
                 </div>
               </div>
 
               <!-- Item List -->
               <div class="bank-items">
                 ${(bank.items || []).length === 0 ? `
-                  <p class="text-xs text-muted text-center py-2 italic">Tiada rekod komitmen. Klik Tambah Komitmen di bawah.</p>
+                  <p class="text-xs text-muted text-center py-2 italic">No commitments recorded. Tap Add Commitment below.</p>
                 ` : (bank.items || []).map(item => {
                   const hasFormula = item.formula && /[\+\-\*\/]/.test(item.formula);
                   return `
                     <div class="item-row ${item.paid ? 'is-paid' : ''}" data-bank-id="${bank.id}" data-item-id="${item.id}">
                       <div class="item-left">
-                        <input 
-                          type="checkbox" 
-                          class="item-checkbox" 
-                          ${item.paid ? 'checked' : ''} 
-                          title="Tandakan sebagai telah dibayar/dipindah"
-                        />
+                        <label class="item-checkbox-container" title="Mark as paid/transferred">
+                          <input 
+                            type="checkbox" 
+                            class="item-checkbox" 
+                            ${item.paid ? 'checked' : ''} 
+                          />
+                        </label>
                         <div class="item-info">
                           <span class="item-name">${item.name}</span>
                           <div class="item-meta-chips">
                             ${hasFormula ? `
-                              <span class="formula-chip" title="Formula kiraan">
+                              <span class="formula-chip" title="Calculation formula">
                                 <i class="fa-solid fa-equals text-[10px] mr-1"></i>${item.formula}
                               </span>
                             ` : ''}
                             ${item.note ? `
-                              <span class="note-chip" title="Nota / Sinking fund">
+                              <span class="note-chip" title="Note / Sinking fund">
                                 <i class="fa-solid fa-circle-info text-[9px] mr-1"></i>${item.note}
                               </span>
                             ` : ''}
@@ -137,10 +137,10 @@ export function initBankList() {
                       <div class="item-right">
                         <span class="item-amount">${formatRM(item.amount)}</span>
                         <div class="item-actions">
-                          <button class="btn btn-subtle btn-icon-sm btn-edit-item" title="Edit Komitmen">
+                          <button class="btn btn-subtle btn-icon-sm btn-edit-item" title="Edit Commitment">
                             <i class="fa-solid fa-pen text-[10px]"></i>
                           </button>
-                          <button class="btn btn-danger-ghost btn-icon-sm btn-delete-item" title="Padam Komitmen">
+                          <button class="btn btn-danger-ghost btn-icon-sm btn-delete-item" title="Delete Commitment">
                             <i class="fa-solid fa-trash-can text-[10px]"></i>
                           </button>
                         </div>
@@ -154,13 +154,13 @@ export function initBankList() {
               <div class="bank-card-footer">
                 <button class="btn btn-subtle text-xs btn-add-item" data-bank-id="${bank.id}">
                   <i class="fa-solid fa-plus text-xs"></i>
-                  <span>Tambah Komitmen</span>
+                  <span>Add Commitment</span>
                 </button>
 
                 <div class="flex items-center gap-2">
-                  <button class="btn btn-subtle text-xs btn-toggle-all-paid" data-bank-id="${bank.id}" title="Tandakan semua sebagai selesai/belum">
+                  <button class="btn btn-subtle text-xs btn-toggle-all-paid" data-bank-id="${bank.id}" title="Toggle all paid/unpaid">
                     <i class="fa-solid ${isAllPaid ? 'fa-rotate-left' : 'fa-check-double'} text-xs"></i>
-                    <span>${isAllPaid ? 'Reset Bayaran' : 'Selesai Semua'}</span>
+                    <span>${isAllPaid ? 'Reset All' : 'Mark All Paid'}</span>
                   </button>
                 </div>
               </div>
@@ -173,7 +173,7 @@ export function initBankList() {
       <div class="text-center mt-6">
         <button id="btn-add-bank-bottom" class="btn btn-secondary text-sm">
           <i class="fa-solid fa-plus-circle text-primary"></i>
-          <span>Tambah Akaun Bank / Saluran Baru</span>
+          <span>Add New Bank Account / Channel</span>
         </button>
       </div>
     `;
@@ -240,6 +240,17 @@ export function initBankList() {
       });
     });
 
+    // Tap Item Row to Edit (Mobile ergonomics)
+    container.querySelectorAll('.item-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        // If clicked on checkbox or action buttons, don't trigger row edit
+        if (e.target.closest('.item-checkbox') || e.target.closest('.item-actions')) return;
+        const bankId = row.dataset.bankId;
+        const itemId = row.dataset.itemId;
+        openItemModal(bankId, itemId);
+      });
+    });
+
     // Delete Item Button
     container.querySelectorAll('.btn-delete-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -247,10 +258,18 @@ export function initBankList() {
         const row = btn.closest('.item-row');
         const bankId = row.dataset.bankId;
         const itemId = row.dataset.itemId;
-        if (confirm('Adakah anda pasti mahu memadam komitmen ini?')) {
-          store.deleteItem(bankId, itemId);
-          showToast('Komitmen dipadam', 'info');
-        }
+        const itemName = row.querySelector('.item-name')?.textContent || 'this item';
+
+        openConfirmModal({
+          title: 'Delete Commitment?',
+          message: `Are you sure you want to remove "${itemName}"?`,
+          confirmText: 'Delete',
+          isDanger: true,
+          onConfirm: () => {
+            store.deleteItem(bankId, itemId);
+            showToast('Commitment deleted', 'info');
+          }
+        });
       });
     });
 
@@ -262,19 +281,12 @@ export function initBankList() {
       });
     });
 
-    // Bank Menu (Edit / Delete Bank)
+    // Bank Menu (Mobile Action Sheet)
     container.querySelectorAll('.btn-bank-menu').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const bankId = btn.dataset.bankId;
-        const action = prompt('Pilihan Bank:\n1. Edit Bank (Taip 1)\n2. Padam Bank (Taip 2)', '1');
-        if (action === '1') {
-          openBankModal(bankId);
-        } else if (action === '2') {
-          if (confirm('Padam bank ini beserta semua komitmen di dalamnya?')) {
-            store.deleteBank(bankId);
-            showToast('Bank dipadam', 'info');
-          }
-        }
+        openBankActionSheet(bankId);
       });
     });
   }

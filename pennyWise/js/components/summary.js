@@ -1,5 +1,6 @@
 /**
  * PennyWise Pro - Summary & Financial Metric Cards
+ * Mobile-friendly 2x2 grid with settlement progress tracking
  */
 
 import { store } from '../store.js';
@@ -34,7 +35,7 @@ export function initSummary() {
         <!-- Salary Card -->
         <div class="card summary-card">
           <div class="summary-card-header">
-            <span class="summary-card-title">Gaji (Salary)</span>
+            <span class="summary-card-title">Salary</span>
             <div class="summary-card-icon" style="background: var(--color-primary-100); color: var(--color-primary-800);">
               <i class="fa-solid fa-money-bill-wave"></i>
             </div>
@@ -48,6 +49,7 @@ export function initSummary() {
               value="${state.salary || ''}" 
               placeholder="0.00" 
               step="0.01"
+              inputmode="decimal"
             />
           </div>
           <span class="text-xs text-muted" style="margin-top: 0.35rem;">Net Take-Home Pay</span>
@@ -70,7 +72,7 @@ export function initSummary() {
         <!-- Paid / Settled Card -->
         <div class="card summary-card">
           <div class="summary-card-header">
-            <span class="summary-card-title">Selesai (Paid)</span>
+            <span class="summary-card-title">Paid / Settled</span>
             <div class="summary-card-icon" style="background: #d1fae5; color: #10b981;">
               <i class="fa-solid fa-circle-check"></i>
             </div>
@@ -78,13 +80,13 @@ export function initSummary() {
           <div class="summary-card-val text-emerald font-mono">
             ${formatRM(stats.paidAmount)}
           </div>
-          <span class="text-xs text-muted" style="margin-top: 0.35rem;">${stats.paidItems} of ${stats.totalItems} items paid</span>
+          <span class="text-xs text-muted" style="margin-top: 0.35rem;">${stats.paidItems} of ${stats.totalItems} items settled</span>
         </div>
 
         <!-- Remaining Unpaid Card -->
         <div class="card summary-card">
           <div class="summary-card-header">
-            <span class="summary-card-title">Baki Belanja</span>
+            <span class="summary-card-title">Pending Unpaid</span>
             <div class="summary-card-icon" style="background: #fef3c7; color: #b45309;">
               <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
@@ -100,11 +102,11 @@ export function initSummary() {
       <div class="card settlement-card">
         <div class="settlement-header">
           <div>
-            <h3 class="text-sm font-bold">Kemajuan Pembayaran (Payment Progress)</h3>
-            <p class="text-xs text-muted">${stats.paidItems} daripada ${stats.totalItems} komitmen telah dibayar</p>
+            <h3 class="text-sm font-bold">Payment Progress</h3>
+            <p class="text-xs text-muted">${stats.paidItems} of ${stats.totalItems} commitments paid</p>
           </div>
           <span class="badge ${stats.percentPaid === 100 ? 'badge-primary' : 'badge-gold'} font-mono">
-            ${stats.percentPaid}% SELESAI
+            ${stats.percentPaid}% SETTLED
           </span>
         </div>
         <div class="progress-track">

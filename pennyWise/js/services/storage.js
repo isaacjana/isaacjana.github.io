@@ -1,12 +1,10 @@
 /**
- * PennyWise Pro - Storage Service
- * Multi-tier storage: Offline LocalStorage first + Cloud Firestore sync
+ * PennyWise Pro - Account-Scoped Storage Service
+ * Multi-tier storage: Offline LocalStorage first (namespaced per account) + Cloud Firestore sync
+ * Guarantees that data loads and saves strictly according to the logged-in user account.
  */
 
 import { SEED_BUDGET_APRIL_2026 } from '../config.js';
-
-const STORAGE_PREFIX = 'pennywise_budget_';
-const PERIODS_INDEX_KEY = 'pennywise_periods_index';
 
 class StorageService {
   constructor() {
@@ -14,7 +12,6 @@ class StorageService {
     this.currentUser = null;
     this.activeListenerUnsubscribe = null;
     this.initFirestore();
-    this.seedDefaultDataIfNeeded();
   }
 
   initFirestore() {
@@ -23,35 +20,71 @@ class StorageService {
         this.db = window.firebase.firestore();
       }
     } catch (e) {
-      console.warn('Firestore initialization deferred or unavailable offline:', e);
+      console.warn('Firestore initialization deferred or offline:', e);
     }
   }
 
-  setUser(user) {
-    this.currentUser = user;
-  }
-
   /**
-   * Seed April 2026 default budget if user has never visited
+   * Set active account and initialize user-specific data store
+   * @param {Object|null} user
    */
-  seedDefaultDataIfNeeded() {
-    const existing = localStorage.getItem(`${STORAGE_PREFIX}2026-04`);
-    if (!existing) {
-      this.saveLocalBudget('2026-04', SEED_BUDGET_APRIL_2026);
-      this.registerPeriodInIndex('2026-04');
+  setUser(user) {
+    // Unsubscribe previous cloud listener if any
+    if (this.activeListenerUnsubscribe) {
+      this.activeListenerUnsubscribe();
+      this.activeListenerUnsubscribe = null;
+    }
+
+    this.currentUser = user;
+
+    if (user && user.uid) {
+      this.seedUserDefaultIfNeeded(user.uid);
+    }
+  }
+
+  getUserId() {
+    return this.currentUser ? this.currentUser.uid : 'guest';
+  }
+
+  getStorageKey(periodKey) {
+    return `pennywise_${this.getUserId()}_budget_${periodKey}`;
+  }
+
+  getPeriodsIndexKey() {
+    return `pennywise_${this.getUserId()}_periods_index`;
+  }
+
+  /**
+   * Seed April 2026 budget for a user if they have no budget yet
+   */
+  seedUserDefaultIfNeeded(uid) {
+    try {
+      const key = `pennywise_${uid}_budget_2026-04`;
+      const existing = localStorage.getItem(key);
+      if (!existing) {
+        // Also check if there was a legacy global budget from previous session to migrate for Isaac
+        const legacy = localStorage.getItem('pennywise_budget_2026-04');
+        const seedData = legacy ? JSON.parse(legacy) : JSON.parse(JSON.stringify(SEED_BUDGET_APRIL_2026));
+        
+        localStorage.setItem(key, JSON.stringify(seedData));
+        this.registerPeriodInIndex('2026-04');
+      }
+    } catch (e) {
+      console.error('Error seeding user default budget:', e);
     }
   }
 
   /**
-   * Register a period in the local index
+   * Register a period in this user's period index
    */
   registerPeriodInIndex(periodKey) {
+    if (!this.currentUser) return;
     try {
       const list = this.getStoredPeriods();
       if (!list.includes(periodKey)) {
         list.push(periodKey);
         list.sort();
-        localStorage.setItem(PERIODS_INDEX_KEY, JSON.stringify(list));
+        localStorage.setItem(this.getPeriodsIndexKey(), JSON.stringify(list));
       }
     } catch (e) {
       console.error('Failed to update period index:', e);
@@ -59,12 +92,13 @@ class StorageService {
   }
 
   /**
-   * Get all registered period keys
+   * Get all registered period keys for current user
    * @returns {string[]}
    */
   getStoredPeriods() {
+    if (!this.currentUser) return ['2026-04'];
     try {
-      const data = localStorage.getItem(PERIODS_INDEX_KEY);
+      const data = localStorage.getItem(this.getPeriodsIndexKey());
       return data ? JSON.parse(data) : ['2026-04'];
     } catch (e) {
       return ['2026-04'];
@@ -72,26 +106,28 @@ class StorageService {
   }
 
   /**
-   * Load budget for a period (Local first, then Cloud if logged in)
+   * Load budget for a period for the current user
    * @param {string} periodKey - e.g. "2026-04"
    * @returns {Object}
    */
   loadBudget(periodKey) {
     try {
-      const localData = localStorage.getItem(`${STORAGE_PREFIX}${periodKey}`);
+      const localData = localStorage.getItem(this.getStorageKey(periodKey));
       if (localData) {
         return JSON.parse(localData);
       }
     } catch (e) {
-      console.error('Error loading local budget:', e);
+      console.error('Error loading account budget:', e);
     }
 
-    // Fallback: If loading April 2026, return seed
+    // Default template if April 2026 requested
     if (periodKey === '2026-04') {
-      return JSON.parse(JSON.stringify(SEED_BUDGET_APRIL_2026));
+      const seed = JSON.parse(JSON.stringify(SEED_BUDGET_APRIL_2026));
+      this.saveLocalBudget('2026-04', seed);
+      return seed;
     }
 
-    // Default blank template for new month
+    // Blank template for new month
     return {
       period: periodKey,
       salary: 0,
@@ -100,7 +136,7 @@ class StorageService {
   }
 
   /**
-   * Save budget to LocalStorage and cloud
+   * Save budget to LocalStorage (scoped to user) and sync to Cloud if applicable
    * @param {string} periodKey
    * @param {Object} budgetData
    */
@@ -108,21 +144,22 @@ class StorageService {
     this.saveLocalBudget(periodKey, budgetData);
     this.registerPeriodInIndex(periodKey);
 
-    if (this.currentUser && this.db) {
+    // If logged in via Firebase, sync to Firestore
+    if (this.currentUser && !this.currentUser.isLocal && this.db) {
       this.syncToCloud(periodKey, budgetData);
     }
   }
 
   saveLocalBudget(periodKey, budgetData) {
     try {
-      localStorage.setItem(`${STORAGE_PREFIX}${periodKey}`, JSON.stringify(budgetData));
+      localStorage.setItem(this.getStorageKey(periodKey), JSON.stringify(budgetData));
     } catch (e) {
       console.error('LocalStorage write failed:', e);
     }
   }
 
   async syncToCloud(periodKey, budgetData) {
-    if (!this.currentUser || !this.db) return;
+    if (!this.currentUser || this.currentUser.isLocal || !this.db) return;
     try {
       await this.db
         .collection('users')
@@ -134,14 +171,14 @@ class StorageService {
           updatedAt: Date.now()
         }, { merge: true });
     } catch (e) {
-      console.warn('Firestore sync failed (offline):', e);
+      console.warn('Firestore cloud sync failed (offline or unauthorized):', e);
     }
   }
 
   /**
-   * Clone previous month's structure to a new month
-   * @param {string} sourcePeriod - e.g. "2026-04"
-   * @param {string} targetPeriod - e.g. "2026-05"
+   * Clone a period budget to another month for current user
+   * @param {string} sourcePeriod
+   * @param {string} targetPeriod
    */
   cloneBudget(sourcePeriod, targetPeriod) {
     const source = this.loadBudget(sourcePeriod);
@@ -160,7 +197,7 @@ class StorageService {
   }
 
   /**
-   * Subscribe to real-time updates for a period if logged in
+   * Subscribe to real-time updates for a period if logged in via cloud
    */
   subscribeToCloudBudget(periodKey, onUpdate) {
     if (this.activeListenerUnsubscribe) {
@@ -168,7 +205,7 @@ class StorageService {
       this.activeListenerUnsubscribe = null;
     }
 
-    if (!this.currentUser || !this.db) return;
+    if (!this.currentUser || this.currentUser.isLocal || !this.db) return;
 
     try {
       this.activeListenerUnsubscribe = this.db
@@ -183,11 +220,27 @@ class StorageService {
             onUpdate(data);
           }
         }, err => {
-          console.warn('Cloud listener error:', err);
+          console.warn('Cloud listener notice:', err);
         });
     } catch (e) {
-      console.warn('Error setting up cloud listener:', e);
+      console.warn('Could not register cloud listener:', e);
     }
+  }
+
+  /**
+   * Clear all local budget data for current user
+   */
+  clearUserData() {
+    if (!this.currentUser) return;
+    const periods = this.getStoredPeriods();
+    periods.forEach(p => {
+      try {
+        localStorage.removeItem(this.getStorageKey(p));
+      } catch (e) {}
+    });
+    try {
+      localStorage.removeItem(this.getPeriodsIndexKey());
+    } catch (e) {}
   }
 }
 

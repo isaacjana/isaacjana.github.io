@@ -1,5 +1,6 @@
 /**
  * PennyWise Pro - Notepad ASCII View & Two-Way Text Import/Export Modal
+ * All in English with mobile-responsive view
  */
 
 import { store } from '../store.js';
@@ -32,13 +33,15 @@ export function openNotepadModal() {
 
   modalEl.innerHTML = `
     <div class="modal-container" style="max-width: 680px;">
+      <div class="modal-drag-handle"></div>
+
       <div class="modal-header">
         <div>
           <h2 class="modal-title flex items-center gap-2">
             <i class="fa-solid fa-file-lines text-sky"></i>
-            <span>Format Notepad & Salinan Teks</span>
+            <span>Notepad ASCII & Text Format</span>
           </h2>
-          <p class="text-xs text-muted">Format asal seperti catatan teks peribadi anda</p>
+          <p class="text-xs text-muted">Original ASCII format matching your personal budget notes</p>
         </div>
         <button id="btn-close-notepad-modal" class="btn btn-subtle btn-icon-sm">
           <i class="fa-solid fa-xmark"></i>
@@ -48,10 +51,10 @@ export function openNotepadModal() {
       <!-- Tab Switcher -->
       <div class="flex items-center gap-2 px-6 pt-3 border-b border-subtle">
         <button id="tab-view-text" class="btn text-xs font-bold py-2 border-b-2 border-primary text-primary">
-          <i class="fa-solid fa-eye mr-1"></i> Paparan Teks
+          <i class="fa-solid fa-eye mr-1"></i> Text View
         </button>
         <button id="tab-import-text" class="btn text-xs font-bold py-2 text-muted hover:text-main">
-          <i class="fa-solid fa-file-import mr-1"></i> Import dari Teks
+          <i class="fa-solid fa-file-import mr-1"></i> Import from Text
         </button>
       </div>
 
@@ -64,27 +67,27 @@ export function openNotepadModal() {
         <!-- Import Mode Pane -->
         <div id="pane-import-text" style="display: none;">
           <p class="text-xs text-muted mb-2">
-            Tampal teks format bajet anda di bawah (seperti dari Notepad) untuk dikemaskini terus ke dalam sistem:
+            Paste your ASCII budget notes below to parse and load them into your account:
           </p>
-          <textarea id="import-text-input" class="notepad-textarea" placeholder="Tampal teks bajet di sini...">${escapeHtml(currentText)}</textarea>
+          <textarea id="import-text-input" class="notepad-textarea" placeholder="Paste your budget text here...">${escapeHtml(currentText)}</textarea>
         </div>
       </div>
 
       <div class="modal-footer">
-        <div class="flex items-center justify-between w-full">
+        <div class="flex items-center justify-between w-full flex-wrap gap-2">
           <div class="text-xs text-muted">
-            <i class="fa-solid fa-check text-emerald mr-1"></i> Sedia disalin ke clipboard
+            <i class="fa-solid fa-check text-emerald mr-1"></i> Ready to copy or export
           </div>
 
           <div class="flex items-center gap-2">
             <button id="btn-copy-notepad" class="btn btn-primary text-xs">
-              <i class="fa-regular fa-clone"></i> Salin Semua Teks
+              <i class="fa-regular fa-clone"></i> Copy Text
             </button>
             <button id="btn-apply-import" class="btn btn-gold text-xs" style="display: none;">
-              <i class="fa-solid fa-check-double"></i> Kemaskini Bajet
+              <i class="fa-solid fa-check-double"></i> Update Budget
             </button>
             <button id="btn-download-txt" class="btn btn-secondary text-xs">
-              <i class="fa-solid fa-download"></i> Simpan .TXT
+              <i class="fa-solid fa-download"></i> Save .TXT
             </button>
           </div>
         </div>
@@ -132,9 +135,9 @@ export function openNotepadModal() {
   btnCopy?.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(currentText);
-      showToast('Teks berjaya disalin ke papan keratan!', 'success');
+      showToast('Text copied to clipboard!', 'success');
     } catch (e) {
-      showToast('Gagal menyalin teks', 'error');
+      showToast('Could not copy to clipboard', 'error');
     }
   });
 
@@ -146,28 +149,28 @@ export function openNotepadModal() {
     a.download = `Budget_${store.state.period}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Fail muat turun dimulakan!', 'success');
+    showToast('Download started!', 'success');
   });
 
   btnApply?.addEventListener('click', () => {
     const rawInput = document.getElementById('import-text-input')?.value;
     if (!rawInput || !rawInput.trim()) {
-      showToast('Sila masukkan teks bajet', 'error');
+      showToast('Please enter budget text', 'error');
       return;
     }
 
     try {
       const parsed = parseFromNotepadText(rawInput, store.state.period);
       if (parsed.banks.length === 0) {
-        showToast('Format tidak dapat dikenalpasti. Sila semak format teks.', 'error');
+        showToast('Could not identify budget structure. Please verify formatting.', 'error');
         return;
       }
 
       store.replaceBudgetData(parsed);
-      showToast(`Berjaya mengimport ${parsed.banks.length} bank dan komitmen!`, 'success');
+      showToast(`Imported ${parsed.banks.length} banks and commitments successfully!`, 'success');
       closeNotepadModal();
     } catch (err) {
-      showToast('Ralat memproses teks: ' + err.message, 'error');
+      showToast('Error parsing text: ' + err.message, 'error');
     }
   });
 

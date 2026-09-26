@@ -19,6 +19,19 @@ class BudgetStore {
     this.saveTimeout = null;
   }
 
+  setUser(user) {
+    this.state.currentUser = user;
+    storage.setUser(user);
+
+    if (user) {
+      this.init(this.state.period || '2026-04');
+    } else {
+      this.state.banks = [];
+      this.state.salary = 0;
+      this.notify();
+    }
+  }
+
   init(initialPeriod = '2026-04') {
     const loaded = storage.loadBudget(initialPeriod);
     this.state.period = loaded.period || initialPeriod;

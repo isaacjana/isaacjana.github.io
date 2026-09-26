@@ -1,10 +1,12 @@
 /**
  * PennyWise Pro - Header Component
+ * Displays user profile pill, month switcher, and responsive hero balance
  */
 
 import { store } from '../store.js';
 import { formatPeriod, getNextPeriod, getPrevPeriod } from '../utils/format.js';
 import { authService } from '../services/auth.js';
+import { openAccountDrawer } from './accountModal.js';
 import { showToast } from './toast.js';
 
 export function initHeader() {
@@ -14,6 +16,8 @@ export function initHeader() {
   function render(state) {
     const periodLabel = formatPeriod(state.period);
     const currentUser = authService.getUser();
+    const grandTotal = store.getGrandTotal();
+    const balance = store.getBalance();
 
     container.innerHTML = `
       <div class="header-top">
@@ -22,29 +26,24 @@ export function initHeader() {
           <div>
             <h1 class="text-xl font-black tracking-tight" style="color: #ffffff;">PennyWise</h1>
             <p class="text-xs font-bold uppercase tracking-widest" style="color: var(--color-primary-200); opacity: 0.85;">
-              Sarawak Pro 2026
+              Personal Budget Pro
             </p>
           </div>
         </div>
 
+        <!-- User Profile Pill -->
         <div class="flex items-center gap-2">
-          <!-- Auth Badge -->
-          <div id="auth-status-btn" class="auth-badge cursor-pointer" title="${currentUser ? 'Logged in as ' + currentUser.displayName : 'Sign in to sync with Cloud'}">
-            ${currentUser ? `
-              <div class="text-right">
-                <p class="text-xs font-bold leading-tight" style="color: #ffffff;">${currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'User'}</p>
-                <button id="btn-sign-out" class="text-xs text-coral font-bold hover:underline" style="font-size: 0.65rem;">Keluar</button>
+          ${currentUser ? `
+            <div id="btn-open-account-header" class="auth-badge cursor-pointer" title="Manage Account & Profiles">
+              <div class="text-right leading-tight">
+                <p class="text-xs font-bold" style="color: #ffffff;">${currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'User'}</p>
+                <p class="text-[10px] text-emerald-200 opacity-80">${currentUser.isLocal ? 'Local Profile' : 'Cloud Sync'}</p>
               </div>
-              <div class="auth-avatar">
-                ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover;">` : '<i class="fa-solid fa-user"></i>'}
+              <div class="auth-avatar" style="background: ${currentUser.avatarBg || 'rgba(255,255,255,0.2)'};">
+                ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fa-solid ${currentUser.avatar || 'fa-user'}"></i>`}
               </div>
-            ` : `
-              <button id="btn-sign-in" class="flex items-center gap-1.5 text-xs font-bold text-white hover:text-emerald-300">
-                <i class="fa-brands fa-google text-xs"></i>
-                <span>Sign In</span>
-              </button>
-            `}
-          </div>
+            </div>
+          ` : ''}
         </div>
       </div>
 
@@ -56,7 +55,7 @@ export function initHeader() {
 
         <div class="month-picker-label">
           <p class="month-picker-title">${periodLabel.toUpperCase()}</p>
-          <p class="month-picker-subtitle">Personal Budget Planner</p>
+          <p class="month-picker-subtitle">Budget & Commitments</p>
         </div>
 
         <button id="btn-next-month" class="month-picker-btn" title="Next Month">
@@ -66,14 +65,14 @@ export function initHeader() {
 
       <!-- Hero Balance -->
       <div class="balance-hero">
-        <p class="balance-label">Baki Tersedia (Balance)</p>
+        <p class="balance-label">Available Balance</p>
         <div class="balance-amount-row">
           <span class="balance-currency">RM</span>
           <span id="hero-balance-val" class="balance-value">0.00</span>
         </div>
         <div id="hero-formula-tag" class="balance-formula-tag">
           <i class="fa-solid fa-calculator text-xs"></i>
-          <span id="hero-formula-text">SALARY - G.TOTAL</span>
+          <span id="hero-formula-text">SALARY - TOTAL</span>
         </div>
       </div>
     `;
@@ -89,20 +88,8 @@ export function initHeader() {
       store.setPeriod(next);
     });
 
-    document.getElementById('btn-sign-in')?.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      try {
-        await authService.signInWithGoogle();
-        showToast('Successfully signed in with Google!', 'success');
-      } catch (err) {
-        showToast(err.message || 'Sign in failed', 'error');
-      }
-    });
-
-    document.getElementById('btn-sign-out')?.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      await authService.signOut();
-      showToast('Signed out', 'info');
+    document.getElementById('btn-open-account-header')?.addEventListener('click', () => {
+      openAccountDrawer();
     });
   }
 

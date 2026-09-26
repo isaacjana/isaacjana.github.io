@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PennyWise Pro | Personal Budget & Bank Envelope Manager</title>
-    <meta name="description" content="Sistem pengurusan bajet peribadi pintar berasaskan saluran bank, komitmen, dan baki pendapatan bulanan.">
+    <meta name="description" content="Smart personal budget manager based on bank accounts, commitments, and monthly income balance. Mobile-friendly fintech experience.">
     <meta name="theme-color" content="#004B23">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <!-- Google Fonts: Outfit & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,25 +27,35 @@
 
 <body>
 
-    <div class="app-wrapper">
+    <!-- Login First Screen (Visible when unauthenticated) -->
+    <div id="login-view-container" class="login-view-container" style="display: none;"></div>
+
+    <!-- Main Authenticated App Wrapper -->
+    <div id="app-wrapper" class="app-wrapper" style="display: none;">
         <!-- Header Hero Section (Period, Month Nav, Hero Balance, User Auth) -->
-        <header class="glass-header" id="header-section" aria-label="Ringkasan Bajet Utama"></header>
+        <header class="glass-header" id="header-section" aria-label="Main Budget Header"></header>
 
         <!-- Main Content Area -->
         <main>
             <!-- Financial Summary Cards & Settlement Progress -->
-            <section id="summary-section" aria-label="Kad Ringkasan Kewangan"></section>
+            <section id="summary-section" aria-label="Financial Summary Cards"></section>
 
             <!-- Bank Accounts Envelope List & Commitment Items -->
-            <section id="banks-section" aria-label="Senarai Akaun Bank dan Komitmen"></section>
+            <section id="banks-section" aria-label="Bank Accounts and Commitments List"></section>
         </main>
     </div>
 
-    <!-- Floating Quick Add Button -->
-    <button id="floating-quick-add" class="fab" title="Tambah Komitmen Baru">
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav id="mobile-bottom-nav" class="mobile-bottom-nav" aria-label="Mobile Navigation" style="display: none;"></nav>
+
+    <!-- Floating Quick Add Button (Desktop / Tablet) -->
+    <button id="floating-quick-add" class="fab" title="Add New Commitment" style="display: none;">
         <i class="fa-solid fa-plus text-base"></i>
-        <span>Tambah Komitmen</span>
+        <span>Add Commitment</span>
     </button>
+
+    <!-- Account Details & Switcher Drawer Overlay -->
+    <div id="account-drawer-overlay" class="modal-overlay"></div>
 
     <!-- Toast Notification Container -->
     <div id="toast-container" aria-live="polite"></div>
