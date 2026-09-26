@@ -12,9 +12,12 @@ import { evaluateFormula } from './math.js';
  * @returns {string}
  */
 export function exportToNotepadText(budget) {
-  const periodLabel = formatPeriod(budget.period, true).toUpperCase() + ' BUDGET';
-  let lines = [];
+  const [year, month] = (budget.period || '2026-04').split('-');
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mShort = months[parseInt(month, 10) - 1] || 'Apr';
+  const periodLabel = `${mShort} ${year} BUDGET`;
 
+  let lines = [];
   lines.push(periodLabel);
   lines.push('');
 
@@ -27,21 +30,22 @@ export function exportToNotepadText(budget) {
     let bankTotal = 0;
 
     (bank.items || []).forEach(item => {
-      bankTotal += (item.amount || 0);
+      const amt = (item.amount || 0);
+      bankTotal += amt;
 
       const name = item.name.padEnd(24, ' ');
       let itemLine = `${name}`;
 
-      // Check if formula is different from amount or contains operator
+      // Check if formula is present and has arithmetic operator
       const hasFormula = item.formula && /[\+\-\*\/]/.test(item.formula);
 
       if (hasFormula) {
         const formulaStr = `= ${item.formula}`.padEnd(16, ' ');
         const noteStr = item.note ? ` ( ${item.note} )` : '';
-        itemLine += `${formulaStr}= ${formatAmountDisplay(item.amount)}${noteStr}`;
+        itemLine += `${formulaStr}= ${formatAmountDisplay(amt)}${noteStr}`;
       } else {
         const noteStr = item.note ? ` ( ${item.note} )` : '';
-        itemLine += `= ${formatAmountDisplay(item.amount)}${noteStr}`;
+        itemLine += `= ${formatAmountDisplay(amt)}${noteStr}`;
       }
 
       lines.push(itemLine);
@@ -57,32 +61,52 @@ export function exportToNotepadText(budget) {
 
   // Footer / Grand Total
   lines.push('======================================================');
-  lines.push(`GRAND TOTAL                             = ${formatAmountDisplay(grandTotal)}`);
+  lines.push(`GRAND TOTAL                             = ${formatGrandTotalDisplay(grandTotal)}`);
   lines.push('======================================================');
   lines.push('======================================================');
 
   const salary = budget.salary || 0;
   const balance = salary - grandTotal;
+  const salaryStr = salary.toFixed(2);
+  const grandTotalStr = formatGrandTotalDisplay(grandTotal);
+  const balanceStr = formatBalanceDisplay(balance);
 
-  lines.push(`SALARY                                  = ${formatAmountDisplay(salary)}`);
+  lines.push(`SALARY                                  = ${salaryStr}`);
   lines.push('BALANCE                                 = SALARY - G.TOTAL');
-  lines.push(`                                        = ${formatAmountDisplay(salary)} - ${formatAmountDisplay(grandTotal)}`);
-  lines.push(`                                        = ${formatAmountDisplay(balance)}`);
+  lines.push(`                                        = ${salaryStr} - ${grandTotalStr}`);
+  lines.push(`                                        = ${balanceStr}`);
 
   return lines.join('\n');
 }
 
 /**
- * Format amount without unnecessary trailing zeroes when clean (e.g. 3,153.5 or 416.6 or 461)
+ * Format item amount
  */
 function formatAmountDisplay(num) {
   if (typeof num !== 'number') num = parseFloat(num) || 0;
-  // If whole number, format without decimals
   if (num % 1 === 0) {
-    return num.toLocaleString('en-US');
+    return String(num);
   }
-  // Otherwise up to 2 decimal places
-  return num.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  return num.toFixed(2).replace(/0$/, '');
+}
+
+/**
+ * Format grand total with thousand separator and concise decimal
+ */
+function formatGrandTotalDisplay(num) {
+  if (typeof num !== 'number') num = parseFloat(num) || 0;
+  const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  return formatted.replace(/\.0$/, '');
+}
+
+/**
+ * Format balance display
+ */
+function formatBalanceDisplay(num) {
+  if (typeof num !== 'number') num = parseFloat(num) || 0;
+  const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+  if (rounded % 1 === 0) return String(rounded);
+  return String(rounded);
 }
 
 /**
@@ -99,7 +123,7 @@ export function parseFromNotepadText(text, defaultPeriod = '2026-04') {
   let period = defaultPeriod;
 
   // Check first line for period (e.g. "Apr 2026 BUDGET")
-  const periodMatch = lines[0].match(/([A-Za-z]+)\s+(\d{4})\s+BUDGET/i);
+  const periodMatch = lines[0]?.match(/([A-Za-z]+)\s+(\d{4})\s+BUDGET/i);
   if (periodMatch) {
     const monthStr = periodMatch[1].toLowerCase();
     const yearStr = periodMatch[2];
@@ -154,9 +178,6 @@ export function parseFromNotepadText(text, defaultPeriod = '2026-04') {
     }
 
     // Check Item line:
-    // Pattern 1: CAR SERVICE = 100 * 2 = 200 ( 6 MTHS = 600 )
-    // Pattern 2: CAR INSTALLMENT = 461 = 461
-    // Pattern 3: FUEL = 250
     if (currentBank && line.includes('=')) {
       const parts = line.split('=').map(p => p.trim());
       const name = parts[0];
