@@ -4,7 +4,7 @@
  * Handles automatic session restoration, Google popup sign-in, and sign-out.
  */
 
-import { FIREBASE_CONFIG } from '../config.js';
+import { getFirebaseAuth } from './firebase.js';
 
 const SESSION_STORAGE_KEY = 'pennywise_active_session';
 
@@ -55,11 +55,8 @@ class AuthService {
 
   initFirebase() {
     try {
-      if (typeof window.firebase !== 'undefined') {
-        if (!window.firebase.apps.length) {
-          window.firebase.initializeApp(FIREBASE_CONFIG);
-        }
-        this.auth = window.firebase.auth();
+      this.auth = getFirebaseAuth();
+      if (this.auth && typeof window.firebase !== 'undefined') {
         this.provider = new window.firebase.auth.GoogleAuthProvider();
         this.provider.setCustomParameters({ prompt: 'select_account' });
 

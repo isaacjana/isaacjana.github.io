@@ -5,23 +5,20 @@
  */
 
 import { SEED_BUDGET_APRIL_2026 } from '../config.js';
+import { getFirestoreDb } from './firebase.js';
 
 class StorageService {
   constructor() {
     this.db = null;
     this.currentUser = null;
     this.activeListenerUnsubscribe = null;
-    this.initFirestore();
   }
 
-  initFirestore() {
-    try {
-      if (typeof window.firebase !== 'undefined' && window.firebase.firestore) {
-        this.db = window.firebase.firestore();
-      }
-    } catch (e) {
-      console.warn('Firestore initialization deferred or offline:', e);
+  getDb() {
+    if (!this.db) {
+      this.db = getFirestoreDb();
     }
+    return this.db;
   }
 
   /**
@@ -145,7 +142,8 @@ class StorageService {
     this.registerPeriodInIndex(periodKey);
 
     // If logged in via Google Firebase, sync to Firestore
-    if (this.currentUser && this.db) {
+    const db = this.getDb();
+    if (this.currentUser && db) {
       this.syncToCloud(periodKey, budgetData);
     }
   }
@@ -159,9 +157,10 @@ class StorageService {
   }
 
   async syncToCloud(periodKey, budgetData) {
-    if (!this.currentUser || !this.db) return;
+    const db = this.getDb();
+    if (!this.currentUser || !db) return;
     try {
-      await this.db
+      await db
         .collection('users')
         .doc(this.currentUser.uid)
         .collection('budgets')
@@ -171,7 +170,7 @@ class StorageService {
           updatedAt: Date.now()
         }, { merge: true });
     } catch (e) {
-      console.warn('Firestore cloud sync failed (offline or unauthorized):', e);
+      console.warn('Firestore cloud sync notice (offline or unauthorized):', e);
     }
   }
 
@@ -205,10 +204,11 @@ class StorageService {
       this.activeListenerUnsubscribe = null;
     }
 
-    if (!this.currentUser || !this.db) return;
+    const db = this.getDb();
+    if (!this.currentUser || !db) return;
 
     try {
-      this.activeListenerUnsubscribe = this.db
+      this.activeListenerUnsubscribe = db
         .collection('users')
         .doc(this.currentUser.uid)
         .collection('budgets')
