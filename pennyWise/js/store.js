@@ -4,12 +4,14 @@
 
 import { storage } from './services/storage.js';
 import { evaluateFormula } from './utils/math.js';
+import { getCurrentPeriodKey } from './utils/format.js';
 
 class BudgetStore {
   constructor() {
+    const initialPeriod = getCurrentPeriodKey();
     this.state = {
-      period: '2026-04',
-      salary: 3570.10,
+      period: initialPeriod,
+      salary: 0,
       banks: [],
       searchQuery: '',
       currentUser: null
@@ -24,7 +26,7 @@ class BudgetStore {
     storage.setUser(user);
 
     if (user) {
-      this.init(this.state.period || '2026-04');
+      this.init(this.state.period || getCurrentPeriodKey());
     } else {
       this.state.banks = [];
       this.state.salary = 0;
@@ -32,11 +34,19 @@ class BudgetStore {
     }
   }
 
-  init(initialPeriod = '2026-04') {
-    const loaded = storage.loadBudget(initialPeriod);
-    this.state.period = loaded.period || initialPeriod;
+  init(initialPeriod = null) {
+    const periodKey = initialPeriod || this.state.period || getCurrentPeriodKey();
+    const loaded = storage.loadBudget(periodKey);
+    this.state.period = loaded.period || periodKey;
     this.state.salary = loaded.salary || 0;
     this.state.banks = loaded.banks || [];
+    this.notify();
+  }
+
+  clearBudget() {
+    this.state.salary = 0;
+    this.state.banks = [];
+    this.save();
     this.notify();
   }
 

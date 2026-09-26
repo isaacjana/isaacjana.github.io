@@ -7,6 +7,7 @@ import { authService } from '../services/auth.js';
 import { storage } from '../services/storage.js';
 import { store } from '../store.js';
 import { showToast } from './toast.js';
+import { openConfirmModal } from './modals.js';
 
 let drawerEl = null;
 
@@ -130,6 +131,10 @@ service cloud.firestore {
             <i class="fa-solid fa-file-arrow-down text-sky"></i>
             <span>Export & Backup Account Data (JSON)</span>
           </button>
+          <button id="btn-clear-budget" class="btn btn-secondary text-xs w-full justify-start text-coral">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Reset Current Month to Empty</span>
+          </button>
         </div>
       </div>
 
@@ -189,6 +194,21 @@ service cloud.firestore {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Account data exported successfully!', 'success');
+  });
+
+  // Reset Budget to Empty Button
+  document.getElementById('btn-clear-budget')?.addEventListener('click', () => {
+    openConfirmModal({
+      title: 'Reset Month to Empty?',
+      message: 'Are you sure you want to remove all commitments, banks, and salary for this month?',
+      confirmText: 'Reset',
+      isDanger: true,
+      onConfirm: () => {
+        store.clearBudget();
+        closeAccountDrawer();
+        showToast('Month has been reset to empty.', 'info');
+      }
+    });
   });
 
   // Sign Out Button

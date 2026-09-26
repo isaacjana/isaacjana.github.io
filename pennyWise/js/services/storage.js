@@ -4,8 +4,8 @@
  * Guarantees that data loads and saves strictly according to the logged-in user account.
  */
 
-import { SEED_BUDGET_APRIL_2026 } from '../config.js';
 import { getFirestoreDb } from './firebase.js';
+import { getCurrentPeriodKey } from '../utils/format.js';
 
 class StorageService {
   constructor() {
@@ -36,7 +36,7 @@ class StorageService {
     this.currentUser = user;
 
     if (user && user.uid) {
-      this.seedUserDefaultIfNeeded(user.uid);
+      this.cleanupLegacySeedData(user.uid);
     }
   }
 
@@ -53,22 +53,21 @@ class StorageService {
   }
 
   /**
-   * Seed April 2026 budget for a user if they have no budget yet
+   * Cleanup any legacy seed dummy budget (Affin car installment, salary 3570.10)
    */
-  seedUserDefaultIfNeeded(uid) {
+  cleanupLegacySeedData(uid) {
     try {
+      localStorage.removeItem('pennywise_budget_2026-04');
       const key = `pennywise_${uid}_budget_2026-04`;
-      const existing = localStorage.getItem(key);
-      if (!existing) {
-        // Also check if there was a legacy global budget from previous session to migrate for Isaac
-        const legacy = localStorage.getItem('pennywise_budget_2026-04');
-        const seedData = legacy ? JSON.parse(legacy) : JSON.parse(JSON.stringify(SEED_BUDGET_APRIL_2026));
-        
-        localStorage.setItem(key, JSON.stringify(seedData));
-        this.registerPeriodInIndex('2026-04');
+      const dataStr = localStorage.getItem(key);
+      if (dataStr) {
+        const data = JSON.parse(dataStr);
+        if (data.salary === 3570.10 || (data.banks && data.banks.some(b => b.name === 'AFFIN BANK'))) {
+          localStorage.removeItem(key);
+        }
       }
     } catch (e) {
-      console.error('Error seeding user default budget:', e);
+      console.warn('Seed cleanup notice:', e);
     }
   }
 
@@ -94,12 +93,13 @@ class StorageService {
    * @returns {string[]}
    */
   getStoredPeriods() {
-    if (!this.currentUser) return ['2026-04'];
+    const current = getCurrentPeriodKey();
+    if (!this.currentUser) return [current];
     try {
       const data = localStorage.getItem(this.getPeriodsIndexKey());
-      return data ? JSON.parse(data) : ['2026-04'];
+      return data ? JSON.parse(data) : [current];
     } catch (e) {
-      return ['2026-04'];
+      return [current];
     }
   }
 
@@ -118,14 +118,7 @@ class StorageService {
       console.error('Error loading account budget:', e);
     }
 
-    // Default template if April 2026 requested
-    if (periodKey === '2026-04') {
-      const seed = JSON.parse(JSON.stringify(SEED_BUDGET_APRIL_2026));
-      this.saveLocalBudget('2026-04', seed);
-      return seed;
-    }
-
-    // Blank template for new month
+    // Completely empty template for new period
     return {
       period: periodKey,
       salary: 0,
