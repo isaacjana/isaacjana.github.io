@@ -12,6 +12,7 @@ class StorageService {
     this.db = null;
     this.currentUser = null;
     this.activeListenerUnsubscribe = null;
+    this.cloudSyncPermissionDenied = false;
   }
 
   getDb() {
@@ -157,6 +158,7 @@ class StorageService {
   }
 
   async syncToCloud(periodKey, budgetData) {
+    if (this.cloudSyncPermissionDenied) return;
     const db = this.getDb();
     if (!this.currentUser || !db) return;
     try {
@@ -170,7 +172,12 @@ class StorageService {
           updatedAt: Date.now()
         }, { merge: true });
     } catch (e) {
-      console.warn('Firestore cloud sync notice (offline or unauthorized):', e);
+      if (e.code === 'permission-denied') {
+        this.cloudSyncPermissionDenied = true;
+        console.warn('[PennyWise] Firestore write denied by security rules. Budget is safely stored in local browser cache.');
+      } else {
+        console.warn('Firestore cloud sync notice (offline or unauthorized):', e.message || e);
+      }
     }
   }
 
@@ -220,10 +227,15 @@ class StorageService {
             onUpdate(data);
           }
         }, err => {
-          console.warn('Cloud listener notice:', err);
+          if (err.code === 'permission-denied') {
+            this.cloudSyncPermissionDenied = true;
+            console.warn('[PennyWise] Firestore Security Rules need configuration for cross-device sync. Data is safely stored in local browser storage.');
+          } else {
+            console.warn('Cloud listener notice:', err.message || err);
+          }
         });
     } catch (e) {
-      console.warn('Could not register cloud listener:', e);
+      console.warn('Could not register cloud listener:', e.message || e);
     }
   }
 

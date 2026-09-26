@@ -81,15 +81,48 @@ export function openAccountDrawer() {
         </div>
 
         <!-- Account Cloud Sync Details -->
-        <div class="sync-info-card mt-3">
-          <div class="flex items-center gap-2 mb-1">
-            <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i>
-            <span class="text-xs font-bold text-slate-700">Account Synchronization Active</span>
+        ${storage.cloudSyncPermissionDenied ? `
+          <div class="sync-info-card mt-3" style="background: #fffbeb; border: 1.5px solid #fde68a;">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xs"></i>
+                <span class="text-xs font-bold text-slate-800">Firestore Rules Setup Needed</span>
+              </div>
+              <button id="btn-toggle-rules-guide" class="btn btn-subtle text-[11px] py-0.5 px-2 font-bold text-amber-800">
+                View Rules Fix
+              </button>
+            </div>
+            <p class="text-[11px] text-muted leading-tight">
+              Data is safely saved in your browser storage. To enable live cross-device cloud sync, add the rules below to Firebase Console.
+            </p>
+            <div id="rules-guide-box" style="display: none; margin-top: 0.65rem; background: #0b1120; padding: 0.75rem; border-radius: 8px; border: 1px solid #1e293b;">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] text-slate-400 font-bold uppercase">Firestore Database > Rules:</span>
+                <button id="btn-copy-firestore-rules" class="btn btn-subtle text-[10px] py-0.5 px-1.5 text-sky">
+                  <i class="fa-regular fa-copy mr-1"></i>Copy
+                </button>
+              </div>
+              <pre id="firestore-rules-snippet" class="text-[10px] text-emerald-400 font-mono" style="margin: 0; user-select: all; overflow-x: auto; line-height: 1.4;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}</pre>
+            </div>
           </div>
-          <p class="text-[11px] text-muted leading-tight">
-            Your budget allocations and commitments are automatically backed up to Google Cloud Firestore and cached locally for offline responsiveness.
-          </p>
-        </div>
+        ` : `
+          <div class="sync-info-card mt-3">
+            <div class="flex items-center gap-2 mb-1">
+              <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i>
+              <span class="text-xs font-bold text-slate-700">Account Synchronization Active</span>
+            </div>
+            <p class="text-[11px] text-muted leading-tight">
+              Your budget allocations and commitments are automatically backed up to Google Cloud Firestore and cached locally for offline responsiveness.
+            </p>
+          </div>
+        `}
 
         <!-- Backup & Actions -->
         <div class="mt-4 pt-3 border-t border-subtle flex flex-col gap-2">
@@ -111,6 +144,28 @@ export function openAccountDrawer() {
 
   // Bind Events
   document.getElementById('btn-close-drawer')?.addEventListener('click', closeAccountDrawer);
+
+  // Firestore Rules Helper Events
+  const btnToggleRules = document.getElementById('btn-toggle-rules-guide');
+  const rulesBox = document.getElementById('rules-guide-box');
+  btnToggleRules?.addEventListener('click', () => {
+    if (rulesBox) {
+      const isHidden = rulesBox.style.display === 'none';
+      rulesBox.style.display = isHidden ? 'block' : 'none';
+      btnToggleRules.textContent = isHidden ? 'Hide Fix' : 'View Rules Fix';
+    }
+  });
+
+  document.getElementById('btn-copy-firestore-rules')?.addEventListener('click', () => {
+    const rulesSnippet = document.getElementById('firestore-rules-snippet')?.textContent;
+    if (rulesSnippet) {
+      navigator.clipboard.writeText(rulesSnippet).then(() => {
+        showToast('Firestore rules copied to clipboard!', 'success');
+      }).catch(() => {
+        showToast('Please select and copy the rules text.', 'info');
+      });
+    }
+  });
 
   // Backup Data Button
   document.getElementById('btn-backup-budget')?.addEventListener('click', () => {
