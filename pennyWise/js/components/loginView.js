@@ -15,7 +15,7 @@ export function renderLoginView(container, onLoginSuccess) {
         <!-- Brand Header -->
         <div class="login-header">
           <div class="login-brand-icon">
-            <i class="fa-solid fa-wallet"></i>
+            <img src="assets/icons/apple-touch-icon.png" alt="PennyWise Logo">
           </div>
           <h1 class="login-title">PennyWise Pro</h1>
           <p class="login-subtitle">Personal Budget & Bank Envelope Manager</p>

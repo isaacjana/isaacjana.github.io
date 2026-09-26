@@ -22,7 +22,7 @@ export function initHeader() {
     container.innerHTML = `
       <div class="header-top">
         <div class="brand-badge">
-          <div class="brand-dot"></div>
+          <img src="assets/icons/favicon-32x32.png" alt="PennyWise" style="width: 28px; height: 28px; border-radius: 7px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); flex-shrink: 0;">
           <div>
             <h1 class="text-xl font-black tracking-tight" style="color: #ffffff;">PennyWise</h1>
             <p class="text-xs font-bold uppercase tracking-widest" style="color: var(--color-primary-200); opacity: 0.85;">
