@@ -1,6 +1,6 @@
 /**
  * PennyWise Pro - Summary & Financial Metric Cards
- * Mobile-friendly 2x2 grid with settlement progress tracking
+ * Mobile-friendly 2x2 grid with settlement progress tracking and percentage allocations
  */
 
 import { store } from '../store.js';
@@ -15,50 +15,45 @@ export function initSummary() {
     const balance = store.getBalance();
     const stats = store.getSettlementStats();
     const remainingToPay = grandTotal - stats.paidAmount;
-
-    // Update Hero Balance in Header
-    const heroBalEl = document.getElementById('hero-balance-val');
-    const heroFormulaEl = document.getElementById('hero-formula-text');
-
-    if (heroBalEl) {
-      heroBalEl.textContent = formatRM(balance, false);
-      heroBalEl.style.color = balance < 0 ? 'var(--color-coral)' : '#ffffff';
-    }
-
-    if (heroFormulaEl) {
-      heroFormulaEl.textContent = `${formatRM(state.salary, false)} - ${formatRM(grandTotal, false)} = ${formatRM(balance, false)}`;
-    }
+    const salary = state.salary || 0;
+    const allocatedPercent = salary > 0 ? Math.min(Math.round((grandTotal / salary) * 100), 100) : 0;
+    const unpaidItems = stats.totalItems - stats.paidItems;
 
     // Render Summary Cards & Settlement Bar
     container.innerHTML = `
       <div class="summary-grid">
         <!-- Salary Card -->
-        <div class="card summary-card">
+        <div class="card summary-card card-interactive" title="Click or edit your monthly take-home income">
           <div class="summary-card-header">
-            <span class="summary-card-title">Salary</span>
+            <span class="summary-card-title">Salary Income</span>
             <div class="summary-card-icon" style="background: var(--color-primary-100); color: var(--color-primary-800);">
-              <i class="fa-solid fa-money-bill-wave"></i>
+              <i class="fa-solid fa-money-bill-trend-up"></i>
             </div>
           </div>
-          <div class="flex items-baseline justify-between">
+          
+          <div class="salary-input-wrapper">
+            <span class="salary-prefix">RM</span>
             <input 
               type="number" 
               id="input-salary" 
-              class="form-input text-lg font-bold" 
-              style="padding: 0.25rem 0.5rem; font-family: var(--font-family-mono); max-width: 140px; font-weight: 800;"
-              value="${state.salary || ''}" 
+              class="salary-custom-input font-mono font-bold" 
+              value="${salary || ''}" 
               placeholder="0.00" 
               step="0.01"
               inputmode="decimal"
+              title="Edit take-home salary"
             />
           </div>
-          <span class="text-xs text-muted" style="margin-top: 0.35rem;">Net Take-Home Pay</span>
+          <span class="text-xs text-muted flex items-center justify-between" style="margin-top: 0.4rem;">
+            <span>Take-Home Pay</span>
+            <span class="text-[11px] text-emerald font-bold">100% Base</span>
+          </span>
         </div>
 
         <!-- Grand Total Card -->
         <div class="card summary-card">
           <div class="summary-card-header">
-            <span class="summary-card-title">Grand Total</span>
+            <span class="summary-card-title">Commitments</span>
             <div class="summary-card-icon" style="background: #fee2e2; color: #ef4444;">
               <i class="fa-solid fa-calculator"></i>
             </div>
@@ -66,7 +61,12 @@ export function initSummary() {
           <div class="summary-card-val text-coral font-mono">
             ${formatRM(grandTotal)}
           </div>
-          <span class="text-xs text-muted" style="margin-top: 0.35rem;">Total Commitments</span>
+          <span class="text-xs text-muted flex items-center justify-between" style="margin-top: 0.4rem;">
+            <span>Total Bills</span>
+            <span class="text-[11px] font-bold ${allocatedPercent > 100 ? 'text-coral' : 'text-slate-600'}">
+              ${allocatedPercent}% of Pay
+            </span>
+          </span>
         </div>
 
         <!-- Paid / Settled Card -->
@@ -80,7 +80,10 @@ export function initSummary() {
           <div class="summary-card-val text-emerald font-mono">
             ${formatRM(stats.paidAmount)}
           </div>
-          <span class="text-xs text-muted" style="margin-top: 0.35rem;">${stats.paidItems} of ${stats.totalItems} items settled</span>
+          <span class="text-xs text-muted flex items-center justify-between" style="margin-top: 0.4rem;">
+            <span>${stats.paidItems} of ${stats.totalItems} Items</span>
+            <span class="text-[11px] font-bold text-emerald">${stats.percentPaid}% Done</span>
+          </span>
         </div>
 
         <!-- Remaining Unpaid Card -->
@@ -94,7 +97,10 @@ export function initSummary() {
           <div class="summary-card-val text-gold font-mono">
             ${formatRM(remainingToPay)}
           </div>
-          <span class="text-xs text-muted" style="margin-top: 0.35rem;">Pending Transfer</span>
+          <span class="text-xs text-muted flex items-center justify-between" style="margin-top: 0.4rem;">
+            <span>${unpaidItems} ${unpaidItems === 1 ? 'Bill' : 'Bills'} Pending</span>
+            <span class="text-[11px] font-bold text-gold">${100 - stats.percentPaid}% Left</span>
+          </span>
         </div>
       </div>
 
@@ -102,15 +108,29 @@ export function initSummary() {
       <div class="card settlement-card">
         <div class="settlement-header">
           <div>
-            <h3 class="text-sm font-bold">Payment Progress</h3>
-            <p class="text-xs text-muted">${stats.paidItems} of ${stats.totalItems} commitments paid</p>
+            <h3 class="text-sm font-bold flex items-center gap-1.5">
+              <span>Payment Settlement Progress</span>
+              ${stats.percentPaid === 100 ? '<span class="text-xs">🎉</span>' : ''}
+            </h3>
+            <p class="text-xs text-muted">
+              ${stats.paidItems} of ${stats.totalItems} commitments marked as paid
+            </p>
           </div>
           <span class="badge ${stats.percentPaid === 100 ? 'badge-primary' : 'badge-gold'} font-mono">
-            ${stats.percentPaid}% SETTLED
+            ${stats.percentPaid === 100 ? '<i class="fa-solid fa-check-double text-xs"></i> 100% COMPLETE' : `${stats.percentPaid}% SETTLED`}
           </span>
         </div>
+
         <div class="progress-track">
-          <div class="progress-fill" style="width: ${stats.percentPaid}%"></div>
+          <div class="progress-fill ${stats.percentPaid === 100 ? 'progress-complete' : ''}" style="width: ${stats.percentPaid}%"></div>
+        </div>
+
+        <div class="progress-milestones">
+          <span class="milestone-mark ${stats.percentPaid >= 0 ? 'active' : ''}">0%</span>
+          <span class="milestone-mark ${stats.percentPaid >= 25 ? 'active' : ''}">25%</span>
+          <span class="milestone-mark ${stats.percentPaid >= 50 ? 'active' : ''}">50%</span>
+          <span class="milestone-mark ${stats.percentPaid >= 75 ? 'active' : ''}">75%</span>
+          <span class="milestone-mark ${stats.percentPaid === 100 ? 'active' : ''}">100%</span>
         </div>
       </div>
     `;

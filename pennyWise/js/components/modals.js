@@ -109,7 +109,16 @@ export function openItemModal(bankId, itemId = null) {
 
         <!-- Note / Context -->
         <div class="form-group">
-          <label class="form-label">Note / Sinking Fund (Optional)</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="form-label" style="margin-bottom: 0;">Note / Sinking Fund (Optional)</label>
+            <span class="text-xs text-muted">Quick Tags</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <button type="button" class="btn btn-subtle text-[11px] py-1 px-2 btn-quick-note" data-note="12 MTHS">12 MTHS</button>
+            <button type="button" class="btn btn-subtle text-[11px] py-1 px-2 btn-quick-note" data-note="6 MTHS">6 MTHS</button>
+            <button type="button" class="btn btn-subtle text-[11px] py-1 px-2 btn-quick-note" data-note="ROADTAX + INS">ROADTAX</button>
+            <button type="button" class="btn btn-subtle text-[11px] py-1 px-2 btn-quick-note" data-note="SAVINGS">SAVINGS</button>
+          </div>
           <input 
             type="text" 
             id="modal-item-note" 
@@ -141,6 +150,17 @@ export function openItemModal(bankId, itemId = null) {
       </div>
     </div>
   `;
+
+  // Bind quick note tags
+  modal.querySelectorAll('.btn-quick-note').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const noteInput = document.getElementById('modal-item-note');
+      if (noteInput) {
+        noteInput.value = btn.dataset.note;
+        noteInput.focus();
+      }
+    });
+  });
 
   // Bind live formula calculation
   const formulaInput = document.getElementById('modal-item-formula');
