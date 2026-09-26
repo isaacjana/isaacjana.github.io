@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&display=swap');
+
+/* --- DESIGN TOKENS --- */
+:root {
+    /* Premium Gold Palette */
+    --primary-h: 43;
+    --primary-s: 52%;
+    --primary-l: 58%;
+    --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --primary-light: hsl(var(--primary-h), 60%, 72%);
+    --primary-dark: hsl(var(--primary-h), 45%, 45%);
+    --primary-gold: linear-gradient(135deg, #d4af37 0%, #f1d592 50%, #d4af37 100%);
+    --primary-rgb: 212, 175, 55;
+
+    /* Deep Backgrounds */
+    --bg-deep: #030303;
+    --bg-dark: #0a0a0a;
+    --bg-card: #0f0f0f;
+
+    /* Surface Colors */
+    --surface-light: rgba(255, 255, 255, 0.025);
+    --surface-medium: rgba(255, 255, 255, 0.04);
+    --surface-hover: rgba(255, 255, 255, 0.06);
+
+    /* Text Colors */
+    --text-main: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.55);
+    --text-dim: rgba(255, 255, 255, 0.35);
+    --text-subtle: rgba(255, 255, 255, 0.2);
+
+    /* Glass Effects */
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-hover: rgba(255, 255, 255, 0.15);
+    --glass-glow: rgba(var(--primary-rgb), 0.12);
+    --glass-glow-strong: rgba(var(--primary-rgb), 0.25);
+
+    /* Status Colors */
+    --success: #2ecc71;
+    --success-bg: rgba(46, 204, 113, 0.1);
+    --danger: #e74c3c;
+    --danger-bg: rgba(231, 76, 60, 0.1);
+    --warning: #f39c12;
+    --info: #3498db;
+
+    /* Transitions */
+    --transition-fast: all 0.2s ease;
+    --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Border Radius */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 30px 60px rgba(0, 0, 0, 0.7);
+    --shadow-glow: 0 0 30px rgba(var(--primary-rgb), 0.15);
+    --shadow-glow-strong: 0 0 50px rgba(var(--primary-rgb), 0.25);
+
+    /* Spacing */
+    --space-xs: 0.5rem;
+    --space-sm: 1rem;
+    --space-md: 1.5rem;
+    --space-lg: 2rem;
+    --space-xl: 3rem;
+    --space-2xl: 4rem;
+    --space-3xl: 6rem;
+}

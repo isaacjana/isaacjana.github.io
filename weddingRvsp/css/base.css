@@ -1,0 +1,296 @@
+/* --- RESET & BASE --- */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.7;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+::selection {
+    background: rgba(var(--primary-rgb), 0.3);
+    color: var(--text-main);
+}
+
+/* --- TYPOGRAPHY --- */
+.serif {
+    font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400;
+}
+
+.elegant-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+}
+
+h1,
+h2,
+h3,
+h4, h5,
+h6 {
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+/* --- LOADER ANIMATION --- */
+#loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-deep);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+    gap: var(--space-lg);
+}
+
+.loader-logo {
+    font-size: 3.5rem;
+    color: var(--primary);
+    letter-spacing: 0.5rem;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: loaderFadeIn 1s ease-out 0.3s forwards;
+    text-shadow: 0 0 30px rgba(var(--primary-rgb), 0.3);
+}
+
+.loader-line {
+    width: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    animation: lineExpand 1.5s ease-out 0.8s forwards;
+}
+
+@keyframes loaderFadeIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes lineExpand {
+    to {
+        width: 200px;
+    }
+}
+
+/* --- BACKGROUND EFFECTS --- */
+.grain-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Ambient Glow Background */
+.ambient-glow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.ambient-glow::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(var(--primary-rgb), 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(var(--primary-rgb), 0.05) 0%, transparent 40%);
+    animation: ambientMove 20s ease-in-out infinite alternate;
+}
+
+@keyframes ambientMove {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    100% {
+        transform: translate(-5%, -5%) rotate(5deg);
+    }
+}
+
+/* Floating Particles */
+.particles-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(var(--primary-rgb), 0.4);
+    border-radius: 50%;
+    animation: floatParticle 15s infinite ease-in-out;
+}
+
+.particle::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    border-radius: inherit;
+    box-shadow: 0 0 10px 2px rgba(var(--primary-rgb), 0.3);
+}
+
+@keyframes floatParticle {
+    0%,
+    100% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-10vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* --- CUSTOM CURSOR --- */
+.cursor {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 100000;
+    mix-blend-mode: difference;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s;
+}
+
+.cursor-follower {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(var(--primary-rgb), 0.5);
+    background: rgba(var(--primary-rgb), 0.03);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease-out, background 0.3s, border-color 0.3s, width 0.3s, height 0.3s;
+}
+
+.cursor.cursor-hover {
+    width: 12px;
+    height: 12px;
+}
+
+.cursor-follower.cursor-hover {
+    width: 60px;
+    height: 60px;
+    background: rgba(var(--primary-rgb), 0.08);
+    border-color: var(--primary);
+}
+
+/* --- ANIMATIONS --- */
+.fade-up {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.fade-in {
+    opacity: 0;
+}
+
+.scale-in {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+/* Shimmer Loading Effect */
+.skeleton {
+    background: linear-gradient(90deg,
+            var(--surface-light) 25%,
+            var(--surface-medium) 50%,
+            var(--surface-light) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* --- ACCESSIBILITY --- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus Visible */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    :root {
+        --glass-border: rgba(255, 255, 255, 0.3);
+        --text-muted: rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .cursor,
+    .cursor-follower,
+    .grain-overlay,
+    .particles-container,
+    #toast-container {
+        display: none !important;
+    }
+}

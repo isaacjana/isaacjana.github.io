@@ -1,0 +1,547 @@
+/**
+ * PennyWise Pro - Budget & Bank Envelope Styles
+ */
+
+/* Top Navigation & Period Selector */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-emerald);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 8px var(--color-emerald);
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.auth-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.35rem 0.5rem 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.auth-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+/* Month Navigation Pill */
+.month-picker-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.month-picker-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.month-picker-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.05);
+}
+
+.month-picker-label {
+  text-align: center;
+}
+
+.month-picker-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+}
+
+.month-picker-subtitle {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-primary-200);
+}
+
+/* Main Balance Hero */
+.balance-hero {
+  text-align: center;
+  padding: 0.75rem 0 1rem;
+}
+
+.balance-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-primary-200);
+  margin-bottom: 0.25rem;
+}
+
+.balance-amount-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.balance-currency {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary-300);
+}
+
+.balance-value {
+  font-size: 3.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .balance-value {
+    font-size: 4rem;
+  }
+}
+
+.balance-formula-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  color: var(--color-primary-100);
+  margin-top: 0.5rem;
+  font-family: var(--font-family-mono);
+}
+
+/* Summary Grid Cards (Overlapping Hero) */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: -1.75rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+@media (min-width: 640px) {
+  .summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+}
+
+.summary-card {
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.summary-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.summary-card-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.summary-card-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.summary-card-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  white-space: nowrap;
+}
+
+/* Progress Section */
+.settlement-card {
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.settlement-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 0.625rem;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-primary-600) 0%, var(--color-emerald) 100%);
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Action Toolbar */
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.toolbar-search {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.toolbar-search input {
+  width: 100%;
+  padding: 0.65rem 1rem 0.65rem 2.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.toolbar-search input:focus {
+  border-color: var(--color-primary-600);
+}
+
+.toolbar-search i {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Bank Account Envelope Cards */
+.bank-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.bank-card {
+  padding: 1.25rem;
+  border-left: 5px solid var(--bank-color, var(--color-primary-700));
+}
+
+.bank-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: 0.85rem;
+}
+
+.bank-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bank-icon-badge {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--bank-bg, var(--color-primary-50));
+  color: var(--bank-color, var(--color-primary-800));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.bank-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--color-text-main);
+  text-transform: uppercase;
+}
+
+.bank-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.bank-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bank-subtotal-badge {
+  text-align: right;
+}
+
+.bank-subtotal-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.bank-subtotal-amount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: var(--font-family-mono);
+  color: var(--color-text-main);
+}
+
+/* Bank Item List */
+.bank-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  transition: all var(--transition-fast);
+}
+
+.item-row:hover {
+  background: #ffffff;
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.item-row.is-paid {
+  opacity: 0.65;
+  background: #f1f5f3;
+}
+
+.item-row.is-paid .item-name {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  accent-color: var(--color-primary-700);
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.formula-chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-family-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-muted);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.note-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  color: var(--color-amber);
+  background: var(--color-amber-light);
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.item-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.item-amount {
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: var(--font-family-mono);
+  color: var(--color-text-main);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.25;
+  transition: opacity var(--transition-fast);
+}
+
+.item-row:hover .item-actions {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .item-actions {
+    opacity: 0.8;
+  }
+}
+
+.bank-card-footer {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--color-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Notepad / Raw Text View */
+.notepad-view {
+  background: #181d24;
+  color: #e2e8f0;
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  white-space: pre;
+  border: 1px solid #334155;
+  max-height: 60vh;
+}
+
+.notepad-textarea {
+  width: 100%;
+  height: 380px;
+  background: #0f172a;
+  color: #38bdf8;
+  font-family: var(--font-family-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  padding: 1rem;
+  border: 1px solid #334155;
+  border-radius: var(--radius-md);
+  resize: vertical;
+  outline: none;
+}
+
+.notepad-textarea:focus {
+  border-color: var(--color-sky);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--color-border);
+}
+
+.empty-state-icon {
+  font-size: 2.5rem;
+  color: var(--color-primary-300);
+  margin-bottom: 0.75rem;
+}

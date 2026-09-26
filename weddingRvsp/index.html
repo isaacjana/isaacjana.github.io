@@ -23,7 +23,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/wedding.css">
 
     <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
@@ -249,36 +252,7 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js"></script>
-    <script>
-        // Scroll to RSVP function
-        document.getElementById('btn-join-celebration')?.addEventListener('click', () => {
-            document.getElementById('rsvp').scrollIntoView({ behavior: 'smooth' });
-        });
-
-        // Create floating particles
-        function createParticles() {
-            const container = document.getElementById('particles');
-            if (!container) return;
-
-            const particleCount = window.innerWidth < 768 ? 15 : 25;
-
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 15 + 's';
-                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
-                particle.style.width = (2 + Math.random() * 4) + 'px';
-                particle.style.height = particle.style.width;
-                particle.style.opacity = 0.2 + Math.random() * 0.4;
-                container.appendChild(particle);
-            }
-        }
-
-        // Initialize particles after page load
-        window.addEventListener('load', createParticles);
-    </script>
+    <script type="module" src="js/wedding/weddingApp.js"></script>
 </body>
 
 </html>
