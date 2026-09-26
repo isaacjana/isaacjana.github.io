@@ -1,6 +1,6 @@
 /**
- * PennyWise Pro - Account Drawer & Profile Manager Modal
- * Handles switching accounts, viewing storage diagnostics, and signing out.
+ * PennyWise Pro - Google Account Drawer & Manager Modal
+ * Displays current Google user information, storage stats, backup export, and sign-out.
  */
 
 import { authService } from '../services/auth.js';
@@ -31,7 +31,6 @@ export function openAccountDrawer() {
   const currentUser = authService.getUser();
   if (!currentUser) return;
 
-  const localAccounts = authService.getLocalAccounts();
   const storedPeriods = storage.getStoredPeriods();
 
   drawerEl.innerHTML = `
@@ -41,26 +40,26 @@ export function openAccountDrawer() {
 
       <div class="modal-header">
         <h2 class="modal-title flex items-center gap-2">
-          <i class="fa-solid fa-circle-user text-primary"></i>
-          <span>Account & Profile</span>
+          <i class="fa-brands fa-google text-primary"></i>
+          <span>Google Account</span>
         </h2>
-        <button id="btn-close-drawer" class="btn btn-subtle btn-icon-sm">
+        <button id="btn-close-drawer" class="btn btn-subtle btn-icon-sm" title="Close Drawer">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
       <div class="modal-body">
-        <!-- Current Active Profile Card -->
+        <!-- Google User Card -->
         <div class="active-user-card">
-          <div class="active-user-avatar" style="background: ${currentUser.avatarBg || '#004b23'};">
-            ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="${currentUser.displayName}">` : `<i class="fa-solid ${currentUser.avatar || 'fa-user'}"></i>`}
+          <div class="active-user-avatar" style="background: #004b23;">
+            ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="${currentUser.displayName}" referrerpolicy="no-referrer">` : `<i class="fa-solid fa-user"></i>`}
           </div>
           <div class="active-user-info">
             <h3 class="active-user-name">${currentUser.displayName}</h3>
-            <p class="active-user-email">${currentUser.email || 'No email registered'}</p>
+            <p class="active-user-email">${currentUser.email || 'Google User'}</p>
             <span class="active-user-badge">
-              <i class="fa-solid ${currentUser.isLocal ? 'fa-hard-drive' : 'fa-cloud'} text-[10px] mr-1"></i>
-              ${currentUser.isLocal ? 'Local Vault (Private)' : 'Cloud Synchronized'}
+              <i class="fa-solid fa-cloud-check text-[10px] mr-1"></i>
+              Google Cloud Synced
             </span>
           </div>
         </div>
@@ -68,7 +67,7 @@ export function openAccountDrawer() {
         <!-- Account Storage Diagnostics -->
         <div class="storage-info-box">
           <div class="storage-stat">
-            <span class="storage-stat-label">Stored Budget Periods</span>
+            <span class="storage-stat-label">Stored Months</span>
             <span class="storage-stat-val font-mono font-bold">${storedPeriods.length}</span>
           </div>
           <div class="storage-stat">
@@ -76,40 +75,23 @@ export function openAccountDrawer() {
             <span class="storage-stat-val font-mono text-primary font-bold">${store.state.period}</span>
           </div>
           <div class="storage-stat">
-            <span class="storage-stat-label">Total Bank Channels</span>
+            <span class="storage-stat-label">Bank Envelopes</span>
             <span class="storage-stat-val font-mono font-bold">${store.state.banks.length}</span>
           </div>
         </div>
 
-        <!-- Switch Accounts Section -->
-        <div class="mt-4">
-          <label class="form-label">Switch Account</label>
-          <div class="switch-accounts-list">
-            ${localAccounts.map(acc => {
-              const isActive = acc.uid === currentUser.uid;
-              return `
-                <div class="switch-account-item ${isActive ? 'is-active-acc' : ''}" data-uid="${acc.uid}">
-                  <div class="switch-acc-avatar" style="background: ${acc.avatarBg || '#004b23'};">
-                    <i class="fa-solid ${acc.avatar || 'fa-user'} text-xs"></i>
-                  </div>
-                  <div class="switch-acc-info">
-                    <p class="switch-acc-name">${acc.displayName}</p>
-                    <p class="switch-acc-role">${acc.role || acc.email}</p>
-                  </div>
-                  ${isActive ? `
-                    <span class="badge badge-primary text-[10px]">ACTIVE</span>
-                  ` : `
-                    <button class="btn btn-subtle btn-icon-sm btn-select-switch" title="Switch to this account">
-                      <i class="fa-solid fa-arrow-right-arrow-left text-[11px]"></i>
-                    </button>
-                  `}
-                </div>
-              `;
-            }).join('')}
+        <!-- Account Cloud Sync Details -->
+        <div class="sync-info-card mt-3">
+          <div class="flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i>
+            <span class="text-xs font-bold text-slate-700">Account Synchronization Active</span>
           </div>
+          <p class="text-[11px] text-muted leading-tight">
+            Your budget allocations and commitments are automatically backed up to Google Cloud Firestore and cached locally for offline responsiveness.
+          </p>
         </div>
 
-        <!-- Backup & Clear Actions -->
+        <!-- Backup & Actions -->
         <div class="mt-4 pt-3 border-t border-subtle flex flex-col gap-2">
           <button id="btn-backup-budget" class="btn btn-secondary text-xs w-full justify-start">
             <i class="fa-solid fa-file-arrow-down text-sky"></i>
@@ -121,7 +103,7 @@ export function openAccountDrawer() {
       <div class="modal-footer">
         <button id="btn-signout-drawer" class="btn btn-secondary text-xs text-coral font-bold w-full justify-center">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
-          <span>Sign Out from ${currentUser.displayName}</span>
+          <span>Sign Out of Google Account</span>
         </button>
       </div>
     </div>
@@ -130,26 +112,15 @@ export function openAccountDrawer() {
   // Bind Events
   document.getElementById('btn-close-drawer')?.addEventListener('click', closeAccountDrawer);
 
-  // Switch Account Clicks
-  drawerEl.querySelectorAll('.switch-account-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const uid = item.dataset.uid;
-      if (uid === currentUser.uid) return;
-      try {
-        const switched = authService.signInWithLocalAccount(uid);
-        store.setUser(switched);
-        showToast(`Switched account to ${switched.displayName}`, 'success');
-        closeAccountDrawer();
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  });
-
   // Backup Data Button
   document.getElementById('btn-backup-budget')?.addEventListener('click', () => {
     const backupData = {
-      user: currentUser,
+      user: {
+        uid: currentUser.uid,
+        displayName: currentUser.displayName,
+        email: currentUser.email,
+        provider: currentUser.provider
+      },
       period: store.state.period,
       salary: store.state.salary,
       banks: store.state.banks,
@@ -159,7 +130,7 @@ export function openAccountDrawer() {
     const url = URL.createObjectURL(jsonBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `PennyWise_Backup_${currentUser.displayName}_${store.state.period}.json`;
+    a.download = `PennyWise_Backup_${(currentUser.displayName || 'GoogleUser').replace(/\s+/g, '_')}_${store.state.period}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('Account data exported successfully!', 'success');
@@ -170,7 +141,7 @@ export function openAccountDrawer() {
     await authService.signOut();
     store.setUser(null);
     closeAccountDrawer();
-    showToast('Signed out successfully.', 'info');
+    showToast('Signed out of Google account.', 'info');
   });
 
   requestAnimationFrame(() => drawerEl.classList.add('active'));

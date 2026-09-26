@@ -1,7 +1,6 @@
 /**
- * PennyWise Pro - Login First Screen Component
- * Mobile-friendly, high-aesthetic Fintech Authentication Portal
- * Offers 1-tap fast demo/local accounts, Google Sign-in, and Email authentication.
+ * PennyWise Pro - Google Login Screen Component
+ * Modern, high-aesthetic Fintech Google Authentication Portal.
  */
 
 import { authService } from '../services/auth.js';
@@ -9,8 +8,6 @@ import { showToast } from './toast.js';
 
 export function renderLoginView(container, onLoginSuccess) {
   if (!container) return;
-
-  const localAccounts = authService.getLocalAccounts();
 
   container.innerHTML = `
     <div class="login-backdrop">
@@ -23,276 +20,107 @@ export function renderLoginView(container, onLoginSuccess) {
           <h1 class="login-title">PennyWise Pro</h1>
           <p class="login-subtitle">Personal Budget & Bank Envelope Manager</p>
           <div class="login-tag">
-            <i class="fa-solid fa-lock text-xs mr-1"></i> Account-Based Data Storage
+            <i class="fa-brands fa-google text-xs mr-1"></i> Google Cloud Sync
           </div>
         </div>
 
-        <!-- Mode Navigation Tabs -->
-        <div class="login-tabs">
-          <button id="tab-btn-profiles" class="login-tab-btn active">
-            <i class="fa-solid fa-users"></i>
-            <span>Profiles</span>
-          </button>
-          <button id="tab-btn-email" class="login-tab-btn">
-            <i class="fa-solid fa-envelope"></i>
-            <span>Email</span>
-          </button>
-          <button id="tab-btn-google" class="login-tab-btn">
-            <i class="fa-brands fa-google"></i>
-            <span>Google</span>
-          </button>
-        </div>
-
-        <!-- Tab 1: Fast Profile Selection (Best for offline/mobile) -->
-        <div id="pane-profiles" class="login-pane active">
-          <p class="text-xs text-muted mb-3">
-            Select an account to load your personal budget or create a new profile:
+        <!-- Main Login Content -->
+        <div class="login-welcome-box">
+          <h2 class="text-sm font-extrabold text-slate-800 text-center mb-1">
+            Welcome to PennyWise
+          </h2>
+          <p class="text-xs text-muted text-center mb-4 leading-relaxed">
+            Sign in with your Google account to access your personal bank envelopes, monthly salary allocations, and cloud-synced budget records.
           </p>
 
-          <div class="profile-cards-list">
-            ${localAccounts.map(account => `
-              <div class="profile-card" data-uid="${account.uid}">
-                <div class="profile-avatar" style="background: ${account.avatarBg || '#004b23'};">
-                  <i class="fa-solid ${account.avatar || 'fa-user'}"></i>
-                </div>
-                <div class="profile-info">
-                  <h3 class="profile-name">${account.displayName}</h3>
-                  <p class="profile-role">${account.role || account.email}</p>
-                </div>
-                <button class="btn btn-primary btn-icon-sm" title="Log into ${account.displayName}">
-                  <i class="fa-solid fa-arrow-right"></i>
-                </button>
+          <!-- Feature Highlights -->
+          <div class="login-features-list mb-4">
+            <div class="login-feature-item">
+              <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+              <div class="feature-text">
+                <span class="feature-title">Secure & Private</span>
+                <span class="feature-desc">Your financial records are tied strictly to your Google account</span>
               </div>
-            `).join('')}
+            </div>
+            <div class="login-feature-item">
+              <div class="feature-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+              <div class="feature-text">
+                <span class="feature-title">Real-Time Cloud Sync</span>
+                <span class="feature-desc">Seamlessly synchronize across mobile, tablet, and desktop</span>
+              </div>
+            </div>
+            <div class="login-feature-item">
+              <div class="feature-icon"><i class="fa-solid fa-vault"></i></div>
+              <div class="feature-text">
+                <span class="feature-title">Bank Envelope Budgeting</span>
+                <span class="feature-desc">Track Affin, Maybank, Setel, CIMB, and other bank commitments</span>
+              </div>
+            </div>
           </div>
 
-          <!-- Create New Profile Collapsible / Form -->
-          <div class="create-profile-box mt-3">
-            <button id="btn-toggle-new-profile" class="btn btn-subtle text-xs w-full">
-              <i class="fa-solid fa-plus-circle text-primary"></i>
-              <span>Create New Local Account</span>
-            </button>
-
-            <form id="form-new-profile" class="new-profile-form" style="display: none;">
-              <div class="form-group mb-2">
-                <label class="form-label text-xs">Profile / Account Name</label>
-                <input 
-                  type="text" 
-                  id="input-profile-name" 
-                  class="form-input text-sm" 
-                  placeholder="e.g. Isaac, Savings Account, Partner" 
-                  required 
-                />
-              </div>
-
-              <div class="form-group mb-2">
-                <label class="form-label text-xs">Email or Account Tag</label>
-                <input 
-                  type="text" 
-                  id="input-profile-email" 
-                  class="form-input text-sm" 
-                  placeholder="e.g. isaac@pennywise.app" 
-                />
-              </div>
-
-              <div class="flex items-center gap-2 mt-3">
-                <button type="button" id="btn-cancel-new-profile" class="btn btn-secondary text-xs flex-1">
-                  Cancel
-                </button>
-                <button type="submit" class="btn btn-primary text-xs flex-1">
-                  <i class="fa-solid fa-check"></i> Create & Sign In
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <!-- Tab 2: Email & Password (Cloud / Local Sync) -->
-        <div id="pane-email" class="login-pane">
-          <div class="auth-toggle-row mb-3">
-            <button type="button" id="auth-submode-signin" class="btn text-xs font-bold flex-1 active-submode">Sign In</button>
-            <button type="button" id="auth-submode-signup" class="btn text-xs font-bold flex-1 text-muted">Register</button>
+          <!-- Error Alert Banner (Hidden by default) -->
+          <div id="login-error-alert" class="login-error-box" style="display: none;">
+            <i class="fa-solid fa-circle-exclamation text-coral mr-2"></i>
+            <span id="login-error-text" class="text-xs"></span>
           </div>
 
-          <form id="form-email-auth">
-            <div id="group-signup-name" class="form-group mb-2" style="display: none;">
-              <label class="form-label text-xs">Your Full Name</label>
-              <input type="text" id="input-auth-name" class="form-input text-sm" placeholder="e.g. Isaac Jana" />
-            </div>
-
-            <div class="form-group mb-2">
-              <label class="form-label text-xs">Email Address</label>
-              <input type="email" id="input-auth-email" class="form-input text-sm" placeholder="name@domain.com" required />
-            </div>
-
-            <div class="form-group mb-3">
-              <label class="form-label text-xs">Password</label>
-              <input type="password" id="input-auth-password" class="form-input text-sm" placeholder="••••••••" required />
-            </div>
-
-            <button type="submit" id="btn-submit-email-auth" class="btn btn-primary w-full text-sm font-bold py-2.5">
-              <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Sign In
-            </button>
-          </form>
-        </div>
-
-        <!-- Tab 3: Google Sign-in -->
-        <div id="pane-google" class="login-pane">
-          <p class="text-xs text-muted mb-4 text-center">
-            Sign in with your Google account to synchronize your budget across all your mobile devices.
-          </p>
-
+          <!-- Primary Google Sign-In Button -->
           <button id="btn-google-signin" class="btn-google-social w-full">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="20" height="20">
-            <span>Continue with Google</span>
+            <svg class="google-icon" width="20" height="20" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.97 0 12s.45 3.84 1.25 5.42l4.03-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+            <span id="btn-google-text">Continue with Google</span>
           </button>
-
-          <p class="text-[11px] text-muted text-center mt-3 leading-tight">
-            Fast, secure authentication powered by Google Firebase.
-          </p>
         </div>
 
         <!-- Footer Notice -->
         <div class="login-footer">
-          <i class="fa-solid fa-shield-halved text-xs text-primary"></i>
-          <span>Each account maintains separate, private budget records.</span>
+          <i class="fa-solid fa-lock text-xs text-primary"></i>
+          <span>Protected by Firebase Authentication.</span>
         </div>
       </div>
     </div>
   `;
 
-  // Bind Events
-  const tabProfiles = document.getElementById('tab-btn-profiles');
-  const tabEmail = document.getElementById('tab-btn-email');
-  const tabGoogle = document.getElementById('tab-btn-google');
-  const paneProfiles = document.getElementById('pane-profiles');
-  const paneEmail = document.getElementById('pane-email');
-  const paneGoogle = document.getElementById('pane-google');
-
-  function switchTab(activeBtn, activePane) {
-    [tabProfiles, tabEmail, tabGoogle].forEach(b => b.classList.remove('active'));
-    [paneProfiles, paneEmail, paneGoogle].forEach(p => p.classList.remove('active'));
-    activeBtn.classList.add('active');
-    activePane.classList.add('active');
-  }
-
-  tabProfiles?.addEventListener('click', () => switchTab(tabProfiles, paneProfiles));
-  tabEmail?.addEventListener('click', () => switchTab(tabEmail, paneEmail));
-  tabGoogle?.addEventListener('click', () => switchTab(tabGoogle, paneGoogle));
-
-  // 1-Tap Profile login
-  container.querySelectorAll('.profile-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const uid = card.dataset.uid;
-      try {
-        const user = authService.signInWithLocalAccount(uid);
-        showToast(`Welcome back, ${user.displayName}!`, 'success');
-        onLoginSuccess?.(user);
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  });
-
-  // Toggle New Profile Form
-  const btnToggleNew = document.getElementById('btn-toggle-new-profile');
-  const formNewProfile = document.getElementById('form-new-profile');
-  const btnCancelNew = document.getElementById('btn-cancel-new-profile');
-
-  btnToggleNew?.addEventListener('click', () => {
-    btnToggleNew.style.display = 'none';
-    formNewProfile.style.display = 'block';
-    document.getElementById('input-profile-name')?.focus();
-  });
-
-  btnCancelNew?.addEventListener('click', () => {
-    formNewProfile.style.display = 'none';
-    btnToggleNew.style.display = 'flex';
-  });
-
-  formNewProfile?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = document.getElementById('input-profile-name')?.value;
-    const email = document.getElementById('input-profile-email')?.value;
-
-    try {
-      const newAcc = authService.createLocalAccount({ name, email });
-      authService.signInWithLocalAccount(newAcc.uid);
-      showToast(`Account "${newAcc.displayName}" created!`, 'success');
-      onLoginSuccess?.(newAcc);
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  });
-
-  // Email Submode Toggle (Sign In vs Register)
-  let isRegisterMode = false;
-  const subSignIn = document.getElementById('auth-submode-signin');
-  const subSignUp = document.getElementById('auth-submode-signup');
-  const groupName = document.getElementById('group-signup-name');
-  const btnSubmit = document.getElementById('btn-submit-email-auth');
-
-  subSignIn?.addEventListener('click', () => {
-    isRegisterMode = false;
-    subSignIn.classList.add('active-submode');
-    subSignIn.classList.remove('text-muted');
-    subSignUp.classList.remove('active-submode');
-    subSignUp.classList.add('text-muted');
-    groupName.style.display = 'none';
-    btnSubmit.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Sign In';
-  });
-
-  subSignUp?.addEventListener('click', () => {
-    isRegisterMode = true;
-    subSignUp.classList.add('active-submode');
-    subSignUp.classList.remove('text-muted');
-    subSignIn.classList.remove('active-submode');
-    subSignIn.classList.add('text-muted');
-    groupName.style.display = 'block';
-    btnSubmit.innerHTML = '<i class="fa-solid fa-user-plus mr-1"></i> Create Account';
-  });
-
-  // Email Form Submit
-  const formEmail = document.getElementById('form-email-auth');
-  formEmail?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('input-auth-email')?.value.trim();
-    const password = document.getElementById('input-auth-password')?.value;
-    const displayName = document.getElementById('input-auth-name')?.value.trim();
-
-    btnSubmit.disabled = true;
-    btnSubmit.style.opacity = '0.7';
-
-    try {
-      let user;
-      if (isRegisterMode) {
-        user = await authService.signUpWithEmail(email, password, displayName);
-        showToast(`Account registered for ${user.displayName}!`, 'success');
-      } else {
-        user = await authService.signInWithEmail(email, password);
-        showToast(`Welcome back, ${user.displayName}!`, 'success');
-      }
-      onLoginSuccess?.(user);
-    } catch (err) {
-      showToast(err.message || 'Authentication failed', 'error');
-    } finally {
-      btnSubmit.disabled = false;
-      btnSubmit.style.opacity = '1';
-    }
-  });
-
-  // Google Sign-In
+  // Bind Google Sign-in Click
   const btnGoogle = document.getElementById('btn-google-signin');
+  const btnText = document.getElementById('btn-google-text');
+  const errorBox = document.getElementById('login-error-alert');
+  const errorText = document.getElementById('login-error-text');
+
   btnGoogle?.addEventListener('click', async () => {
+    // Hide previous error
+    if (errorBox) errorBox.style.display = 'none';
+
+    // Set Loading State
+    btnGoogle.disabled = true;
+    btnGoogle.style.opacity = '0.8';
+    if (btnText) {
+      btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Signing in with Google...';
+    }
+
     try {
-      btnGoogle.disabled = true;
       const user = await authService.signInWithGoogle();
-      showToast(`Signed in as ${user.displayName}!`, 'success');
-      onLoginSuccess?.(user);
+      if (user) {
+        showToast(`Welcome, ${user.displayName}!`, 'success');
+        onLoginSuccess?.(user);
+      }
     } catch (err) {
+      console.warn('Login attempt notification:', err.message);
+      if (errorBox && errorText) {
+        errorText.textContent = err.message;
+        errorBox.style.display = 'flex';
+      }
       showToast(err.message, 'error');
     } finally {
       btnGoogle.disabled = false;
+      btnGoogle.style.opacity = '1';
+      if (btnText) {
+        btnText.textContent = 'Continue with Google';
+      }
     }
   });
 }

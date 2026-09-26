@@ -34,13 +34,15 @@ export function initHeader() {
         <!-- User Profile Pill -->
         <div class="flex items-center gap-2">
           ${currentUser ? `
-            <div id="btn-open-account-header" class="auth-badge cursor-pointer" title="Manage Account & Profiles">
+            <div id="btn-open-account-header" class="auth-badge cursor-pointer" title="Google Account & Cloud Sync">
               <div class="text-right leading-tight">
-                <p class="text-xs font-bold" style="color: #ffffff;">${currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'User'}</p>
-                <p class="text-[10px] text-emerald-200 opacity-80">${currentUser.isLocal ? 'Local Profile' : 'Cloud Sync'}</p>
+                <p class="text-xs font-bold" style="color: #ffffff;">${currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Google User'}</p>
+                <p class="text-[10px] text-emerald-200 opacity-80 flex items-center justify-end gap-1">
+                  <i class="fa-solid fa-cloud text-[9px]"></i> Google Sync
+                </p>
               </div>
-              <div class="auth-avatar" style="background: ${currentUser.avatarBg || 'rgba(255,255,255,0.2)'};">
-                ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fa-solid ${currentUser.avatar || 'fa-user'}"></i>`}
+              <div class="auth-avatar" style="background: rgba(255,255,255,0.25);">
+                ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="User" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : `<i class="fa-brands fa-google text-sm text-white"></i>`}
               </div>
             </div>
           ` : ''}

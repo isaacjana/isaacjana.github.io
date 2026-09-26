@@ -144,8 +144,8 @@ class StorageService {
     this.saveLocalBudget(periodKey, budgetData);
     this.registerPeriodInIndex(periodKey);
 
-    // If logged in via Firebase, sync to Firestore
-    if (this.currentUser && !this.currentUser.isLocal && this.db) {
+    // If logged in via Google Firebase, sync to Firestore
+    if (this.currentUser && this.db) {
       this.syncToCloud(periodKey, budgetData);
     }
   }
@@ -159,7 +159,7 @@ class StorageService {
   }
 
   async syncToCloud(periodKey, budgetData) {
-    if (!this.currentUser || this.currentUser.isLocal || !this.db) return;
+    if (!this.currentUser || !this.db) return;
     try {
       await this.db
         .collection('users')
@@ -205,7 +205,7 @@ class StorageService {
       this.activeListenerUnsubscribe = null;
     }
 
-    if (!this.currentUser || this.currentUser.isLocal || !this.db) return;
+    if (!this.currentUser || !this.db) return;
 
     try {
       this.activeListenerUnsubscribe = this.db

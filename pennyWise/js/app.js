@@ -57,16 +57,14 @@ class App {
           this.mountUI();
         }
 
-        // Setup optional cloud sync if user is on Firebase
-        if (!user.isLocal) {
-          storage.subscribeToCloudBudget(store.state.period, cloudData => {
-            if (cloudData && cloudData.period === store.state.period) {
-              store.replaceBudgetData(cloudData);
-            }
-          });
-        }
+        // Setup real-time cloud sync for authenticated Google user
+        storage.subscribeToCloudBudget(store.state.period, cloudData => {
+          if (cloudData && cloudData.period === store.state.period) {
+            store.replaceBudgetData(cloudData);
+          }
+        });
 
-        console.log(`%c Logged in as: ${user.displayName} %c (${user.email || 'Local Account'})`, 'color: #10b981; font-weight: bold;', 'color: #64748b;');
+        console.log(`%c Signed in with Google: ${user.displayName} %c (${user.email || 'Google Account'})`, 'color: #10b981; font-weight: bold;', 'color: #64748b;');
       }
     });
 
