@@ -1386,3 +1386,106 @@ body {
     animation: none;
   }
 }
+
+/* ---------- Header Actions ---------- */
+.content-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-icon-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.header-icon-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.header-icon-btn:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.header-icon-btn.is-favorite,
+.header-icon-btn.is-favorite:hover {
+  color: var(--accent-orange);
+}
+
+.form-input[type="color"] {
+  padding: 2px;
+}
+
+/* ---------- Light Theme ---------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #eef1f4;
+  --bg-card: #ffffff;
+  --bg-elevated: #eaeef2;
+  --bg-input: #ffffff;
+  --bg-glass: rgba(246, 248, 250, 0.8);
+
+  --border-default: #d0d7de;
+  --border-muted: #e6eaef;
+  --border-accent: #0969da;
+
+  --text-primary: #1f2328;
+  --text-secondary: #59636e;
+  --text-muted: #6e7781;
+  --text-accent: #0969da;
+
+  --accent-blue: #0969da;
+  --accent-purple: #8250df;
+  --accent-green: #1a7f37;
+  --accent-orange: #9a6700;
+  --accent-red: #cf222e;
+  --accent-pink: #bf3989;
+  --accent-teal: #1b7c83;
+  --accent-cyan: #0a7ea4;
+
+  --shadow-sm: 0 1px 2px rgba(31,35,40,0.08);
+  --shadow-md: 0 4px 12px rgba(31,35,40,0.10);
+  --shadow-lg: 0 8px 24px rgba(31,35,40,0.14);
+  --shadow-glow: 0 0 0 1px rgba(9,105,218,0.12);
+  --shadow-glow-strong: 0 4px 16px rgba(9,105,218,0.15);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* White tints used for hover states in the dark theme are invisible on white */
+:root[data-theme="light"] .nav-item:hover,
+:root[data-theme="light"] .nav-category-header:hover,
+:root[data-theme="light"] .btn-ghost:hover,
+:root[data-theme="light"] .result-table tr:hover td {
+  background: rgba(31,35,40,0.05);
+}
+
+:root[data-theme="light"] .tool-section,
+:root[data-theme="light"] .tool-card {
+  border-color: var(--border-default);
+}
+
+:root[data-theme="light"] .drop-zone {
+  background: var(--bg-secondary);
+}
+
+:root[data-theme="light"] .sidebar-overlay {
+  background: rgba(31,35,40,0.35);
+}

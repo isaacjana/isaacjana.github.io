@@ -269,6 +269,87 @@ Invalid emails: @test, foo@, hello@.com</textarea>
             });
         }
     },
+
+    // ── JSON Diff ──
+    'json-diff': {
+        render(container) {
+            container.html(`
+        <div class="tool-page">
+          <div class="split-view">
+            <div class="split-pane">
+              <div class="split-pane-header"><span class="split-pane-title">Original</span></div>
+              <textarea class="form-textarea tall" id="jd-a">{
+  "name": "devtoys",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "start": "serve .", "test": "jest" },
+  "keywords": ["tools", "developer"],
+  "author": { "name": "Ada", "email": "ada@example.com" }
+}</textarea>
+            </div>
+            <div class="split-pane">
+              <div class="split-pane-header"><span class="split-pane-title">Modified</span></div>
+              <textarea class="form-textarea tall" id="jd-b">{
+  "name": "devtoys",
+  "version": "1.1.0",
+  "scripts": { "start": "serve .", "test": "vitest", "lint": "eslint ." },
+  "keywords": ["tools", "developer", "web"],
+  "author": { "name": "Ada" },
+  "license": "MIT"
+}</textarea>
+            </div>
+          </div>
+          <div class="tool-section mt-16">
+            <div class="split-pane-header">
+              <span class="tool-section-title mb-0" id="jd-summary">Differences</span>
+              <div class="toggle-group">
+                <label class="toggle"><input type="checkbox" id="jd-order"><span class="toggle-slider"></span></label>
+                <span class="toggle-label">Ignore array order</span>
+              </div>
+            </div>
+            <div id="jd-result"></div>
+          </div>
+        </div>
+      `);
+
+            function run() {
+                let a, b;
+                try { a = JSON.parse($('#jd-a').val()); } catch (e) { return showError('Original', e); }
+                try { b = JSON.parse($('#jd-b').val()); } catch (e) { return showError('Modified', e); }
+
+                const diffs = diffJson(a, b, '$', $('#jd-order').is(':checked'));
+                const counts = { added: 0, removed: 0, changed: 0 };
+                diffs.forEach(d => counts[d.type]++);
+                $('#jd-summary').html(diffs.length
+                    ? `Differences <span class="badge badge-green">+${counts.added}</span> <span class="badge badge-red">−${counts.removed}</span> <span class="badge badge-orange">~${counts.changed}</span>`
+                    : 'Differences');
+
+                if (!diffs.length) {
+                    $('#jd-result').html('<span class="badge badge-green"><i class="fas fa-check"></i>&nbsp;The documents are semantically identical</span>');
+                    return;
+                }
+                const BADGE = { added: 'badge-green', removed: 'badge-red', changed: 'badge-orange' };
+                const fmt = v => escHtml(JSON.stringify(v));
+                let html = '<table class="result-table"><thead><tr><th style="width:90px">Change</th><th>Path</th><th>Original</th><th>Modified</th></tr></thead><tbody>';
+                diffs.forEach(d => {
+                    html += `<tr><td><span class="badge ${BADGE[d.type]}">${d.type}</span></td><td>${escHtml(d.path)}</td>
+            <td style="color:var(--accent-red)">${d.type === 'added' ? '' : fmt(d.from)}</td>
+            <td style="color:var(--accent-green)">${d.type === 'removed' ? '' : fmt(d.to)}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                $('#jd-result').html(html);
+            }
+
+            function showError(which, e) {
+                $('#jd-summary').text('Differences');
+                $('#jd-result').html(`<span class="text-sm" style="color:var(--accent-red)">${which} is not valid JSON: ${escHtml(e.message)}</span>`);
+            }
+
+            $('#jd-a, #jd-b').on('input', debounce(run, 250));
+            $('#jd-order').on('change', run);
+            run();
+        }
+    },
 };
 
 // ── JSONPath Evaluator ──
@@ -327,4 +408,50 @@ function evaluateJsonPath(data, path) {
     }
 
     return current;
+}
+
+// ── JSON Diff Helper ──
+function diffJson(a, b, path, ignoreOrder, out = []) {
+    const kind = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+    const ka = kind(a), kb = kind(b);
+
+    if (ka !== kb) {
+        out.push({ type: 'changed', path, from: a, to: b });
+    } else if (ka === 'object') {
+        const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+        keys.forEach(k => {
+            const p = /^[A-Za-z_$][\w$]*$/.test(k) ? `${path}.${k}` : `${path}[${JSON.stringify(k)}]`;
+            if (!(k in b)) out.push({ type: 'removed', path: p, from: a[k] });
+            else if (!(k in a)) out.push({ type: 'added', path: p, to: b[k] });
+            else diffJson(a[k], b[k], p, ignoreOrder, out);
+        });
+    } else if (ka === 'array') {
+        if (ignoreOrder) {
+            // Compare as multisets of canonical JSON strings
+            const canon = v => JSON.stringify(sortKeysDeep(v));
+            const remaining = b.map(canon);
+            a.forEach((item, i) => {
+                const idx = remaining.indexOf(canon(item));
+                if (idx === -1) out.push({ type: 'removed', path: `${path}[${i}]`, from: item });
+                else remaining[idx] = undefined;
+            });
+            remaining.forEach((c, i) => { if (c !== undefined) out.push({ type: 'added', path: `${path}[${i}]`, to: b[i] }); });
+        } else {
+            const len = Math.max(a.length, b.length);
+            for (let i = 0; i < len; i++) {
+                if (i >= b.length) out.push({ type: 'removed', path: `${path}[${i}]`, from: a[i] });
+                else if (i >= a.length) out.push({ type: 'added', path: `${path}[${i}]`, to: b[i] });
+                else diffJson(a[i], b[i], `${path}[${i}]`, ignoreOrder, out);
+            }
+        }
+    } else if (a !== b) {
+        out.push({ type: 'changed', path, from: a, to: b });
+    }
+    return out;
+}
+
+function sortKeysDeep(v) {
+    if (Array.isArray(v)) return v.map(sortKeysDeep);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.keys(v).sort().map(k => [k, sortKeysDeep(v[k])]));
+    return v;
 }

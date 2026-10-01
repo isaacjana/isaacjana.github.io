@@ -3,23 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="DevToys - A Swiss Army knife for developers. 40+ client-side tools for encoding, converting, formatting, generating, and testing data.">
-  <meta name="keywords" content="developer tools, JSON formatter, Base64, UUID generator, regex tester, hash generator, QR code, URL encoder">
+  <meta name="description" content="DevToys - A Swiss Army knife for developers. 55+ client-side tools for encoding, converting, formatting, generating, testing and inspecting web data.">
+  <meta name="keywords" content="developer tools, JSON formatter, Base64, UUID generator, regex tester, hash generator, QR code, URL encoder, JSON to TypeScript, cURL converter, JSON diff, subnet calculator, color contrast">
   <meta name="author" content="DevToys">
   <meta name="theme-color" content="#0d1117">
 
   <!-- Open Graph -->
   <meta property="og:title" content="DevToys - Developer Tools">
-  <meta property="og:description" content="40+ client-side developer tools: encoders, formatters, generators, converters & more. No server needed.">
+  <meta property="og:description" content="55+ client-side developer tools: encoders, formatters, generators, converters, network utilities & more. No server needed.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://isaacjana.github.io/devToys/">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="DevToys - Developer Tools">
-  <meta name="twitter:description" content="40+ client-side developer tools: encoders, formatters, generators, converters & more.">
+  <meta name="twitter:description" content="55+ client-side developer tools: encoders, formatters, generators, converters, network utilities & more.">
 
   <title>DevToys - Developer Tools</title>
+
+  <!-- Apply saved theme before first paint to avoid a flash -->
+  <script>
+    (function () {
+      var theme;
+      try { theme = JSON.parse(localStorage.getItem('devtoys-theme')); } catch (e) {}
+      if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>">
@@ -90,6 +100,14 @@
           <h1 class="content-title" id="content-title">All Tools</h1>
           <span class="content-subtitle" id="content-subtitle"></span>
         </div>
+        <div class="content-header-right">
+          <button class="header-icon-btn" id="favorite-toggle" style="display:none" aria-label="Toggle favorite" aria-pressed="false">
+            <i class="far fa-star"></i>
+          </button>
+          <button class="header-icon-btn" id="theme-toggle" aria-label="Toggle color theme">
+            <i class="fas fa-sun"></i>
+          </button>
+        </div>
       </header>
 
       <div class="content-body" id="content-body">
@@ -118,6 +136,7 @@
   <script src="js/tools/text.js" defer></script>
   <script src="js/tools/graphic.js" defer></script>
   <script src="js/tools/testers.js" defer></script>
+  <script src="js/tools/web.js" defer></script>
   <script src="js/tools/thirdParty.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>

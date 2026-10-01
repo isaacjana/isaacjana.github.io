@@ -7,7 +7,7 @@
 const ALL_TOOL_RENDERERS = {};
 
 function registerToolRenderers() {
-    const sources = [ConverterTools, EncoderDecoderTools, FormatterTools, GeneratorTools, TextTools, GraphicTools, TesterTools, ThirdPartyTools];
+    const sources = [ConverterTools, EncoderDecoderTools, FormatterTools, GeneratorTools, TextTools, GraphicTools, TesterTools, WebTools, ThirdPartyTools];
     sources.forEach(source => {
         for (const [id, tool] of Object.entries(source)) {
             ALL_TOOL_RENDERERS[id] = tool;
@@ -18,9 +18,59 @@ function registerToolRenderers() {
 // ── App State ──
 let currentToolId = null;
 
+// ── Persistent preferences (localStorage can be unavailable, e.g. in private mode) ──
+const Store = {
+    get(key, fallback) {
+        try {
+            const v = localStorage.getItem(key);
+            if (v === null) return fallback;
+            try { return JSON.parse(v); } catch { return v; }
+        } catch { return fallback; }
+    },
+    set(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+    },
+};
+
+const MAX_RECENT = 8;
+const getFavorites = () => [].concat(Store.get('devtoys-favorites', [])).filter(id => getToolById(id));
+const getRecent = () => [].concat(Store.get('devtoys-recent', [])).filter(id => getToolById(id));
+
+function toggleFavorite(toolId) {
+    const favs = getFavorites();
+    const idx = favs.indexOf(toolId);
+    if (idx === -1) favs.push(toolId);
+    else favs.splice(idx, 1);
+    Store.set('devtoys-favorites', favs);
+    showToast(idx === -1 ? 'Added to favorites' : 'Removed from favorites', 'info');
+    renderFavoritesNav();
+    updateHeaderActions();
+}
+
+function pushRecent(toolId) {
+    const recent = getRecent().filter(id => id !== toolId);
+    recent.unshift(toolId);
+    Store.set('devtoys-recent', recent.slice(0, MAX_RECENT));
+}
+
+// ── Theme ──
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    $('#theme-toggle i').attr('class', theme === 'light' ? 'fas fa-moon' : 'fas fa-sun');
+    $('#theme-toggle').attr('title', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+    $('meta[name="theme-color"]').attr('content', theme === 'light' ? '#ffffff' : '#0d1117');
+}
+
+function initTheme() {
+    const saved = Store.get('devtoys-theme', null);
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    applyTheme(saved || (prefersLight ? 'light' : 'dark'));
+}
+
 // ── Initialize ──
 $(document).ready(() => {
     registerToolRenderers();
+    initTheme();
     buildSidebar();
     bindEvents();
     updateFooter();
@@ -51,6 +101,13 @@ function buildSidebar() {
       <i class="fas fa-home"></i>
       <span>All Tools</span>
     </div>
+    <div class="nav-category" id="nav-favorites" data-category="favorites" style="display:none">
+      <div class="nav-category-header" tabindex="0" role="button" aria-expanded="true" aria-label="Toggle Favorites category">
+        <span class="nav-category-title"><i class="fas fa-star" style="color:var(--accent-orange);margin-right:6px"></i>Favorites</span>
+        <i class="fas fa-chevron-down nav-category-chevron"></i>
+      </div>
+      <div class="nav-category-items" role="group" aria-label="Favorite tools"></div>
+    </div>
   `);
 
     TOOL_CATEGORIES.forEach(cat => {
@@ -79,6 +136,39 @@ function buildSidebar() {
 
         nav.append(catEl);
     });
+
+    renderFavoritesNav();
+}
+
+function navItemHtml(tool) {
+    return `
+        <div class="nav-item" data-tool="${tool.id}" tabindex="0" role="button" aria-label="${tool.name}: ${tool.description}">
+          <i class="${tool.icon}"></i>
+          <span>${tool.name}</span>
+        </div>`;
+}
+
+function renderFavoritesNav() {
+    const favs = getFavorites();
+    const group = $('#nav-favorites');
+    group.find('.nav-category-items').html(favs.map(id => navItemHtml(getToolById(id))).join(''));
+    group.toggle(favs.length > 0 && !$('#sidebar-search').val());
+    group.find(`.nav-item[data-tool="${currentToolId}"]`).addClass('active');
+}
+
+// ── Header actions (favorite star on tool pages) ──
+function updateHeaderActions() {
+    const btn = $('#favorite-toggle');
+    if (!currentToolId || currentToolId === 'home') {
+        btn.hide();
+        return;
+    }
+    const isFav = getFavorites().includes(currentToolId);
+    btn.show()
+        .toggleClass('is-favorite', isFav)
+        .attr('title', isFav ? 'Remove from favorites' : 'Add to favorites')
+        .attr('aria-pressed', isFav);
+    btn.find('i').attr('class', isFav ? 'fas fa-star' : 'far fa-star');
 }
 
 // ── Event Bindings ──
@@ -119,6 +209,30 @@ function bindEvents() {
         filterSidebar(query);
     }, 150));
 
+    // Enter in search opens the best match
+    $('#sidebar-search').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            const results = searchTools($(this).val().trim());
+            if (results.length) {
+                $(this).val('').blur();
+                filterSidebar('');
+                navigateTo(results[0].id);
+            }
+        }
+    });
+
+    // Theme toggle
+    $('#theme-toggle').on('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        applyTheme(next);
+        Store.set('devtoys-theme', next);
+    });
+
+    // Favorite toggle
+    $('#favorite-toggle').on('click', () => {
+        if (currentToolId && currentToolId !== 'home') toggleFavorite(currentToolId);
+    });
+
     // Tool card clicks (home grid)
     $(document).on('click', '.tool-card', function () {
         const toolId = $(this).data('tool');
@@ -150,11 +264,11 @@ function bindEvents() {
         const sidebar = $('#sidebar');
         sidebar.toggleClass('collapsed');
         const isCollapsed = sidebar.hasClass('collapsed');
-        localStorage.setItem('devtoys-sidebar-collapsed', isCollapsed);
+        Store.set('devtoys-sidebar-collapsed', isCollapsed);
     });
 
     // Restore sidebar collapsed state
-    if (localStorage.getItem('devtoys-sidebar-collapsed') === 'true') {
+    if (Store.get('devtoys-sidebar-collapsed', false) === true) {
         $('#sidebar').addClass('collapsed');
     }
 
@@ -177,6 +291,13 @@ function bindEvents() {
             }
         }
 
+        // "/" — focus search when not typing in a field
+        if (e.key === '/' && !$(e.target).is('input, textarea, select, [contenteditable]')) {
+            e.preventDefault();
+            $('#sidebar').removeClass('collapsed');
+            $('#sidebar-search').focus().select();
+        }
+
         // Escape — clear search or navigate home
         if (e.key === 'Escape') {
             const searchInput = $('#sidebar-search');
@@ -185,7 +306,7 @@ function bindEvents() {
                 filterSidebar('');
             } else if (searchInput.is(':focus')) {
                 searchInput.blur();
-            } else if (currentToolId !== 'home') {
+            } else if (currentToolId !== 'home' && !$(e.target).is('input, textarea, select, [contenteditable]')) {
                 navigateTo('home');
             }
         }
@@ -220,8 +341,10 @@ function navigateTo(toolId, fromHash = false) {
     // Scroll content to top
     $('#content-body').scrollTop(0);
 
-    // Remember last tool
-    localStorage.setItem('devtoys-last-tool', id);
+    // Remember last tool and recent history
+    Store.set('devtoys-last-tool', id);
+    if (id !== 'home') pushRecent(id);
+    updateHeaderActions();
 }
 
 function navigateFromHash() {
@@ -230,7 +353,7 @@ function navigateFromHash() {
 
     // If no hash, try to restore last tool
     if (!target) {
-        const lastTool = localStorage.getItem('devtoys-last-tool');
+        const lastTool = Store.get('devtoys-last-tool', null);
         if (lastTool && lastTool !== 'home' && getToolById(lastTool)) {
             target = lastTool;
         } else {
@@ -258,13 +381,18 @@ function renderHome() {
     let cardIndex = 0;
 
     const toolsByCategory = getToolsByCategory();
+    const sections = [
+        { name: '<i class="fas fa-star" style="color:var(--accent-orange)"></i> Favorites', tools: getFavorites().map(getToolById) },
+        { name: '<i class="fas fa-history"></i> Recently Used', tools: getRecent().slice(0, 4).map(getToolById) },
+        ...TOOL_CATEGORIES.map(cat => ({ name: cat.name, tools: toolsByCategory[cat.id] || [] })),
+    ];
 
-    TOOL_CATEGORIES.forEach(cat => {
-        const tools = toolsByCategory[cat.id] || [];
+    sections.forEach(section => {
+        const tools = section.tools;
         if (tools.length === 0) return;
 
         html += `<div class="home-section">
-      <div class="home-section-title">${cat.name}</div>
+      <div class="home-section-title">${section.name}</div>
       <div class="tools-grid">`;
 
         tools.forEach(tool => {
@@ -338,8 +466,10 @@ function renderTool(toolId) {
 function filterSidebar(query) {
     if (!query) {
         $('.nav-category, .nav-item').show();
+        renderFavoritesNav();
         return;
     }
+    $('#nav-favorites').hide();
 
     const results = searchTools(query);
     const matchIds = new Set(results.map(t => t.id));
@@ -354,7 +484,7 @@ function filterSidebar(query) {
     });
 
     // Show categories that have visible items
-    $('.nav-category').each(function () {
+    $('.nav-category').not('#nav-favorites').each(function () {
         const hasVisible = $(this).find('.nav-item:visible').length > 0;
         $(this).toggle(hasVisible);
         if (hasVisible) $(this).removeClass('collapsed');
@@ -388,7 +518,7 @@ function copyToClipboard(text) {
 function showToast(message, type = 'info') {
     const iconMap = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
     const icon = iconMap[type] || iconMap.info;
-    const toast = $(`<div class="toast toast-${type}"><i class="fas fa-${icon}"></i> ${message}</div>`);
+    const toast = $(`<div class="toast toast-${type}"><i class="fas fa-${icon}"></i> ${escHtml(message)}</div>`);
     $('#toast-container').append(toast);
     setTimeout(() => toast.remove(), 3200);
 }

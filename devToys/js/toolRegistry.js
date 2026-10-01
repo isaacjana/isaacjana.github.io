@@ -12,6 +12,7 @@ const TOOL_CATEGORIES = [
   { id: 'text',        name: 'Text',                 icon: 'fas fa-font' },
   { id: 'graphic',     name: 'Graphic',              icon: 'fas fa-palette' },
   { id: 'testers',     name: 'Testers',              icon: 'fas fa-flask' },
+  { id: 'web',         name: 'Web & Network',        icon: 'fas fa-globe' },
   { id: 'thirdparty',  name: 'Third Party',          icon: 'fas fa-puzzle-piece' },
 ];
 
@@ -21,6 +22,8 @@ const TOOLS = [
   { id: 'date-converter',    name: 'Date',                     description: 'Convert between date formats',          icon: 'fas fa-calendar-alt',   gradient: 'linear-gradient(135deg,#f093fb,#f5576c)', category: 'converters',  keywords: ['timestamp','unix','epoch','iso','time'] },
   { id: 'json-table-csv',    name: 'JSON Array to Table, CSV', description: 'Convert JSON arrays to table or CSV',   icon: 'fas fa-table',          gradient: 'linear-gradient(135deg,#4facfe,#00f2fe)', category: 'converters',  keywords: ['spreadsheet','data','export'] },
   { id: 'json-yaml',         name: 'JSON <> YAML',             description: 'Convert between JSON and YAML',         icon: 'fas fa-file-code',      gradient: 'linear-gradient(135deg,#43e97b,#38f9d7)', category: 'converters',  keywords: ['config','configuration','yml'] },
+  { id: 'json-to-code',      name: 'JSON to TS / Go / Python', description: 'Generate types from JSON samples',      icon: 'fas fa-file-code',      gradient: 'linear-gradient(135deg,#3178c6,#00add8)', category: 'converters',  keywords: ['typescript','interface','zod','go','golang','struct','python','dataclass','types','model'] },
+  { id: 'csv-to-json',       name: 'CSV to JSON',              description: 'Parse CSV/TSV into JSON',               icon: 'fas fa-file-csv',       gradient: 'linear-gradient(135deg,#11998e,#38ef7d)', category: 'converters',  keywords: ['csv','tsv','spreadsheet','parse','import','excel'] },
   { id: 'number-base',       name: 'Number Base',              description: 'Convert between number bases',          icon: 'fas fa-hashtag',        gradient: 'linear-gradient(135deg,#fa709a,#fee140)', category: 'converters',  keywords: ['binary','hex','hexadecimal','octal','decimal'] },
 
   // ── Encoders / Decoders ──
@@ -40,7 +43,10 @@ const TOOLS = [
 
   // ── Generators ──
   { id: 'hash-generator',    name: 'Hash / Checksum',          description: 'Generate MD5, SHA hashes',              icon: 'fas fa-fingerprint',    gradient: 'linear-gradient(135deg,#667eea,#764ba2)', category: 'generators',  keywords: ['md5','sha','sha256','sha512','checksum','digest'] },
+  { id: 'chmod-calculator',  name: 'Chmod Calculator',         description: 'Unix file permission calculator',      icon: 'fas fa-user-lock',      gradient: 'linear-gradient(135deg,#f7971e,#ffd200)', category: 'generators',  keywords: ['permissions','unix','linux','octal','rwx','file mode'] },
+  { id: 'hmac-generator',    name: 'HMAC',                     description: 'Sign & verify messages with HMAC',      icon: 'fas fa-signature',      gradient: 'linear-gradient(135deg,#8e2de2,#4a00e0)', category: 'generators',  keywords: ['signature','webhook','sha256','sha512','verify','secret'] },
   { id: 'lorem-ipsum',       name: 'Lorem Ipsum',              description: 'Generate placeholder text',             icon: 'fas fa-paragraph',      gradient: 'linear-gradient(135deg,#f093fb,#f5576c)', category: 'generators',  keywords: ['dummy','filler','placeholder','text','lipsum'] },
+  { id: 'mock-data',         name: 'Mock Data',                description: 'Generate fake JSON, CSV or SQL rows',   icon: 'fas fa-database',       gradient: 'linear-gradient(135deg,#fc466b,#3f5efb)', category: 'generators',  keywords: ['fake','faker','seed','fixture','test data','dummy','sql insert'] },
   { id: 'password-gen',      name: 'Password',                 description: 'Generate secure passwords',             icon: 'fas fa-shield-alt',     gradient: 'linear-gradient(135deg,#4facfe,#00f2fe)', category: 'generators',  keywords: ['random','secure','strong','passphrase'] },
   { id: 'uuid-gen',          name: 'UUID',                     description: 'Generate UUIDs / GUIDs',                icon: 'fas fa-barcode',        gradient: 'linear-gradient(135deg,#43e97b,#38f9d7)', category: 'generators',  keywords: ['guid','unique','identifier','v4','v1'] },
 
@@ -53,12 +59,21 @@ const TOOLS = [
 
   // ── Graphic ──
   { id: 'color-blind-sim',   name: 'Color Blind Simulator',    description: 'Simulate color blindness vision',       icon: 'fas fa-eye',            gradient: 'linear-gradient(135deg,#f6d365,#fda085)', category: 'graphic',     keywords: ['protanopia','deuteranopia','tritanopia','accessibility','a11y','vision'] },
+  { id: 'color-converter',   name: 'Color Converter',          description: 'HEX/RGB/HSL & WCAG contrast check',     icon: 'fas fa-fill-drip',      gradient: 'linear-gradient(135deg,#ff512f,#dd2476)', category: 'graphic',     keywords: ['hex','rgb','hsl','hsv','contrast','wcag','accessibility','a11y','palette','shades'] },
   { id: 'image-converter',   name: 'Image Converter',          description: 'Convert images between formats',        icon: 'fas fa-file-image',     gradient: 'linear-gradient(135deg,#89f7fe,#66a6ff)', category: 'graphic',     keywords: ['png','jpg','jpeg','webp','bmp','resize'] },
 
   // ── Testers ──
+  { id: 'json-diff',         name: 'JSON Diff',                description: 'Compare two JSON documents',            icon: 'fas fa-not-equal',      gradient: 'linear-gradient(135deg,#00c6ff,#0072ff)', category: 'testers',     keywords: ['compare','difference','delta','changes','structural'] },
   { id: 'jsonpath-tester',   name: 'JSONPath',                 description: 'Test JSONPath expressions',             icon: 'fas fa-search',         gradient: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', category: 'testers',     keywords: ['query','jpath','xpath','selector'] },
   { id: 'regex-tester',      name: 'Regular Expression',       description: 'Test regex patterns',                   icon: 'fas fa-asterisk',       gradient: 'linear-gradient(135deg,#fbc2eb,#a6c1ee)', category: 'testers',     keywords: ['regexp','pattern','match','replace','test'] },
   { id: 'xml-xsd-tester',    name: 'XML / XSD',                description: 'Validate XML against XSD',              icon: 'fas fa-check-circle',   gradient: 'linear-gradient(135deg,#f6d365,#fda085)', category: 'testers',     keywords: ['schema','validate','well-formed'] },
+
+  // ── Web & Network ──
+  { id: 'curl-converter',    name: 'cURL Converter',           description: 'cURL to fetch, axios, Python, Go',      icon: 'fas fa-terminal',       gradient: 'linear-gradient(135deg,#232526,#5f6f84)', category: 'web',         keywords: ['curl','http','request','fetch','axios','requests','golang','httpie','api'] },
+  { id: 'http-status',       name: 'HTTP Status Codes',        description: 'Searchable HTTP status reference',      icon: 'fas fa-server',         gradient: 'linear-gradient(135deg,#56ab2f,#a8e063)', category: 'web',         keywords: ['http','status','response','404','500','error','rest','api'] },
+  { id: 'ip-subnet',         name: 'IPv4 Subnet Calculator',   description: 'CIDR, netmask, host range',             icon: 'fas fa-network-wired',  gradient: 'linear-gradient(135deg,#1488cc,#2b32b2)', category: 'web',         keywords: ['cidr','ip','subnet','netmask','network','broadcast','ipv4'] },
+  { id: 'url-parser',        name: 'URL Parser',               description: 'Inspect & edit URL parts and params',   icon: 'fas fa-unlink',         gradient: 'linear-gradient(135deg,#00b09b,#96c93d)', category: 'web',         keywords: ['url','uri','query','params','querystring','host','path'] },
+  { id: 'user-agent',        name: 'User-Agent Parser',        description: 'Detect browser, OS and device',         icon: 'fas fa-desktop',        gradient: 'linear-gradient(135deg,#ee9ca7,#ffdde1)', category: 'web',         keywords: ['ua','browser','os','device','bot','useragent'] },
 
   // ── Third Party ──
   { id: 'duplicate-detector', name: 'Duplicate Detector',      description: 'Find duplicate lines in text',          icon: 'fas fa-copy',           gradient: 'linear-gradient(135deg,#667eea,#764ba2)', category: 'thirdparty', keywords: ['duplicates','unique','dedup','remove'] },
@@ -114,11 +129,26 @@ function getToolById(id) {
 }
 
 /**
- * Utility: search tools using pre-built index
+ * Utility: search tools using pre-built index.
+ * Every whitespace-separated term must match; results are ranked so that
+ * name matches come before description/keyword matches.
  */
 function searchTools(query) {
-  const q = query.toLowerCase();
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
   return SEARCH_INDEX
-    .filter(entry => entry.searchText.includes(q))
-    .map(entry => entry.tool);
+    .filter(entry => terms.every(term => entry.searchText.includes(term)))
+    .map(entry => {
+      const name = entry.tool.name.toLowerCase();
+      let score = 0;
+      terms.forEach(term => {
+        if (name === term) score += 4;
+        else if (name.startsWith(term)) score += 3;
+        else if (name.includes(term)) score += 2;
+        else if ((entry.tool.keywords || []).some(k => k.startsWith(term))) score += 1;
+      });
+      return { tool: entry.tool, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(r => r.tool);
 }

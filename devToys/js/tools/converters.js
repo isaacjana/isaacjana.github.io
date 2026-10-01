@@ -341,6 +341,155 @@ const ConverterTools = {
             updateFrom(10, '255');
         }
     },
+
+    // ── JSON to Code (TypeScript / Go / Python) ──
+    'json-to-code': {
+        render(container) {
+            container.html(`
+        <div class="tool-page">
+          <div class="tool-section">
+            <div class="form-row">
+              <div class="form-group" style="max-width:200px">
+                <label class="form-label">Language</label>
+                <select class="form-select" id="jtc2-lang">
+                  <option value="typescript">TypeScript interface</option>
+                  <option value="zod">TypeScript + Zod</option>
+                  <option value="go">Go struct</option>
+                  <option value="python">Python dataclass</option>
+                </select>
+              </div>
+              <div class="form-group" style="max-width:200px">
+                <label class="form-label">Root name</label>
+                <input type="text" class="form-input" id="jtc2-root" value="Root">
+              </div>
+              <div class="toggle-group" style="align-items:flex-end;padding-bottom:8px">
+                <label class="toggle"><input type="checkbox" id="jtc2-optional"><span class="toggle-slider"></span></label>
+                <span class="toggle-label">Optional fields</span>
+              </div>
+            </div>
+          </div>
+          <div class="split-view">
+            <div class="split-pane">
+              <div class="split-pane-header"><span class="split-pane-title">JSON</span></div>
+              <textarea class="form-textarea tall" id="jtc2-input">{
+  "id": 42,
+  "name": "Ada Lovelace",
+  "email": "ada@example.com",
+  "active": true,
+  "score": 98.5,
+  "tags": ["admin", "math"],
+  "address": { "city": "London", "zip": "NW1" },
+  "orders": [{ "orderId": "A-1", "total": 19.99 }],
+  "manager": null
+}</textarea>
+            </div>
+            <div class="split-pane">
+              <div class="split-pane-header">
+                <span class="split-pane-title">Output</span>
+                <button class="btn btn-ghost btn-sm" id="jtc2-copy"><i class="fas fa-copy"></i> Copy</button>
+              </div>
+              <textarea class="form-textarea tall" id="jtc2-output" readonly></textarea>
+            </div>
+          </div>
+        </div>
+      `);
+
+            function convert() {
+                let data;
+                try {
+                    data = JSON.parse($('#jtc2-input').val());
+                } catch (e) {
+                    $('#jtc2-output').val('// Invalid JSON: ' + e.message);
+                    return;
+                }
+                const root = toPascalCase($('#jtc2-root').val()) || 'Root';
+                $('#jtc2-output').val(jsonToCode(data, root, $('#jtc2-lang').val(), $('#jtc2-optional').is(':checked')));
+            }
+
+            $('#jtc2-input, #jtc2-root').on('input', debounce(convert, 200));
+            $('#jtc2-lang, #jtc2-optional').on('change', convert);
+            $('#jtc2-copy').on('click', () => copyToClipboard($('#jtc2-output').val()));
+            convert();
+        }
+    },
+
+    // ── CSV to JSON ──
+    'csv-to-json': {
+        render(container) {
+            container.html(`
+        <div class="tool-page">
+          <div class="tool-section">
+            <div class="form-row">
+              <div class="form-group" style="max-width:160px">
+                <label class="form-label">Delimiter</label>
+                <select class="form-select" id="c2j-delim">
+                  <option value="auto">Auto-detect</option>
+                  <option value=",">Comma (,)</option>
+                  <option value=";">Semicolon (;)</option>
+                  <option value="\t">Tab</option>
+                  <option value="|">Pipe (|)</option>
+                </select>
+              </div>
+              <div class="toggle-group" style="align-items:flex-end;padding-bottom:8px">
+                <label class="toggle"><input type="checkbox" id="c2j-header" checked><span class="toggle-slider"></span></label>
+                <span class="toggle-label">First row is header</span>
+              </div>
+              <div class="toggle-group" style="align-items:flex-end;padding-bottom:8px">
+                <label class="toggle"><input type="checkbox" id="c2j-types" checked><span class="toggle-slider"></span></label>
+                <span class="toggle-label">Infer numbers / booleans</span>
+              </div>
+            </div>
+          </div>
+          <div class="split-view">
+            <div class="split-pane">
+              <div class="split-pane-header"><span class="split-pane-title">CSV</span></div>
+              <textarea class="form-textarea tall" id="c2j-input">id,name,email,active,balance
+1,Ada Lovelace,ada@example.com,true,1200.50
+2,"Hopper, Grace",grace@example.com,false,88
+3,Alan Turing,"alan@example.com",true,</textarea>
+            </div>
+            <div class="split-pane">
+              <div class="split-pane-header">
+                <span class="split-pane-title" id="c2j-count">JSON</span>
+                <button class="btn btn-ghost btn-sm" id="c2j-copy"><i class="fas fa-copy"></i> Copy</button>
+              </div>
+              <textarea class="form-textarea tall" id="c2j-output" readonly></textarea>
+            </div>
+          </div>
+        </div>
+      `);
+
+            function convert() {
+                const text = $('#c2j-input').val();
+                let delim = $('#c2j-delim').val();
+                if (delim === 'auto') delim = detectDelimiter(text);
+                const rows = parseCsv(text, delim);
+                const infer = $('#c2j-types').is(':checked');
+                const cast = v => {
+                    if (!infer) return v;
+                    if (v === '') return null;
+                    if (v === 'true' || v === 'false') return v === 'true';
+                    if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(v) && !/^-?0\d/.test(v)) return Number(v);
+                    return v;
+                };
+
+                let result;
+                if ($('#c2j-header').is(':checked') && rows.length) {
+                    const headers = rows[0];
+                    result = rows.slice(1).map(r => Object.fromEntries(headers.map((h, i) => [h, cast(r[i] ?? '')])));
+                } else {
+                    result = rows.map(r => r.map(cast));
+                }
+                $('#c2j-output').val(JSON.stringify(result, null, 2));
+                $('#c2j-count').text(`JSON (${result.length} rows)`);
+            }
+
+            $('#c2j-input').on('input', debounce(convert, 200));
+            $('#c2j-delim, #c2j-header, #c2j-types').on('change', convert);
+            $('#c2j-copy').on('click', () => copyToClipboard($('#c2j-output').val()));
+            convert();
+        }
+    },
 };
 
 // ── Cron Helpers ──
@@ -497,4 +646,186 @@ function parseYamlValue(val) {
     const num = Number(val);
     if (!isNaN(num) && val !== '') return num;
     return val;
+}
+
+// ── JSON to Code Helpers ──
+function toPascalCase(str) {
+    return String(str).replace(/[^a-zA-Z0-9]+(.)?/g, (m, c) => c ? c.toUpperCase() : '')
+        .replace(/^[a-z]/, c => c.toUpperCase())
+        .replace(/^(\d)/, '_$1');
+}
+
+function singularize(name) {
+    if (/ies$/i.test(name)) return name.slice(0, -3) + 'y';
+    if (/(ss|us)$/i.test(name)) return name;
+    if (/s$/i.test(name)) return name.slice(0, -1);
+    return name + 'Item';
+}
+
+/**
+ * Walks JSON and builds named type definitions.
+ * Returns { types: [{ name, fields: [{ key, type, optional }] }], rootType }
+ * where type is a descriptor: { kind: 'string'|'int'|'float'|'bool'|'null'|'any'|'object'|'array', name?, of? }
+ */
+function inferTypes(data, rootName) {
+    const types = [];
+    const used = new Set();
+
+    function uniqueName(base) {
+        let name = toPascalCase(base) || 'Type', n = 2;
+        while (used.has(name)) name = toPascalCase(base) + n++;
+        used.add(name);
+        return name;
+    }
+
+    // Merge a list of sample objects into one type so array items with varying keys are covered
+    function objectType(samples, name) {
+        const typeName = uniqueName(name);
+        const def = { name: typeName, fields: [] };
+        types.push(def);
+        const keys = [...new Set(samples.flatMap(s => Object.keys(s)))];
+        keys.forEach(key => {
+            const values = samples.filter(s => key in s).map(s => s[key]);
+            const optional = values.length < samples.length;
+            def.fields.push({ key, type: describe(values, key), optional });
+        });
+        return { kind: 'object', name: typeName };
+    }
+
+    function describe(values, name) {
+        const nonNull = values.filter(v => v !== null);
+        const nullable = nonNull.length < values.length;
+        if (!nonNull.length) return { kind: 'null' };
+        const kinds = new Set(nonNull.map(v => Array.isArray(v) ? 'array' : typeof v));
+        let t;
+        if (kinds.size > 1) t = { kind: 'any' };
+        else {
+            const k = [...kinds][0];
+            if (k === 'string') t = { kind: 'string' };
+            else if (k === 'boolean') t = { kind: 'bool' };
+            else if (k === 'number') t = { kind: nonNull.every(Number.isInteger) ? 'int' : 'float' };
+            else if (k === 'array') t = { kind: 'array', of: describe(nonNull.flat(), singularize(name)) };
+            else t = objectType(nonNull, name);
+        }
+        if (nullable) t.nullable = true;
+        return t;
+    }
+
+    const rootType = describe([data], rootName);
+    return { types, rootType };
+}
+
+function jsonToCode(data, rootName, lang, allOptional) {
+    const { types, rootType } = inferTypes(data, rootName);
+    const ident = k => /^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k);
+    const snake = k => k.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase().replace(/^(\d)/, '_$1');
+    const out = [];
+
+    if (lang === 'typescript') {
+        const ts = t => {
+            const base = { string: 'string', int: 'number', float: 'number', bool: 'boolean', null: 'null', any: 'unknown', object: t.name }[t.kind]
+                || `${ts(t.of).includes('|') ? `(${ts(t.of)})` : ts(t.of)}[]`;
+            return t.nullable ? `${base} | null` : base;
+        };
+        types.forEach(def => {
+            out.push(`export interface ${def.name} {`);
+            def.fields.forEach(f => out.push(`  ${ident(f.key)}${f.optional || allOptional ? '?' : ''}: ${ts(f.type)};`));
+            out.push('}', '');
+        });
+        if (rootType.kind !== 'object') out.push(`export type ${toPascalCase(rootName)} = ${ts(rootType)};`);
+    }
+
+    if (lang === 'zod') {
+        const zod = t => {
+            let s = { string: 'z.string()', int: 'z.number().int()', float: 'z.number()', bool: 'z.boolean()', null: 'z.null()', any: 'z.unknown()', object: `${t.name}Schema` }[t.kind]
+                || `z.array(${zod(t.of)})`;
+            return t.nullable ? s + '.nullable()' : s;
+        };
+        out.push("import { z } from 'zod';", '');
+        // Dependencies must be declared before use, so emit in reverse discovery order
+        [...types].reverse().forEach(def => {
+            out.push(`export const ${def.name}Schema = z.object({`);
+            def.fields.forEach(f => out.push(`  ${ident(f.key)}: ${zod(f.type)}${f.optional || allOptional ? '.optional()' : ''},`));
+            out.push('});', `export type ${def.name} = z.infer<typeof ${def.name}Schema>;`, '');
+        });
+        if (rootType.kind !== 'object') out.push(`export const ${toPascalCase(rootName)}Schema = ${zod(rootType)};`);
+    }
+
+    if (lang === 'go') {
+        const go = t => {
+            const base = { string: 'string', int: 'int64', float: 'float64', bool: 'bool', null: 'interface{}', any: 'interface{}', object: t.name }[t.kind]
+                || `[]${go(t.of)}`;
+            return t.nullable && !['null', 'any', 'array'].includes(t.kind) ? '*' + base : base;
+        };
+        out.push('package main', '');
+        types.forEach(def => {
+            out.push(`type ${def.name} struct {`);
+            const width = Math.max(...def.fields.map(f => toPascalCase(f.key).length), 0);
+            const typeWidth = Math.max(...def.fields.map(f => go(f.type).length), 0);
+            def.fields.forEach(f => {
+                const omit = f.optional || allOptional ? ',omitempty' : '';
+                out.push(`\t${toPascalCase(f.key).padEnd(width)} ${go(f.type).padEnd(typeWidth)} \`json:"${f.key}${omit}"\``);
+            });
+            out.push('}', '');
+        });
+        if (rootType.kind !== 'object') out.push(`type ${toPascalCase(rootName)} ${go(rootType)}`);
+    }
+
+    if (lang === 'python') {
+        const py = t => {
+            const base = { string: 'str', int: 'int', float: 'float', bool: 'bool', null: 'None', any: 'Any', object: t.name }[t.kind]
+                || `list[${py(t.of)}]`;
+            return t.nullable ? `Optional[${base}]` : base;
+        };
+        out.push('from __future__ import annotations', '', 'from dataclasses import dataclass', 'from typing import Any, Optional', '', '');
+        [...types].reverse().forEach(def => {
+            out.push('@dataclass', `class ${def.name}:`);
+            if (!def.fields.length) out.push('    pass');
+            // Fields with defaults must come after required fields
+            const sorted = [...def.fields].sort((a, b) => (a.optional || allOptional) - (b.optional || allOptional));
+            sorted.forEach(f => {
+                const opt = f.optional || allOptional;
+                out.push(`    ${snake(f.key)}: ${opt && !f.type.nullable ? `Optional[${py(f.type)}]` : py(f.type)}${opt ? ' = None' : ''}`);
+            });
+            out.push('', '');
+        });
+        if (rootType.kind !== 'object') out.push(`${toPascalCase(rootName)} = ${py(rootType)}`);
+    }
+
+    return out.join('\n').trim() + '\n';
+}
+
+// ── CSV Helpers ──
+function detectDelimiter(text) {
+    const firstLine = text.split(/\r?\n/)[0] || '';
+    const candidates = [',', ';', '\t', '|'];
+    return candidates.reduce((best, d) => firstLine.split(d).length > firstLine.split(best).length ? d : best, ',');
+}
+
+// RFC 4180 parser: handles quoted fields, escaped quotes ("") and newlines inside quotes
+function parseCsv(text, delim = ',') {
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+            if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+            else if (c === '"') inQuotes = false;
+            else field += c;
+        } else if (c === '"' && field === '') {
+            inQuotes = true;
+        } else if (c === delim) {
+            row.push(field); field = '';
+        } else if (c === '\n' || c === '\r') {
+            if (c === '\r' && text[i + 1] === '\n') i++;
+            row.push(field); field = '';
+            if (row.length > 1 || row[0] !== '') rows.push(row);
+            row = [];
+        } else {
+            field += c;
+        }
+    }
+    row.push(field);
+    if (row.length > 1 || row[0] !== '') rows.push(row);
+    return rows;
 }

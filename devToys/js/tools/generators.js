@@ -382,6 +382,254 @@ const GeneratorTools = {
       generate();
     }
   },
+
+  // ── Chmod Calculator ──
+  'chmod-calculator': {
+    render(container) {
+      const who = [['owner', 'Owner'], ['group', 'Group'], ['other', 'Other']];
+      const perms = [['r', 'Read', 4], ['w', 'Write', 2], ['x', 'Execute', 1]];
+      container.html(`
+        <div class="tool-page">
+          <div class="tool-section">
+            <table class="result-table" style="max-width:520px">
+              <thead><tr><th></th>${perms.map(p => `<th style="text-align:center">${p[1]}</th>`).join('')}</tr></thead>
+              <tbody>
+                ${who.map(([w, label]) => `<tr><td style="font-family:inherit;font-weight:600">${label}</td>${perms.map(([p]) =>
+                  `<td style="text-align:center"><input type="checkbox" class="chmod-bit" data-who="${w}" data-perm="${p}"></td>`).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="tool-section">
+            <div class="form-row">
+              <div class="form-group" style="max-width:160px">
+                <label class="form-label">Octal</label>
+                <input type="text" class="form-input text-mono" id="chmod-octal" maxlength="4" value="755">
+              </div>
+              <div class="form-group" style="max-width:200px">
+                <label class="form-label">Symbolic</label>
+                <input type="text" class="form-input text-mono" id="chmod-symbolic" maxlength="10" value="rwxr-xr-x">
+              </div>
+            </div>
+          </div>
+          <div class="tool-section">
+            <div class="split-pane-header">
+              <span class="tool-section-title mb-0">Command</span>
+              <button class="btn btn-ghost btn-sm" id="chmod-copy"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <div class="output-area" id="chmod-cmd" style="min-height:auto"></div>
+            <div class="btn-group mt-12">
+              ${['644', '755', '600', '700', '775', '444', '777'].map(p => `<button class="btn btn-secondary btn-sm chmod-preset" data-mode="${p}">${p}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+      `);
+
+      function setFromOctal(octal) {
+        const digits = octal.slice(-3).padStart(3, '0');
+        who.forEach(([w], i) => {
+          const d = parseInt(digits[i], 10);
+          perms.forEach(([p, , bit]) => $(`.chmod-bit[data-who="${w}"][data-perm="${p}"]`).prop('checked', (d & bit) !== 0));
+        });
+      }
+
+      function update(source) {
+        let octal = '', symbolic = '';
+        who.forEach(([w]) => {
+          let d = 0;
+          perms.forEach(([p, , bit]) => {
+            const on = $(`.chmod-bit[data-who="${w}"][data-perm="${p}"]`).is(':checked');
+            if (on) d += bit;
+            symbolic += on ? p : '-';
+          });
+          octal += d;
+        });
+        if (source !== 'octal') $('#chmod-octal').val(octal);
+        if (source !== 'symbolic') $('#chmod-symbolic').val(symbolic);
+        $('#chmod-cmd').text(`chmod ${octal} filename`);
+      }
+
+      $('.chmod-bit').on('change', () => update('bits'));
+      $('#chmod-octal').on('input', function () {
+        const v = this.value.trim();
+        if (!/^[0-7]{3,4}$/.test(v)) return;
+        setFromOctal(v);
+        update('octal');
+      });
+      $('#chmod-symbolic').on('input', function () {
+        const v = this.value.trim().replace(/^[-dl]?(?=.{9}$)/, '');
+        if (!/^([r-][w-][x-]){3}$/.test(v)) return;
+        let octal = '';
+        for (let i = 0; i < 9; i += 3) {
+          octal += (v[i] === 'r' ? 4 : 0) + (v[i + 1] === 'w' ? 2 : 0) + (v[i + 2] === 'x' ? 1 : 0);
+        }
+        setFromOctal(octal);
+        update('symbolic');
+      });
+      $('.chmod-preset').on('click', function () {
+        setFromOctal(String($(this).data('mode')));
+        update('bits');
+      });
+      $('#chmod-copy').on('click', () => copyToClipboard($('#chmod-cmd').text()));
+
+      setFromOctal('755');
+      update('bits');
+    }
+  },
+
+  // ── HMAC Generator ──
+  'hmac-generator': {
+    render(container) {
+      container.html(`
+        <div class="tool-page">
+          <div class="tool-section">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Secret key</label>
+                <input type="text" class="form-input text-mono" id="hmac-key" value="my-secret-key">
+              </div>
+              <div class="form-group" style="max-width:160px">
+                <label class="form-label">Algorithm</label>
+                <select class="form-select" id="hmac-algo">
+                  <option value="SHA-1">HMAC-SHA1</option>
+                  <option value="SHA-256" selected>HMAC-SHA256</option>
+                  <option value="SHA-384">HMAC-SHA384</option>
+                  <option value="SHA-512">HMAC-SHA512</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-section-title">Message</div>
+            <textarea class="form-textarea" id="hmac-msg" style="min-height:120px">{"event":"payment.succeeded","id":"evt_123"}</textarea>
+          </div>
+          <div class="tool-section">
+            <div class="split-pane-header">
+              <span class="tool-section-title mb-0">Hex</span>
+              <button class="btn btn-ghost btn-sm copy-btn" data-target="hmac-hex"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <div class="output-area" id="hmac-hex" style="min-height:auto;word-break:break-all"></div>
+            <div class="split-pane-header mt-12">
+              <span class="tool-section-title mb-0">Base64</span>
+              <button class="btn btn-ghost btn-sm copy-btn" data-target="hmac-b64"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <div class="output-area" id="hmac-b64" style="min-height:auto;word-break:break-all"></div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-section-title">Verify signature</div>
+            <input type="text" class="form-input text-mono" id="hmac-verify" placeholder="Paste an expected signature (hex or Base64) to compare">
+            <div id="hmac-verify-result" class="text-sm mt-8"></div>
+          </div>
+        </div>
+      `);
+
+      const enc = new TextEncoder();
+      let current = { hex: '', b64: '' };
+
+      async function compute() {
+        if (!crypto.subtle) {
+          $('#hmac-hex').text('Web Crypto is unavailable (requires HTTPS or localhost).');
+          return;
+        }
+        const keyBytes = enc.encode($('#hmac-key').val());
+        if (!keyBytes.length) {
+          $('#hmac-hex, #hmac-b64').text('Enter a secret key.');
+          return;
+        }
+        const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: $('#hmac-algo').val() }, false, ['sign']);
+        const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode($('#hmac-msg').val())));
+        current = {
+          hex: [...sig].map(b => b.toString(16).padStart(2, '0')).join(''),
+          b64: btoa(String.fromCharCode(...sig)),
+        };
+        $('#hmac-hex').text(current.hex);
+        $('#hmac-b64').text(current.b64);
+        verify();
+      }
+
+      function verify() {
+        const v = $('#hmac-verify').val().trim().replace(/^sha\d+=/i, '');
+        if (!v) { $('#hmac-verify-result').html(''); return; }
+        const ok = v.toLowerCase() === current.hex || v === current.b64;
+        $('#hmac-verify-result').html(ok
+          ? '<span class="badge badge-green"><i class="fas fa-check"></i>&nbsp;Signature matches</span>'
+          : '<span class="badge badge-red"><i class="fas fa-times"></i>&nbsp;Signature does not match</span>');
+      }
+
+      $('#hmac-key, #hmac-msg').on('input', debounce(compute, 150));
+      $('#hmac-algo').on('change', compute);
+      $('#hmac-verify').on('input', verify);
+      compute();
+    }
+  },
+
+  // ── Mock Data Generator ──
+  'mock-data': {
+    render(container) {
+      const fields = Object.keys(MOCK_FIELDS);
+      const defaults = ['id', 'firstName', 'lastName', 'email', 'company', 'createdAt'];
+      container.html(`
+        <div class="tool-page">
+          <div class="tool-section">
+            <div class="tool-section-title">Fields</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px 16px">
+              ${fields.map(f => `<label class="text-sm" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" class="mock-field" value="${f}" ${defaults.includes(f) ? 'checked' : ''}> ${f}</label>`).join('')}
+            </div>
+          </div>
+          <div class="tool-section">
+            <div class="form-row">
+              <div class="form-group" style="max-width:120px">
+                <label class="form-label">Rows</label>
+                <input type="number" class="form-input" id="mock-count" value="10" min="1" max="10000">
+              </div>
+              <div class="form-group" style="max-width:160px">
+                <label class="form-label">Format</label>
+                <select class="form-select" id="mock-format">
+                  <option value="json">JSON</option>
+                  <option value="csv">CSV</option>
+                  <option value="sql">SQL INSERT</option>
+                  <option value="ndjson">NDJSON</option>
+                </select>
+              </div>
+              <div class="btn-group" style="align-items:flex-end">
+                <button class="btn btn-primary btn-sm" id="mock-generate"><i class="fas fa-sync-alt"></i> Generate</button>
+                <button class="btn btn-ghost btn-sm" id="mock-copy"><i class="fas fa-copy"></i> Copy</button>
+                <button class="btn btn-ghost btn-sm" id="mock-download"><i class="fas fa-download"></i> Download</button>
+              </div>
+            </div>
+          </div>
+          <div class="tool-section">
+            <textarea class="form-textarea tall" id="mock-output" readonly></textarea>
+          </div>
+        </div>
+      `);
+
+      function generate() {
+        const selected = $('.mock-field:checked').map((_, el) => el.value).get();
+        if (!selected.length) { $('#mock-output').val(''); return; }
+        const count = Math.min(Math.max(parseInt($('#mock-count').val(), 10) || 1, 1), 10000);
+        const rows = Array.from({ length: count }, (_, i) => {
+          const ctx = { index: i };
+          return Object.fromEntries(selected.map(f => [f, MOCK_FIELDS[f](ctx)]));
+        });
+        $('#mock-output').val(formatMockRows(rows, selected, $('#mock-format').val()));
+      }
+
+      $('#mock-generate').on('click', generate);
+      $('.mock-field, #mock-format, #mock-count').on('change', generate);
+      $('#mock-copy').on('click', () => copyToClipboard($('#mock-output').val()));
+      $('#mock-download').on('click', () => {
+        const ext = { json: 'json', csv: 'csv', sql: 'sql', ndjson: 'ndjson' }[$('#mock-format').val()];
+        const blob = new Blob([$('#mock-output').val()], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `mock-data.${ext}`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+      generate();
+    }
+  },
 };
 
 // ── UUID Helpers ──
@@ -447,4 +695,58 @@ function md5(string) {
 
   function md5blk(s) { var md5blks = [], i; for (i = 0; i < 64; i += 4) { md5blks[i >> 2] = s.charCodeAt(i) + (s.charCodeAt(i + 1) << 8) + (s.charCodeAt(i + 2) << 16) + (s.charCodeAt(i + 3) << 24) } return md5blks }
   function hex(x) { var s = '', j; for (var i = 0; i < x.length; i++) { for (j = 0; j < 4; j++)s += ('0' + ((x[i] >> (j * 8)) & 255).toString(16)).slice(-2) } return s }
+}
+
+// ── Mock Data Helpers ──
+const MOCK_WORDS = {
+  firstNames: ['Ada', 'Alan', 'Grace', 'Linus', 'Margaret', 'Dennis', 'Barbara', 'Ken', 'Frances', 'Guido', 'Radia', 'Tim', 'Katherine', 'Donald', 'Hedy', 'Bjarne', 'Anita', 'James', 'Sophie', 'Yukihiro'],
+  lastNames: ['Lovelace', 'Turing', 'Hopper', 'Torvalds', 'Hamilton', 'Ritchie', 'Liskov', 'Thompson', 'Allen', 'van Rossum', 'Perlman', 'Berners-Lee', 'Johnson', 'Knuth', 'Lamarr', 'Stroustrup', 'Borg', 'Gosling', 'Wilson', 'Matsumoto'],
+  companies: ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli', 'Stark Industries', 'Wayne Enterprises', 'Pied Piper', 'Soylent', 'Vandelay Industries'],
+  domains: ['example.com', 'example.org', 'example.net', 'test.dev', 'mail.test'],
+  cities: ['London', 'Berlin', 'Tokyo', 'New York', 'São Paulo', 'Sydney', 'Toronto', 'Nairobi', 'Madrid', 'Seoul'],
+  countries: ['GB', 'DE', 'JP', 'US', 'BR', 'AU', 'CA', 'KE', 'ES', 'KR'],
+  streets: ['Main St', 'High St', 'Oak Ave', 'Elm St', 'Park Rd', 'Church Ln', 'Mill Rd', 'Station Rd'],
+  jobs: ['Software Engineer', 'Product Manager', 'Designer', 'Data Scientist', 'DevOps Engineer', 'QA Engineer', 'Engineering Manager', 'Technical Writer'],
+  statuses: ['active', 'inactive', 'pending', 'suspended'],
+};
+
+const mockPick = arr => arr[Math.floor(Math.random() * arr.length)];
+const mockRandInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+// Each field generator receives a per-row context so related fields (name → email) stay consistent
+const MOCK_FIELDS = {
+  id: ctx => ctx.index + 1,
+  uuid: () => generateUUIDv4(),
+  firstName: ctx => (ctx.first ??= mockPick(MOCK_WORDS.firstNames)),
+  lastName: ctx => (ctx.last ??= mockPick(MOCK_WORDS.lastNames)),
+  fullName: ctx => `${MOCK_FIELDS.firstName(ctx)} ${MOCK_FIELDS.lastName(ctx)}`,
+  username: ctx => `${MOCK_FIELDS.firstName(ctx)}.${MOCK_FIELDS.lastName(ctx)}`.toLowerCase().replace(/[^a-z.]/g, '') + mockRandInt(1, 99),
+  email: ctx => `${MOCK_FIELDS.firstName(ctx)}.${MOCK_FIELDS.lastName(ctx)}`.toLowerCase().replace(/[^a-z.]/g, '') + '@' + mockPick(MOCK_WORDS.domains),
+  phone: () => `+1-${mockRandInt(200, 999)}-${mockRandInt(200, 999)}-${String(mockRandInt(0, 9999)).padStart(4, '0')}`,
+  company: () => mockPick(MOCK_WORDS.companies),
+  jobTitle: () => mockPick(MOCK_WORDS.jobs),
+  street: () => `${mockRandInt(1, 999)} ${mockPick(MOCK_WORDS.streets)}`,
+  city: () => mockPick(MOCK_WORDS.cities),
+  country: () => mockPick(MOCK_WORDS.countries),
+  zip: () => String(mockRandInt(10000, 99999)),
+  age: () => mockRandInt(18, 80),
+  price: () => Math.round(Math.random() * 100000) / 100,
+  boolean: () => Math.random() < 0.5,
+  status: () => mockPick(MOCK_WORDS.statuses),
+  ipv4: () => `${mockRandInt(1, 223)}.${mockRandInt(0, 255)}.${mockRandInt(0, 255)}.${mockRandInt(1, 254)}`,
+  url: () => `https://${mockPick(MOCK_WORDS.domains)}/${Math.random().toString(36).slice(2, 8)}`,
+  hexColor: () => '#' + mockRandInt(0, 0xffffff).toString(16).padStart(6, '0'),
+  createdAt: () => new Date(Date.now() - mockRandInt(0, 3 * 365 * 24 * 3600) * 1000).toISOString(),
+};
+
+function formatMockRows(rows, fields, format) {
+  if (format === 'json') return JSON.stringify(rows, null, 2);
+  if (format === 'ndjson') return rows.map(r => JSON.stringify(r)).join('\n');
+  if (format === 'csv') {
+    const cell = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+    return [fields.join(','), ...rows.map(r => fields.map(f => cell(r[f])).join(','))].join('\n');
+  }
+  // SQL
+  const val = v => typeof v === 'number' ? v : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : `'${String(v).replace(/'/g, "''")}'`;
+  return rows.map(r => `INSERT INTO mock_data (${fields.join(', ')}) VALUES (${fields.map(f => val(r[f])).join(', ')});`).join('\n');
 }

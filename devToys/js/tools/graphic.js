@@ -274,4 +274,182 @@ const GraphicTools = {
       });
     }
   },
+
+  // ── Color Converter & Contrast Checker ──
+  'color-converter': {
+    render(container) {
+      container.html(`
+        <div class="tool-page">
+          <div class="tool-section">
+            <div class="form-row">
+              <div class="form-group" style="max-width:90px">
+                <label class="form-label">Pick</label>
+                <input type="color" id="cc2-picker" value="#58a6ff" style="width:100%;height:38px;border:1px solid var(--border-default);border-radius:var(--radius-md);background:var(--bg-input);cursor:pointer">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Any color (hex, rgb(), hsl(), or name)</label>
+                <input type="text" class="form-input text-mono" id="cc2-input" value="#58a6ff">
+              </div>
+            </div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-section-title">Formats</div>
+            <div id="cc2-formats"></div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-section-title">Tints &amp; Shades</div>
+            <div id="cc2-scale" style="display:grid;grid-template-columns:repeat(11,1fr);gap:4px"></div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-section-title">WCAG Contrast</div>
+            <div class="form-row">
+              <div class="form-group" style="max-width:220px">
+                <label class="form-label">Background</label>
+                <input type="text" class="form-input text-mono" id="cc2-bg" value="#0d1117">
+              </div>
+            </div>
+            <div id="cc2-contrast" class="mt-12"></div>
+          </div>
+        </div>
+      `);
+
+      function update(fromPicker) {
+        const rgb = parseCssColor($('#cc2-input').val());
+        if (!rgb) {
+          $('#cc2-input').css('border-color', 'var(--accent-red)');
+          return;
+        }
+        $('#cc2-input').css('border-color', '');
+        const hex = rgbToHex(rgb);
+        if (!fromPicker) $('#cc2-picker').val(hex.slice(0, 7));
+
+        const [h, s, l] = rgbToHsl(rgb);
+        const [hh, sv, v] = rgbToHsv(rgb);
+        const alpha = rgb.a < 1 ? ` / ${+rgb.a.toFixed(2)}` : '';
+        const formats = [
+          ['HEX', hex],
+          ['RGB', rgb.a < 1 ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${+rgb.a.toFixed(2)})` : `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`],
+          ['HSL', `hsl(${h} ${s}% ${l}%${alpha})`],
+          ['HSV', `hsv(${hh}, ${sv}%, ${v}%)`],
+          ['CSS variable', `--color-primary: ${hex};`],
+          ['Tailwind arbitrary', `bg-[${hex}]`],
+          ['Android ARGB', '#' + Math.round(rgb.a * 255).toString(16).padStart(2, '0').toUpperCase() + hex.slice(1, 7)],
+          ['Swift UIColor', `UIColor(red: ${(rgb.r / 255).toFixed(3)}, green: ${(rgb.g / 255).toFixed(3)}, blue: ${(rgb.b / 255).toFixed(3)}, alpha: ${+rgb.a.toFixed(2)})`],
+        ];
+        $('#cc2-formats').html('<table class="result-table"><tbody>' + formats.map(([k, val]) =>
+          `<tr><td style="width:160px;color:var(--text-secondary)">${k}</td><td>${escHtml(val)}</td><td style="width:40px"><button class="btn btn-ghost btn-sm cc2-copy" data-value="${escHtml(val)}" title="Copy"><i class="fas fa-copy"></i></button></td></tr>`).join('') +
+          '</tbody></table>');
+
+        // Lightness scale from 95% down to 5%
+        let scale = '';
+        for (let i = 0; i <= 10; i++) {
+          const lightness = 95 - i * 9;
+          const c = hslToRgb(h, s, lightness);
+          const shex = rgbToHex(c);
+          scale += `<div class="cc2-swatch" data-value="${shex}" title="${shex} — click to copy" style="cursor:pointer;height:44px;border-radius:var(--radius-sm);background:${shex};border:1px solid var(--border-default);display:flex;align-items:flex-end;justify-content:center;font-size:9px;font-family:'JetBrains Mono',monospace;color:${lightness > 55 ? '#000' : '#fff'}">${i === 0 ? 50 : i * 100 - (i === 10 ? 50 : 0)}</div>`;
+        }
+        $('#cc2-scale').html(scale);
+
+        renderContrast(rgb);
+      }
+
+      function renderContrast(fg) {
+        const bg = parseCssColor($('#cc2-bg').val());
+        if (!bg) {
+          $('#cc2-contrast').html('<span class="text-sm" style="color:var(--accent-red)">Invalid background color</span>');
+          return;
+        }
+        const ratio = contrastRatio(fg, bg);
+        const pass = (min) => ratio >= min
+          ? '<span class="badge badge-green">Pass</span>' : '<span class="badge badge-red">Fail</span>';
+        const fgHex = rgbToHex(fg), bgHex = rgbToHex(bg);
+        $('#cc2-contrast').html(`
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:stretch">
+            <div style="flex:1;min-width:220px;padding:20px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:${bgHex};color:${fgHex}">
+              <div style="font-size:24px;font-weight:700">Large text sample</div>
+              <div style="font-size:14px">Normal body text sample — the quick brown fox.</div>
+            </div>
+            <div class="stat-card" style="min-width:140px"><div class="stat-value">${ratio.toFixed(2)}:1</div><div class="stat-label">Contrast ratio</div></div>
+          </div>
+          <table class="result-table mt-12" style="max-width:520px"><tbody>
+            <tr><td style="font-family:inherit">AA normal text (4.5:1)</td><td>${pass(4.5)}</td></tr>
+            <tr><td style="font-family:inherit">AA large text (3:1)</td><td>${pass(3)}</td></tr>
+            <tr><td style="font-family:inherit">AAA normal text (7:1)</td><td>${pass(7)}</td></tr>
+            <tr><td style="font-family:inherit">AAA large text (4.5:1)</td><td>${pass(4.5)}</td></tr>
+            <tr><td style="font-family:inherit">UI components (3:1)</td><td>${pass(3)}</td></tr>
+          </tbody></table>`);
+      }
+
+      $('#cc2-input').on('input', debounce(() => update(false), 120));
+      $('#cc2-picker').on('input', function () { $('#cc2-input').val(this.value); update(true); });
+      $('#cc2-bg').on('input', debounce(() => update(false), 120));
+      $('#cc2-formats').on('click', '.cc2-copy', function () { copyToClipboard($(this).data('value')); });
+      $('#cc2-scale').on('click', '.cc2-swatch', function () { copyToClipboard($(this).data('value')); });
+      update(false);
+    }
+  },
 };
+
+// ── Color Helpers ──
+
+// Uses the browser's own CSS parser so every valid CSS color (names, hsl, etc.) works
+function parseCssColor(str) {
+  str = String(str).trim();
+  if (!str) return null;
+  if (/^[0-9a-f]{3,8}$/i.test(str)) str = '#' + str;
+  const probe = new Option().style;
+  probe.color = str;
+  if (!probe.color) return null;
+  const ctx = parseCssColor.ctx || (parseCssColor.ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true }));
+  ctx.clearRect(0, 0, 1, 1);
+  ctx.fillStyle = '#000';
+  ctx.fillStyle = str;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  return { r, g, b, a: +(a / 255).toFixed(3) };
+}
+
+function rgbToHex({ r, g, b, a = 1 }) {
+  const h = n => n.toString(16).padStart(2, '0');
+  return ('#' + h(r) + h(g) + h(b) + (a < 1 ? h(Math.round(a * 255)) : '')).toUpperCase();
+}
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60;
+  }
+  return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+
+function rgbToHsv({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) h = (max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60;
+  return [Math.round(h), Math.round(max ? (d / max) * 100 : 0), Math.round(max * 100)];
+}
+
+function hslToRgb(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))));
+  return { r: f(0), g: f(8), b: f(4), a: 1 };
+}
+
+function relativeLuminance({ r, g, b }) {
+  const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrastRatio(a, b) {
+  const la = relativeLuminance(a), lb = relativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
