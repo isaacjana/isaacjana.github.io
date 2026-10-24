@@ -1,0 +1,15 @@
+{
+  "name": "Oratio – Catholic Prayer Companion",
+  "short_name": "Oratio",
+  "description": "Catholic prayers, Sunday Mass companion, Rosary guide and prayer journal.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDF8F0",
+  "theme_color": "#8B0000",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

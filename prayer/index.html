@@ -3,7 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#8B0000">
+    <meta name="apple-mobile-web-app-title" content="Oratio">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
@@ -76,15 +81,37 @@
         }
 
         /* Notch / Safe Area Handling */
+        :root { --hdr: 3.5rem; --tabbar: 4rem; }
         header {
-            padding-top: max(1rem, env(safe-area-inset-top)) !important;
+            padding-top: env(safe-area-inset-top);
         }
-        footer {
-            padding-bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
-        }
+        .app-header-row { height: var(--hdr); }
         main {
             padding-left: max(1rem, env(safe-area-inset-left));
             padding-right: max(1rem, env(safe-area-inset-right));
+            padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 1.5rem);
+        }
+        .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* Sticky strips sit directly under the compact header */
+        .stick-under-header { position: sticky; top: calc(var(--hdr) + env(safe-area-inset-top)); z-index: 30; }
+
+        /* Bottom tab bar */
+        #tabBar {
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+        #tabBar .nav-tab-btn { height: var(--tabbar); }
+
+        /* Settings bottom sheet */
+        #sheetBackdrop { transition: opacity .25s ease; }
+        #settingsSheet { transition: transform .3s cubic-bezier(.32,.72,0,1); padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+        #settingsSheet.closed { transform: translateY(100%); }
+        #sheetBackdrop.closed { opacity: 0; pointer-events: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
         }
 
         @keyframes fadeIn {
@@ -200,27 +227,21 @@
 
         .nav-tab-btn {
             position: relative;
-            transition: all 0.2s ease;
+            transition: color 0.2s ease;
+            color: #6b7280;
         }
-
-        .nav-tab-btn.active {
-            color: #8B0000;
-            font-weight: 700;
-        }
-
-        .theme-dark .nav-tab-btn.active {
-            color: #E8D48A;
-        }
-
-        .nav-tab-btn.active::after {
+        .nav-tab-btn .tab-icon { font-size: 1.35rem; line-height: 1; transition: transform .2s ease; }
+        .nav-tab-btn.active { color: #8B0000; font-weight: 700; }
+        .theme-dark .nav-tab-btn { color: #9a9486; }
+        .theme-dark .nav-tab-btn.active { color: #E8D48A; }
+        .nav-tab-btn.active .tab-icon { transform: translateY(-2px) scale(1.1); }
+        .nav-tab-btn.active::before {
             content: '';
             position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
+            top: 0; left: 30%; right: 30%;
             height: 3px;
             background: #C9A227;
-            border-radius: 2px;
+            border-radius: 0 0 3px 3px;
         }
 
         .cross-divider {
@@ -241,70 +262,79 @@
 
 <body class="min-h-screen flex flex-col font-serif selection:bg-gold selection:text-white">
 
-    <!-- Header & Navigation Bar -->
-    <header class="py-4 bg-white/80 dark:bg-night-card/90 backdrop-blur-md sticky top-0 z-50 border-b-2 border-gold shadow-sm transition-colors duration-300">
-        <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            
-            <!-- Branding -->
-            <div class="flex items-center gap-3">
-                <span class="text-2xl text-crimson dark:text-gold animate-pulse-gold rounded-full px-2">✝</span>
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-display font-bold tracking-widest text-crimson dark:text-gold">ORATIO</h1>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 font-sans tracking-wide">Sacred Catholic Prayer Companion</p>
+    <!-- Compact App Header -->
+    <header class="bg-white/90 dark:bg-night-card/95 backdrop-blur-md sticky top-0 z-50 border-b border-gold/60 shadow-sm transition-colors duration-300">
+        <div class="app-header-row container mx-auto max-w-2xl px-4 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <span class="text-xl text-crimson dark:text-gold">✝</span>
+                <div class="leading-tight">
+                    <h1 class="text-lg font-display font-bold tracking-widest text-crimson dark:text-gold">ORATIO</h1>
+                    <p id="headerSubtitle" class="text-[10px] text-gray-500 dark:text-gray-400 font-sans tracking-wide">Catholic Prayer Companion</p>
                 </div>
             </div>
-
-            <!-- Main Navigation Tabs -->
-            <nav class="flex items-center gap-1 sm:gap-4 font-sans text-sm max-w-full overflow-x-auto whitespace-nowrap">
-                <button id="tabGenerator" class="nav-tab-btn active px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
-                    <span>✨</span> Generator
-                </button>
-                <button id="tabLibrary" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
-                    <span>📖</span> Common Prayers
-                </button>
-                <button id="tabMass" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
-                    <span>⛪</span> Sunday Mass
-                </button>
-                <button id="tabRosary" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
-                    <span>📿</span> Rosary
-                </button>
-                <button id="tabJournal" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
-                    <span>💖</span> Journal <span id="journalCountBadge" class="hidden ml-1 px-1.5 py-0.5 text-xs bg-crimson text-white rounded-full font-bold">0</span>
-                </button>
-            </nav>
-
-            <!-- Utility Controls (Theme, Sound Chime, Font Size) -->
-            <div class="flex items-center gap-2 font-sans">
-                <!-- Cathedral Bell Chime Button -->
-                <button id="chimeBtn" title="Play Sacred Cathedral Bell Chime" class="p-2 rounded-lg border border-gray-300 dark:border-night-border hover:border-gold hover:bg-gold/10 text-gold transition-all">
-                    🔔
-                </button>
-
-                <!-- Font Size Selector -->
-                <div class="flex items-center bg-gray-100 dark:bg-night-paper rounded-lg p-1 border border-gray-200 dark:border-night-border">
-                    <button class="font-size-btn text-xs px-2 py-1 rounded hover:bg-white dark:hover:bg-night-card font-semibold text-gray-600 dark:text-gray-300" data-size="1rem">S</button>
-                    <button class="font-size-btn text-xs px-2 py-1 rounded bg-white dark:bg-night-card font-bold text-crimson dark:text-gold shadow-sm" data-size="1.25rem">M</button>
-                    <button class="font-size-btn text-xs px-2 py-1 rounded hover:bg-white dark:hover:bg-night-card font-semibold text-gray-600 dark:text-gray-300" data-size="1.4rem">L</button>
-                </div>
-
-                <!-- Theme Switcher -->
-                <button id="themeToggleBtn" title="Toggle Light Parchment / Dark Monastic Mode"
-                    class="p-2 rounded-lg border border-gray-300 dark:border-night-border hover:border-gold text-gray-700 dark:text-gold transition-all flex items-center gap-1 text-xs font-semibold">
-                    <span id="themeIcon">🌙</span>
-                </button>
-            </div>
+            <button id="settingsBtn" aria-label="Settings" class="w-11 h-11 -mr-2 rounded-full flex items-center justify-center text-xl hover:bg-gold/10 active:bg-gold/20 transition-colors">⚙️</button>
         </div>
     </header>
 
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Settings Bottom Sheet -->
+    <div id="sheetBackdrop" class="closed fixed inset-0 bg-black/50 z-[60]"></div>
+    <div id="settingsSheet" role="dialog" aria-label="Settings" class="closed fixed bottom-0 inset-x-0 z-[70] max-w-2xl mx-auto bg-white dark:bg-night-card rounded-t-3xl border-t-2 border-gold px-6 pt-3 font-sans shadow-2xl">
+        <div class="w-10 h-1.5 bg-gray-300 dark:bg-night-border rounded-full mx-auto mb-4"></div>
+        <h2 class="font-display font-bold text-lg text-crimson dark:text-gold mb-4">Settings</h2>
+
+        <div class="space-y-5">
+            <div class="flex items-center justify-between gap-4">
+                <span class="text-sm font-semibold">Appearance</span>
+                <button id="themeToggleBtn" class="min-h-11 px-4 rounded-xl border border-gold/50 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gold">
+                    <span id="themeIcon">🌙 Dark</span>
+                </button>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <span class="text-sm font-semibold">Prayer text size</span>
+                <div class="flex items-center bg-gray-100 dark:bg-night-paper rounded-xl p-1 border border-gray-200 dark:border-night-border">
+                    <button class="font-size-btn min-w-11 min-h-10 text-sm px-3 rounded-lg hover:bg-white dark:hover:bg-night-card font-semibold text-gray-600 dark:text-gray-300" data-size="1rem">A</button>
+                    <button class="font-size-btn min-w-11 min-h-10 text-base px-3 rounded-lg bg-white dark:bg-night-card font-bold text-crimson dark:text-gold shadow-sm" data-size="1.25rem">A</button>
+                    <button class="font-size-btn min-w-11 min-h-10 text-xl px-3 rounded-lg hover:bg-white dark:hover:bg-night-card font-semibold text-gray-600 dark:text-gray-300" data-size="1.5rem">A</button>
+                </div>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <span class="text-sm font-semibold">Cathedral bell</span>
+                <button id="chimeBtn" class="min-h-11 px-4 rounded-xl border border-gold/50 text-sm font-semibold text-gold">🔔 Ring</button>
+            </div>
+        </div>
+        <button id="closeSheetBtn" class="mt-6 w-full min-h-12 rounded-xl bg-crimson text-white font-bold">Done</button>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav id="tabBar" aria-label="Main" class="fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-night-card/95 backdrop-blur-md border-t border-gold/60 font-sans">
+        <div class="max-w-2xl mx-auto grid grid-cols-5">
+            <button id="tabGenerator" class="nav-tab-btn active flex flex-col items-center justify-center gap-1 text-[11px]">
+                <span class="tab-icon">✨</span><span>Pray</span>
+            </button>
+            <button id="tabMass" class="nav-tab-btn flex flex-col items-center justify-center gap-1 text-[11px]">
+                <span class="tab-icon">⛪</span><span>Mass</span>
+            </button>
+            <button id="tabRosary" class="nav-tab-btn flex flex-col items-center justify-center gap-1 text-[11px]">
+                <span class="tab-icon">📿</span><span>Rosary</span>
+            </button>
+            <button id="tabLibrary" class="nav-tab-btn flex flex-col items-center justify-center gap-1 text-[11px]">
+                <span class="tab-icon">📖</span><span>Prayers</span>
+            </button>
+            <button id="tabJournal" class="nav-tab-btn flex flex-col items-center justify-center gap-1 text-[11px]">
+                <span class="tab-icon relative">💖<span id="journalCountBadge" class="hidden absolute -top-1.5 -right-3 min-w-4 h-4 px-1 text-[10px] leading-4 bg-crimson text-white rounded-full font-bold">0</span></span><span>Journal</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-grow container mx-auto px-4 pt-4 max-w-2xl">
 
         <!-- ============================================================== -->
         <!-- VIEW 1: PRAYER GENERATOR -->
         <!-- ============================================================== -->
-        <div id="viewGenerator" class="tab-view space-y-8 animate-fade-in">
+        <div id="viewGenerator" class="tab-view space-y-4 animate-fade-in">
             
             <!-- Inspiration Quote Banner -->
-            <div id="quoteSection" class="bg-white/70 dark:bg-night-card/70 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-gold/30 text-center shadow-sm relative">
+            <div id="quoteSection" class="bg-white/70 dark:bg-night-card/70 backdrop-blur-sm p-4 rounded-2xl border border-gold/30 text-center shadow-sm relative">
                 <p class="text-sm md:text-base italic text-gray-800 dark:text-gray-200">"<span id="quoteText"></span>"</p>
                 <p id="quoteLatin" class="text-xs italic text-gray-500 dark:text-gray-400 mt-1 hidden"></p>
                 <div class="flex items-center justify-center gap-3 mt-2">
@@ -314,39 +344,39 @@
             </div>
 
             <!-- Controls Card -->
-            <section class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-6 md:p-8 rounded-xl shadow-lg border border-gold/40">
+            <section class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-gold/40">
                 
                 <!-- Category Selection -->
-                <div class="mb-6">
+                <div class="mb-5">
                     <label class="block text-xs font-sans font-bold text-gold uppercase tracking-wider mb-3">
-                        📿 Step 1: Select Prayer Intention Category
+                        What are you praying for?
                     </label>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                        <button class="category-btn active py-3 px-2 rounded-lg border-2 border-crimson dark:border-gold font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="meals">
+                    <div class="grid grid-cols-4 gap-2">
+                        <button class="category-btn active py-2.5 px-1 rounded-xl border-2 border-crimson dark:border-gold font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="meals">
                             <span class="text-xl">🍞</span>
                             <span>Meals</span>
                         </button>
-                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="gatherings">
+                        <button class="category-btn py-2.5 px-1 rounded-xl border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="gatherings">
                             <span class="text-xl">👥</span>
                             <span>Gathering</span>
                         </button>
-                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="trials">
+                        <button class="category-btn py-2.5 px-1 rounded-xl border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="trials">
                             <span class="text-xl">✝️</span>
                             <span>Trials</span>
                         </button>
-                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="thanksgiving">
+                        <button class="category-btn py-2.5 px-1 rounded-xl border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="thanksgiving">
                             <span class="text-xl">🙏</span>
                             <span>Thanks</span>
                         </button>
-                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="guidance">
+                        <button class="category-btn py-2.5 px-1 rounded-xl border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="guidance">
                             <span class="text-xl">💡</span>
                             <span>Guidance</span>
                         </button>
-                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="protection">
+                        <button class="category-btn py-2.5 px-1 rounded-xl border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="protection">
                             <span class="text-xl">🛡️</span>
                             <span>Protection</span>
                         </button>
-                        <button class="category-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="healing">
+                        <button class="category-btn py-2.5 px-1 rounded-xl border-2 border-gray-200 dark:border-night-border font-sans text-xs font-medium flex flex-col items-center gap-1 text-center" data-category="healing">
                             <span class="text-xl">🕊️</span>
                             <span>Healing</span>
                         </button>
@@ -354,34 +384,33 @@
                 </div>
 
                 <!-- Preset Intention Tag Pills -->
-                <div class="mb-6">
+                <div class="mb-5">
                     <label class="block text-xs font-sans font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                        💡 Quick Preset Intentions (Optional):
+                        Quick intentions
                     </label>
-                    <div id="intentionPresetsContainer" class="flex flex-wrap gap-2">
+                    <div id="intentionPresetsContainer" class="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
                         <!-- Rendered via JS -->
                     </div>
                 </div>
 
                 <!-- Custom Intention Input -->
-                <div class="mb-6">
+                <div class="mb-5">
                     <label for="intentionInput" class="block text-xs font-sans font-bold text-gold uppercase tracking-wider mb-2">
-                        ✍️ Step 2: Custom Intention / Person / Request
+                        Your intention <span class="normal-case font-normal text-gray-400">(optional)</span>
                     </label>
-                    <input type="text" id="intentionInput" placeholder="e.g., peace in our home, healing for my grandmother, discernment..."
-                        class="w-full bg-paper dark:bg-night-paper border-2 border-gray-200 dark:border-night-border rounded-lg px-4 py-3 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 font-serif text-base md:text-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 transition-all duration-300">
+                    <input type="text" id="intentionInput" placeholder="e.g., peace in our home, a sick friend…" enterkeyhint="go" autocomplete="off"
+                        class="w-full bg-paper dark:bg-night-paper border-2 border-gray-200 dark:border-night-border rounded-xl px-4 py-3.5 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 font-serif text-base text-gray-900 dark:text-gray-100 placeholder-gray-400 transition-all duration-300">
                 </div>
 
                 <!-- Tone & Mode Switcher Bar -->
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100 dark:border-night-border">
-                    <div class="flex items-center gap-2 bg-paper dark:bg-night-paper px-3 py-1.5 rounded-full border border-gray-200 dark:border-night-border text-xs font-sans">
-                        <span class="font-bold text-gray-500 uppercase mr-1">Tone:</span>
-                        <button id="toneTraditional" class="tone-btn px-3 py-1 rounded-full font-medium bg-crimson text-white dark:bg-gold dark:text-night-bg transition-all">Traditional</button>
-                        <button id="toneSimple" class="tone-btn px-3 py-1 rounded-full font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-night-card transition-all">Simple</button>
-                        <button id="toneLatin" class="tone-btn px-3 py-1 rounded-full font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-night-card transition-all">Latin 🏛️</button>
+                <div class="flex flex-col items-stretch gap-3 pt-4 border-t border-gray-100 dark:border-night-border">
+                    <div class="grid grid-cols-3 gap-1 bg-paper dark:bg-night-paper p-1 rounded-xl border border-gray-200 dark:border-night-border text-sm font-sans">
+                        <button id="toneTraditional" class="tone-btn py-2.5 rounded-lg font-medium bg-crimson text-white dark:bg-gold dark:text-night-bg transition-all">Traditional</button>
+                        <button id="toneSimple" class="tone-btn py-2.5 rounded-lg font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-night-card transition-all">Simple</button>
+                        <button id="toneLatin" class="tone-btn py-2.5 rounded-lg font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-night-card transition-all">Latin 🏛️</button>
                     </div>
 
-                    <button id="generateBtn" class="generate-btn w-full sm:w-auto text-white font-sans font-bold py-3.5 px-8 rounded-lg flex items-center justify-center gap-2 text-base">
+                    <button id="generateBtn" class="generate-btn w-full text-white font-sans font-bold py-4 px-8 rounded-xl flex items-center justify-center gap-2 text-base">
                         <span>✨</span> Generate Prayer
                     </button>
                 </div>
@@ -390,27 +419,27 @@
             <!-- Prayer Output Section -->
             <section id="prayerOutputSection" class="hidden animate-slide-up">
                 <div class="ornate-border rounded-xl">
-                    <div class="prayer-card p-6 md:p-10 text-center rounded-xl relative">
+                    <div class="prayer-card px-5 py-8 md:p-10 text-center rounded-xl relative">
                         <div class="cross-divider text-crimson dark:text-gold text-2xl opacity-70 font-display mb-6">✝</div>
                         
-                        <p id="prayerText" class="prayer-text-dynamic text-gray-800 dark:text-gray-100 italic px-2 md:px-6"></p>
+                        <p id="prayerText" class="prayer-text-dynamic text-gray-800 dark:text-gray-100 italic px-0 md:px-6"></p>
 
                         <div class="cross-divider text-crimson dark:text-gold text-2xl opacity-70 font-display mt-6">✝</div>
 
                         <!-- Action Toolbar -->
-                        <div class="mt-8 flex flex-wrap justify-center items-center gap-3 font-sans text-sm font-semibold">
+                        <div class="mt-8 grid grid-cols-2 gap-2 font-sans text-sm font-semibold">
                             <!-- Text to Speech Play/Stop Button -->
-                            <button id="ttsBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg transition-all">
+                            <button id="ttsBtn" class="flex items-center justify-center gap-2 px-3 min-h-12 rounded-xl border-2 border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg transition-all">
                                 <span id="ttsIcon">🔊</span> <span id="ttsLabel">Listen (Audio)</span>
                             </button>
 
                             <!-- Save to Journal Button -->
-                            <button id="saveJournalBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-crimson dark:border-crimson-light text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white transition-all">
+                            <button id="saveJournalBtn" class="flex items-center justify-center gap-2 px-3 min-h-12 rounded-xl border-2 border-crimson dark:border-crimson-light text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white transition-all">
                                 <span id="journalIcon">💖</span> Save to Journal
                             </button>
 
                             <!-- Copy Button -->
-                            <button id="copyBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-300 dark:border-night-border text-gray-700 dark:text-gray-300 hover:border-gold transition-all">
+                            <button id="copyBtn" class="flex items-center justify-center gap-2 px-3 min-h-12 rounded-xl border-2 border-gray-300 dark:border-night-border text-gray-700 dark:text-gray-300 hover:border-gold transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                 </svg>
@@ -418,7 +447,7 @@
                             </button>
 
                             <!-- Regenerate Button -->
-                            <button id="regenerateBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-300 dark:border-night-border text-gray-600 dark:text-gray-400 hover:border-crimson hover:text-crimson transition-all">
+                            <button id="regenerateBtn" class="flex items-center justify-center gap-2 px-3 min-h-12 rounded-xl border-2 border-gray-300 dark:border-night-border text-gray-600 dark:text-gray-400 hover:border-crimson hover:text-crimson transition-all">
                                 🔄 New Variation
                             </button>
                         </div>
@@ -430,29 +459,29 @@
         <!-- ============================================================== -->
         <!-- VIEW 2: COMMON PRAYERS LIBRARY & LATIN TRANSLATIONS -->
         <!-- ============================================================== -->
-        <div id="viewLibrary" class="tab-view hidden space-y-6 animate-fade-in">
-            <div class="bg-white/80 dark:bg-night-card/80 backdrop-blur-md p-6 rounded-xl border border-gold/30">
+        <div id="viewLibrary" class="tab-view hidden space-y-4 animate-fade-in">
+            <div class="bg-white/80 dark:bg-night-card/80 backdrop-blur-md p-4 rounded-2xl border border-gold/30">
                 <h2 class="text-xl md:text-2xl font-display font-bold text-crimson dark:text-gold mb-2">Sacred Common Prayers Library</h2>
                 <p class="text-sm text-gray-600 dark:text-gray-400 font-sans mb-6">Browse timeless traditional prayers with optional Latin translation modes.</p>
 
                 <!-- Search & Filters -->
-                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <div class="flex flex-col gap-3 mb-4">
                     <div class="relative flex-grow">
-                        <input type="text" id="librarySearchInput" placeholder="🔍 Search prayers by title or text..."
-                            class="w-full bg-paper dark:bg-night-paper border border-gray-300 dark:border-night-border rounded-lg pl-10 pr-4 py-2.5 font-sans text-sm focus:outline-none focus:border-gold">
+                        <input type="text" id="librarySearchInput" placeholder="Search prayers…"
+                            class="w-full bg-paper dark:bg-night-paper border border-gray-300 dark:border-night-border rounded-xl pl-10 pr-4 py-3 font-sans text-base focus:outline-none focus:border-gold" type="search" enterkeyhint="search">
                         <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
                     </div>
 
                     <!-- Mode Selector for Common Prayers -->
-                    <div class="flex items-center gap-1 bg-paper dark:bg-night-paper p-1 rounded-lg border border-gray-200 dark:border-night-border font-sans text-xs">
-                        <button id="libLangEng" class="px-3 py-1.5 rounded-md font-bold bg-crimson text-white dark:bg-gold dark:text-night-bg">English</button>
-                        <button id="libLangLat" class="px-3 py-1.5 rounded-md font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200">Latin</button>
-                        <button id="libLangBoth" class="px-3 py-1.5 rounded-md font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200">Bilingual</button>
+                    <div class="grid grid-cols-3 gap-1 bg-paper dark:bg-night-paper p-1 rounded-xl border border-gray-200 dark:border-night-border font-sans text-sm">
+                        <button id="libLangEng" class="py-2.5 rounded-lg font-bold bg-crimson text-white dark:bg-gold dark:text-night-bg">English</button>
+                        <button id="libLangLat" class="py-2.5 rounded-lg font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200">Latin</button>
+                        <button id="libLangBoth" class="py-2.5 rounded-lg font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200">Bilingual</button>
                     </div>
                 </div>
 
                 <!-- Grid of Static Prayers -->
-                <div id="prayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="prayersGrid" class="grid grid-cols-1 gap-3">
                     <!-- Rendered dynamically -->
                 </div>
             </div>
@@ -468,8 +497,8 @@
         <!-- ============================================================== -->
         <!-- VIEW 3: ROSARY & MYSTERIES COMPANION -->
         <!-- ============================================================== -->
-        <div id="viewRosary" class="tab-view hidden space-y-6 animate-fade-in">
-            <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-6 md:p-8 rounded-xl border border-gold/40 shadow-md">
+        <div id="viewRosary" class="tab-view hidden space-y-4 animate-fade-in">
+            <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-4 rounded-2xl border border-gold/40 shadow-md">
                 
                 <!-- Header & Today's Mystery Auto-Detection -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200 dark:border-night-border">
@@ -486,15 +515,15 @@
                 </div>
 
                 <!-- Mystery Selector Tabs -->
-                <div class="flex flex-wrap gap-2 my-6 font-sans text-xs">
-                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-bold bg-crimson text-white" data-mystery="joyful">Joyful</button>
-                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-medium hover:border-gold" data-mystery="luminous">Luminous</button>
-                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-medium hover:border-gold" data-mystery="sorrowful">Sorrowful</button>
-                    <button class="rosary-tab-btn px-4 py-2 rounded-lg border border-gold/40 font-medium hover:border-gold" data-mystery="glorious">Glorious</button>
+                <div class="grid grid-cols-4 gap-1.5 my-4 font-sans text-xs">
+                    <button class="rosary-tab-btn py-3 rounded-xl border border-gold/40 font-bold bg-crimson text-white" data-mystery="joyful">Joyful</button>
+                    <button class="rosary-tab-btn py-3 rounded-xl border border-gold/40 font-medium hover:border-gold" data-mystery="luminous">Luminous</button>
+                    <button class="rosary-tab-btn py-3 rounded-xl border border-gold/40 font-medium hover:border-gold" data-mystery="sorrowful">Sorrowful</button>
+                    <button class="rosary-tab-btn py-3 rounded-xl border border-gold/40 font-medium hover:border-gold" data-mystery="glorious">Glorious</button>
                 </div>
 
                 <!-- Interactive Decade Bead Counter Widget -->
-                <div class="bg-paper dark:bg-night-paper p-4 rounded-xl border border-gold/30 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="bg-paper dark:bg-night-paper p-4 rounded-xl border border-gold/30 mb-4 flex flex-col items-stretch gap-4">
                     <div class="flex items-center gap-3">
                         <span class="text-3xl">📿</span>
                         <div>
@@ -503,11 +532,11 @@
                         </div>
                     </div>
                     
-                    <div class="flex items-center gap-2 font-sans">
-                        <div id="beadContainer" class="flex gap-1.5">
+                    <div class="flex items-center gap-3 font-sans">
+                        <div id="beadContainer" class="grid grid-cols-5 gap-2 flex-1 justify-items-center">
                             <!-- 10 Bead dots rendered via JS -->
                         </div>
-                        <button id="resetBeadsBtn" title="Reset Counter" class="ml-2 text-xs px-2.5 py-1 bg-gray-200 dark:bg-night-card rounded text-gray-700 dark:text-gray-300 font-bold hover:bg-crimson hover:text-white">Reset</button>
+                        <button id="resetBeadsBtn" title="Reset Counter" class="min-h-11 text-sm px-4 bg-gray-200 dark:bg-night-card rounded text-gray-700 dark:text-gray-300 font-bold hover:bg-crimson hover:text-white rounded-xl">Reset</button>
                     </div>
                 </div>
 
@@ -521,14 +550,14 @@
         <!-- ============================================================== -->
         <!-- VIEW 4: SAVED PRAYER JOURNAL -->
         <!-- ============================================================== -->
-        <div id="viewJournal" class="tab-view hidden space-y-6 animate-fade-in">
-            <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-6 md:p-8 rounded-xl border border-gold/40 shadow-md">
+        <div id="viewJournal" class="tab-view hidden space-y-4 animate-fade-in">
+            <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-4 rounded-2xl border border-gold/40 shadow-md">
                 <div class="flex items-center justify-between pb-6 border-b border-gray-200 dark:border-night-border mb-6">
                     <div>
-                        <h2 class="text-2xl font-display font-bold text-crimson dark:text-gold">My Prayer Journal</h2>
+                        <h2 class="text-xl font-display font-bold text-crimson dark:text-gold">My Prayer Journal</h2>
                         <p class="text-xs text-gray-500 dark:text-gray-400 font-sans">Your saved personal intentions & sacred prayers.</p>
                     </div>
-                    <button id="clearJournalBtn" class="text-xs font-sans text-red-500 hover:underline">Clear All</button>
+                    <button id="clearJournalBtn" class="text-sm font-sans text-red-500 min-h-11 px-2 whitespace-nowrap">Clear all</button>
                 </div>
 
                 <div id="journalEmptyState" class="text-center py-12 space-y-3">
@@ -546,14 +575,8 @@
     </main>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gold text-white dark:text-night-bg px-6 py-3 rounded-lg shadow-2xl hidden font-sans text-sm z-50 transition-all font-semibold">
+    <div id="toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 max-w-[90vw] text-center bg-gray-900 dark:bg-gold text-white dark:text-night-bg px-6 py-3 rounded-lg shadow-2xl hidden font-sans text-sm z-[80] transition-all font-semibold">
     </div>
-
-    <!-- Footer -->
-    <footer class="py-6 text-center text-gray-400 text-xs font-sans border-t border-gold/20 bg-white/40 dark:bg-night-card/40">
-        <p class="font-display tracking-widest text-gold mb-1">✝ AD MAIOREM DEI GLORIAM ✝</p>
-        <p>Oratio • Sacred Catholic Prayer Companion & Library</p>
-    </footer>
 
     <!-- Main Module Script -->
     <script type="module">
@@ -592,6 +615,12 @@
 
             // Set default prayer text in generator
             doGenerate();
+
+            // Restore last-used tab
+            try {
+                const last = localStorage.getItem('oratio_last_tab');
+                if (last && tabs[last] && last !== 'generator') tabs[last].btn.click();
+            } catch { /* ignore */ }
         }
 
         // -------------------------------------------------------------
@@ -608,6 +637,10 @@
         Object.keys(tabs).forEach(tabKey => {
             tabs[tabKey].btn.addEventListener('click', () => {
                 state.activeTab = tabKey;
+                try { localStorage.setItem('oratio_last_tab', tabKey); } catch { /* ignore */ }
+                if (navigator.vibrate) navigator.vibrate(8);
+                $('headerSubtitle').textContent = { generator: 'Catholic Prayer Companion', mass: 'Sunday Mass Companion', rosary: 'Holy Rosary Guide', library: 'Common Prayers', journal: 'My Prayer Journal' }[tabKey];
+                window.scrollTo({ top: 0 });
                 Object.keys(tabs).forEach(k => {
                     tabs[k].btn.classList.remove('active');
                     tabs[k].view.classList.add('hidden');
@@ -640,6 +673,16 @@
         $('themeToggleBtn').addEventListener('click', () => {
             applyTheme(state.theme === 'dark' ? 'parchment' : 'dark');
         });
+
+        // Settings bottom sheet
+        const openSheet = open => {
+            $('settingsSheet').classList.toggle('closed', !open);
+            $('sheetBackdrop').classList.toggle('closed', !open);
+        };
+        $('settingsBtn').addEventListener('click', () => openSheet(true));
+        $('closeSheetBtn').addEventListener('click', () => openSheet(false));
+        $('sheetBackdrop').addEventListener('click', () => openSheet(false));
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') openSheet(false); });
 
         // Font Size Adjuster
         document.querySelectorAll('.font-size-btn').forEach(btn => {
@@ -695,7 +738,7 @@
             container.innerHTML = '';
             intentionPresets.forEach(preset => {
                 const pill = document.createElement('button');
-                pill.className = 'px-3 py-1 rounded-full text-xs font-sans bg-gray-100 dark:bg-night-paper hover:bg-gold/20 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-night-border transition-all';
+                pill.className = 'shrink-0 whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-sans bg-gray-100 dark:bg-night-paper hover:bg-gold/20 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-night-border transition-all';
                 pill.textContent = `+ ${preset.label}`;
                 pill.addEventListener('click', () => {
                     $('intentionInput').value = preset.text;
@@ -966,7 +1009,7 @@
             container.innerHTML = '';
             for (let i = 1; i <= 10; i++) {
                 const dot = document.createElement('button');
-                dot.className = 'w-6 h-6 rounded-full border-2 border-gold transition-all flex items-center justify-center text-xs font-bold text-gold hover:bg-gold/20';
+                dot.className = 'w-11 h-11 rounded-full border-2 border-gold transition-all flex items-center justify-center text-xs font-bold text-gold hover:bg-gold/20';
                 dot.textContent = i;
                 dot.addEventListener('click', () => setBeadCount(i));
                 container.appendChild(dot);
@@ -1074,6 +1117,11 @@
             toast.textContent = msg;
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        // Offline support / installable app
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
         }
 
         // Kick off

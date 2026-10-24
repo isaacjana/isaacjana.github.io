@@ -45,7 +45,7 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
         const gloria = info.gloria ? 'Said' : 'Omitted';
         const accl = info.alleluia ? 'Alleluia' : 'Lenten acclamation';
         return `
-        <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-6 md:p-8 rounded-xl border border-gold/40 shadow-md">
+        <div class="bg-white/90 dark:bg-night-card/90 backdrop-blur-md p-4 rounded-2xl border border-gold/40 shadow-md">
             <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
                     <span class="text-xs font-sans font-bold uppercase text-gold tracking-widest">Sunday Mass Companion</span>
@@ -53,11 +53,11 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
                     <p class="text-sm text-gray-600 dark:text-gray-400 font-sans mt-1">${esc(dateLabel)}</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 font-sans text-xs">
-                    <span class="px-3 py-1.5 rounded-full border border-gold/40 bg-paper dark:bg-night-paper flex items-center gap-2">
+                    <span class="px-3.5 py-2.5 rounded-full border border-gold/40 bg-paper dark:bg-night-paper flex items-center gap-2">
                         <span class="inline-block w-3 h-3 rounded-full border border-gray-400/50" style="background:${color.hex}"></span>${color.label}
                     </span>
-                    <span class="px-3 py-1.5 rounded-full border border-gold/40 bg-paper dark:bg-night-paper font-bold">Year ${info.cycle}</span>
-                    <span class="px-3 py-1.5 rounded-full border border-gold/40 bg-paper dark:bg-night-paper">${esc(info.season)}</span>
+                    <span class="px-3.5 py-2.5 rounded-full border border-gold/40 bg-paper dark:bg-night-paper font-bold">Year ${info.cycle}</span>
+                    <span class="px-3.5 py-2.5 rounded-full border border-gold/40 bg-paper dark:bg-night-paper">${esc(info.season)}</span>
                 </div>
             </div>
 
@@ -71,46 +71,43 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
                 <div class="p-3 rounded-lg bg-paper dark:bg-night-paper border border-gray-200 dark:border-night-border"><span class="block text-gray-500 dark:text-gray-400">Creed</span><b class="text-sm">Said</b></div>
             </div>
 
-            <div class="flex flex-wrap gap-2 font-sans text-sm">
+            <div class="flex gap-2 font-sans text-sm">
                 <a href="${info.readingsUrl}" target="_blank" rel="noopener noreferrer"
-                   class="px-4 py-2 rounded-lg bg-crimson text-white font-bold hover:bg-crimson-dark transition-all">📖 Sunday Readings (USCCB)</a>
+                   class="flex-1 flex items-center justify-center px-4 py-3 rounded-xl bg-crimson text-white font-bold hover:bg-crimson-dark transition-all">📖 Readings</a>
                 <a href="https://www.masstimes.org/" target="_blank" rel="noopener noreferrer"
-                   class="px-4 py-2 rounded-lg border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg transition-all">⛪ Find a Mass</a>
+                   class="flex-1 flex items-center justify-center px-4 py-3 rounded-xl border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg transition-all">⛪ Find a Mass</a>
             </div>
 
             <div class="flex items-center justify-between gap-2 mt-5 pt-4 border-t border-gray-200 dark:border-night-border font-sans text-xs">
-                <button data-shift="-1" class="mass-nav px-3 py-1.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">‹ Previous Sunday</button>
-                <button data-shift="0" class="mass-nav px-3 py-1.5 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg">This Sunday</button>
-                <button data-shift="1" class="mass-nav px-3 py-1.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">Next Sunday ›</button>
+                <button data-shift="-1" class="mass-nav px-3.5 py-2.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">‹ Previous Sunday</button>
+                <button data-shift="0" class="mass-nav px-3.5 py-2.5 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg">This Sunday</button>
+                <button data-shift="1" class="mass-nav px-3.5 py-2.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">Next Sunday ›</button>
             </div>
         </div>`;
     }
 
     function renderToolbar() {
-        const langBtn = (lang) => `<button data-lang="${lang}" class="mass-lang px-3 py-1.5 rounded-md ${state.lang === lang
+        const langBtn = (lang) => `<button data-lang="${lang}" class="mass-lang px-3 py-2.5 rounded-md ${state.lang === lang
             ? 'font-bold bg-crimson text-white dark:bg-gold dark:text-night-bg'
             : 'font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-night-card'}">${lang}</button>`;
         const jump = Object.keys(massSections).map(k =>
-            `<button data-jump="${k}" class="mass-jump px-3 py-1.5 rounded-full border border-gold/40 hover:border-gold bg-paper dark:bg-night-paper">${massSections[k].icon} ${massSections[k].title}</button>`).join('');
+            `<button data-jump="${k}" class="mass-jump px-3.5 py-2.5 rounded-full border border-gold/40 hover:border-gold bg-paper dark:bg-night-paper">${massSections[k].icon} ${massSections[k].title}</button>`).join('');
         return `
-        <div class="flex flex-col gap-2 font-sans text-xs">
+        <div class="stick-under-header -mx-4 px-4 py-2 bg-parchment/95 dark:bg-night-bg/95 backdrop-blur-md border-b border-gold/20 flex flex-col gap-2 font-sans text-xs">
             <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-1 bg-paper dark:bg-night-paper p-1 rounded-lg border border-gray-200 dark:border-night-border">
+                <div class="flex items-center gap-0.5 bg-paper dark:bg-night-paper p-1 rounded-lg border border-gray-200 dark:border-night-border">
                     ${langBtn('English')}${langBtn('Latin')}${langBtn('Bilingual')}
                 </div>
-                <div class="flex gap-1">
-                    <button id="massExpandAll" class="px-3 py-1.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">Expand all</button>
-                    <button id="massCollapseAll" class="px-3 py-1.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">Collapse</button>
-                </div>
+                <button id="massToggleAll" class="px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-night-border hover:border-gold whitespace-nowrap">Expand all</button>
             </div>
-            <div class="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">${jump}</div>
+            <div class="flex gap-2 overflow-x-auto whitespace-nowrap no-scrollbar">${jump}</div>
         </div>`;
     }
 
     function prayerCard(id, p, extra = '') {
         return `
-        <details class="mass-card bg-paper dark:bg-night-paper rounded-xl border border-gold/30 open:border-gold" data-id="${id}">
-            <summary class="cursor-pointer list-none p-4 flex items-center justify-between gap-2">
+        <details class="mass-card bg-paper dark:bg-night-paper rounded-2xl border border-gold/30 open:border-gold" data-id="${id}">
+            <summary class="cursor-pointer list-none p-4 min-h-14 flex items-center justify-between gap-2">
                 <span class="font-display font-bold text-crimson dark:text-gold">${esc(p.title)}</span>
                 ${extra}
             </summary>
@@ -118,9 +115,9 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
                 ${p.subtitle ? `<p class="text-xs font-sans text-gray-500 mb-2">${esc(p.subtitle)}</p>` : ''}
                 <p class="prayer-text-dynamic italic text-gray-800 dark:text-gray-200 mb-3">${esc(p.text)}</p>
                 <div class="flex gap-2 font-sans text-xs pt-3 border-t border-gray-200 dark:border-night-border">
-                    <button data-act="copy-prayer" data-prayer="${id}" class="px-3 py-1.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">📋 Copy</button>
-                    <button data-act="listen-prayer" data-prayer="${id}" class="px-3 py-1.5 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg">🔊 Listen</button>
-                    <button data-act="save-prayer" data-prayer="${id}" class="px-3 py-1.5 rounded border border-crimson text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white ml-auto">💖 Save</button>
+                    <button data-act="copy-prayer" data-prayer="${id}" class="px-3.5 py-2.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">📋 Copy</button>
+                    <button data-act="listen-prayer" data-prayer="${id}" class="px-3.5 py-2.5 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg">🔊 Listen</button>
+                    <button data-act="save-prayer" data-prayer="${id}" class="px-3.5 py-2.5 rounded border border-crimson text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white ml-auto">💖 Save</button>
                 </div>
             </div>
         </details>`;
@@ -185,8 +182,8 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
             <span class="text-[10px] font-sans px-2 py-0.5 rounded-full border border-gold/50 text-gold whitespace-nowrap">${posture.icon} ${posture.label}</span>`;
         const hasText = lines && lines.length;
         return `
-        <details class="mass-card ${omitted ? 'opacity-60' : ''} bg-paper dark:bg-night-paper rounded-xl border border-gold/30 open:border-gold" data-id="${part.id}">
-            <summary class="cursor-pointer list-none p-4 flex items-center justify-between gap-2">
+        <details class="mass-card ${omitted ? 'opacity-60' : ''} bg-paper dark:bg-night-paper rounded-2xl border border-gold/30 open:border-gold" data-id="${part.id}">
+            <summary class="cursor-pointer list-none p-4 min-h-14 flex items-center justify-between gap-2">
                 <span class="font-display font-bold text-crimson dark:text-gold">${title}</span>
                 <span class="flex items-center gap-1.5 flex-wrap justify-end">${badges}</span>
             </summary>
@@ -195,9 +192,9 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
                 ${note ? `<p class="text-sm font-sans text-gray-600 dark:text-gray-400 mb-3 p-3 rounded-lg bg-gold/10 border-l-2 border-gold">${esc(note)}</p>` : ''}
                 ${hasText ? renderLines(part, lines) : ''}
                 ${hasText ? `<div class="flex gap-2 font-sans text-xs pt-3 mt-2 border-t border-gray-200 dark:border-night-border">
-                    <button data-act="copy" data-part="${part.id}" class="px-3 py-1.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">📋 Copy</button>
-                    <button data-act="listen" data-part="${part.id}" class="px-3 py-1.5 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg">🔊 Listen</button>
-                    <button data-act="save" data-part="${part.id}" class="px-3 py-1.5 rounded border border-crimson text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white ml-auto">💖 Save</button>
+                    <button data-act="copy" data-part="${part.id}" class="px-3.5 py-2.5 rounded border border-gray-300 dark:border-night-border hover:border-gold">📋 Copy</button>
+                    <button data-act="listen" data-part="${part.id}" class="px-3.5 py-2.5 rounded border border-gold text-gold hover:bg-gold hover:text-white dark:hover:text-night-bg">🔊 Listen</button>
+                    <button data-act="save" data-part="${part.id}" class="px-3.5 py-2.5 rounded border border-crimson text-crimson dark:text-crimson-light hover:bg-crimson hover:text-white ml-auto">💖 Save</button>
                 </div>` : ''}
             </div>
         </details>`;
@@ -207,7 +204,7 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
         const sec = massSections[key];
         const parts = massParts.filter(p => p.section === key);
         return `
-        <section id="mass-sec-${key}" class="space-y-3 scroll-mt-32">
+        <section id="mass-sec-${key}" class="space-y-3 scroll-mt-40">
             <h3 class="font-display font-bold text-lg text-crimson dark:text-gold cross-divider whitespace-nowrap">${sec.icon} ${sec.title} <span class="text-xs italic font-sans font-normal text-gray-500">${sec.latin}</span></h3>
             ${parts.map(p => renderPart(p, info)).join('')}
         </section>`;
@@ -227,8 +224,8 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
         <section class="space-y-3">
             <h3 class="font-display font-bold text-lg text-crimson dark:text-gold cross-divider">Good to Know</h3>
             ${massFaq.map(f => `
-            <details class="bg-white/80 dark:bg-night-card/80 rounded-xl border border-gold/30 open:border-gold">
-                <summary class="cursor-pointer list-none p-4 font-sans font-semibold text-sm text-gray-900 dark:text-gray-100">${esc(f.q)}</summary>
+            <details class="bg-white/80 dark:bg-night-card/80 rounded-2xl border border-gold/30 open:border-gold">
+                <summary class="cursor-pointer list-none p-4 min-h-14 font-sans font-semibold text-sm text-gray-900 dark:text-gray-100">${esc(f.q)}</summary>
                 <p class="px-4 pb-4 text-sm font-sans text-gray-700 dark:text-gray-300">${esc(f.a)}</p>
             </details>`).join('')}
             <p class="text-xs text-gray-400 font-sans text-center pt-2">Texts of the people's parts follow the Roman Missal, Third Edition. Daily Scripture readings are linked from the USCCB, which holds the Lectionary copyright.</p>
@@ -261,12 +258,13 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
             if (el) el.scrollIntoView({ behavior: 'smooth' });
         }));
 
-        $setAll('#massExpandAll', true);
-        $setAll('#massCollapseAll', false);
-        function $setAll(sel, open) {
-            const btn = root.querySelector(sel);
-            btn.addEventListener('click', () => root.querySelectorAll('details.mass-card').forEach(d => { d.open = open; }));
-        }
+        const toggleAll = root.querySelector('#massToggleAll');
+        toggleAll.addEventListener('click', () => {
+            const cards = root.querySelectorAll('details.mass-card');
+            const anyOpen = [...cards].some(d => d.open);
+            cards.forEach(d => { d.open = !anyOpen; });
+            toggleAll.textContent = anyOpen ? 'Expand all' : 'Collapse all';
+        });
 
         root.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', e => {
             e.preventDefault();
