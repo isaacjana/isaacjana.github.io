@@ -29,7 +29,7 @@ $(function () {
         { id: 'rotate', title: 'Rotate PDF', desc: 'Rotate your PDFs the way you need them. You can even rotate multiple PDFs at once!', icon: '🔄', color: 'bg-teal-50 text-teal-500', category: 'organize', accept: '.pdf', multiple: true },
         { id: 'html2pdf', title: 'HTML to PDF', desc: 'Convert webpages in HTML to PDF. Copy and paste the URL of the page you want and convert it.', icon: '🌐', color: 'bg-sky-50 text-sky-500', category: 'convert', accept: null, multiple: false, comingSoon: true },
         { id: 'unlock', title: 'Unlock PDF', desc: 'Remove PDF password security, giving you the freedom to use your PDFs as you want.', icon: '🔓', color: 'bg-emerald-50 text-emerald-500', category: 'security', accept: '.pdf', multiple: false },
-        { id: 'protect', title: 'Protect PDF', desc: 'Protect PDF files with a password. Encrypt PDF documents to prevent unauthorized access.', icon: '🔒', color: 'bg-rose-50 text-rose-500', category: 'security', accept: '.pdf', multiple: false },
+        { id: 'protect', title: 'Protect PDF', desc: 'Protect PDF files with a password. Encrypt PDF documents to prevent unauthorized access.', icon: '🔒', color: 'bg-rose-50 text-rose-500', category: 'security', accept: '.pdf', multiple: false, comingSoon: true },
 
         // Row 4 – Organize & More
         { id: 'organize', title: 'Organize PDF', desc: 'Sort pages of your PDF the way you like. Delete PDF pages or add PDF pages at your convenience.', icon: '📋', color: 'bg-violet-50 text-violet-500', category: 'organize', accept: '.pdf', multiple: false },
@@ -51,13 +51,83 @@ $(function () {
     let uploadedFiles = [];
     let resultBlob = null;
     let resultFileName = '';
+    let busy = false;
+    let rotateDeg = 90;
+    let compressLevel = 'medium';
+    let pdfjsReady = false;
+
+    const SINGLE_OUT = new Set(['split', 'compress', 'rotate', 'watermark', 'pagenumbers', 'sign', 'edit', 'organize', 'unlock', 'repair', 'crop', 'redact']);
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function baseName(file) {
+        return file.name.replace(/\.[^.]+$/, '').replace(/[^\w\-. ]+/g, '_') || 'document';
+    }
+
+    function initPdfjs() {
+        if (pdfjsReady) return;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsReady = true;
+    }
+
+    // Render each page of a PDF to a canvas, hand it to `fn(canvas, viewport, pageNum)`
+    async function renderPages(bytes, scale, fn, onProgress) {
+        initPdfjs();
+        const pdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            await fn(canvas, viewport, i, page);
+            canvas.width = canvas.height = 0;
+            if (onProgress) onProgress(i, pdf.numPages);
+        }
+        return pdf.numPages;
+    }
+
+    const canvasToBlob = (canvas, type, q) => new Promise(r => canvas.toBlob(r, type, q));
+    const blobToBuffer = blob => blob.arrayBuffer();
+
+    // Normalise any browser-decodable image (webp, gif, bmp…) to PNG bytes
+    async function imageToPngBytes(file) {
+        const bmp = await createImageBitmap(file);
+        const c = document.createElement('canvas');
+        c.width = bmp.width; c.height = bmp.height;
+        c.getContext('2d').drawImage(bmp, 0, 0);
+        return blobToBuffer(await canvasToBlob(c, 'image/png'));
+    }
+
+    function hasInk(canvas) {
+        const d = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 3; i < d.length; i += 4) if (d[i] > 0) return true;
+        return false;
+    }
 
     // ── Render tool cards ───────────────────────────────────────
+    let currentCategory = 'all';
+    let searchTerm = '';
+
     function renderCards(category) {
+        currentCategory = category;
         const $grid = $('#tools-grid');
         $grid.empty();
 
-        const filtered = category === 'all' ? TOOLS : TOOLS.filter(t => t.category === category);
+        const filtered = TOOLS.filter(t =>
+            (category === 'all' || t.category === category) &&
+            (!searchTerm || (t.title + ' ' + t.desc).toLowerCase().includes(searchTerm)));
+
+        if (filtered.length === 0) {
+            $grid.append('<p class="col-span-full text-center text-sm text-surface-400 py-10">No tools match your search.</p>');
+            return;
+        }
 
         filtered.forEach((tool, i) => {
             const isDisabled = tool.comingSoon;
@@ -86,6 +156,11 @@ $(function () {
         $('.filter-pill').removeClass('active').addClass('border-surface-200 text-surface-600 bg-white');
         $(this).addClass('active').removeClass('border-surface-200 text-surface-600 bg-white');
         renderCards($(this).data('category'));
+    });
+
+    $('#tool-search').on('input', function () {
+        searchTerm = $(this).val().trim().toLowerCase();
+        renderCards(currentCategory);
     });
 
     // ── Mobile menu toggle ──────────────────────────────────────
@@ -175,6 +250,7 @@ $(function () {
     $(document).on('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
 
     // ── File drag & drop ────────────────────────────────────────
+    $(window).on('dragover drop', function (e) { e.preventDefault(); });
     const $dropZone = $('#drop-zone');
 
     $dropZone.on('click', function () { $('#file-input')[0].click(); });
@@ -199,13 +275,21 @@ $(function () {
     function handleFiles(files) {
         if (!files || files.length === 0) return;
 
-        if (!currentTool.multiple) {
-            uploadedFiles = [files[0]];
-        } else {
-            for (let i = 0; i < files.length; i++) {
-                uploadedFiles.push(files[i]);
-            }
+        const exts = currentTool.accept ? currentTool.accept.split(',') : null;
+        const valid = Array.from(files).filter(f => !exts || exts.some(e => f.name.toLowerCase().endsWith(e)));
+        if (valid.length < files.length) {
+            showToast(`Skipped ${files.length - valid.length} unsupported file(s).`, 'error');
         }
+        if (valid.length === 0) return;
+
+        if (!currentTool.multiple) {
+            uploadedFiles = [valid[0]];
+        } else {
+            valid.forEach(f => {
+                if (!uploadedFiles.some(u => u.name === f.name && u.size === f.size && u.lastModified === f.lastModified)) uploadedFiles.push(f);
+            });
+        }
+        $('#file-input').val('');
 
         renderFileList();
         $('#process-btn').removeClass('hidden');
@@ -225,17 +309,30 @@ $(function () {
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-sm font-medium text-surface-900 truncate">${file.name}</p>
+                            <p class="text-sm font-medium text-surface-900 truncate">${escapeHtml(file.name)}</p>
                             <p class="text-xs text-surface-400">${sizeLabel}</p>
                         </div>
                     </div>
-                    <button class="remove-file p-1.5 rounded-lg hover:bg-red-50 text-surface-300 hover:text-red-500 transition-colors flex-shrink-0" data-idx="${idx}">
+                    ${currentTool.multiple && uploadedFiles.length > 1 ? `
+                    <div class="flex flex-shrink-0">
+                        <button class="move-file p-1.5 rounded-lg hover:bg-surface-100 text-surface-300 hover:text-surface-600 disabled:opacity-30" data-idx="${idx}" data-dir="-1" aria-label="Move up" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                        <button class="move-file p-1.5 rounded-lg hover:bg-surface-100 text-surface-300 hover:text-surface-600 disabled:opacity-30" data-idx="${idx}" data-dir="1" aria-label="Move down" ${idx === uploadedFiles.length - 1 ? 'disabled' : ''}>▼</button>
+                    </div>` : ''}
+                    <button aria-label="Remove file" class="remove-file p-1.5 rounded-lg hover:bg-red-50 text-surface-300 hover:text-red-500 transition-colors flex-shrink-0" data-idx="${idx}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
             `);
         });
     }
+
+    $(document).on('click', '.move-file', function () {
+        const idx = parseInt($(this).data('idx'));
+        const to = idx + parseInt($(this).data('dir'));
+        if (to < 0 || to >= uploadedFiles.length) return;
+        [uploadedFiles[idx], uploadedFiles[to]] = [uploadedFiles[to], uploadedFiles[idx]];
+        renderFileList();
+    });
 
     $(document).on('click', '.remove-file', function () {
         const idx = $(this).data('idx');
@@ -281,7 +378,7 @@ $(function () {
                         <input id="split-range" type="text" placeholder="e.g. 1-3, 5, 7-10" class="hidden w-full px-4 py-3 rounded-xl border border-surface-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-sm transition-all" />
                     </div>
                 `);
-                $(document).on('change', '#split-mode', function () {
+                $(document).off('change', '#split-mode').on('change', '#split-mode', function () {
                     $('#split-range').toggleClass('hidden', $(this).val() !== 'range');
                 });
                 break;
@@ -297,7 +394,9 @@ $(function () {
                         </div>
                     </div>
                 `);
-                $(document).on('click', '.rotation-opt', function () {
+                rotateDeg = 90;
+                $(document).off('click', '.rotation-opt').on('click', '.rotation-opt', function () {
+                    rotateDeg = parseInt($(this).data('deg'));
                     $('.rotation-opt').removeClass('border-red-500 bg-red-50 text-red-600').addClass('border-surface-200 bg-white text-surface-600');
                     $(this).addClass('border-red-500 bg-red-50 text-red-600').removeClass('border-surface-200 bg-white text-surface-600');
                 });
@@ -350,7 +449,7 @@ $(function () {
                         </div>
                     </div>
                 `);
-                $(document).on('click', '.pn-pos', function () {
+                $(document).off('click', '.pn-pos').on('click', '.pn-pos', function () {
                     $('.pn-pos').removeClass('border-red-500 bg-red-50 text-red-600').addClass('border-surface-200 text-surface-500');
                     $(this).addClass('border-red-500 bg-red-50 text-red-600').removeClass('border-surface-200 text-surface-500');
                 });
@@ -371,9 +470,12 @@ $(function () {
                                 <span class="block text-lg mb-0.5">🗜️</span>High
                             </button>
                         </div>
+                        <p class="text-xs text-surface-400">Higher compression re-renders pages as images, so text may no longer be selectable. If that wouldn't make the file smaller, your original is kept.</p>
                     </div>
                 `);
-                $(document).on('click', '.compress-opt', function () {
+                compressLevel = 'medium';
+                $(document).off('click', '.compress-opt').on('click', '.compress-opt', function () {
+                    compressLevel = $(this).data('level');
                     $('.compress-opt').removeClass('border-red-500 bg-red-50 text-red-600').addClass('border-surface-200 bg-white text-surface-600');
                     $(this).addClass('border-red-500 bg-red-50 text-red-600').removeClass('border-surface-200 bg-white text-surface-600');
                 });
@@ -400,7 +502,7 @@ $(function () {
                     </div>
                 `);
                 initSignCanvas();
-                $(document).on('click', '.sign-pos', function () {
+                $(document).off('click', '.sign-pos').on('click', '.sign-pos', function () {
                     $('.sign-pos').removeClass('border-red-500 bg-red-50 text-red-600').addClass('border-surface-200 text-surface-500');
                     $(this).addClass('border-red-500 bg-red-50 text-red-600').removeClass('border-surface-200 text-surface-500');
                 });
@@ -494,7 +596,7 @@ $(function () {
                 $opts.removeClass('hidden').html(`
                     <div class="space-y-3">
                         <label class="block text-sm font-semibold text-surface-700">Redact Area (black rectangle)</label>
-                        <p class="text-xs text-surface-400">Specify the area to cover with a black rectangle (in points, origin = bottom-left).</p>
+                        <p class="text-xs text-surface-400">Specify the area to remove (in points, origin = bottom-left). The page is flattened to an image so the covered text is permanently removed — the page will no longer have selectable text.</p>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-surface-500 mb-1">Page</label>
@@ -560,6 +662,10 @@ $(function () {
             return;
         }
 
+        if (busy) return;
+        busy = true;
+        $(this).prop('disabled', true);
+
         // Show processing phase
         $('#phase-upload').hide();
         $('#phase-processing').show();
@@ -570,10 +676,16 @@ $(function () {
             await processCurrentTool();
         } catch (err) {
             console.error(err);
-            showToast('Error: ' + (err.message || 'Something went wrong.'), 'error');
+            const msg = /encrypt/i.test(err && err.message)
+                ? 'This PDF is password-protected. Unlock it first with the Unlock PDF tool.'
+                : (err && err.message) || 'Something went wrong.';
+            showToast('Error: ' + msg, 'error');
             // Return to upload
             $('#phase-upload').show();
             $('#phase-processing').hide();
+        } finally {
+            busy = false;
+            $('#process-btn').prop('disabled', false);
         }
     });
 
@@ -612,6 +724,11 @@ $(function () {
                 } else {
                     const rangeStr = $('#split-range').val();
                     pageGroups = [parsePageRange(rangeStr, totalPages)];
+                    if (pageGroups[0].length === 0) {
+                        showToast(`Enter a valid page range between 1 and ${totalPages}.`, 'error');
+                        resetToUpload();
+                        return;
+                    }
                 }
 
                 if (pageGroups.length === 1 && pageGroups[0].length > 0) {
@@ -630,7 +747,7 @@ $(function () {
                         const pages = await newPdf.copyPages(srcPdf, pageGroups[g]);
                         pages.forEach(p => newPdf.addPage(p));
                         const pdfBytes = await newPdf.save();
-                        zip.file(`page_${g + 1}.pdf`, pdfBytes);
+                        zip.file(`page_${String(g + 1).padStart(String(pageGroups.length).length, '0')}.pdf`, pdfBytes);
                         setProgress(10 + Math.round(80 * (g + 1) / pageGroups.length));
                     }
                     const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -644,40 +761,61 @@ $(function () {
 
             // ── COMPRESS ────────────────────────────────────────
             case 'compress': {
-                setProgress(10);
+                setProgress(5);
                 const bytes = await readFileAsArrayBuffer(uploadedFiles[0]);
                 const originalSize = bytes.byteLength;
                 const srcPdf = await PDFLib.PDFDocument.load(bytes);
-                setProgress(50);
+                let best = await srcPdf.save({ useObjectStreams: true });
+                setProgress(20);
 
-                // Basic compression: re-save the PDF (pdf-lib strips unused objects)
-                const pdfBytes = await srcPdf.save();
-                const newSize = pdfBytes.length;
+                // Medium/High: re-render pages as JPEGs and keep the result only if it's smaller
+                const presets = { low: null, medium: { scale: 1.4, q: 0.7 }, high: { scale: 1.0, q: 0.5 } };
+                const preset = presets[compressLevel];
+                let rasterised = false;
+                if (preset) {
+                    const out = await PDFLib.PDFDocument.create();
+                    await renderPages(bytes, preset.scale, async (canvas, vp) => {
+                        const img = await out.embedJpg(await blobToBuffer(await canvasToBlob(canvas, 'image/jpeg', preset.q)));
+                        const pg = out.addPage([vp.width / preset.scale, vp.height / preset.scale]);
+                        pg.drawImage(img, { x: 0, y: 0, width: pg.getWidth(), height: pg.getHeight() });
+                    }, (i, n) => setProgress(20 + Math.round(70 * i / n)));
+                    const rBytes = await out.save();
+                    if (rBytes.length < best.length) { best = rBytes; rasterised = true; }
+                }
+                const newSize = best.length;
                 const pct = Math.round((1 - newSize / originalSize) * 100);
+                if (newSize >= originalSize) best = new Uint8Array(bytes);
                 setProgress(100);
-                const info = pct > 0
-                    ? `Reduced from ${formatSize(originalSize)} to ${formatSize(newSize)} (${pct}% smaller).`
-                    : `Already optimized. File size: ${formatSize(newSize)}.`;
-                finishWith(pdfBytes, 'compressed.pdf', 'application/pdf', info);
+                const info = newSize < originalSize
+                    ? `Reduced from ${formatSize(originalSize)} to ${formatSize(newSize)} (${pct}% smaller).${rasterised ? ' Pages were converted to images.' : ''}`
+                    : `This file is already well optimized (${formatSize(originalSize)}). Original kept.`;
+                finishWith(best, 'compressed.pdf', 'application/pdf', info);
                 break;
             }
 
             // ── ROTATE ──────────────────────────────────────────
             case 'rotate': {
-                const deg = parseInt($('.rotation-opt.border-red-500').data('deg') || 90);
-                setProgress(10);
+                const deg = rotateDeg;
+                const outputs = [];
                 for (let i = 0; i < uploadedFiles.length; i++) {
-                    // Process last file for simplicity (single output)
+                    const bytes = await readFileAsArrayBuffer(uploadedFiles[i]);
+                    const srcPdf = await PDFLib.PDFDocument.load(bytes);
+                    srcPdf.getPages().forEach(page => {
+                        page.setRotation(PDFLib.degrees((page.getRotation().angle + deg) % 360));
+                    });
+                    outputs.push({ name: `${baseName(uploadedFiles[i])}-rotated.pdf`, bytes: await srcPdf.save() });
+                    setProgress(10 + Math.round(85 * (i + 1) / uploadedFiles.length));
                 }
-                const bytes = await readFileAsArrayBuffer(uploadedFiles[0]);
-                const srcPdf = await PDFLib.PDFDocument.load(bytes);
-                srcPdf.getPages().forEach(page => {
-                    page.setRotation(PDFLib.degrees((page.getRotation().angle + deg) % 360));
-                });
-                setProgress(80);
-                const pdfBytes = await srcPdf.save();
                 setProgress(100);
-                finishWith(pdfBytes, 'rotated.pdf', 'application/pdf', `All pages rotated by ${deg}°.`);
+                if (outputs.length === 1) {
+                    finishWith(outputs[0].bytes, 'rotated.pdf', 'application/pdf', `All pages rotated by ${deg}°.`);
+                } else {
+                    const zip = new JSZip();
+                    outputs.forEach(o => zip.file(o.name, o.bytes));
+                    resultBlob = await zip.generateAsync({ type: 'blob' });
+                    resultFileName = 'rotated_pdfs.zip';
+                    showDownloadPhase(`Rotated ${outputs.length} PDFs by ${deg}° (ZIP).`);
+                }
                 break;
             }
 
@@ -694,9 +832,14 @@ $(function () {
                 pages.forEach(page => {
                     const { width, height } = page.getSize();
                     const textWidth = font.widthOfTextAtSize(text, fontSize);
+                    // Rotating about the baseline start would shift the text off-centre, so
+                    // offset the start point so the text's midpoint lands on the page centre.
+                    const theta = -Math.PI / 4;
+                    const dx = Math.cos(theta), dy = Math.sin(theta);
+                    const half = fontSize * 0.35;
                     page.drawText(text, {
-                        x: (width - textWidth) / 2,
-                        y: height / 2,
+                        x: width / 2 - (textWidth / 2) * dx + half * dy,
+                        y: height / 2 - (textWidth / 2) * dy - half * dx,
                         size: fontSize,
                         font: font,
                         color: PDFLib.rgb(0.7, 0.7, 0.7),
@@ -708,24 +851,6 @@ $(function () {
                 const pdfBytes = await srcPdf.save();
                 setProgress(100);
                 finishWith(pdfBytes, 'watermarked.pdf', 'application/pdf', `Watermark "${text}" applied to ${pages.length} pages.`);
-                break;
-            }
-
-            // ── PROTECT ─────────────────────────────────────────
-            case 'protect': {
-                const pw = $('#protect-password').val();
-                const pw2 = $('#protect-password-confirm').val();
-                if (!pw) { showToast('Please enter a password.', 'error'); resetToUpload(); return; }
-                if (pw !== pw2) { showToast('Passwords do not match.', 'error'); resetToUpload(); return; }
-                setProgress(10);
-                const bytes = await readFileAsArrayBuffer(uploadedFiles[0]);
-                // pdf-lib does not natively encrypt, so we just re-save it
-                // A real implementation would use a dedicated encryption library
-                const srcPdf = await PDFLib.PDFDocument.load(bytes);
-                setProgress(50);
-                const pdfBytes = await srcPdf.save();
-                setProgress(100);
-                finishWith(pdfBytes, 'protected.pdf', 'application/pdf', 'Password protection applied (basic level).');
                 break;
             }
 
@@ -759,30 +884,16 @@ $(function () {
 
             // ── PDF TO JPG ──────────────────────────────────────
             case 'pdf2jpg': {
-                setProgress(10);
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                setProgress(5);
                 const bytes = await readFileAsArrayBuffer(uploadedFiles[0]);
-                const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-                const numPages = pdf.numPages;
                 const zip = new JSZip();
-
-                for (let i = 1; i <= numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 2 });
-                    const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    const ctx = canvas.getContext('2d');
-                    await page.render({ canvasContext: ctx, viewport }).promise;
-                    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
-                    zip.file(`page_${i}.jpg`, blob);
-                    setProgress(10 + Math.round(80 * i / numPages));
-                }
-
+                const numPages = await renderPages(bytes, 2, async (canvas, vp, i) => {
+                    zip.file(`page_${i}.jpg`, await canvasToBlob(canvas, 'image/jpeg', 0.92));
+                }, (i, n) => setProgress(5 + Math.round(85 * i / n)));
                 const zipBlob = await zip.generateAsync({ type: 'blob' });
                 setProgress(100);
                 resultBlob = zipBlob;
-                resultFileName = 'pdf_images.zip';
+                resultFileName = `${baseName(uploadedFiles[0])}-images.zip`;
                 showDownloadPhase(`Converted ${numPages} pages to JPG (ZIP).`);
                 break;
             }
@@ -798,8 +909,10 @@ $(function () {
                     let image;
                     if (fileName.endsWith('.png')) {
                         image = await newPdf.embedPng(imgBytes);
-                    } else {
+                    } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
                         image = await newPdf.embedJpg(imgBytes);
+                    } else {
+                        image = await newPdf.embedPng(await imageToPngBytes(uploadedFiles[i]));
                     }
                     const page = newPdf.addPage([image.width, image.height]);
                     page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
@@ -815,6 +928,7 @@ $(function () {
             case 'sign': {
                 const canvas = document.getElementById('sign-canvas');
                 if (!canvas) { showToast('Signature canvas not found.', 'error'); resetToUpload(); return; }
+                if (!hasInk(canvas)) { showToast('Please draw your signature first.', 'error'); resetToUpload(); return; }
                 const pos = $('.sign-pos.border-red-500').data('pos') || 'bottom-right';
                 setProgress(10);
                 const signDataUrl = canvas.toDataURL('image/png');
@@ -869,7 +983,9 @@ $(function () {
                 const bytes = await readFileAsArrayBuffer(uploadedFiles[0]);
                 const srcPdf = await PDFLib.PDFDocument.load(bytes);
                 const totalPages = srcPdf.getPageCount();
-                const indices = orderStr.split(',').map(s => parseInt(s.trim()) - 1).filter(n => n >= 0 && n < totalPages);
+                const requested = orderStr.split(',').map(s => s.trim()).filter(Boolean);
+                const indices = requested.map(s => parseInt(s) - 1).filter(n => n >= 0 && n < totalPages);
+                if (indices.length < requested.length && indices.length > 0) showToast(`Ignored ${requested.length - indices.length} invalid page number(s). The PDF has ${totalPages} pages.`, 'info');
                 if (indices.length === 0) { showToast('Invalid page numbers.', 'error'); resetToUpload(); return; }
                 const newPdf = await PDFLib.PDFDocument.create();
                 const copiedPages = await newPdf.copyPages(srcPdf, indices);
@@ -933,6 +1049,8 @@ $(function () {
                 setProgress(10);
                 const bytes = await readFileAsArrayBuffer(uploadedFiles[0]);
                 const srcPdf = await PDFLib.PDFDocument.load(bytes);
+                const tooBig = srcPdf.getPages().some(pg => { const sz = pg.getSize(); return cl + cr >= sz.width || cb + ct >= sz.height; });
+                if (tooBig) { showToast('Crop margins are larger than the page.', 'error'); resetToUpload(); return; }
                 srcPdf.getPages().forEach(page => {
                     const { width, height } = page.getSize();
                     page.setCropBox(cl, cb, width - cl - cr, height - cb - ct);
@@ -947,20 +1065,29 @@ $(function () {
             // ── REDACT PDF ──────────────────────────────────────
             case 'redact': {
                 const rPage = Math.max(1, parseInt($('#redact-page').val()) || 1);
-                const rx = parseInt($('#redact-x').val()) || 0;
-                const ry = parseInt($('#redact-y').val()) || 0;
-                const rw = parseInt($('#redact-w').val()) || 100;
-                const rh = parseInt($('#redact-h').val()) || 20;
-                setProgress(10);
+                const rx = parseFloat($('#redact-x').val()) || 0;
+                const ry = parseFloat($('#redact-y').val()) || 0;
+                const rw = parseFloat($('#redact-w').val()) || 100;
+                const rh = parseFloat($('#redact-h').val()) || 20;
+                setProgress(5);
                 const bytes = await readFileAsArrayBuffer(uploadedFiles[0]);
-                const srcPdf = await PDFLib.PDFDocument.load(bytes);
-                const pages = srcPdf.getPages();
-                const tgtPage = pages[Math.min(rPage - 1, pages.length - 1)];
-                tgtPage.drawRectangle({ x: rx, y: ry, width: rw, height: rh, color: PDFLib.rgb(0, 0, 0) });
-                setProgress(80);
-                const pdfBytes = await srcPdf.save();
+                const SCALE = 2;
+                const out = await PDFLib.PDFDocument.create();
+                const total = await renderPages(bytes, SCALE, async (canvas, vp, i, page) => {
+                    const ctx = canvas.getContext('2d');
+                    if (i === rPage) {
+                        const [x1, y1, x2, y2] = vp.convertToViewportRectangle([rx, ry, rx + rw, ry + rh]);
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+                    }
+                    const img = await out.embedPng(await blobToBuffer(await canvasToBlob(canvas, 'image/png')));
+                    const pg = out.addPage([vp.width / SCALE, vp.height / SCALE]);
+                    pg.drawImage(img, { x: 0, y: 0, width: pg.getWidth(), height: pg.getHeight() });
+                }, (i, n) => setProgress(5 + Math.round(85 * i / n)));
+                if (rPage > total) { showToast(`The PDF only has ${total} pages.`, 'error'); resetToUpload(); return; }
+                const pdfBytes = await out.save();
                 setProgress(100);
-                finishWith(pdfBytes, 'redacted.pdf', 'application/pdf', `Redacted area on page ${rPage}.`);
+                finishWith(pdfBytes, 'redacted.pdf', 'application/pdf', `Permanently redacted area on page ${rPage}. Pages are now flattened images.`);
                 break;
             }
 
@@ -968,7 +1095,7 @@ $(function () {
             case 'compare': {
                 if (uploadedFiles.length < 2) { showToast('Please upload 2 PDF files to compare.', 'error'); resetToUpload(); return; }
                 setProgress(10);
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                initPdfjs();
                 const bytes1 = await readFileAsArrayBuffer(uploadedFiles[0]);
                 const bytes2 = await readFileAsArrayBuffer(uploadedFiles[1]);
                 const pdf1 = await pdfjsLib.getDocument({ data: bytes1 }).promise;
@@ -1039,7 +1166,9 @@ $(function () {
     function finishWith(bytes, fileName, mimeType, info) {
         const blob = new Blob([bytes], { type: mimeType });
         resultBlob = blob;
-        resultFileName = fileName;
+        resultFileName = (SINGLE_OUT.has(currentTool.id) && uploadedFiles.length === 1)
+            ? `${baseName(uploadedFiles[0])}-${fileName}`
+            : fileName;
         showDownloadPhase(info);
     }
 
@@ -1089,7 +1218,7 @@ $(function () {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
         showToast('Download started!', 'success');
     });
 
@@ -1108,7 +1237,7 @@ $(function () {
         const $toast = $(`
             <div class="toast flex items-center gap-3 px-5 py-3.5 rounded-2xl ${colors[type] || colors.info} text-white shadow-xl text-sm font-medium max-w-sm">
                 <span class="text-lg">${icons[type] || icons.info}</span>
-                <span>${message}</span>
+                <span>${escapeHtml(message)}</span>
             </div>
         `);
         $('#toast-container').append($toast);
