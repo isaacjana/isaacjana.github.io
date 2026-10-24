@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Playroom</title>
+  <meta name="description" content="A calm, wordless digital playroom of open-ended toys for little ones.">
+  <meta name="theme-color" content="#FBF6EC">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Playroom">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Playroom floor (home) -->
+  <main id="home" class="home" aria-label="Playroom">
+    <div class="floor-art" id="floorArt" aria-hidden="true"></div>
+    <div class="tiles" id="tiles"></div>
+  </main>
+
+  <!-- Full-screen toy stage -->
+  <section id="stage" class="stage" hidden>
+    <div id="toy" class="toy"></div>
+  </section>
+
+  <!-- Always-visible home button (inside toys) -->
+  <button id="homeBtn" class="home-btn" aria-label="Home" hidden></button>
+
+  <!-- Hidden grown-up corner: press and hold for 3 seconds -->
+  <button id="grownBtn" class="grown-btn" aria-label="Grown-ups: press and hold"></button>
+
+  <!-- Grown-up area (text is allowed here) -->
+  <div id="grown" class="grown" hidden>
+    <div class="grown-card" role="dialog" aria-modal="true" aria-labelledby="grownTitle">
+      <header class="grown-head">
+        <h1 id="grownTitle">For grown-ups</h1>
+        <button class="g-btn g-close" id="grownClose" aria-label="Close">Done</button>
+      </header>
+
+      <section class="g-sec">
+        <h2>Sound</h2>
+        <label class="g-row">
+          <span>Play sounds</span>
+          <input type="checkbox" id="soundToggle" class="g-switch">
+        </label>
+      </section>
+
+      <section class="g-sec">
+        <h2>Saved drawings</h2>
+        <p class="g-note" id="galleryEmpty">No drawings yet. Tap the frame button in the Doodle Pad to save one.</p>
+        <div class="g-gallery" id="gallery"></div>
+      </section>
+
+      <section class="g-sec">
+        <h2>Data</h2>
+        <p class="g-note">Everything is stored only on this device. Nothing is sent anywhere.</p>
+        <button class="g-btn g-danger" id="clearData">Clear all toys &amp; drawings</button>
+      </section>
+
+      <section class="g-sec">
+        <h2>Keep little hands inside the app</h2>
+        <ul class="g-tips">
+          <li><b>Install it:</b> use your browser's “Add to Home Screen” / “Install app”. It then opens full screen and works offline.</li>
+          <li><b>iPhone / iPad:</b> Settings → Accessibility → Guided Access → turn on. Open the app and triple-click the side (or Home) button to lock the screen to this app.</li>
+          <li><b>Android:</b> Settings → Security (or Security &amp; privacy) → More settings → App pinning → turn on. Open Recent apps, tap the app icon, then Pin.</li>
+          <li>Turn the device sideways (landscape) for the best fit.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <!-- Wordless "please rotate" hint for phones held upright -->
+  <div class="rotate-hint" aria-hidden="true">
+    <svg viewBox="0 0 200 200" width="160" height="160">
+      <g class="rotate-phone">
+        <rect x="70" y="40" width="60" height="110" rx="12" fill="var(--sky)" stroke="var(--ink)" stroke-width="5"/>
+        <circle cx="100" cy="135" r="5" fill="var(--ink)"/>
+      </g>
+      <path d="M150 60 q25 25 10 60" fill="none" stroke="var(--coral)" stroke-width="6" stroke-linecap="round"/>
+      <path d="M152 112 l8 10 l10 -8" fill="none" stroke="var(--coral)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <script src="js/audio.js" defer></script>
+  <script src="assets/art.js" defer></script>
+  <script src="js/physics.js" defer></script>
+  <script src="js/toys/blocks.js" defer></script>
+  <script src="js/toys/doodle.js" defer></script>
+  <script src="js/toys/blobs.js" defer></script>
+  <script src="js/toys/town.js" defer></script>
+  <script src="js/toys/busyboard.js" defer></script>
+  <script src="js/toys/marbles.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
