@@ -9,7 +9,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>Oratio - Catholic Prayer Generator & Companion</title>
     <meta name="description"
-        content="Generate beautiful Catholic prayers for meals, gatherings, trials, healing, and guidance. Includes Latin prayers, Audio Read-Aloud, Rosary companion, and personal prayer journal.">
+        content="Generate beautiful Catholic prayers for meals, gatherings, trials, healing, and guidance. Includes Sunday Mass companion with Latin texts, Audio Read-Aloud, Rosary companion, and personal prayer journal.">
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -255,12 +255,15 @@
             </div>
 
             <!-- Main Navigation Tabs -->
-            <nav class="flex items-center gap-1 sm:gap-4 font-sans text-sm">
+            <nav class="flex items-center gap-1 sm:gap-4 font-sans text-sm max-w-full overflow-x-auto whitespace-nowrap">
                 <button id="tabGenerator" class="nav-tab-btn active px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
                     <span>✨</span> Generator
                 </button>
                 <button id="tabLibrary" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
                     <span>📖</span> Common Prayers
+                </button>
+                <button id="tabMass" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
+                    <span>⛪</span> Sunday Mass
                 </button>
                 <button id="tabRosary" class="nav-tab-btn px-3 py-2 rounded-md hover:text-crimson dark:hover:text-gold flex items-center gap-1">
                     <span>📿</span> Rosary
@@ -456,6 +459,13 @@
         </div>
 
         <!-- ============================================================== -->
+        <!-- VIEW: SUNDAY MASS COMPANION (rendered by massView.js) -->
+        <!-- ============================================================== -->
+        <div id="viewMass" class="tab-view hidden space-y-6 animate-fade-in">
+            <div id="massRoot" class="space-y-6"></div>
+        </div>
+
+        <!-- ============================================================== -->
         <!-- VIEW 3: ROSARY & MYSTERIES COMPANION -->
         <!-- ============================================================== -->
         <div id="viewRosary" class="tab-view hidden space-y-6 animate-fade-in">
@@ -549,6 +559,7 @@
     <script type="module">
         import { generatePrayer, getInspirationQuote, getTodayRosaryMystery, bellEngine, ttsCompanion, journalEngine } from './prayerEngine.js';
         import { staticPrayers, rosaryMysteries, intentionPresets, categoryIcons } from './prayerData.js';
+        import { initMassView } from './massView.js';
 
         // State Management
         const state = {
@@ -576,6 +587,7 @@
             renderIntentionPresets();
             renderCommonPrayers();
             setupRosaryView();
+            initMassView({ ttsCompanion, journalEngine, showToast, updateJournalBadge });
             updateJournalView();
 
             // Set default prayer text in generator
@@ -588,6 +600,7 @@
         const tabs = {
             generator: { btn: $('tabGenerator'), view: $('viewGenerator') },
             library: { btn: $('tabLibrary'), view: $('viewLibrary') },
+            mass: { btn: $('tabMass'), view: $('viewMass') },
             rosary: { btn: $('tabRosary'), view: $('viewRosary') },
             journal: { btn: $('tabJournal'), view: $('viewJournal') }
         };
