@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Cozy Tales</title>
+  <meta name="description" content="A cosy shelf of read-along picture books for little ones, with tappable pictures and read-aloud.">
+  <meta name="theme-color" content="#FBF6EC">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cozy Tales">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- The bookshelf (home) -->
+  <main id="home" class="home" aria-label="Bookshelf">
+    <div class="floor-art" id="floorArt" aria-hidden="true"></div>
+    <div class="shelf-scroll" id="scroll">
+      <header class="home-head">
+        <div class="logo" id="logo" aria-hidden="true"></div>
+        <h1>Cozy Tales</h1>
+        <p>Pick a story to read</p>
+      </header>
+      <div class="books" id="books"></div>
+    </div>
+  </main>
+
+  <!-- Full-screen reader -->
+  <section id="stage" class="stage" hidden>
+    <div class="reader" id="reader">
+      <div class="pages" id="pages"></div>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+      <button id="homeBtn" class="round home-btn" aria-label="Back to the bookshelf"></button>
+      <button id="voiceBtn" class="round voice-btn" aria-label="Read aloud" aria-pressed="false"></button>
+      <button id="prevBtn" class="round nav prev" aria-label="Previous page"></button>
+      <button id="nextBtn" class="round nav next" aria-label="Next page"></button>
+    </div>
+  </section>
+
+  <!-- Hidden grown-up corner: press and hold for 3 seconds -->
+  <button id="grownBtn" class="grown-btn" aria-label="Grown-ups: press and hold"></button>
+
+  <!-- Grown-up area (text is allowed here) -->
+  <div id="grown" class="grown" hidden>
+    <div class="grown-card" role="dialog" aria-modal="true" aria-labelledby="grownTitle">
+      <header class="grown-head">
+        <h1 id="grownTitle">For grown-ups</h1>
+        <button class="g-btn g-close" id="grownClose" aria-label="Close">Done</button>
+      </header>
+
+      <section class="g-sec">
+        <h2>Reading</h2>
+        <label class="g-row">
+          <span>Read each page aloud automatically</span>
+          <input type="checkbox" id="autoToggle" class="g-switch">
+        </label>
+        <div class="g-row">
+          <span>Reading speed</span>
+          <div class="g-seg" id="speedSeg">
+            <button class="g-btn small" data-rate="0.75">Slow</button>
+            <button class="g-btn small" data-rate="0.95">Normal</button>
+            <button class="g-btn small" data-rate="1.15">Quick</button>
+          </div>
+        </div>
+        <p class="g-note small" id="noVoice" hidden>This browser has no read-aloud voice, so the speaker button is hidden.</p>
+        <p class="g-note small">Tap any word in a story to hear it on its own. The voice comes from your device.</p>
+      </section>
+
+      <section class="g-sec">
+        <h2>Sound</h2>
+        <label class="g-row">
+          <span>Play sound effects</span>
+          <input type="checkbox" id="soundToggle" class="g-switch">
+        </label>
+      </section>
+
+      <section class="g-sec">
+        <h2>Progress</h2>
+        <p class="g-note" id="progressNote"></p>
+        <button class="g-btn g-danger" id="clearData">Reset reading progress</button>
+        <p class="g-note small">Everything is stored only on this device. Nothing is sent anywhere.</p>
+      </section>
+
+      <section class="g-sec">
+        <h2>Tips</h2>
+        <ul class="g-tips">
+          <li><b>Install it:</b> use your browser's “Add to Home Screen” / “Install app”. It then opens full screen and works offline.</li>
+          <li><b>Turn pages:</b> swipe, or tap the big arrow buttons.</li>
+          <li><b>Pictures are toys too:</b> tap the animals, moon, balloons and bubbles.</li>
+          <li><b>Keep little hands inside the app:</b> iPhone / iPad: Settings → Accessibility → Guided Access. Android: Settings → Security → App pinning.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <script src="js/audio.js" defer></script>
+  <script src="js/art.js" defer></script>
+  <script src="js/stories.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
