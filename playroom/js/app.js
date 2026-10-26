@@ -87,12 +87,16 @@
 
   // ---------- The toys on the floor ----------
   const TOYS = [
-    { id: 'blocks',  bg: 'pink',  x: 21, y: 30, rot: -6, bob: 5.2 },
-    { id: 'doodle',  bg: 'lilac', x: 50, y: 25, rot: 4,  bob: 6.1 },
-    { id: 'blobs',   bg: 'mint',  x: 79, y: 31, rot: -3, bob: 5.6 },
-    { id: 'town',    bg: 'sky',   x: 23, y: 72, rot: 5,  bob: 6.4 },
-    { id: 'busy',    bg: 'peach', x: 52, y: 75, rot: -5, bob: 5.0, toy: 'busyboard' },
-    { id: 'marbles', bg: 'teal',  x: 79, y: 70, rot: 3,  bob: 5.8 }
+    { id: 'blocks',  bg: 'pink',  x: 14, y: 24, rot: -6, bob: 5.2 },
+    { id: 'doodle',  bg: 'lilac', x: 38, y: 21, rot: 4,  bob: 6.1 },
+    { id: 'blobs',   bg: 'mint',  x: 62, y: 25, rot: -3, bob: 5.6 },
+    { id: 'bubbles', bg: 'sky',   x: 86, y: 22, rot: 5,  bob: 6.0 },
+    { id: 'animals', bg: 'butter', x: 26, y: 50, rot: 3, bob: 5.4 },
+    { id: 'town',    bg: 'sky',   x: 50, y: 52, rot: -4, bob: 6.4 },
+    { id: 'busy',    bg: 'peach', x: 74, y: 49, rot: 5,  bob: 5.0, toy: 'busyboard' },
+    { id: 'marbles', bg: 'teal',  x: 20, y: 78, rot: -3, bob: 5.8 },
+    { id: 'twinkle', bg: 'night', x: 50, y: 80, rot: 4,  bob: 6.6 },
+    { id: 'piano',   bg: 'coral', x: 80, y: 77, rot: -5, bob: 5.3 }
   ];
 
   const $ = id => document.getElementById(id);
@@ -111,7 +115,7 @@
       b.style.setProperty('--rot', t.rot + 'deg');
       b.style.setProperty('--bob', t.bob + 's');
       b.style.setProperty('--delay', (-i * 0.9) + 's');
-      b.style.setProperty('--tile', 'min(31vmin, 23vw)');
+      b.style.setProperty('--tile', 'min(24vmin, 19vw)');
       const inner = document.createElement('div');
       inner.className = 'tile-inner';
       inner.innerHTML = PR.art.tiles[t.id]();

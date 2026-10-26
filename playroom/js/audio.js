@@ -157,6 +157,19 @@
       tone(freq * 2.76, { type: 'sine', dur: 0.6, vol: (vol || 0.16) * 0.25, attack: 0.004 });
       tone(freq * 5.4, { type: 'sine', dur: 0.25, vol: (vol || 0.16) * 0.1, attack: 0.002 });
     },
+    moo() { tone(150, { type: 'sawtooth', dur: 0.9, vol: 0.1, slide: 110, filter: 600, attack: 0.08 }); },
+    oink() {
+      const t = ctx ? ctx.currentTime : 0;
+      tone(260, { type: 'sawtooth', dur: 0.12, vol: 0.09, slide: 180, filter: 900, when: t });
+      tone(240, { type: 'sawtooth', dur: 0.14, vol: 0.09, slide: 160, filter: 900, when: t + 0.17 });
+    },
+    meow() { tone(520, { type: 'triangle', dur: 0.6, vol: 0.12, slide: 800, filter: 1800, attack: 0.1 }); },
+    woof() {
+      const t = ctx ? ctx.currentTime : 0;
+      tone(300, { type: 'sawtooth', dur: 0.14, vol: 0.12, slide: 170, filter: 900, when: t });
+      tone(300, { type: 'sawtooth', dur: 0.14, vol: 0.12, slide: 170, filter: 900, when: t + 0.22 });
+    },
+    baa() { tone(380, { type: 'sawtooth', dur: 0.7, vol: 0.08, slide: 330, filter: 1100, attack: 0.05, detune: 12 }); },
     boing() { tone(180, { type: 'sine', dur: 0.4, vol: 0.2, slide: 520 }); },
     honk() {
       tone(392, { type: 'triangle', dur: 0.16, vol: 0.12, filter: 1400 });
