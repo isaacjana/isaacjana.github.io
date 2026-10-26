@@ -177,6 +177,22 @@
   const st = () => `stroke="${ink()}" stroke-width="5" ${S}`;
 
   const tiles = {
+    bubbles: () => tile('sky', 21,
+      `<circle cx="78" cy="112" r="38" fill="${C('pink')}" opacity=".9" ${st()}/><circle cx="130" cy="78" r="28" fill="${C('butter')}" ${st()}/>
+       <circle cx="138" cy="136" r="20" fill="${C('mint')}" ${st()}/><ellipse cx="64" cy="98" rx="9" ry="5" fill="#fff" transform="rotate(-40 64 98)"/>
+       <ellipse cx="122" cy="70" rx="6" ry="3.5" fill="#fff" transform="rotate(-40 122 70)"/>${faceSvg(80, 116, 14)}`),
+    animals: () => tile('butter', 22,
+      `<ellipse cx="100" cy="106" rx="56" ry="52" fill="${C('pink')}" ${st()}/><path d="M58 70 L48 38 L82 56Z M142 70 L152 38 L118 56Z" fill="${C('pink-d')}" ${st()}/>
+       <ellipse cx="100" cy="124" rx="24" ry="18" fill="${C('pink-d')}" ${st()}/><circle cx="92" cy="124" r="3.5" fill="${ink()}"/><circle cx="108" cy="124" r="3.5" fill="${ink()}"/>
+       <circle cx="80" cy="94" r="6" fill="${ink()}"/><circle cx="120" cy="94" r="6" fill="${ink()}"/>`),
+    twinkle: () => tile('night', 23,
+      `<path d="M100 38 L113 78 L156 78 L121 102 L134 144 L100 119 L66 144 L79 102 L44 78 L87 78Z" fill="${C('butter')}" ${st()}/>
+       <circle cx="48" cy="150" r="7" fill="${C('paper')}"/><circle cx="156" cy="46" r="6" fill="${C('paper')}"/><circle cx="160" cy="146" r="5" fill="${C('pink')}"/>${faceSvg(100, 92, 12, 'sleepy')}`),
+    piano: () => tile('coral', 24,
+      `<path d="${wrect(34, 70, 132, 80, 12, 4)}" fill="${C('paper')}" ${st()}/>
+       <path d="M64 72 v76 M94 72 v76 M124 72 v76 M154 72 v76" stroke="${ink()}" stroke-width="4" fill="none"/>
+       <rect x="54" y="72" width="20" height="44" rx="5" fill="${C('lilac-d')}" ${st()}/><rect x="84" y="72" width="20" height="44" rx="5" fill="${C('sky-d')}" ${st()}/><rect x="114" y="72" width="20" height="44" rx="5" fill="${C('mint-d')}" ${st()}/>
+       <circle cx="150" cy="44" r="9" fill="${C('butter')}" ${st()}/>`),
     blocks: () => tile('pink', 11,
       `<path d="${wrect(38, 118, 124, 46, 12, 5)}" fill="${C('butter')}" ${st()}/>${faceSvg(100, 140, 16)}
        <g transform="rotate(-6 96 96)"><path d="${wrect(70, 70, 54, 50, 12, 7)}" fill="${C('mint')}" ${st()}/>${faceSvg(97, 95, 13, 'wow')}</g>

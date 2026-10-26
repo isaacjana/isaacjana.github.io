@@ -28,7 +28,7 @@ css/style.css          all styles; palette as CSS variables in :root
 js/app.js              storage, navigation, zoom transition, home button, parent gate, PWA
 js/audio.js            Web Audio synth (soft sine/triangle tones, no audio files)
 js/physics.js          tiny 2D rigid-body engine used by Blocks and Marble Run
-js/toys/*.js           one file per toy: PR.toys.<name> = { init(container), destroy(), save() }
+js/toys/*.js           one file per toy (blocks, doodle, blobs, town, busyboard, marbles, bubbles, animals, twinkle, piano; bubbles/animals/twinkle suit babies): PR.toys.<name> = { init(container), destroy(), save() }
 assets/art.js          inline SVG art: wobbly shapes, diverse characters, tiles
 assets/icon*.svg/png   app icons
 manifest.json, sw.js   installable PWA, works offline
@@ -41,4 +41,4 @@ Change "Playroom" in `index.html` (`<title>`, `apple-mobile-web-app-title`) and 
 `manifest.json` (`name`, `short_name`).
 
 ## Updating after you change files
-Bump `VERSION` in `sw.js` (e.g. `playroom-v2`) so installed copies fetch the new files.
+Bump `VERSION` in `sw.js` (e.g. `playroom-v3`) so installed copies fetch the new files.

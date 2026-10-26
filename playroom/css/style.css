@@ -743,3 +743,43 @@ body.in-toy .grown-btn { display: none; }
   }
   .home-btn { animation: none; }
 }
+
+/* ---------- Animal friends ---------- */
+.an {
+  position: absolute; inset: 0;
+  background: var(--butter);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2.5vmin;
+  padding: calc(var(--home-size) + 10px) 3vmin 3vmin;
+}
+.an-card {
+  background: var(--c); border: 5px solid var(--ink); border-radius: 36px;
+  box-shadow: var(--shadow); padding: 1vmin; cursor: pointer; touch-action: none;
+  min-height: 0;
+}
+.an-card svg { width: 100%; height: 100%; display: block; }
+.an-card.hop { animation: an-hop 520ms cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes an-hop {
+  0% { transform: scale(1); } 30% { transform: scale(1.1) rotate(-3deg) translateY(-3%); }
+  60% { transform: scale(.96) rotate(2deg); } 100% { transform: scale(1); }
+}
+
+/* ---------- Piano ---------- */
+.pi {
+  position: absolute; inset: 0;
+  background: var(--coral);
+  display: flex; flex-direction: column; gap: 2.5vmin;
+  padding: calc(var(--home-size) + 8px) 3vmin 3vmin;
+}
+.pi-pads { flex: 0 0 24%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5vmin; }
+.pi-keys { flex: 1; display: grid; grid-template-columns: repeat(8, 1fr); gap: 1.2vmin; }
+.pi-key, .pi-pad {
+  background: var(--c); border: 5px solid var(--ink); box-shadow: var(--shadow);
+  cursor: pointer; touch-action: none; transition: transform 120ms, filter 120ms; padding: 0;
+}
+.pi-key { border-radius: 14px 14px 30px 30px; }
+.pi-pad { border-radius: 50%; }
+.pi-key.lit, .pi-pad.lit { transform: translateY(4px) scale(.97); filter: brightness(1.12) saturate(1.2); }
+@media (prefers-reduced-motion: reduce) { .an-card.hop { animation: none; } }
