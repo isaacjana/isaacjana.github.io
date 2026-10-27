@@ -1,25 +1,20 @@
 {
-  "name": "Life OS | Neural Protocol",
-  "short_name": "Life OS",
+  "name": "Life · Habits, Routines & Goals",
+  "short_name": "Life",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#020617",
+  "background_color": "#0b0b0d",
+  "theme_color": "#0b0b0d",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
+      "src": "assets/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
       "purpose": "any maskable"
     }
   ],
-  "description": "A futuristic personal operating system for peak performance tracking.",
+  "description": "Build habits, run routines and reach your goals. Synced with your Google account.",
   "categories": ["lifestyle", "productivity", "health"]
 }
