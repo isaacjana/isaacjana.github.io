@@ -1,5 +1,6 @@
 // eSOEs Review Notes — capture and track user feedback from system review sessions.
-// Data lives in Firestore under users/{uid}/ (one doc per session and per feedback item).
+// Data lives in Firestore, one doc per session and per feedback item, either in the user's private space
+// (users/{uid}/esoes_*) or in a shared workspace (esoes_workspaces/{code}/*) that others join with its code.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
     getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
@@ -7,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
     initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-    collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch
+    collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, deleteField, onSnapshot, writeBatch, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -64,20 +65,34 @@ const isOpen = (f) => byId(STATUSES, f.status).open === true;
 // ---------------------------------------------------------------- State
 const ui = {
     ready: false, user: null, tab: 'capture', loginBusy: false, loginError: '', pending: 0, syncError: false,
-    sheet: null, draft: null, capture: null,
-    activeSessionId: localStorage.getItem('esoes:session') || '',
+    sheet: null, draft: null, capture: null, loading: false,
+    ws: 'personal', wsDoc: null, joinCode: new URLSearchParams(location.search).get('join') || '',
+    activeSessionId: '',
     filters: { q: '', entity: '', module: '', type: '', priority: '', status: 'open*', session: '', group: 'none', sort: 'newest' }
 };
-let config = { entities: [], modules: DEFAULT_MODULES.slice(), owners: [], theme: 'system' };
+const defaultConfig = () => ({ entities: [], modules: DEFAULT_MODULES.slice(), owners: [] });
+let config = defaultConfig();
+let prefs = { theme: 'system', workspaces: [], current: 'personal' };
 let sessions = [], feedback = [];
-let unsubs = [];
+let authUnsubs = [], dataUnsubs = [];
 
 const root = document.getElementById('root');
 const sheetRoot = document.getElementById('sheet-root');
 
-const col = (name) => collection(db, 'users', ui.user.uid, name);
-const ref = (name, id) => doc(db, 'users', ui.user.uid, name, id);
+// Where the current workspace keeps its data.
+const shared = () => ui.ws !== 'personal';
+const PATHS = {
+    personal: { base: () => ['users', ui.user.uid], sessions: 'esoes_sessions', feedback: 'esoes_feedback', config: ['esoes', 'config'] },
+    shared: { base: () => ['esoes_workspaces', ui.ws], sessions: 'sessions', feedback: 'feedback', config: ['meta', 'config'] }
+};
+const P = () => PATHS[shared() ? 'shared' : 'personal'];
+const col = (kind) => collection(db, ...P().base(), P()[kind]);
+const ref = (kind, id) => doc(db, ...P().base(), P()[kind], id);
+const configRef = () => doc(db, ...P().base(), ...P().config);
+const wsRef = (code) => doc(db, 'esoes_workspaces', code);
+const prefsRef = () => doc(db, 'users', ui.user.uid, 'esoes', 'prefs');
 const clean = (o) => JSON.parse(JSON.stringify(o));
+const me = () => ({ uid: ui.user.uid, name: ui.user.name });
 
 function track(promise) {
     ui.pending++; refreshSync();
@@ -86,37 +101,182 @@ function track(promise) {
         toast(e.code === 'permission-denied' ? 'Not allowed to save — check Firestore rules' : 'Couldn’t sync — will retry when online');
     }).finally(() => { ui.pending--; refreshSync(); });
 }
-const saveFeedback = (f) => { f.updatedAt = Date.now(); return track(setDoc(ref('esoes_feedback', f.id), clean(f))); };
-const saveSession = (s) => { s.updatedAt = Date.now(); return track(setDoc(ref('esoes_sessions', s.id), clean(s))); };
-const saveConfig = () => track(setDoc(ref('esoes', 'config'), clean(config)));
+const saveFeedback = (f) => { f.updatedAt = Date.now(); f.updatedBy = me(); return track(setDoc(ref('feedback', f.id), clean(f))); };
+const saveSession = (s) => { s.updatedAt = Date.now(); return track(setDoc(ref('sessions', s.id), clean(s))); };
+const saveConfig = () => track(setDoc(configRef(), clean(config)));
+const savePrefs = () => track(setDoc(prefsRef(), clean(prefs)));
 
-// ---------------------------------------------------------------- Auth
-onAuthStateChanged(auth, (user) => {
-    unsubs.forEach((u) => u()); unsubs = [];
-    sessions = []; feedback = [];
-    ui.user = user ? { uid: user.uid, name: user.displayName || user.email, email: user.email, photo: user.photoURL } : null;
+// ---------------------------------------------------------------- Auth & workspaces
+onAuthStateChanged(auth, async (user) => {
+    authUnsubs.forEach((u) => u()); authUnsubs = [];
+    dataUnsubs.forEach((u) => u()); dataUnsubs = [];
+    sessions = []; feedback = []; config = defaultConfig();
+    prefs = { theme: 'system', workspaces: [], current: 'personal' };
+    ui.ws = 'personal'; ui.wsDoc = null;
+    ui.user = user ? { uid: user.uid, name: user.displayName || user.email, email: user.email || '', photo: user.photoURL } : null;
     ui.ready = true;
     ui.sheet = null;
     if (!user) { render(); return; }
+    ui.loading = true; render();
+    try {
+        const snap = await getDoc(prefsRef());
+        if (snap.exists()) prefs = { ...prefs, ...snap.data() };
+    } catch (e) { console.warn('prefs', e); }
+    applyTheme();
+    if (ui.joinCode) {
+        const code = normCode(ui.joinCode);
+        ui.joinCode = '';
+        history.replaceState(null, '', location.pathname);
+        if (await joinWorkspace(code)) return;
+    }
+    await openWorkspace(prefs.current || 'personal', { quiet: true });
+});
+
+// Switches every listener over to a workspace ('personal' or a share code).
+async function openWorkspace(code, { quiet = false } = {}) {
+    dataUnsubs.forEach((u) => u()); dataUnsubs = [];
+    sessions = []; feedback = []; config = defaultConfig();
+    ui.ws = code; ui.wsDoc = null; ui.sheet = null; ui.capture = null; ui.loading = true;
+    ui.filters = { ...ui.filters, entity: '', module: '', session: '', q: '' };
+    try { ui.activeSessionId = localStorage.getItem(`esoes:session:${code}`) || ''; } catch (e) { ui.activeSessionId = ''; }
+    if (prefs.current !== code) { prefs.current = code; savePrefs(); }
+    render();
+
     let loaded = 0;
-    const done = () => { if (++loaded >= 3) render(); };
-    const onErr = (e) => { console.error(e); ui.syncError = true; toast(e.code === 'permission-denied' ? 'Firestore rules are blocking access' : 'Sync error'); render(); };
-    unsubs.push(onSnapshot(ref('esoes', 'config'), (snap) => {
-        if (snap.exists()) config = { ...config, ...snap.data() };
-        applyTheme();
-        loaded >= 3 ? render() : done();
+    const need = shared() ? 4 : 3;
+    const done = () => { loaded++; if (loaded >= need) ui.loading = false; render(); };
+    const onErr = (e) => {
+        console.error(e);
+        if (e.code === 'permission-denied' && shared()) {
+            toast('You no longer have access to that workspace');
+            forgetWorkspace(code);
+            openWorkspace('personal');
+            return;
+        }
+        ui.syncError = true; ui.loading = false;
+        toast(e.code === 'permission-denied' ? 'Firestore rules are blocking access' : 'Sync error');
+        render();
+    };
+    if (shared()) {
+        dataUnsubs.push(onSnapshot(wsRef(code), (snap) => {
+            if (!snap.exists() || !(snap.data().members || {})[ui.user.uid]) {
+                toast(snap.exists() ? 'You were removed from this workspace' : 'This workspace was deleted');
+                forgetWorkspace(code);
+                openWorkspace('personal');
+                return;
+            }
+            ui.wsDoc = snap.data();
+            rememberWorkspace(code, ui.wsDoc.name);
+            done();
+        }, onErr));
+    }
+    dataUnsubs.push(onSnapshot(configRef(), (snap) => {
+        config = { ...defaultConfig(), ...(snap.exists() ? snap.data() : {}) };
+        done();
     }, onErr));
-    unsubs.push(onSnapshot(col('esoes_sessions'), (snap) => {
+    dataUnsubs.push(onSnapshot(col('sessions'), (snap) => {
         sessions = snap.docs.map((d) => d.data()).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
         if (ui.activeSessionId && !sessions.some((s) => s.id === ui.activeSessionId) && !snap.metadata.fromCache) setActive('');
-        loaded >= 3 ? render() : done();
+        done();
     }, onErr));
-    unsubs.push(onSnapshot(col('esoes_feedback'), (snap) => {
+    dataUnsubs.push(onSnapshot(col('feedback'), (snap) => {
         feedback = snap.docs.map((d) => d.data());
-        loaded >= 3 ? render() : done();
+        done();
     }, onErr));
-    render();
-});
+    if (!quiet) toast(shared() ? `Switched to ${workspaceName(code)}` : 'Switched to Personal');
+}
+
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const normCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const fmtCode = (c) => c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c;
+const workspaceName = (code) => code === 'personal' ? 'Personal' : (code === ui.ws && ui.wsDoc?.name) || prefs.workspaces.find((w) => w.code === code)?.name || fmtCode(code);
+const inviteLink = (code) => `${location.origin}${location.pathname}?join=${fmtCode(code)}`;
+
+function newCode() {
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    return [...bytes].map((b) => CODE_CHARS[b % CODE_CHARS.length]).join('');
+}
+
+function rememberWorkspace(code, name) {
+    const i = prefs.workspaces.findIndex((w) => w.code === code);
+    if (i >= 0 && prefs.workspaces[i].name === name) return;
+    if (i >= 0) prefs.workspaces[i].name = name; else prefs.workspaces.push({ code, name });
+    savePrefs();
+}
+function forgetWorkspace(code) {
+    prefs.workspaces = prefs.workspaces.filter((w) => w.code !== code);
+    if (prefs.current === code) prefs.current = 'personal';
+    savePrefs();
+}
+
+async function createWorkspace(name, copyPersonal) {
+    const code = newCode();
+    const u = ui.user;
+    await setDoc(wsRef(code), {
+        name, owner: u.uid, ownerName: u.name, joinOpen: true, createdAt: Date.now(),
+        members: { [u.uid]: { name: u.name, email: u.email, photo: u.photo || '', role: 'owner', joinedAt: Date.now() } }
+    });
+    const base = ['esoes_workspaces', code];
+    const writes = [[doc(db, ...base, 'meta', 'config'), copyPersonal ? { ...config } : { ...defaultConfig(), entities: config.entities.slice(), modules: config.modules.slice(), owners: config.owners.slice() }]];
+    if (copyPersonal) {
+        const maxSeq = feedback.reduce((m, f) => Math.max(m, f.seq || 0), 0);
+        sessions.forEach((x) => writes.push([doc(db, ...base, 'sessions', x.id), x]));
+        feedback.forEach((x) => writes.push([doc(db, ...base, 'feedback', x.id), { createdBy: me(), ...x }]));
+        writes.push([doc(db, ...base, 'meta', 'counter'), { seq: maxSeq }]);
+    }
+    for (let i = 0; i < writes.length; i += 400) {
+        const batch = writeBatch(db);
+        writes.slice(i, i + 400).forEach(([r, d]) => batch.set(r, clean(d)));
+        await batch.commit();
+    }
+    rememberWorkspace(code, name);
+    await openWorkspace(code, { quiet: true });
+    return code;
+}
+
+async function joinWorkspace(code) {
+    if (code.length !== 8) { toast('Codes are 8 characters, e.g. K7QM-4XPA'); return false; }
+    try {
+        const snap = await getDoc(wsRef(code));
+        if (!snap.exists()) { toast('No workspace with that code'); return false; }
+        const w = snap.data();
+        if (!(w.members || {})[ui.user.uid]) {
+            if (!w.joinOpen) { toast('This workspace isn’t accepting new members — ask the owner'); return false; }
+            const u = ui.user;
+            await updateDoc(wsRef(code), { [`members.${u.uid}`]: { name: u.name, email: u.email, photo: u.photo || '', role: 'member', joinedAt: Date.now() } });
+        }
+        rememberWorkspace(code, w.name);
+        await openWorkspace(code, { quiet: true });
+        toast(`Joined ${w.name}`);
+        return true;
+    } catch (e) {
+        console.error(e);
+        toast(e.code === 'permission-denied' ? 'Couldn’t join — Firestore rules need updating' : 'Couldn’t join — check your connection');
+        return false;
+    }
+}
+
+// Next FB-#### number. Shared workspaces use a transaction on a counter doc so two people
+// capturing at once never get the same number; offline it falls back to the local maximum.
+async function allocRef() {
+    const local = feedback.reduce((m, f) => Math.max(m, f.seq || 0), 0) + 1;
+    let n = local;
+    if (shared()) {
+        const counter = doc(db, 'esoes_workspaces', ui.ws, 'meta', 'counter');
+        try {
+            n = await Promise.race([
+                runTransaction(db, async (tx) => {
+                    const snap = await tx.get(counter);
+                    const next = Math.max(snap.exists() ? snap.data().seq || 0 : 0, local - 1) + 1;
+                    tx.set(counter, { seq: next });
+                    return next;
+                }),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+            ]);
+        } catch (e) { console.warn('counter', e); }
+    }
+    return { seq: n, ref: `FB-${String(n).padStart(4, '0')}` };
+}
 
 async function login() {
     ui.loginBusy = true; ui.loginError = ''; render();
@@ -145,16 +305,12 @@ const fmtDate = (k) => k ? new Date(k + 'T00:00').toLocaleDateString(undefined, 
 const fmtTime = (ts) => new Date(ts).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const sessionById = (id) => sessions.find((s) => s.id === id);
 const activeSession = () => sessionById(ui.activeSessionId);
-const nextRef = () => {
-    const n = feedback.reduce((m, f) => Math.max(m, f.seq || 0), 0) + 1;
-    return { seq: n, ref: `FB-${String(n).padStart(4, '0')}` };
-};
 const badge = (item) => `<span class="badge" style="--c:${item.c}">${esc(item.label)}</span>`;
 const sessionLabel = (s) => s ? `${fmtDate(s.date)} · ${s.title || s.entity || 'Session'}` : '—';
 
 function setActive(id) {
     ui.activeSessionId = id;
-    try { id ? localStorage.setItem('esoes:session', id) : localStorage.removeItem('esoes:session'); } catch (e) { }
+    try { id ? localStorage.setItem(`esoes:session:${ui.ws}`, id) : localStorage.removeItem(`esoes:session:${ui.ws}`); } catch (e) { }
     if (ui.capture) ui.capture.entity = activeSession()?.entity || ui.capture.entity;
 }
 
@@ -173,8 +329,8 @@ function toast(msg) {
 }
 
 function applyTheme() {
-    if (config.theme === 'system') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', config.theme);
+    if (prefs.theme === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', prefs.theme);
 }
 
 const syncClass = () => ui.syncError ? 'bad' : ui.pending ? 'busy' : 'ok';
@@ -195,6 +351,10 @@ const I = {
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>',
     print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+    users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M16 15l-4 4-4-4"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
     google: '<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>'
 };
 
@@ -206,7 +366,8 @@ function render() {
     if (!ui.user) { root.innerHTML = viewLogin(); sheetRoot.innerHTML = ''; return; }
     if (!ui.capture) ui.capture = blankCapture();
     const views = { capture: viewCapture, feedback: viewFeedback, sessions: viewSessions, dashboard: viewDashboard, settings: viewSettings };
-    root.innerHTML = `<div class="shell">${viewSide()}<main class="content">${views[ui.tab]()}</main></div>${viewTabbar()}${datalists()}`;
+    const body = ui.loading ? '<div class="boot" style="min-height:50vh"><span class="spinner"></span></div>' : views[ui.tab]();
+    root.innerHTML = `<div class="shell">${viewSide()}<main class="content">${wsBar()}${body}</main></div>${viewTabbar()}${datalists()}`;
     renderSheet();
     restoreFocus(focus);
 }
@@ -231,11 +392,23 @@ function viewSide() {
     const u = ui.user;
     return `<aside class="side">
         <div class="brand"><img src="assets/icon.svg" alt=""><span>eSOEs Review<small>Feedback tracker</small></span></div>
+        ${wsSwitch()}
         ${NAV.map(([id, label]) => `<button class="nav-btn ${ui.tab === id ? 'on' : ''}" data-a="tab" data-id="${id}">${I[id]}<span>${label}</span>
             ${id === 'feedback' && openCount ? `<span class="count">${openCount}</span>` : ''}${id === 'sessions' && sessions.length ? `<span class="count">${sessions.length}</span>` : ''}</button>`).join('')}
         <button class="me" data-a="tab" data-id="settings">${avatar(u)}<span><b>${esc(u.name)}</b><small><span data-syncdot class="dot ${syncClass()}"></span><span data-synctext>${syncText()}</span></small></span></button>
     </aside>`;
 }
+const isOwner = () => shared() && ui.wsDoc && ui.wsDoc.owner === ui.user.uid;
+const memberList = () => Object.entries(ui.wsDoc?.members || {}).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.role === 'owner' ? -1 : 0) - (b.role === 'owner' ? -1 : 0) || a.joinedAt - b.joinedAt);
+
+function wsSwitch() {
+    const n = shared() ? memberList().length : 0;
+    return `<button class="ws-switch" data-a="workspaces"><span class="ws-ico ${shared() ? 'shared' : ''}">${shared() ? I.users : I.lock}</span>
+        <span class="grow"><b>${esc(workspaceName(ui.ws))}</b><small>${shared() ? `${fmtCode(ui.ws)} · ${n} member${n === 1 ? '' : 's'}` : 'Private to you'}</small></span>${I.chev}</button>`;
+}
+// Compact workspace switcher shown on small screens (the sidebar is hidden there).
+const wsBar = () => `<div class="ws-bar">${wsSwitch()}</div>`;
+
 const avatar = (u) => `<span class="avatar">${u.photo ? `<img src="${esc(u.photo)}" alt="" referrerpolicy="no-referrer">` : esc((u.name || '?')[0])}</span>`;
 
 function viewTabbar() {
@@ -254,6 +427,7 @@ function viewLogin() {
         <img src="assets/icon.svg" alt="">
         <h1>eSOEs Review Notes</h1>
         <p>Capture, organise and follow up user feedback from system review sessions.</p>
+        ${ui.joinCode ? `<div class="invite">You’ve been invited to a shared workspace <b>${esc(fmtCode(normCode(ui.joinCode)))}</b>. Sign in to join.</div>` : ''}
         <button class="gbtn" data-a="login" ${ui.loginBusy ? 'disabled' : ''}>${I.google}<span>${ui.loginBusy ? 'Signing in…' : 'Sign in with Google'}</span></button>
         ${ui.loginError ? `<p class="err">${esc(ui.loginError)}</p>` : ''}
         <div class="features">
@@ -337,6 +511,7 @@ function itemRow(f) {
             ${f.due ? `<span class="sep" style="${overdue ? 'color:var(--danger);font-weight:700' : ''}">Due ${fmtDate(f.due)}</span>` : ''}
             ${(f.comments || []).length ? `<span class="sep">💬 ${f.comments.length}</span>` : ''}
             ${s && ui.tab !== 'capture' ? `<span class="sep">${esc(fmtDate(s.date))}</span>` : ''}
+            ${shared() && f.createdBy ? `<span class="sep">✍️ ${esc(f.createdBy.name.split(' ')[0])}</span>` : ''}
         </span>
     </button>`;
 }
@@ -473,7 +648,7 @@ function viewSettings() {
     const u = ui.user;
     const list = (key, label, hint) => `<div class="field"><label for="s-${key}">${label}</label>
         <textarea class="textarea" id="s-${key}" data-list="${key}" rows="6" placeholder="${hint}">${esc(config[key].join('\n'))}</textarea></div>`;
-    return `<div class="page-head"><div><h1>Settings</h1><p>Pick lists are shared across capture, filters and the dashboard.</p></div></div>
+    return `<div class="page-head"><div><h1>Settings</h1><p>${shared() ? `Settings for <b>${esc(workspaceName(ui.ws))}</b>. Pick lists are shared with all members.` : 'Pick lists are shared across capture, filters and the dashboard.'}</p></div></div>
         <div class="grid2">
             <div class="card pad">
                 <div class="section-title">Pick lists <span class="muted" style="text-transform:none;letter-spacing:0">One per line</span></div>
@@ -483,12 +658,13 @@ function viewSettings() {
                 <button class="btn primary" data-a="save-lists">Save lists</button>
             </div>
             <div>
+                <div class="card pad" style="margin-bottom:16px">${shareCard()}</div>
                 <div class="card pad">
                     <div class="section-title">Account</div>
                     <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">${avatar(u)}<div><b>${esc(u.name)}</b><div class="muted small">${esc(u.email || '')}</div>
                         <div class="muted small"><span data-syncdot class="dot ${syncClass()}"></span> <span data-synctext>${syncText()}</span></div></div></div>
                     <span class="lbl">Theme</span>
-                    <div class="chips" style="margin-bottom:16px">${['system', 'light', 'dark'].map((t) => `<button class="${config.theme === t ? 'on' : ''}" data-a="theme" data-v="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
+                    <div class="chips" style="margin-bottom:16px">${['system', 'light', 'dark'].map((t) => `<button class="${prefs.theme === t ? 'on' : ''}" data-a="theme" data-v="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
                     <button class="btn" data-a="logout">Sign out</button>
                 </div>
                 <div class="card pad" style="margin-top:16px">
@@ -514,7 +690,7 @@ function renderSheet() {
     const focus = captureFocus();
     const prev = sheetRoot.querySelector('.sheet');
     const scroll = prev ? prev.scrollTop : 0;
-    const views = { feedback: sheetFeedback, session: sheetSession };
+    const views = { feedback: sheetFeedback, session: sheetSession, workspaces: sheetWorkspaces };
     sheetRoot.innerHTML = `<div class="scrim" data-a="scrim"><div class="sheet" role="dialog" aria-modal="true">${views[ui.sheet.type]()}</div></div>`;
     const sheet = sheetRoot.querySelector('.sheet');
     if (prev) { sheet.style.animation = 'none'; sheetRoot.querySelector('.scrim').style.animation = 'none'; }
@@ -525,7 +701,7 @@ function renderSheet() {
 
 function sheetFeedback() {
     const d = ui.draft;
-    return `<div class="sheet-head"><div><span class="ref">${esc(d.ref)} · ${fmtTime(d.createdAt)}</span><h2>Feedback</h2></div>
+    return `<div class="sheet-head"><div><span class="ref">${esc(d.ref)} · ${fmtTime(d.createdAt)}${d.createdBy && shared() ? ' · by ' + esc(d.createdBy.name) : ''}</span><h2>Feedback</h2></div>
             <button class="icon-btn" data-a="close" aria-label="Close">${I.close}</button></div>
         <div class="field"><span class="lbl">Status</span>${chipsHtml(STATUSES, d.status, 'pick-status', 'sheet')}</div>
         <div class="field"><label for="d-title">Summary</label><input class="input title" id="d-title" data-scope="sheet" data-bind="title" value="${esc(d.title)}" maxlength="200"></div>
@@ -551,10 +727,10 @@ function sheetFeedback() {
             <div class="field"><label for="d-tags">Tags</label><input class="input" id="d-tags" data-scope="sheet" data-bind="tagsText" value="${esc(d.tagsText)}" placeholder="Comma separated"></div>
         </div>
         <div class="section-title">Follow-ups (${(d.comments || []).length})</div>
-        <div class="comments">${(d.comments || []).map((c) => `<div class="comment"><small><span>${fmtTime(c.at)}</span><button class="small muted" data-a="del-comment" data-id="${c.id}">Remove</button></small><p>${esc(c.text)}</p></div>`).join('')}</div>
+        <div class="comments">${(d.comments || []).map((c) => `<div class="comment"><small><span>${c.by ? `<b>${esc(c.by)}</b> · ` : ''}${fmtTime(c.at)}</span>${!c.byUid || c.byUid === ui.user.uid || isOwner() ? `<button class="small muted" data-a="del-comment" data-id="${c.id}">Remove</button>` : ''}</small><p>${esc(c.text)}</p></div>`).join('')}</div>
         <div class="field"><textarea class="textarea" id="d-comment" style="min-height:64px" placeholder="Add a follow-up note, decision or response…"></textarea>
             <button class="btn" style="margin-top:8px" data-a="add-comment">Add follow-up</button></div>
-        ${(d.history || []).length ? `<div class="section-title">History</div><div class="history">${d.history.slice().reverse().map((h) => `<span>${fmtTime(h.at)} — ${esc(h.text)}</span>`).join('')}</div>` : ''}
+        ${(d.history || []).length ? `<div class="section-title">History</div><div class="history">${d.history.slice().reverse().map((h) => `<span>${fmtTime(h.at)}${h.by ? ' · ' + esc(h.by) : ''} — ${esc(h.text)}</span>`).join('')}</div>` : ''}
         <div class="sheet-actions"><button class="btn danger" data-a="del-feedback">Delete</button>
             <div style="display:flex;gap:8px"><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="save-feedback">Save changes</button></div></div>`;
 }
@@ -579,6 +755,60 @@ function sheetSession() {
         ${isNew ? '' : `<div class="section-title">Feedback captured (${items.length})</div><div class="card">${items.length ? `<div class="items">${items.map(itemRow).join('')}</div>` : '<div class="empty"><p>None yet.</p></div>'}</div>`}
         <div class="sheet-actions">${isNew ? '<span></span>' : '<button class="btn danger" data-a="del-session">Delete session</button>'}
             <div style="display:flex;gap:8px"><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="save-session">${isNew ? 'Create & start capturing' : 'Save'}</button></div></div>`;
+}
+
+// ---------- Sharing
+function shareCard() {
+    if (!shared()) {
+        return `<div class="section-title">Sharing</div>
+            <p class="muted small" style="margin-bottom:12px">This is your <b>Personal</b> workspace — only you can see it. Create a shared workspace to get a code other developers can join.</p>
+            <button class="btn primary" data-a="workspaces">${I.users} Share with others</button>`;
+    }
+    const w = ui.wsDoc || {}, owner = isOwner();
+    return `<div class="section-title"><span>Sharing</span>${owner ? '<span class="badge" style="--c:#16a34a">Owner</span>' : ''}</div>
+        <div class="code-box">
+            <div><span class="lbl">Workspace code</span><div class="code">${fmtCode(ui.ws)}</div></div>
+            <div class="code-actions"><button class="btn" data-a="copy-code">${I.copy} Copy code</button><button class="btn primary" data-a="copy-link">${I.copy} Copy invite link</button></div>
+        </div>
+        <p class="muted small" style="margin:10px 0 14px">Anyone who signs in with Google and enters this code${w.joinOpen ? '' : ' <b>(joining is currently closed)</b>'} can view and edit everything in this workspace.</p>
+        ${owner ? `<label class="switch"><input type="checkbox" data-change="join-open" ${w.joinOpen ? 'checked' : ''}><span>Allow new people to join with the code</span></label>` : ''}
+        <div class="section-title">Members (${memberList().length})</div>
+        <div class="members">${memberList().map((m) => `<div class="member">${avatar(m)}<span class="grow"><b>${esc(m.name)}${m.id === ui.user.uid ? ' (you)' : ''}</b><small>${esc(m.email || '')}</small></span>
+            ${m.role === 'owner' ? '<span class="badge" style="--c:#16a34a">Owner</span>' : owner ? `<button class="btn" data-a="remove-member" data-id="${m.id}">Remove</button>` : '<span class="muted small">Member</span>'}</div>`).join('')}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+            ${owner ? '<button class="btn" data-a="rename-ws">Rename</button><button class="btn danger" data-a="delete-ws">Delete workspace</button>' : '<button class="btn danger" data-a="leave-ws">Leave workspace</button>'}
+        </div>`;
+}
+
+function sheetWorkspaces() {
+    const d = ui.draft;
+    const row = (code, name, sub, icon) => `<button class="ws-row ${ui.ws === code ? 'on' : ''}" data-a="switch-ws" data-id="${code}">
+        <span class="ws-ico ${code === 'personal' ? '' : 'shared'}">${icon}</span><span class="grow"><b>${esc(name)}</b><small>${sub}</small></span>${ui.ws === code ? '<span class="badge" style="--c:#16a34a">Current</span>' : ''}</button>`;
+    const hasPersonal = !shared() && (feedback.length || sessions.length);
+    return `<div class="sheet-head"><h2>Workspaces</h2><button class="icon-btn" data-a="close" aria-label="Close">${I.close}</button></div>
+        <div class="ws-list">
+            ${row('personal', 'Personal', 'Private to you', I.lock)}
+            ${prefs.workspaces.map((w) => row(w.code, w.name, `Shared · ${fmtCode(w.code)}`, I.users)).join('')}
+        </div>
+        <div class="section-title">Join with a code</div>
+        <div class="card pad">
+            <p class="muted small" style="margin-bottom:10px">Got a code from a colleague? Enter it to see and add to their notes.</p>
+            <div class="row"><input class="input code-input" id="w-join" data-scope="sheet" data-bind="joinCode" value="${esc(d.joinCode)}" placeholder="XXXX-XXXX" maxlength="9" autocomplete="off" autocapitalize="characters" data-enter="join-ws">
+                <button class="btn primary" style="flex:none" data-a="join-ws" ${d.busy ? 'disabled' : ''}>Join</button></div>
+        </div>
+        <div class="section-title">Create a shared workspace</div>
+        <div class="card pad">
+            <p class="muted small" style="margin-bottom:10px">You’ll get a code to share with other developers. Everyone in it can capture and update feedback in real time.</p>
+            <div class="field"><input class="input" id="w-name" data-scope="sheet" data-bind="name" value="${esc(d.name)}" placeholder="e.g. eSOEs UAT — Phase 1" maxlength="60" data-enter="create-ws"></div>
+            ${hasPersonal ? `<label class="switch" style="margin-bottom:12px"><input type="checkbox" data-change="copy-personal" ${d.copy ? 'checked' : ''}><span>Copy my personal notes into it (${feedback.length} feedback, ${sessions.length} sessions)</span></label>` : ''}
+            <button class="btn primary" data-a="create-ws" ${d.busy ? 'disabled' : ''}>${d.busy ? 'Creating…' : 'Create & get code'}</button>
+        </div>
+        ${shared() ? `<div class="section-title">Current workspace</div><div class="card pad">${shareCard()}</div>` : ''}`;
+}
+
+async function copyText(text, msg) {
+    try { await navigator.clipboard.writeText(text); toast(msg); }
+    catch (e) { prompt('Copy this:', text); }
 }
 
 // ---------------------------------------------------------------- Export / print
@@ -621,12 +851,17 @@ function printSession(s) {
 }
 
 // ---------------------------------------------------------------- Actions
-function saveCapture() {
+async function saveCapture() {
     const d = ui.capture;
     if (!d.title.trim() && !d.details.trim()) { toast('Write the feedback first'); document.getElementById('c-title')?.focus(); return; }
-    const { seq, ref: refNo } = nextRef();
+    const ws = ui.ws;
+    ui.capture = blankCapture({ entity: d.entity, module: d.module, raisedBy: d.raisedBy, tags: d.tags });
+    render();
+    document.getElementById('c-title')?.focus();
+    const { seq, ref: refNo } = await allocRef();
+    if (ui.ws !== ws) return;
     const f = {
-        id: uid(), seq, ref: refNo, sessionId: ui.activeSessionId || '',
+        id: uid(), seq, ref: refNo, sessionId: ui.activeSessionId || '', createdBy: me(),
         entity: d.entity.trim(), module: d.module.trim(), raisedBy: d.raisedBy.trim(),
         type: d.type, priority: d.priority, status: 'open',
         title: d.title.trim() || d.details.trim().split('\n')[0].slice(0, 120), details: d.details.trim(),
@@ -638,10 +873,8 @@ function saveCapture() {
     saveFeedback(f);
     const changed = remember('entities', f.entity) | remember('modules', f.module);
     if (changed) saveConfig();
-    ui.capture = blankCapture({ entity: d.entity, module: d.module, raisedBy: d.raisedBy, tags: d.tags });
     render();
     toast(`${f.ref} saved`);
-    document.getElementById('c-title')?.focus();
 }
 
 function saveDraftFeedback() {
@@ -653,9 +886,9 @@ function saveDraftFeedback() {
     const hist = [...(f.history || [])];
     const at = Date.now();
     if (prev) {
-        if (prev.status !== f.status) hist.push({ at, text: `Status: ${byId(STATUSES, prev.status).label} → ${byId(STATUSES, f.status).label}` });
-        if (prev.priority !== f.priority) hist.push({ at, text: `Priority: ${byId(PRIORITIES, prev.priority).label} → ${byId(PRIORITIES, f.priority).label}` });
-        if ((prev.owner || '') !== (f.owner || '')) hist.push({ at, text: `Owner: ${f.owner || '—'}` });
+        if (prev.status !== f.status) hist.push({ at, by: ui.user.name, text: `Status: ${byId(STATUSES, prev.status).label} → ${byId(STATUSES, f.status).label}` });
+        if (prev.priority !== f.priority) hist.push({ at, by: ui.user.name, text: `Priority: ${byId(PRIORITIES, prev.priority).label} → ${byId(PRIORITIES, f.priority).label}` });
+        if ((prev.owner || '') !== (f.owner || '')) hist.push({ at, by: ui.user.name, text: `Owner: ${f.owner || '—'}` });
     }
     f.history = hist;
     Object.assign(prev || {}, f);
@@ -670,7 +903,7 @@ const A = {
     tab: (el) => { ui.tab = el.dataset.id; closeSheet(); render(); window.scrollTo(0, 0); },
     login,
     logout: () => { if (confirm('Sign out?')) signOut(auth); },
-    theme: (el) => { config.theme = el.dataset.v; applyTheme(); saveConfig(); render(); },
+    theme: (el) => { prefs.theme = el.dataset.v; applyTheme(); savePrefs(); render(); },
     close: () => closeSheet(),
     scrim: (el, e) => { if (e.target === el) closeSheet(); },
 
@@ -678,6 +911,68 @@ const A = {
     'pick-priority': (el) => { scopeObj(el).priority = el.dataset.v; el.dataset.scope === 'sheet' ? renderSheet() : render(); },
     'pick-status': (el) => { ui.draft.status = el.dataset.v; renderSheet(); },
     'save-capture': saveCapture,
+
+    workspaces: () => openSheet({ type: 'workspaces' }, { joinCode: '', name: '', copy: false, busy: false }),
+    'switch-ws': (el) => { if (el.dataset.id !== ui.ws) openWorkspace(el.dataset.id); else closeSheet(); },
+    'join-ws': async () => {
+        const code = normCode(ui.draft.joinCode);
+        if (prefs.workspaces.some((w) => w.code === code)) { openWorkspace(code); return; }
+        ui.draft.busy = true; renderSheet();
+        const ok = await joinWorkspace(code);
+        if (!ok && ui.draft) { ui.draft.busy = false; renderSheet(); }
+    },
+    'create-ws': async () => {
+        const name = ui.draft.name.trim();
+        if (!name) { toast('Give the workspace a name'); document.getElementById('w-name')?.focus(); return; }
+        ui.draft.busy = true; renderSheet();
+        try {
+            const code = await createWorkspace(name, ui.draft.copy);
+            ui.tab = 'settings'; render();
+            toast(`Workspace created — code ${fmtCode(code)}`);
+        } catch (e) {
+            console.error(e);
+            toast(e.code === 'permission-denied' ? 'Couldn’t create — Firestore rules need updating' : 'Couldn’t create workspace');
+            if (ui.draft) { ui.draft.busy = false; renderSheet(); }
+        }
+    },
+    'copy-code': () => copyText(fmtCode(ui.ws), 'Code copied'),
+    'copy-link': () => copyText(`Join our eSOEs review notes: ${inviteLink(ui.ws)}  (code ${fmtCode(ui.ws)})`, 'Invite link copied'),
+    'remove-member': (el) => {
+        const m = (ui.wsDoc.members || {})[el.dataset.id];
+        if (!m || !confirm(`Remove ${m.name} from this workspace? They lose access immediately.`)) return;
+        track(updateDoc(wsRef(ui.ws), { [`members.${el.dataset.id}`]: deleteField() }));
+    },
+    'rename-ws': () => {
+        const name = prompt('Workspace name', ui.wsDoc.name);
+        if (name && name.trim()) track(updateDoc(wsRef(ui.ws), { name: name.trim() }));
+    },
+    'leave-ws': async () => {
+        if (!confirm('Leave this workspace? You’ll need the code again to rejoin.')) return;
+        const code = ui.ws;
+        try {
+            await updateDoc(wsRef(code), { [`members.${ui.user.uid}`]: deleteField() });
+            forgetWorkspace(code);
+            openWorkspace('personal');
+        } catch (e) { console.error(e); toast('Couldn’t leave — check your connection'); }
+    },
+    'delete-ws': async () => {
+        if (prompt(`This permanently deletes all ${feedback.length} feedback items and ${sessions.length} sessions for every member.\n\nType DELETE to confirm.`) !== 'DELETE') return;
+        const code = ui.ws;
+        try {
+            const refs = [];
+            for (const c of ['sessions', 'feedback', 'meta']) (await getDocs(collection(db, 'esoes_workspaces', code, c))).forEach((d) => refs.push(d.ref));
+            for (let i = 0; i < refs.length; i += 400) {
+                const batch = writeBatch(db);
+                refs.slice(i, i + 400).forEach((r) => batch.delete(r));
+                await batch.commit();
+            }
+            dataUnsubs.forEach((u) => u()); dataUnsubs = [];
+            await deleteDoc(wsRef(code));
+            forgetWorkspace(code);
+            openWorkspace('personal');
+            toast('Workspace deleted');
+        } catch (e) { console.error(e); toast('Couldn’t delete workspace'); }
+    },
     'clear-capture': () => { ui.capture = blankCapture(); render(); },
 
     'open-feedback': (el) => {
@@ -690,7 +985,7 @@ const A = {
         const box = document.getElementById('d-comment'), text = box.value.trim();
         if (!text) return;
         const prev = feedback.find((f) => f.id === ui.draft.id);
-        const c = { id: uid(), at: Date.now(), text };
+        const c = { id: uid(), at: Date.now(), by: ui.user.name, byUid: ui.user.uid, text };
         ui.draft.comments = [...(ui.draft.comments || []), c];
         if (prev) { prev.comments = [...(prev.comments || []), c]; saveFeedback(prev); }
         renderSheet(); toast('Follow-up added');
@@ -706,7 +1001,7 @@ const A = {
         if (!confirm(`Delete ${ui.draft.ref}? This can’t be undone.`)) return;
         const id = ui.draft.id;
         feedback = feedback.filter((f) => f.id !== id);
-        track(deleteDoc(ref('esoes_feedback', id)));
+        track(deleteDoc(ref('feedback', id)));
         closeSheet(); render(); toast('Deleted');
     },
 
@@ -745,8 +1040,8 @@ const A = {
         const id = ui.draft.id;
         sessions = sessions.filter((s) => s.id !== id);
         const batch = writeBatch(db);
-        batch.delete(ref('esoes_sessions', id));
-        feedback.filter((f) => f.sessionId === id).forEach((f) => { f.sessionId = ''; f.updatedAt = Date.now(); batch.set(ref('esoes_feedback', f.id), clean(f)); });
+        batch.delete(ref('sessions', id));
+        feedback.filter((f) => f.sessionId === id).forEach((f) => { f.sessionId = ''; f.updatedAt = Date.now(); batch.set(ref('feedback', f.id), clean(f)); });
         track(batch.commit());
         if (ui.activeSessionId === id) setActive('');
         closeSheet(); render(); toast('Session deleted');
@@ -788,7 +1083,7 @@ const A = {
                 const data = JSON.parse(await inp.files[0].text());
                 if (!Array.isArray(data.feedback) || !Array.isArray(data.sessions)) throw new Error('bad file');
                 if (!confirm(`Restore ${data.feedback.length} feedback items and ${data.sessions.length} sessions? Items with the same ID are overwritten.`)) return;
-                const all = [...data.sessions.map((s) => ['esoes_sessions', s]), ...data.feedback.map((f) => ['esoes_feedback', f])];
+                const all = [...data.sessions.map((s) => ['sessions', s]), ...data.feedback.map((f) => ['feedback', f])];
                 for (let i = 0; i < all.length; i += 400) {
                     const batch = writeBatch(db);
                     all.slice(i, i + 400).forEach(([c, o]) => batch.set(ref(c, o.id), clean(o)));
@@ -824,6 +1119,8 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => {
     const t = e.target;
     if (t.dataset.change === 'active-session') { setActive(t.value); render(); }
+    else if (t.dataset.change === 'join-open') track(updateDoc(wsRef(ui.ws), { joinOpen: t.checked }));
+    else if (t.dataset.change === 'copy-personal') { ui.draft.copy = t.checked; }
     else if (t.dataset.change === 'filter') { ui.filters[t.dataset.k] = t.value; render(); }
     else if (t.dataset.bind && t.tagName === 'SELECT') { const obj = scopeObj(t); if (obj) obj[t.dataset.bind] = t.value; }
 });
@@ -837,6 +1134,7 @@ document.addEventListener('keydown', (e) => {
         return;
     }
     if (e.key === 'Escape' && ui.sheet) { closeSheet(); return; }
+    if (e.key === 'Enter' && e.target.dataset?.enter && A[e.target.dataset.enter]) { e.preventDefault(); A[e.target.dataset.enter](e.target); return; }
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '');
     if (e.key === '/' && !typing && ui.tab === 'feedback' && !ui.sheet) { e.preventDefault(); document.getElementById('f-q')?.focus(); }
 });

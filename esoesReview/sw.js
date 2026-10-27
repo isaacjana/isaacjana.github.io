@@ -1,4 +1,4 @@
-const CACHE_NAME = 'esoes-review-v1';
+const CACHE_NAME = 'esoes-review-v2';
 const ASSETS = ['./', './index.html', './manifest.json', './assets/icon.svg', './assets/style.css', './assets/app.js'];
 // Versioned CDN files (Firebase SDK, fonts) never change: cache-first so the app opens offline.
 const CDN = /^https:\/\/(www\.gstatic\.com\/firebasejs\/|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
