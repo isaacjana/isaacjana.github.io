@@ -136,6 +136,7 @@ onAuthStateChanged(auth, async (user) => {
 async function openWorkspace(code, { quiet = false } = {}) {
     dataUnsubs.forEach((u) => u()); dataUnsubs = [];
     sessions = []; feedback = []; config = defaultConfig();
+    stopDictation();
     ui.ws = code; ui.wsDoc = null; ui.sheet = null; ui.capture = null; ui.loading = true;
     ui.filters = { ...ui.filters, entity: '', module: '', session: '', q: '' };
     try { ui.activeSessionId = localStorage.getItem(`esoes:session:${code}`) || ''; } catch (e) { ui.activeSessionId = ''; }
@@ -261,7 +262,7 @@ async function joinWorkspace(code) {
 async function allocRef() {
     const local = feedback.reduce((m, f) => Math.max(m, f.seq || 0), 0) + 1;
     let n = local;
-    if (shared()) {
+    if (shared() && navigator.onLine) {
         const counter = doc(db, 'esoes_workspaces', ui.ws, 'meta', 'counter');
         try {
             n = await Promise.race([
@@ -271,7 +272,7 @@ async function allocRef() {
                     tx.set(counter, { seq: next });
                     return next;
                 }),
-                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3500))
             ]);
         } catch (e) { console.warn('counter', e); }
     }
@@ -333,9 +334,10 @@ function applyTheme() {
     else document.documentElement.setAttribute('data-theme', prefs.theme);
 }
 
-const syncClass = () => ui.syncError ? 'bad' : ui.pending ? 'busy' : 'ok';
-const syncText = () => ui.syncError ? 'Sync issue' : ui.pending ? 'Saving…' : 'All changes saved';
+const syncClass = () => !ui.online ? 'busy' : ui.syncError ? 'bad' : ui.pending ? 'busy' : 'ok';
+const syncText = () => !ui.online ? 'Offline — saved on device' : ui.syncError ? 'Sync issue' : ui.pending ? 'Saving…' : 'All changes saved';
 function refreshSync() {
+    document.querySelectorAll('[data-offline]').forEach((el) => el.classList.toggle('hidden', ui.online));
     document.querySelectorAll('[data-syncdot]').forEach((el) => { el.className = 'dot ' + syncClass(); });
     document.querySelectorAll('[data-synctext]').forEach((el) => { el.textContent = syncText(); });
 }
@@ -351,6 +353,9 @@ const I = {
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>',
     print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>',
     users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M16 15l-4 4-4-4"/></svg>',
@@ -358,16 +363,84 @@ const I = {
     google: '<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>'
 };
 
+// ---------------------------------------------------------------- Dictation
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const dictation = { id: null, rec: null };
+const DICTATION_LANGS = [['', 'Device language'], ['en-US', 'English'], ['ms-MY', 'Bahasa Melayu']];
+
+function stopDictation() {
+    if (dictation.rec) { try { dictation.rec.stop(); } catch (e) { } }
+    dictation.id = null; dictation.rec = null;
+    document.querySelectorAll('.mic.on').forEach((b) => b.classList.remove('on'));
+}
+
+function startDictation(el) {
+    const id = el.dataset.id, key = el.dataset.k, obj = scopeObj(el);
+    if (dictation.id === id) { stopDictation(); return; }
+    stopDictation();
+    const field = document.getElementById(id);
+    const rec = new SR();
+    rec.lang = prefs.lang || navigator.language || 'en-US';
+    rec.interimResults = true;
+    rec.continuous = true;
+    const base = (obj[key] || '').replace(/\s+$/, '');
+    let finalText = '';
+    rec.onresult = (ev) => {
+        let interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+            const r = ev.results[i];
+            if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+        }
+        const spoken = (finalText + interim).trim();
+        const value = base ? `${base} ${spoken}` : spoken.charAt(0).toUpperCase() + spoken.slice(1);
+        obj[key] = value;
+        const f = document.getElementById(id);
+        if (f) f.value = value;
+        if (obj === ui.capture) saveDraft();
+    };
+    rec.onerror = (ev) => {
+        if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') toast('Allow microphone access to dictate');
+        else if (ev.error === 'network') toast('Dictation needs a connection');
+        else if (ev.error !== 'no-speech' && ev.error !== 'aborted') toast('Dictation stopped');
+    };
+    rec.onend = () => { if (dictation.rec === rec) stopDictation(); };
+    try { rec.start(); } catch (e) { toast('Couldn’t start dictation'); return; }
+    dictation.id = id; dictation.rec = rec;
+    el.classList.add('on');
+    if (field) field.focus({ preventScroll: true });
+    buzz();
+}
+
+const buzz = (ms = 12) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { } };
+
+// Unsaved capture text survives the phone locking, the tab being discarded, or a reload.
+const draftKey = () => `esoes:draft:${ui.user?.uid}:${ui.ws}`;
+let draftTimer;
+function saveDraft() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => { try { localStorage.setItem(draftKey(), JSON.stringify(ui.capture)); } catch (e) { } }, 250);
+}
+function loadDraft() {
+    try { const d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); return d && typeof d === 'object' ? d : null; } catch (e) { return null; }
+}
+const clearDraft = () => { clearTimeout(draftTimer); try { localStorage.removeItem(draftKey()); } catch (e) { } };
+
+ui.online = navigator.onLine;
+window.addEventListener('online', () => { ui.online = true; refreshSync(); toast('Back online — syncing'); });
+window.addEventListener('offline', () => { ui.online = false; refreshSync(); toast('Offline — notes are kept on this phone'); });
+
 // ---------------------------------------------------------------- Render
 function render() {
     applyTheme();
     if (!ui.ready) return;
     const focus = captureFocus();
     if (!ui.user) { root.innerHTML = viewLogin(); sheetRoot.innerHTML = ''; return; }
-    if (!ui.capture) ui.capture = blankCapture();
+    if (!ui.capture) ui.capture = { ...blankCapture(), ...(loadDraft() || {}) };
     const views = { capture: viewCapture, feedback: viewFeedback, sessions: viewSessions, dashboard: viewDashboard, settings: viewSettings };
     const body = ui.loading ? '<div class="boot" style="min-height:50vh"><span class="spinner"></span></div>' : views[ui.tab]();
-    root.innerHTML = `<div class="shell">${viewSide()}<main class="content">${wsBar()}${body}</main></div>${viewTabbar()}${datalists()}`;
+    const fab = ui.tab !== 'capture' ? `<button class="fab" data-a="quick-capture" aria-label="Capture feedback">${I.plus}</button>` : '';
+    root.innerHTML = `<div class="shell">${viewSide()}<main class="content">${wsBar()}<div class="offline ${ui.online ? 'hidden' : ''}" data-offline>Offline — notes are saved on this phone and sync when you’re back online.</div>${body}</main></div>${fab}${viewTabbar()}${datalists()}`;
+    document.body.classList.toggle('on-capture', ui.tab === 'capture');
     renderSheet();
     restoreFocus(focus);
 }
@@ -451,11 +524,22 @@ function chipsHtml(list, current, action, scope) {
     return `<div class="chips">${list.map((x) => `<button type="button" class="${current === x.id ? 'on' : ''}" style="--c:${x.c}" data-a="${action}" data-scope="${scope}" data-v="${x.id}"${x.hint ? ` title="${esc(x.hint)}"` : ''}><i></i>${esc(x.label)}</button>`).join('')}</div>`;
 }
 
+// Text field with an optional dictation button (Web Speech API, where the browser supports it).
+function micField(tag, id, key, scope, value, attrs) {
+    const listening = dictation.id === id;
+    const mic = SR ? `<button type="button" class="mic ${listening ? 'on' : ''}" data-a="dictate" data-id="${id}" data-k="${key}" data-scope="${scope}" aria-label="${listening ? 'Stop dictation' : 'Dictate'}">${I.mic}</button>` : '';
+    const field = tag === 'textarea'
+        ? `<textarea class="textarea" id="${id}" data-scope="${scope}" data-bind="${key}" ${attrs}>${esc(value)}</textarea>`
+        : `<input class="input title" id="${id}" data-scope="${scope}" data-bind="${key}" value="${esc(value)}" ${attrs}>`;
+    return `<div class="with-mic">${field}${mic}</div>`;
+}
+
 function viewCapture() {
     const s = activeSession(), d = ui.capture;
     const inSession = s ? feedback.filter((f) => f.sessionId === s.id).sort((a, b) => b.createdAt - a.createdAt) : [];
     const recent = s ? inSession : feedback.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 12);
     const showLegacy = d.type === 'gap' || d.type === 'change' || d.legacy || d.expected;
+    const ctxOpen = ui.ctxOpen || !d.entity;
     return `<div class="page-head"><div><h1>Capture feedback</h1><p>Log points as users raise them. Everything syncs to your Google account.</p></div></div>
         <div class="card session-bar">
             <span class="live ${s ? '' : 'off'}"></span>
@@ -465,31 +549,39 @@ function viewCapture() {
                 <option value="">— No session —</option>
                 ${sessions.map((x) => `<option value="${x.id}" ${x.id === ui.activeSessionId ? 'selected' : ''}>${esc(sessionLabel(x))}</option>`).join('')}
             </select>
-            <button class="btn" data-a="new-session">${I.plus} New session</button>
+            <button class="btn" data-a="new-session" aria-label="New session">${I.plus}<span class="hide-sm"> New session</span></button>
         </div>
         <div class="grid2">
-            <form class="card pad" id="capture-form" autocomplete="off" onsubmit="return false">
-                <div class="row wrap">
-                    <div class="field"><label for="c-entity">Entity</label><input class="input" id="c-entity" list="dl-entities" data-scope="capture" data-bind="entity" value="${esc(d.entity)}" placeholder="Which entity?"></div>
-                    <div class="field"><label for="c-module">Module / screen</label><input class="input" id="c-module" list="dl-modules" data-scope="capture" data-bind="module" value="${esc(d.module)}" placeholder="e.g. Reports"></div>
+            <form class="card pad capture" id="capture-form" autocomplete="off" onsubmit="return false">
+                <div class="ctx ${ctxOpen ? 'open' : ''}">
+                    <button type="button" class="ctx-summary" data-a="toggle-ctx" aria-expanded="${ctxOpen}">
+                        <span class="grow"><b>${esc(d.entity || 'Choose entity')}</b><small>${esc(d.module || 'Any module')} · ${esc(d.raisedBy || 'Raised by —')}</small></span>
+                        <span class="ctx-edit">${ctxOpen ? 'Done' : 'Change'}</span>
+                    </button>
+                    <div class="ctx-fields">
+                        <div class="row wrap">
+                            <div class="field"><label for="c-entity">Entity</label><input class="input" id="c-entity" list="dl-entities" data-scope="capture" data-bind="entity" value="${esc(d.entity)}" placeholder="Which entity?" enterkeyhint="next"></div>
+                            <div class="field"><label for="c-module">Module / screen</label><input class="input" id="c-module" list="dl-modules" data-scope="capture" data-bind="module" value="${esc(d.module)}" placeholder="e.g. Reports" enterkeyhint="next"></div>
+                        </div>
+                        <div class="field"><label for="c-raised">Raised by</label><input class="input" id="c-raised" list="dl-people" data-scope="capture" data-bind="raisedBy" value="${esc(d.raisedBy)}" placeholder="Name / role (optional)" enterkeyhint="next"></div>
+                    </div>
                 </div>
-                <div class="field"><label for="c-raised">Raised by</label><input class="input" id="c-raised" list="dl-people" data-scope="capture" data-bind="raisedBy" value="${esc(d.raisedBy)}" placeholder="Name / role (optional)"></div>
+                <div class="field"><label for="c-title">Feedback</label>${micField('input', 'c-title', 'title', 'capture', d.title, 'placeholder="What did they say?" maxlength="200" enterkeyhint="done"')}</div>
+                <div class="field">${micField('textarea', 'c-details', 'details', 'capture', d.details, 'placeholder="Details, steps, examples… (optional)"')}</div>
                 <div class="field"><span class="lbl">Type</span>${chipsHtml(TYPES, d.type, 'pick-type', 'capture')}</div>
                 <div class="field"><span class="lbl">Priority</span>${chipsHtml(PRIORITIES, d.priority, 'pick-priority', 'capture')}</div>
-                <div class="field"><label for="c-title">Feedback</label><input class="input title" id="c-title" data-scope="capture" data-bind="title" value="${esc(d.title)}" placeholder="One-line summary of the point raised" maxlength="200"></div>
-                <div class="field"><textarea class="textarea" id="c-details" data-scope="capture" data-bind="details" placeholder="Details, steps, examples, what the user said…">${esc(d.details)}</textarea></div>
                 <details class="more" ${showLegacy ? 'open' : ''}><summary>＋ Legacy vs new system</summary>
                     <div class="row wrap" style="margin-top:10px">
-                        <div class="field"><label for="c-legacy">How it works in the legacy system</label><textarea class="textarea" id="c-legacy" data-scope="capture" data-bind="legacy" placeholder="Current / legacy behaviour">${esc(d.legacy)}</textarea></div>
-                        <div class="field"><label for="c-expected">Expected in the new system</label><textarea class="textarea" id="c-expected" data-scope="capture" data-bind="expected" placeholder="Requirement / expected behaviour">${esc(d.expected)}</textarea></div>
+                        <div class="field"><label for="c-legacy">How it works in the legacy system</label>${micField('textarea', 'c-legacy', 'legacy', 'capture', d.legacy, 'placeholder="Current / legacy behaviour"')}</div>
+                        <div class="field"><label for="c-expected">Expected in the new system</label>${micField('textarea', 'c-expected', 'expected', 'capture', d.expected, 'placeholder="Requirement / expected behaviour"')}</div>
                     </div>
                 </details>
                 <div class="field"><label for="c-tags">Tags</label><input class="input" id="c-tags" data-scope="capture" data-bind="tags" value="${esc(d.tags)}" placeholder="Comma separated, e.g. UAT, phase 2"></div>
-                <div class="capture-foot"><span class="muted small"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to save</span>
-                    <div style="display:flex;gap:8px"><button type="button" class="btn" data-a="clear-capture">Clear</button><button type="button" class="btn primary lg" data-a="save-capture">Save feedback</button></div></div>
+                <div class="capture-foot"><span class="muted small hide-sm"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to save</span>
+                    <div class="save-actions"><button type="button" class="btn" data-a="clear-capture">Clear</button><button type="button" class="btn primary lg" data-a="save-capture">${I.check} Save feedback</button></div></div>
             </form>
             <div>
-                <div class="section-title"><span>${s ? 'Captured this session' : 'Recently captured'}</span>${s ? `<button class="btn" data-a="open-session" data-id="${s.id}">Session minutes</button>` : ''}</div>
+                <div class="section-title"><span>${s ? 'Captured this session' : 'Recently captured'}</span>${s ? `<button class="btn" data-a="open-session" data-id="${s.id}">Minutes</button>` : ''}</div>
                 <div class="card">${recent.length ? `<div class="items">${recent.map(itemRow).join('')}</div>` : '<div class="empty"><p>Nothing captured yet.</p></div>'}</div>
             </div>
         </div>`;
@@ -544,6 +636,7 @@ function filterSelect(key, label, options) {
 function viewFeedback() {
     const list = filtered(), F = ui.filters;
     const active = ['entity', 'module', 'type', 'priority', 'session'].some((k) => F[k]) || F.q || F.status !== 'open*';
+    const nFilters = ['entity', 'module', 'type', 'priority', 'session'].filter((k) => F[k]).length + (F.status !== 'open*' ? 1 : 0) + (F.group !== 'none' ? 1 : 0);
     let body;
     if (!list.length) {
         body = `<div class="empty"><h3>${feedback.length ? 'No matching feedback' : 'No feedback yet'}</h3><p>${feedback.length ? 'Try clearing some filters.' : 'Capture the first point from your review session.'}</p>
@@ -557,10 +650,12 @@ function viewFeedback() {
         body = `<div class="items">${list.map(itemRow).join('')}</div>`;
     }
     return `<div class="page-head"><div><h1>Feedback</h1><p>${list.length} of ${feedback.length} item${feedback.length === 1 ? '' : 's'}</p></div>
-            <div class="actions"><button class="btn" data-a="export-csv" data-scope="filtered">${I.download} Export view (CSV)</button><button class="btn primary" data-a="tab" data-id="capture">${I.plus} Capture</button></div></div>
+            <div class="actions hide-sm"><button class="btn" data-a="export-csv" data-scope="filtered">${I.download} Export view (CSV)</button><button class="btn primary" data-a="tab" data-id="capture">${I.plus} Capture</button></div></div>
         <div class="card">
             <div class="toolbar">
-                <div class="search">${I.search}<input class="input" id="f-q" data-scope="filters" data-bind="q" value="${esc(F.q)}" placeholder="Search ref, text, people, tags…  ( / )"></div>
+                <div class="search">${I.search}<input class="input" id="f-q" type="search" data-scope="filters" data-bind="q" value="${esc(F.q)}" placeholder="Search ref, text, people, tags…"></div>
+                <button class="btn filter-toggle ${ui.showFilters ? 'on' : ''}" data-a="toggle-filters">${I.filter} Filters${nFilters ? ` (${nFilters})` : ''}</button>
+                <div class="filters ${ui.showFilters ? 'open' : ''}">
                 ${filterSelect('status', 'Any status', [['open*', 'All open'], ['closed*', 'All closed'], ...STATUSES.map((s) => [s.id, s.label])])}
                 ${filterSelect('entity', 'All entities', config.entities.map((e) => [e, e]))}
                 ${filterSelect('module', 'All modules', config.modules.map((m) => [m, m]))}
@@ -572,6 +667,7 @@ function viewFeedback() {
                 <select class="select" id="f-sort" data-change="filter" data-k="sort" aria-label="Sort">
                     ${[['newest', 'Newest first'], ['oldest', 'Oldest first'], ['priority', 'Priority'], ['due', 'Due date'], ['updated', 'Recently updated']].map(([v, l]) => `<option value="${v}" ${F.sort === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
                 ${active ? '<button class="btn" data-a="clear-filters">Reset</button>' : ''}
+                </div>
             </div>
             ${body}
         </div>`;
@@ -665,6 +761,8 @@ function viewSettings() {
                         <div class="muted small"><span data-syncdot class="dot ${syncClass()}"></span> <span data-synctext>${syncText()}</span></div></div></div>
                     <span class="lbl">Theme</span>
                     <div class="chips" style="margin-bottom:16px">${['system', 'light', 'dark'].map((t) => `<button class="${prefs.theme === t ? 'on' : ''}" data-a="theme" data-v="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
+                    ${SR ? `<span class="lbl">Dictation language</span>
+                    <div class="chips" style="margin-bottom:16px">${DICTATION_LANGS.map(([v, l]) => `<button class="${(prefs.lang || '') === v ? 'on' : ''}" data-a="dict-lang" data-v="${v}">${l}</button>`).join('')}</div>` : ''}
                     <button class="btn" data-a="logout">Sign out</button>
                 </div>
                 <div class="card pad" style="margin-top:16px">
@@ -682,7 +780,7 @@ function viewSettings() {
 
 // ---------------------------------------------------------------- Sheets
 function openSheet(sheet, draft) { ui.sheet = sheet; ui.draft = draft; renderSheet(); }
-function closeSheet() { ui.sheet = null; ui.draft = null; sheetRoot.innerHTML = ''; document.body.style.overflow = ''; }
+function closeSheet() { if (dictation.id && !dictation.id.startsWith('c-')) stopDictation(); ui.sheet = null; ui.draft = null; sheetRoot.innerHTML = ''; document.body.style.overflow = ''; }
 
 function renderSheet() {
     if (!ui.sheet) { sheetRoot.innerHTML = ''; document.body.style.overflow = ''; return; }
@@ -705,7 +803,7 @@ function sheetFeedback() {
             <button class="icon-btn" data-a="close" aria-label="Close">${I.close}</button></div>
         <div class="field"><span class="lbl">Status</span>${chipsHtml(STATUSES, d.status, 'pick-status', 'sheet')}</div>
         <div class="field"><label for="d-title">Summary</label><input class="input title" id="d-title" data-scope="sheet" data-bind="title" value="${esc(d.title)}" maxlength="200"></div>
-        <div class="field"><label for="d-details">Details</label><textarea class="textarea" id="d-details" data-scope="sheet" data-bind="details">${esc(d.details)}</textarea></div>
+        <div class="field"><label for="d-details">Details</label>${micField('textarea', 'd-details', 'details', 'sheet', d.details, '')}</div>
         <div class="row wrap">
             <div class="field"><label for="d-legacy">Legacy system</label><textarea class="textarea" id="d-legacy" data-scope="sheet" data-bind="legacy">${esc(d.legacy)}</textarea></div>
             <div class="field"><label for="d-expected">Expected in new system</label><textarea class="textarea" id="d-expected" data-scope="sheet" data-bind="expected">${esc(d.expected)}</textarea></div>
@@ -728,7 +826,7 @@ function sheetFeedback() {
         </div>
         <div class="section-title">Follow-ups (${(d.comments || []).length})</div>
         <div class="comments">${(d.comments || []).map((c) => `<div class="comment"><small><span>${c.by ? `<b>${esc(c.by)}</b> · ` : ''}${fmtTime(c.at)}</span>${!c.byUid || c.byUid === ui.user.uid || isOwner() ? `<button class="small muted" data-a="del-comment" data-id="${c.id}">Remove</button>` : ''}</small><p>${esc(c.text)}</p></div>`).join('')}</div>
-        <div class="field"><textarea class="textarea" id="d-comment" style="min-height:64px" placeholder="Add a follow-up note, decision or response…"></textarea>
+        <div class="field">${micField('textarea', 'd-comment', 'commentText', 'sheet', d.commentText || '', 'style="min-height:64px" placeholder="Add a follow-up note, decision or response…"')}
             <button class="btn" style="margin-top:8px" data-a="add-comment">Add follow-up</button></div>
         ${(d.history || []).length ? `<div class="section-title">History</div><div class="history">${d.history.slice().reverse().map((h) => `<span>${fmtTime(h.at)}${h.by ? ' · ' + esc(h.by) : ''} — ${esc(h.text)}</span>`).join('')}</div>` : ''}
         <div class="sheet-actions"><button class="btn danger" data-a="del-feedback">Delete</button>
@@ -751,7 +849,7 @@ function sheetSession() {
         <div class="field"><label for="s-venue">Venue / mode</label><input class="input" id="s-venue" data-scope="sheet" data-bind="venue" value="${esc(d.venue)}" placeholder="e.g. Meeting room 3 / Teams"></div>
         <div class="field"><span class="lbl">Modules covered</span><div class="chips">${config.modules.map((m) => `<button class="${(d.modules || []).includes(m) ? 'on' : ''}" data-a="toggle-module" data-v="${esc(m)}">${esc(m)}</button>`).join('')}</div></div>
         <div class="field"><label for="s-att">Attendees</label><textarea class="textarea" id="s-att" data-scope="sheet" data-bind="attendees" placeholder="One per line — Name, role / department">${esc(d.attendees)}</textarea></div>
-        <div class="field"><label for="s-notes">General notes / minutes</label><textarea class="textarea" id="s-notes" style="min-height:120px" data-scope="sheet" data-bind="notes" placeholder="Agenda, overall impressions, decisions, next steps…">${esc(d.notes)}</textarea></div>
+        <div class="field"><label for="s-notes">General notes / minutes</label>${micField('textarea', 's-notes', 'notes', 'sheet', d.notes, 'style="min-height:120px" placeholder="Agenda, overall impressions, decisions, next steps…"')}</div>
         ${isNew ? '' : `<div class="section-title">Feedback captured (${items.length})</div><div class="card">${items.length ? `<div class="items">${items.map(itemRow).join('')}</div>` : '<div class="empty"><p>None yet.</p></div>'}</div>`}
         <div class="sheet-actions">${isNew ? '<span></span>' : '<button class="btn danger" data-a="del-session">Delete session</button>'}
             <div style="display:flex;gap:8px"><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="save-session">${isNew ? 'Create & start capturing' : 'Save'}</button></div></div>`;
@@ -855,9 +953,13 @@ async function saveCapture() {
     const d = ui.capture;
     if (!d.title.trim() && !d.details.trim()) { toast('Write the feedback first'); document.getElementById('c-title')?.focus(); return; }
     const ws = ui.ws;
+    stopDictation();
     ui.capture = blankCapture({ entity: d.entity, module: d.module, raisedBy: d.raisedBy, tags: d.tags });
+    ui.ctxOpen = false;
+    clearDraft();
+    buzz(20);
     render();
-    document.getElementById('c-title')?.focus();
+    if (!matchMedia('(max-width: 860px)').matches) document.getElementById('c-title')?.focus();
     const { seq, ref: refNo } = await allocRef();
     if (ui.ws !== ws) return;
     const f = {
@@ -882,7 +984,7 @@ function saveDraftFeedback() {
     const prev = feedback.find((f) => f.id === d.id);
     if (!d.title.trim()) { toast('Summary can’t be empty'); return; }
     const f = { ...d, title: d.title.trim(), tags: d.tagsText.split(',').map((t) => t.trim()).filter(Boolean) };
-    delete f.tagsText;
+    delete f.tagsText; delete f.commentText;
     const hist = [...(f.history || [])];
     const at = Date.now();
     if (prev) {
@@ -900,7 +1002,7 @@ function saveDraftFeedback() {
 }
 
 const A = {
-    tab: (el) => { ui.tab = el.dataset.id; closeSheet(); render(); window.scrollTo(0, 0); },
+    tab: (el) => { stopDictation(); ui.tab = el.dataset.id; closeSheet(); render(); window.scrollTo(0, 0); },
     login,
     logout: () => { if (confirm('Sign out?')) signOut(auth); },
     theme: (el) => { prefs.theme = el.dataset.v; applyTheme(); savePrefs(); render(); },
@@ -973,7 +1075,22 @@ const A = {
             toast('Workspace deleted');
         } catch (e) { console.error(e); toast('Couldn’t delete workspace'); }
     },
-    'clear-capture': () => { ui.capture = blankCapture(); render(); },
+    'clear-capture': () => {
+        const d = ui.capture;
+        if ((d.title.trim() || d.details.trim()) && !confirm('Clear what you’ve typed?')) return;
+        stopDictation(); clearDraft();
+        ui.capture = blankCapture({ entity: d.entity, module: d.module, raisedBy: d.raisedBy }); render();
+    },
+    'toggle-ctx': () => {
+        const open = document.querySelector('.ctx')?.classList.contains('open');
+        ui.ctxOpen = !open || !ui.capture.entity.trim();
+        render();
+        if (ui.ctxOpen) document.getElementById('c-entity')?.focus();
+    },
+    dictate: (el) => startDictation(el),
+    'quick-capture': () => { ui.tab = 'capture'; closeSheet(); render(); window.scrollTo(0, 0); },
+    'toggle-filters': () => { ui.showFilters = !ui.showFilters; render(); },
+    'dict-lang': (el) => { prefs.lang = el.dataset.v; savePrefs(); render(); },
 
     'open-feedback': (el) => {
         const f = feedback.find((x) => x.id === el.dataset.id);
@@ -982,10 +1099,13 @@ const A = {
     },
     'save-feedback': saveDraftFeedback,
     'add-comment': () => {
-        const box = document.getElementById('d-comment'), text = box.value.trim();
+        const text = (ui.draft.commentText || '').trim();
         if (!text) return;
+        stopDictation();
+        ui.draft.commentText = '';
         const prev = feedback.find((f) => f.id === ui.draft.id);
         const c = { id: uid(), at: Date.now(), by: ui.user.name, byUid: ui.user.uid, text };
+        buzz();
         ui.draft.comments = [...(ui.draft.comments || []), c];
         if (prev) { prev.comments = [...(prev.comments || []), c]; saveFeedback(prev); }
         renderSheet(); toast('Follow-up added');
@@ -1113,6 +1233,7 @@ document.addEventListener('input', (e) => {
     const obj = scopeObj(t);
     if (!obj) return;
     obj[t.dataset.bind] = t.value;
+    if (obj === ui.capture) saveDraft();
     if (t.dataset.scope === 'filters') { clearTimeout(searchTimer); searchTimer = setTimeout(render, 120); }
 });
 

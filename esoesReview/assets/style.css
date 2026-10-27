@@ -92,7 +92,7 @@ main.content { flex: 1; min-width: 0; padding: 26px 32px 60px; max-width: 1280px
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .pad { padding: 18px; }
 .grid2 { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 1080px) { .grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 1080px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
 .section-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin: 22px 0 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .section-title:first-child { margin-top: 0; }
 .muted { color: var(--muted); }
@@ -308,3 +308,106 @@ table.matrix tr.total td { font-weight: 800; border-bottom: 0; }
 .member { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
 .member + .member { border-top: 1px solid var(--line); }
 .invite { background: var(--brand-soft); color: var(--text); border-radius: 12px; padding: 12px 14px; margin: -8px 0 20px; font-size: 14px; }
+
+/* ---------- Dictation, context strip, offline ---------- */
+.with-mic { position: relative; }
+.with-mic .input, .with-mic .textarea { padding-right: 52px; }
+.mic {
+    position: absolute; right: 6px; top: 6px; width: 38px; height: 38px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--muted); background: var(--surface-2);
+}
+.mic svg { width: 18px; height: 18px; }
+.mic:hover { color: var(--brand); }
+.mic.on { background: var(--danger); color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--danger) 25%, transparent); } }
+.ctx-summary { display: none; }
+.save-actions { display: flex; gap: 8px; }
+.offline { background: #fef3c7; color: #92400e; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; margin-bottom: 14px; }
+:root[data-theme="dark"] .offline { background: #422006; color: #fcd34d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .offline { background: #422006; color: #fcd34d; } }
+.filters { display: contents; }
+.filter-toggle, .fab { display: none; }
+
+/* ---------- Phone layout: one-handed use while walking ---------- */
+@media (max-width: 860px) {
+    .hide-sm { display: none !important; }
+    body { font-size: 16px; }
+    /* 16px inputs stop iOS zooming in on focus */
+    .input, .select, .textarea { font-size: 16px; padding: 12px 13px; border-radius: 12px; }
+    .input.title { font-size: 17px; }
+    .textarea { min-height: 96px; }
+    .page-head { margin-bottom: 12px; }
+    .page-head p { display: none; }
+    .ws-bar .ws-switch { margin-bottom: 12px; }
+
+    .session-bar { padding: 10px 12px; gap: 8px 10px; margin-bottom: 12px; }
+    .session-bar .grow { min-width: 0; flex: 1 1 calc(100% - 30px); }
+    .session-bar .grow b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .session-bar select { flex: 1; max-width: none; min-width: 0; }
+    .session-bar .btn { width: 46px; height: 46px; padding: 0; flex: none; }
+    .session-bar .btn svg { width: 20px; height: 20px; }
+
+    .capture.pad { padding: 14px; }
+    .ctx { margin-bottom: 14px; }
+    .ctx-summary {
+        display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+        padding: 11px 13px; border-radius: 12px; background: var(--surface-2);
+    }
+    .ctx-summary .grow { flex: 1; min-width: 0; }
+    .ctx-summary b, .ctx-summary small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctx-summary small { color: var(--muted); font-size: 13px; }
+    .ctx-edit { color: var(--brand); font-weight: 700; font-size: 14px; }
+    .ctx:not(.open) .ctx-fields { display: none; }
+    .ctx.open .ctx-fields { margin-top: 12px; }
+
+    /* chips scroll sideways in one row instead of wrapping into a tall block */
+    .capture .chips, .sheet .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 2px 14px; }
+    .capture .chips::-webkit-scrollbar, .sheet .chips::-webkit-scrollbar { display: none; }
+    .chips button { padding: 10px 14px; font-size: 14px; flex: none; }
+    .mic { width: 42px; height: 42px; top: 5px; right: 5px; }
+    .mic svg { width: 20px; height: 20px; }
+
+    /* Save bar pinned above the tab bar, within thumb reach */
+    .capture { padding-bottom: 80px !important; }
+    .capture-foot {
+        position: fixed; left: 0; right: 0; bottom: calc(var(--safe-b) + 64px); z-index: 29; margin: 0;
+        padding: 10px 16px; background: color-mix(in srgb, var(--surface) 94%, transparent);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line);
+    }
+    .save-actions { width: 100%; }
+    .save-actions .btn { height: 50px; }
+    .save-actions .btn.primary { flex: 1; font-size: 16px; }
+    main.content { padding-bottom: calc(var(--safe-b) + 160px); }
+    body.on-capture .toast { bottom: calc(var(--safe-b) + 140px); }
+
+    .tabbar button { padding: 8px 0; font-size: 11.5px; }
+    .tabbar button svg { width: 23px; height: 23px; }
+    .fab {
+        display: grid; place-items: center; position: fixed; right: 16px; bottom: calc(var(--safe-b) + 80px); z-index: 31;
+        width: 58px; height: 58px; border-radius: 50%; background: var(--brand); color: var(--on-brand); box-shadow: var(--shadow);
+    }
+    .fab svg { width: 26px; height: 26px; }
+
+    .item { padding: 14px; }
+    .item .t { font-size: 15.5px; }
+    .toolbar { padding: 10px; }
+    .toolbar .search { flex: 1 1 0; }
+    .filter-toggle { display: inline-flex; height: 46px; }
+    .filter-toggle.on { border-color: var(--brand); color: var(--brand); }
+    .filters { display: none; }
+    .filters.open { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+    .filters.open > * { width: 100%; max-width: none; flex: none; }
+
+    .sessions { grid-template-columns: 1fr; }
+    .tile b { font-size: 24px; }
+    .hbar { grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) 30px; }
+
+    /* Sheets: full height with actions pinned to the bottom */
+    .sheet { padding: 12px 16px 0; }
+    .sheet-actions {
+        position: sticky; bottom: 0; margin: 20px -16px 0; padding: 12px 16px calc(var(--safe-b) + 12px);
+        background: var(--bg); border-top: 1px solid var(--line);
+    }
+    .sheet-actions .btn { height: 48px; }
+    .code { font-size: 24px; }
+}
