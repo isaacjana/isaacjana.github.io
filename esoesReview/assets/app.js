@@ -68,7 +68,8 @@ const ui = {
     sheet: null, draft: null, capture: null, loading: false,
     ws: 'personal', wsDoc: null, joinCode: new URLSearchParams(location.search).get('join') || '',
     activeSessionId: '',
-    filters: { q: '', entity: '', module: '', type: '', priority: '', status: 'open*', session: '', group: 'none', sort: 'newest' }
+    filters: { q: '', entity: '', module: '', type: '', priority: '', status: 'open*', session: '', group: 'none', sort: 'newest', unread: false },
+    selecting: false, selected: new Set(), bulk: { status: '', priority: '', owner: '' }
 };
 const defaultConfig = () => ({ entities: [], modules: DEFAULT_MODULES.slice(), owners: [] });
 let config = defaultConfig();
@@ -82,8 +83,8 @@ const sheetRoot = document.getElementById('sheet-root');
 // Where the current workspace keeps its data.
 const shared = () => ui.ws !== 'personal';
 const PATHS = {
-    personal: { base: () => ['users', ui.user.uid], sessions: 'esoes_sessions', feedback: 'esoes_feedback', config: ['esoes', 'config'] },
-    shared: { base: () => ['esoes_workspaces', ui.ws], sessions: 'sessions', feedback: 'feedback', config: ['meta', 'config'] }
+    personal: { base: () => ['users', ui.user.uid], sessions: 'esoes_sessions', feedback: 'esoes_feedback', attachments: 'esoes_attachments', config: ['esoes', 'config'] },
+    shared: { base: () => ['esoes_workspaces', ui.ws], sessions: 'sessions', feedback: 'feedback', attachments: 'attachments', config: ['meta', 'config'] }
 };
 const P = () => PATHS[shared() ? 'shared' : 'personal'];
 const col = (kind) => collection(db, ...P().base(), P()[kind]);
@@ -140,6 +141,8 @@ async function openWorkspace(code, { quiet = false } = {}) {
     ui.ws = code; ui.wsDoc = null; ui.sheet = null; ui.capture = null; ui.loading = true;
     ui.filters = { ...ui.filters, entity: '', module: '', session: '', q: '' };
     try { ui.activeSessionId = localStorage.getItem(`esoes:session:${code}`) || ''; } catch (e) { ui.activeSessionId = ''; }
+    ui.selecting = false; ui.selected = new Set(); ui.filters.unread = false;
+    loadSeen();
     if (prefs.current !== code) { prefs.current = code; savePrefs(); }
     render();
 
@@ -223,16 +226,24 @@ async function createWorkspace(name, copyPersonal) {
         const maxSeq = feedback.reduce((m, f) => Math.max(m, f.seq || 0), 0);
         sessions.forEach((x) => writes.push([doc(db, ...base, 'sessions', x.id), x]));
         feedback.forEach((x) => writes.push([doc(db, ...base, 'feedback', x.id), { createdBy: me(), ...x }]));
+        (await getDocs(col('attachments'))).forEach((d) => writes.push([doc(db, ...base, 'attachments', d.id), d.data()]));
         writes.push([doc(db, ...base, 'meta', 'counter'), { seq: maxSeq }]);
     }
-    for (let i = 0; i < writes.length; i += 400) {
-        const batch = writeBatch(db);
-        writes.slice(i, i + 400).forEach(([r, d]) => batch.set(r, clean(d)));
-        await batch.commit();
-    }
+    await commitInChunks(writes);
     rememberWorkspace(code, name);
     await openWorkspace(code, { quiet: true });
     return code;
+}
+
+// Batched writes, kept under Firestore's 500-op / ~10 MB request limits (photos are large).
+async function commitInChunks(writes) {
+    let batch = writeBatch(db), ops = 0, bytes = 0;
+    for (const [r, d] of writes) {
+        const size = JSON.stringify(d).length;
+        if (ops && (ops >= 400 || bytes + size > 7e6)) { await batch.commit(); batch = writeBatch(db); ops = 0; bytes = 0; }
+        batch.set(r, clean(d)); ops++; bytes += size;
+    }
+    if (ops) await batch.commit();
 }
 
 async function joinWorkspace(code) {
@@ -309,6 +320,100 @@ const activeSession = () => sessionById(ui.activeSessionId);
 const badge = (item) => `<span class="badge" style="--c:${item.c}">${esc(item.label)}</span>`;
 const sessionLabel = (s) => s ? `${fmtDate(s.date)} · ${s.title || s.entity || 'Session'}` : '—';
 
+const ago = (ts) => {
+    const s = (Date.now() - ts) / 1000;
+    if (s < 60) return 'just now';
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    if (s < 7 * 86400) return `${Math.floor(s / 86400)}d ago`;
+    return fmtDate(new Date(ts).toISOString().slice(0, 10));
+};
+const firstName = (n) => String(n || '').split(' ')[0];
+
+// Entities that raised an item: the original one plus any "+1 same issue" from other entities.
+const entitiesOf = (f) => [...new Set([f.entity, ...(f.alsoRaised || []).map((a) => a.entity)].filter(Boolean))];
+// An item belongs to a session if it was captured there or someone +1'd it there.
+const inSession = (f, sid) => f.sessionId === sid || (f.alsoRaised || []).some((a) => a.sessionId === sid);
+
+// ---------- What's new (shared workspaces): items others changed since you last looked
+let seen = { base: 0, items: {} };
+const seenKey = () => `esoes:seen:${ui.user.uid}:${ui.ws}`;
+function loadSeen() {
+    try { seen = JSON.parse(localStorage.getItem(seenKey()) || 'null'); } catch (e) { seen = null; }
+    if (!seen || !seen.items) { seen = { base: Date.now(), items: {} }; storeSeen(); }
+}
+const storeSeen = () => { try { localStorage.setItem(seenKey(), JSON.stringify(seen)); } catch (e) { } };
+const isUnread = (f) => shared() && f.updatedBy && f.updatedBy.uid !== ui.user.uid && (f.updatedAt || 0) > (seen.items[f.id] || seen.base);
+function markSeen(id) { seen.items[id] = Date.now(); storeSeen(); }
+
+// ---------- Duplicate detection
+const STOP = new Set(('the and for with that this from have has are was were not but you your they them their there what when which into than then also can cant cannot should would could will just very more most some any all our out its per via able need needs want '
+    + 'yang dan untuk dengan tidak ini itu ada pada dalam boleh akan atau juga kami kita mereka sudah belum perlu').split(' '));
+const tokCache = new Map();
+function tokens(text) {
+    if (tokCache.has(text)) return tokCache.get(text);
+    const set = new Set(String(text || '').toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/)
+        .filter((w) => w.length >= 3 && !STOP.has(w)).map((w) => (w.length > 4 ? w.replace(/(ing|ed|es|s)$/, '') : w)));
+    if (tokCache.size > 2000) tokCache.clear();
+    tokCache.set(text, set);
+    return set;
+}
+function similarTo(d) {
+    const q = tokens(`${d.title} ${d.details}`);
+    if (q.size < 2) return [];
+    return feedback.map((f) => {
+        const t = tokens(`${f.title} ${f.details || ''}`);
+        let inter = 0;
+        q.forEach((w) => { if (t.has(w)) inter++; });
+        if (inter < 2) return null;
+        let score = inter / Math.min(q.size, t.size || 1);
+        if (d.module && f.module === d.module) score += 0.15;
+        return score >= 0.5 ? { f, score } : null;
+    }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.f);
+}
+
+// ---------- Photos: downscaled JPEGs; a small thumbnail lives on the feedback doc,
+// the full image in its own attachment doc (Firestore docs max out at 1 MB).
+function loadImage(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file), img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Not an image')); };
+        img.src = url;
+    });
+}
+function toJpeg(img, maxSide, quality) {
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return { data: c.toDataURL('image/jpeg', quality), w: c.width, h: c.height };
+}
+async function processPhoto(file) {
+    const img = await loadImage(file);
+    let side = 1600, q = 0.75, full = toJpeg(img, side, q);
+    while (full.data.length > 750000 && side > 600) { side = Math.round(side * 0.8); q = Math.max(0.5, q - 0.05); full = toJpeg(img, side, q); }
+    const thumb = toJpeg(img, 360, 0.6);
+    return { id: uid(), full: full.data, thumb: thumb.data, w: full.w, h: full.h };
+}
+function pickPhotos(onPhotos) {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+    inp.onchange = async () => {
+        const files = [...inp.files].slice(0, 6);
+        if (!files.length) return;
+        toast(files.length > 1 ? `Processing ${files.length} photos…` : 'Processing photo…');
+        const out = [];
+        for (const f of files) { try { out.push(await processPhoto(f)); } catch (e) { console.warn(e); } }
+        if (out.length) onPhotos(out); else toast('Couldn’t read that image');
+    };
+    inp.click();
+}
+const savePhoto = (feedbackId, p) => track(setDoc(ref('attachments', p.id), { id: p.id, feedbackId, data: p.full, w: p.w, h: p.h, createdAt: Date.now(), by: me() }));
+const photoMeta = (p) => ({ id: p.id, thumb: p.thumb, w: p.w, h: p.h });
+
 function setActive(id) {
     ui.activeSessionId = id;
     try { id ? localStorage.setItem(`esoes:session:${ui.ws}`, id) : localStorage.removeItem(`esoes:session:${ui.ws}`); } catch (e) { }
@@ -356,6 +461,8 @@ const I = {
     mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
     filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>',
+    camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>',
     users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M16 15l-4 4-4-4"/></svg>',
@@ -396,7 +503,7 @@ function startDictation(el) {
         obj[key] = value;
         const f = document.getElementById(id);
         if (f) f.value = value;
-        if (obj === ui.capture) saveDraft();
+        if (obj === ui.capture) { saveDraft(); refreshDupes(); }
     };
     rec.onerror = (ev) => {
         if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') toast('Allow microphone access to dictate');
@@ -418,7 +525,7 @@ const draftKey = () => `esoes:draft:${ui.user?.uid}:${ui.ws}`;
 let draftTimer;
 function saveDraft() {
     clearTimeout(draftTimer);
-    draftTimer = setTimeout(() => { try { localStorage.setItem(draftKey(), JSON.stringify(ui.capture)); } catch (e) { } }, 250);
+    draftTimer = setTimeout(() => { try { const { photos, ...rest } = ui.capture; localStorage.setItem(draftKey(), JSON.stringify(rest)); } catch (e) { } }, 250);
 }
 function loadDraft() {
     try { const d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); return d && typeof d === 'object' ? d : null; } catch (e) { return null; }
@@ -441,6 +548,7 @@ function render() {
     const fab = ui.tab !== 'capture' ? `<button class="fab" data-a="quick-capture" aria-label="Capture feedback">${I.plus}</button>` : '';
     root.innerHTML = `<div class="shell">${viewSide()}<main class="content">${wsBar()}<div class="offline ${ui.online ? 'hidden' : ''}" data-offline>Offline — notes are saved on this phone and sync when you’re back online.</div>${body}</main></div>${fab}${viewTabbar()}${datalists()}`;
     document.body.classList.toggle('on-capture', ui.tab === 'capture');
+    document.body.classList.toggle('selecting', ui.selecting && ui.tab === 'feedback');
     renderSheet();
     restoreFocus(focus);
 }
@@ -467,7 +575,7 @@ function viewSide() {
         <div class="brand"><img src="assets/icon.svg" alt=""><span>eSOEs Review<small>Feedback tracker</small></span></div>
         ${wsSwitch()}
         ${NAV.map(([id, label]) => `<button class="nav-btn ${ui.tab === id ? 'on' : ''}" data-a="tab" data-id="${id}">${I[id]}<span>${label}</span>
-            ${id === 'feedback' && openCount ? `<span class="count">${openCount}</span>` : ''}${id === 'sessions' && sessions.length ? `<span class="count">${sessions.length}</span>` : ''}</button>`).join('')}
+            ${id === 'feedback' && unreadCount() ? `<span class="count new">${unreadCount()} new</span>` : id === 'feedback' && openCount ? `<span class="count">${openCount}</span>` : ''}${id === 'sessions' && sessions.length ? `<span class="count">${sessions.length}</span>` : ''}</button>`).join('')}
         <button class="me" data-a="tab" data-id="settings">${avatar(u)}<span><b>${esc(u.name)}</b><small><span data-syncdot class="dot ${syncClass()}"></span><span data-synctext>${syncText()}</span></small></span></button>
     </aside>`;
 }
@@ -484,8 +592,10 @@ const wsBar = () => `<div class="ws-bar">${wsSwitch()}</div>`;
 
 const avatar = (u) => `<span class="avatar">${u.photo ? `<img src="${esc(u.photo)}" alt="" referrerpolicy="no-referrer">` : esc((u.name || '?')[0])}</span>`;
 
+const unreadCount = () => (shared() ? feedback.filter(isUnread).length : 0);
 function viewTabbar() {
-    return `<nav class="tabbar">${NAV.map(([id, label]) => `<button class="${ui.tab === id ? 'on' : ''}" data-a="tab" data-id="${id}">${I[id]}<span>${label}</span></button>`).join('')}</nav>`;
+    const n = unreadCount();
+    return `<nav class="tabbar">${NAV.map(([id, label]) => `<button class="${ui.tab === id ? 'on' : ''}" data-a="tab" data-id="${id}">${I[id]}<span>${label}</span>${id === 'feedback' && n ? `<i class="tab-dot">${n}</i>` : ''}</button>`).join('')}</nav>`;
 }
 
 function datalists() {
@@ -516,7 +626,7 @@ function viewLogin() {
 function blankCapture(keep = {}) {
     return {
         entity: activeSession()?.entity || '', module: '', raisedBy: '', type: 'issue', priority: 'medium',
-        title: '', details: '', legacy: '', expected: '', tags: '', ...keep
+        title: '', details: '', legacy: '', expected: '', tags: '', photos: [], ...keep
     };
 }
 
@@ -536,14 +646,14 @@ function micField(tag, id, key, scope, value, attrs) {
 
 function viewCapture() {
     const s = activeSession(), d = ui.capture;
-    const inSession = s ? feedback.filter((f) => f.sessionId === s.id).sort((a, b) => b.createdAt - a.createdAt) : [];
-    const recent = s ? inSession : feedback.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 12);
+    const inSessionList = s ? feedback.filter((f) => inSession(f, s.id)).sort((a, b) => b.createdAt - a.createdAt) : [];
+    const recent = s ? inSessionList : feedback.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 12);
     const showLegacy = d.type === 'gap' || d.type === 'change' || d.legacy || d.expected;
     const ctxOpen = ui.ctxOpen || !d.entity;
     return `<div class="page-head"><div><h1>Capture feedback</h1><p>Log points as users raise them. Everything syncs to your Google account.</p></div></div>
         <div class="card session-bar">
             <span class="live ${s ? '' : 'off'}"></span>
-            <div class="grow">${s ? `<b>${esc(s.title || 'Review session')}</b><span class="muted small">${fmtDate(s.date)}${s.entity ? ' · ' + esc(s.entity) : ''} · ${inSession.length} point${inSession.length === 1 ? '' : 's'} captured</span>`
+            <div class="grow">${s ? `<b>${esc(s.title || 'Review session')}</b><span class="muted small">${fmtDate(s.date)}${s.entity ? ' · ' + esc(s.entity) : ''} · ${inSessionList.length} point${inSessionList.length === 1 ? '' : 's'} captured</span>`
             : '<b>No active session</b><span class="muted small">Start or pick a session so feedback is grouped for minutes.</span>'}</div>
             <select class="select" id="active-session" data-change="active-session" aria-label="Active session">
                 <option value="">— No session —</option>
@@ -567,7 +677,9 @@ function viewCapture() {
                     </div>
                 </div>
                 <div class="field"><label for="c-title">Feedback</label>${micField('input', 'c-title', 'title', 'capture', d.title, 'placeholder="What did they say?" maxlength="200" enterkeyhint="done"')}</div>
+                <div id="dupes">${dupesHtml(d)}</div>
                 <div class="field">${micField('textarea', 'c-details', 'details', 'capture', d.details, 'placeholder="Details, steps, examples… (optional)"')}</div>
+                <div class="field photos-field">${photoStrip(d.photos || [], 'capture')}</div>
                 <div class="field"><span class="lbl">Type</span>${chipsHtml(TYPES, d.type, 'pick-type', 'capture')}</div>
                 <div class="field"><span class="lbl">Priority</span>${chipsHtml(PRIORITIES, d.priority, 'pick-priority', 'capture')}</div>
                 <details class="more" ${showLegacy ? 'open' : ''}><summary>＋ Legacy vs new system</summary>
@@ -582,16 +694,42 @@ function viewCapture() {
             </form>
             <div>
                 <div class="section-title"><span>${s ? 'Captured this session' : 'Recently captured'}</span>${s ? `<button class="btn" data-a="open-session" data-id="${s.id}">Minutes</button>` : ''}</div>
-                <div class="card">${recent.length ? `<div class="items">${recent.map(itemRow).join('')}</div>` : '<div class="empty"><p>Nothing captured yet.</p></div>'}</div>
+                <div class="card">${recent.length ? `<div class="items">${recent.map((f) => itemRow(f)).join('')}</div>` : '<div class="empty"><p>Nothing captured yet.</p></div>'}</div>
             </div>
         </div>`;
 }
 
-function itemRow(f) {
+function dupesHtml(d) {
+    const list = similarTo(d);
+    if (!list.length) return '';
+    return `<div class="dupes"><div class="dupes-head">Looks similar to existing feedback — same issue?</div>
+        ${list.map((f) => `<div class="dupe">
+            <button class="dupe-main" data-a="open-feedback" data-id="${f.id}"><span class="ref">${esc(f.ref)}</span><b>${esc(f.title)}</b>
+                <small>${esc(entitiesOf(f).join(', ') || 'No entity')} · ${esc(byId(STATUSES, f.status).label)}${(f.alsoRaised || []).length ? ` · raised ${f.alsoRaised.length + 1}×` : ''}</small></button>
+            <button class="btn sm-btn" data-a="plus-one" data-id="${f.id}">+1 same issue</button>
+        </div>`).join('')}</div>`;
+}
+let dupesTimer;
+function refreshDupes() {
+    clearTimeout(dupesTimer);
+    dupesTimer = setTimeout(() => { const el = document.getElementById('dupes'); if (el && ui.capture) el.innerHTML = dupesHtml(ui.capture); }, 200);
+}
+
+// Thumbnails with add/remove. scope 'capture' = pending photos; 'sheet' = photos on an existing item.
+function photoStrip(photos, scope) {
+    return `<div class="photos">${photos.map((p) => `<div class="photo"><button class="photo-img" data-a="open-photo" data-id="${p.id}" data-scope="${scope}" aria-label="View photo"><img src="${p.thumb}" alt=""></button>
+            <button class="photo-x" data-a="del-photo" data-id="${p.id}" data-scope="${scope}" aria-label="Remove photo">${I.close}</button></div>`).join('')}
+        <button type="button" class="photo-add" data-a="add-photo" data-scope="${scope}">${I.camera}<span>${photos.length ? 'Add' : 'Photo / screenshot'}</span></button></div>`;
+}
+
+function itemRow(f, { selectable = false } = {}) {
     const s = sessionById(f.sessionId);
     const overdue = f.due && f.due < todayKey() && isOpen(f);
-    return `<button class="item" data-a="open-feedback" data-id="${f.id}">
-        <span class="ref">${esc(f.ref)}</span>
+    const unread = isUnread(f);
+    const sel = selectable && ui.selecting;
+    const others = (f.alsoRaised || []).length;
+    return `<button class="item ${unread ? 'unread' : ''} ${sel && ui.selected.has(f.id) ? 'selected' : ''}" data-a="${sel ? 'toggle-select' : 'open-feedback'}" data-id="${f.id}">
+        <span class="ref">${sel ? `<span class="tick">${ui.selected.has(f.id) ? I.check : ''}</span>` : ''}${unread ? '<i class="unread-dot"></i>' : ''}${esc(f.ref)}</span>
         <span class="t">${esc(f.title)}</span>
         <span>${badge(byId(STATUSES, f.status))}</span>
         <span class="meta">
@@ -603,7 +741,10 @@ function itemRow(f) {
             ${f.due ? `<span class="sep" style="${overdue ? 'color:var(--danger);font-weight:700' : ''}">Due ${fmtDate(f.due)}</span>` : ''}
             ${(f.comments || []).length ? `<span class="sep">💬 ${f.comments.length}</span>` : ''}
             ${s && ui.tab !== 'capture' ? `<span class="sep">${esc(fmtDate(s.date))}</span>` : ''}
-            ${shared() && f.createdBy ? `<span class="sep">✍️ ${esc(f.createdBy.name.split(' ')[0])}</span>` : ''}
+            ${(f.photos || []).length ? `<span class="sep">📷 ${f.photos.length}</span>` : ''}
+            ${others ? `<span class="badge" style="--c:#0d9488">+${others} more raised it</span>` : ''}
+            ${shared() && f.createdBy && !unread ? `<span class="sep">✍️ ${esc(firstName(f.createdBy.name))}</span>` : ''}
+            ${unread ? `<span class="new-pill">${esc(firstName(f.updatedBy.name))} · ${ago(f.updatedAt)}</span>` : ''}
         </span>
     </button>`;
 }
@@ -612,10 +753,10 @@ function itemRow(f) {
 function filtered() {
     const F = ui.filters, q = F.q.trim().toLowerCase();
     let list = feedback.filter((f) =>
-        (!F.entity || f.entity === F.entity) && (!F.module || f.module === F.module) && (!F.type || f.type === F.type) &&
+        (!F.entity || entitiesOf(f).includes(F.entity)) && (!F.unread || isUnread(f)) && (!F.module || f.module === F.module) && (!F.type || f.type === F.type) &&
         (!F.priority || f.priority === F.priority) && (!F.session || f.sessionId === F.session) &&
         (!F.status || (F.status === 'open*' ? isOpen(f) : F.status === 'closed*' ? !isOpen(f) : f.status === F.status)) &&
-        (!q || [f.ref, f.title, f.details, f.legacy, f.expected, f.entity, f.module, f.raisedBy, f.owner, (f.tags || []).join(' '), ...(f.comments || []).map((c) => c.text)]
+        (!q || [f.ref, f.title, f.details, f.legacy, f.expected, f.entity, f.module, f.raisedBy, f.owner, (f.tags || []).join(' '), ...(f.comments || []).map((c) => c.text), ...(f.alsoRaised || []).map((a) => `${a.entity} ${a.raisedBy} ${a.note}`)]
             .join(' ').toLowerCase().includes(q)));
     const pr = (f) => PRIORITIES.findIndex((p) => p.id === f.priority);
     const sorters = {
@@ -645,12 +786,27 @@ function viewFeedback() {
         const keyOf = { entity: (f) => f.entity || '(No entity)', module: (f) => f.module || '(No module)', status: (f) => byId(STATUSES, f.status).label, type: (f) => byId(TYPES, f.type).label, priority: (f) => byId(PRIORITIES, f.priority).label }[F.group];
         const groups = new Map();
         list.forEach((f) => { const k = keyOf(f); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(f); });
-        body = [...groups].map(([k, items]) => `<div class="group-head"><span>${esc(k)}</span><span class="muted">${items.length}</span></div><div class="items">${items.map(itemRow).join('')}</div>`).join('');
+        body = [...groups].map(([k, items]) => `<div class="group-head"><span>${esc(k)}</span><span class="muted">${items.length}</span></div><div class="items">${items.map((f) => itemRow(f, { selectable: true })).join('')}</div>`).join('');
     } else {
-        body = `<div class="items">${list.map(itemRow).join('')}</div>`;
+        body = `<div class="items">${list.map((f) => itemRow(f, { selectable: true })).join('')}</div>`;
     }
+    const nNew = unreadCount();
+    const newsBar = shared() && (nNew || F.unread) ? `<div class="news-bar"><button class="chip-toggle ${F.unread ? 'on' : ''}" data-a="filter-unread">🔵 What’s new (${nNew})</button>
+        ${nNew ? '<button class="link-btn" data-a="mark-all-read">Mark all as read</button>' : ''}</div>` : '';
+    const B = ui.bulk;
+    const bulkBar = ui.selecting ? `<div class="bulk-bar">
+        <div class="bulk-top"><b>${ui.selected.size} selected</b>
+            <button class="link-btn" data-a="select-all">Select all ${list.length}</button>
+            <button class="link-btn" data-a="toggle-select-mode">Cancel</button></div>
+        <div class="bulk-fields">
+            <select class="select" id="b-status" data-change="bulk" data-k="status" aria-label="Set status"><option value="">Status…</option>${STATUSES.map((x) => `<option value="${x.id}" ${B.status === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select>
+            <select class="select" id="b-priority" data-change="bulk" data-k="priority" aria-label="Set priority"><option value="">Priority…</option>${PRIORITIES.map((x) => `<option value="${x.id}" ${B.priority === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select>
+            <input class="input" id="b-owner" list="dl-owners" data-scope="bulk" data-bind="owner" value="${esc(B.owner)}" placeholder="Owner…">
+            <button class="btn primary" data-a="bulk-apply" ${ui.selected.size ? '' : 'disabled'}>Apply</button>
+        </div></div>` : '';
     return `<div class="page-head"><div><h1>Feedback</h1><p>${list.length} of ${feedback.length} item${feedback.length === 1 ? '' : 's'}</p></div>
-            <div class="actions hide-sm"><button class="btn" data-a="export-csv" data-scope="filtered">${I.download} Export view (CSV)</button><button class="btn primary" data-a="tab" data-id="capture">${I.plus} Capture</button></div></div>
+            <div class="actions"><button class="btn ${ui.selecting ? 'on' : ''}" data-a="toggle-select-mode">${I.check} ${ui.selecting ? 'Done' : 'Select'}</button><button class="btn hide-sm" data-a="export-csv" data-scope="filtered">${I.download} Export view (CSV)</button><button class="btn primary hide-sm" data-a="tab" data-id="capture">${I.plus} Capture</button></div></div>
+        ${newsBar}
         <div class="card">
             <div class="toolbar">
                 <div class="search">${I.search}<input class="input" id="f-q" type="search" data-scope="filters" data-bind="q" value="${esc(F.q)}" placeholder="Search ref, text, people, tags…"></div>
@@ -670,7 +826,8 @@ function viewFeedback() {
                 </div>
             </div>
             ${body}
-        </div>`;
+        </div>
+        ${bulkBar}`;
 }
 
 // ---------- Sessions
@@ -678,7 +835,7 @@ function viewSessions() {
     return `<div class="page-head"><div><h1>Review sessions</h1><p>One session per meeting / workshop with an entity.</p></div>
             <div class="actions"><button class="btn primary" data-a="new-session">${I.plus} New session</button></div></div>
         ${sessions.length ? `<div class="sessions">${sessions.map((s) => {
-            const items = feedback.filter((f) => f.sessionId === s.id);
+            const items = feedback.filter((f) => inSession(f, s.id));
             const open = items.filter(isOpen).length;
             const people = (s.attendees || '').split('\n').filter((x) => x.trim()).length;
             return `<button class="card session-card" data-a="open-session" data-id="${s.id}">
@@ -699,6 +856,7 @@ function viewDashboard() {
     const closed = feedback.length - open.length;
     const today = todayKey();
     const overdue = open.filter((f) => f.due && f.due < today).sort((a, b) => a.due.localeCompare(b.due));
+    const mostRaised = open.filter((f) => entitiesOf(f).length > 1 || (f.alsoRaised || []).length).sort((a, b) => (b.alsoRaised || []).length - (a.alsoRaised || []).length).slice(0, 8);
 
     const entities = [...new Set(feedback.map((f) => f.entity || '(No entity)'))].sort();
     const matrix = `<div class="matrix-wrap"><table class="matrix"><thead><tr><th>Entity</th>${STATUSES.map((s) => `<th>${s.label}</th>`).join('')}<th>Total</th></tr></thead><tbody>
@@ -736,7 +894,8 @@ function viewDashboard() {
             <div><div class="section-title">Open by type</div><div class="card pad">${bars((f) => f.type, TYPES, 'type')}</div>
                 <div class="section-title">Open by priority</div><div class="card pad">${bars((f) => f.priority, PRIORITIES, 'priority')}</div></div>
         </div>
-        ${overdue.length ? `<div class="section-title">Overdue (${overdue.length})</div><div class="card"><div class="items">${overdue.map(itemRow).join('')}</div></div>` : ''}`;
+        ${mostRaised.length ? `<div class="section-title">Raised by several entities</div><div class="card"><div class="items">${mostRaised.map((f) => itemRow(f)).join('')}</div></div>` : ''}
+        ${overdue.length ? `<div class="section-title">Overdue (${overdue.length})</div><div class="card"><div class="items">${overdue.map((f) => itemRow(f)).join('')}</div></div>` : ''}`;
 }
 
 // ---------- Settings
@@ -804,6 +963,10 @@ function sheetFeedback() {
         <div class="field"><span class="lbl">Status</span>${chipsHtml(STATUSES, d.status, 'pick-status', 'sheet')}</div>
         <div class="field"><label for="d-title">Summary</label><input class="input title" id="d-title" data-scope="sheet" data-bind="title" value="${esc(d.title)}" maxlength="200"></div>
         <div class="field"><label for="d-details">Details</label>${micField('textarea', 'd-details', 'details', 'sheet', d.details, '')}</div>
+        <div class="field"><span class="lbl">Photos (${(d.photos || []).length})</span>${photoStrip(d.photos || [], 'sheet')}</div>
+        ${(d.alsoRaised || []).length ? `<div class="section-title">Also raised by (${d.alsoRaised.length})</div>
+        <div class="comments">${d.alsoRaised.map((a) => `<div class="comment"><small><span><b>${esc(a.entity || 'No entity')}</b>${a.raisedBy ? ' · ' + esc(a.raisedBy) : ''} · ${fmtTime(a.at)}${sessionById(a.sessionId) ? ' · ' + esc(sessionLabel(sessionById(a.sessionId))) : ''}</span>
+            <button class="small muted" data-a="del-also" data-id="${a.id}">Remove</button></small>${a.note ? `<p>${esc(a.note)}</p>` : ''}</div>`).join('')}</div>` : ''}
         <div class="row wrap">
             <div class="field"><label for="d-legacy">Legacy system</label><textarea class="textarea" id="d-legacy" data-scope="sheet" data-bind="legacy">${esc(d.legacy)}</textarea></div>
             <div class="field"><label for="d-expected">Expected in new system</label><textarea class="textarea" id="d-expected" data-scope="sheet" data-bind="expected">${esc(d.expected)}</textarea></div>
@@ -835,10 +998,11 @@ function sheetFeedback() {
 
 function sheetSession() {
     const d = ui.draft, isNew = !sessionById(d.id);
-    const items = feedback.filter((f) => f.sessionId === d.id).sort((a, b) => a.createdAt - b.createdAt);
+    const items = feedback.filter((f) => inSession(f, d.id)).sort((a, b) => a.createdAt - b.createdAt);
     return `<div class="sheet-head"><h2>${isNew ? 'New review session' : 'Review session'}</h2><button class="icon-btn" data-a="close" aria-label="Close">${I.close}</button></div>
         ${isNew ? '' : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
             ${d.id === ui.activeSessionId ? '<span class="badge" style="--c:#16a34a">● Active session</span>' : '<button class="btn primary" data-a="activate-session">Capture in this session</button>'}
+            <button class="btn" data-a="share-session">${I.share} Share summary</button>
             <button class="btn" data-a="print-session">${I.print} Print minutes</button>
             <button class="btn" data-a="export-csv" data-scope="session">${I.download} CSV</button></div>`}
         <div class="field"><label for="s-title">Title</label><input class="input title" id="s-title" data-scope="sheet" data-bind="title" value="${esc(d.title)}" placeholder="e.g. Finance module walkthrough"></div>
@@ -850,7 +1014,7 @@ function sheetSession() {
         <div class="field"><span class="lbl">Modules covered</span><div class="chips">${config.modules.map((m) => `<button class="${(d.modules || []).includes(m) ? 'on' : ''}" data-a="toggle-module" data-v="${esc(m)}">${esc(m)}</button>`).join('')}</div></div>
         <div class="field"><label for="s-att">Attendees</label><textarea class="textarea" id="s-att" data-scope="sheet" data-bind="attendees" placeholder="One per line — Name, role / department">${esc(d.attendees)}</textarea></div>
         <div class="field"><label for="s-notes">General notes / minutes</label>${micField('textarea', 's-notes', 'notes', 'sheet', d.notes, 'style="min-height:120px" placeholder="Agenda, overall impressions, decisions, next steps…"')}</div>
-        ${isNew ? '' : `<div class="section-title">Feedback captured (${items.length})</div><div class="card">${items.length ? `<div class="items">${items.map(itemRow).join('')}</div>` : '<div class="empty"><p>None yet.</p></div>'}</div>`}
+        ${isNew ? '' : `<div class="section-title">Feedback captured (${items.length})</div><div class="card">${items.length ? `<div class="items">${items.map((f) => itemRow(f)).join('')}</div>` : '<div class="empty"><p>None yet.</p></div>'}</div>`}
         <div class="sheet-actions">${isNew ? '<span></span>' : '<button class="btn danger" data-a="del-session">Delete session</button>'}
             <div style="display:flex;gap:8px"><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="save-session">${isNew ? 'Create & start capturing' : 'Save'}</button></div></div>`;
 }
@@ -916,6 +1080,8 @@ function toCsv(items) {
         ['Session', (f) => sessionById(f.sessionId)?.title || ''], ['Entity', (f) => f.entity], ['Module', (f) => f.module], ['Raised by', (f) => f.raisedBy],
         ['Type', (f) => byId(TYPES, f.type).label], ['Priority', (f) => byId(PRIORITIES, f.priority).label], ['Status', (f) => byId(STATUSES, f.status).label],
         ['Summary', (f) => f.title], ['Details', (f) => f.details], ['Legacy system', (f) => f.legacy], ['Expected in new system', (f) => f.expected],
+        ['Also raised by', (f) => (f.alsoRaised || []).map((a) => [a.entity, a.raisedBy].filter(Boolean).join(' – ') + (a.note ? `: ${a.note}` : '')).join('\n')],
+        ['Entities affected', (f) => entitiesOf(f).length], ['Photos', (f) => (f.photos || []).length],
         ['Owner', (f) => f.owner], ['Due', (f) => f.due], ['Tags', (f) => (f.tags || []).join(', ')],
         ['Follow-ups', (f) => (f.comments || []).map((c) => `[${new Date(c.at).toLocaleDateString()}] ${c.text}`).join('\n')]
     ];
@@ -932,7 +1098,7 @@ function download(name, text, type) {
 }
 
 function printSession(s) {
-    const items = feedback.filter((f) => f.sessionId === s.id).sort((a, b) => (a.module || '').localeCompare(b.module || '') || a.createdAt - b.createdAt);
+    const items = feedback.filter((f) => inSession(f, s.id)).sort((a, b) => (a.module || '').localeCompare(b.module || '') || a.createdAt - b.createdAt);
     const byModule = new Map();
     items.forEach((f) => { const k = f.module || 'General'; if (!byModule.has(k)) byModule.set(k, []); byModule.get(k).push(f); });
     document.getElementById('print-root').innerHTML = `
@@ -941,22 +1107,63 @@ function printSession(s) {
         ${s.attendees ? `<h2>Attendees</h2><div class="notes">${esc(s.attendees)}</div>` : ''}
         ${s.notes ? `<h2>General notes</h2><div class="notes">${esc(s.notes)}</div>` : ''}
         ${[...byModule].map(([m, list]) => `<h2>${esc(m)}</h2><table><thead><tr><th style="width:8%">Ref</th><th style="width:30%">Feedback</th><th>Legacy / Expected</th><th style="width:11%">Type</th><th style="width:9%">Priority</th><th style="width:12%">Raised by</th><th style="width:10%">Status</th></tr></thead><tbody>
-            ${list.map((f) => `<tr><td>${esc(f.ref)}</td><td><b>${esc(f.title)}</b>${f.details ? `<div class="notes">${esc(f.details)}</div>` : ''}</td>
+            ${list.map((f) => `<tr><td>${esc(f.ref)}</td><td><b>${esc(f.title)}</b>${f.details ? `<div class="notes">${esc(f.details)}</div>` : ''}
+                ${f.sessionId !== s.id ? '<div class="notes"><i>Raised earlier; also raised in this session.</i></div>' : ''}
+                ${(f.alsoRaised || []).length ? `<div class="notes"><b>Also raised by:</b> ${esc(f.alsoRaised.map((a) => a.entity || a.raisedBy).filter(Boolean).join(', '))}</div>` : ''}
+                ${(f.photos || []).length ? `<div class="print-photos">${f.photos.map((p) => `<img src="${p.thumb}" alt="">`).join('')}</div>` : ''}</td>
                 <td>${f.legacy ? `<div class="notes"><b>Legacy:</b> ${esc(f.legacy)}</div>` : ''}${f.expected ? `<div class="notes"><b>Expected:</b> ${esc(f.expected)}</div>` : ''}</td>
                 <td>${esc(byId(TYPES, f.type).label)}</td><td>${esc(byId(PRIORITIES, f.priority).label)}</td><td>${esc(f.raisedBy)}</td><td>${esc(byId(STATUSES, f.status).label)}</td></tr>`).join('')}
             </tbody></table>`).join('')}`;
     window.print();
 }
 
+// ---------------------------------------------------------------- Photo viewer
+async function openLightbox(scope, id) {
+    const list = scope === 'capture' ? ui.capture.photos : ui.draft?.photos || [];
+    const p = list.find((x) => x.id === id);
+    if (!p) return;
+    const box = document.createElement('div');
+    box.className = 'lightbox';
+    box.innerHTML = `<img src="${p.full || p.thumb}" alt=""><button class="icon-btn lb-close" aria-label="Close">${I.close}</button>${p.full ? '' : '<span class="lb-loading">Loading full size…</span>'}`;
+    box.addEventListener('click', (e) => { if (e.target === box || e.target.closest('.lb-close')) box.remove(); });
+    document.body.appendChild(box);
+    if (!p.full) {
+        try {
+            const snap = await getDoc(ref('attachments', id));
+            if (snap.exists() && box.isConnected) box.querySelector('img').src = snap.data().data;
+        } catch (e) { console.warn(e); }
+        box.querySelector('.lb-loading')?.remove();
+    }
+}
+
+// Session recap as plain text, for WhatsApp / Teams / email.
+function sessionSummary(s) {
+    const items = feedback.filter((f) => inSession(f, s.id)).sort((a, b) => (a.seq || 0) - (b.seq || 0));
+    const count = (list, key) => list.map((x) => [x.label, items.filter((f) => f[key] === x.id).length]).filter(([, n]) => n).map(([l, n]) => `${l} ${n}`).join(', ');
+    const lines = [
+        `*${s.title || 'Review session'}* — ${fmtDate(s.date)}${s.entity ? ` · ${s.entity}` : ''}`,
+        `${items.length} feedback point${items.length === 1 ? '' : 's'}${items.length ? ` (${count(PRIORITIES, 'priority')})` : ''}`,
+        items.length ? `By type: ${count(TYPES, 'type')}` : '', ''
+    ];
+    items.forEach((f) => lines.push(`• ${f.ref} [${byId(PRIORITIES, f.priority).label}] ${f.title}${f.module ? ` — ${f.module}` : ''} (${byId(STATUSES, f.status).label})`));
+    if (s.notes) lines.push('', 'Notes:', s.notes);
+    return lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim();
+}
+
 // ---------------------------------------------------------------- Actions
-async function saveCapture() {
-    const d = ui.capture;
-    if (!d.title.trim() && !d.details.trim()) { toast('Write the feedback first'); document.getElementById('c-title')?.focus(); return; }
-    const ws = ui.ws;
-    stopDictation();
+// Clears the capture form after a save or +1, keeping who/where for the next point.
+function resetCapture(d) {
     ui.capture = blankCapture({ entity: d.entity, module: d.module, raisedBy: d.raisedBy, tags: d.tags });
     ui.ctxOpen = false;
     clearDraft();
+}
+
+async function saveCapture() {
+    const d = ui.capture;
+    if (!d.title.trim() && !d.details.trim()) { toast((d.photos || []).length ? 'Add a line describing the photo' : 'Write the feedback first'); document.getElementById('c-title')?.focus(); return; }
+    const ws = ui.ws;
+    stopDictation();
+    resetCapture(d);
     buzz(20);
     render();
     if (!matchMedia('(max-width: 860px)').matches) document.getElementById('c-title')?.focus();
@@ -969,9 +1176,11 @@ async function saveCapture() {
         title: d.title.trim() || d.details.trim().split('\n')[0].slice(0, 120), details: d.details.trim(),
         legacy: d.legacy.trim(), expected: d.expected.trim(), owner: '', due: '',
         tags: d.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        photos: (d.photos || []).map(photoMeta),
         comments: [], history: [], createdAt: Date.now()
     };
     feedback.push(f);
+    (d.photos || []).forEach((p) => savePhoto(f.id, p));
     saveFeedback(f);
     const changed = remember('entities', f.entity) | remember('modules', f.module);
     if (changed) saveConfig();
@@ -985,6 +1194,7 @@ function saveDraftFeedback() {
     if (!d.title.trim()) { toast('Summary can’t be empty'); return; }
     const f = { ...d, title: d.title.trim(), tags: d.tagsText.split(',').map((t) => t.trim()).filter(Boolean) };
     delete f.tagsText; delete f.commentText;
+    if (prev) { f.photos = prev.photos || []; f.alsoRaised = prev.alsoRaised || []; f.comments = prev.comments || []; }
     const hist = [...(f.history || [])];
     const at = Date.now();
     if (prev) {
@@ -1002,7 +1212,7 @@ function saveDraftFeedback() {
 }
 
 const A = {
-    tab: (el) => { stopDictation(); ui.tab = el.dataset.id; closeSheet(); render(); window.scrollTo(0, 0); },
+    tab: (el) => { stopDictation(); ui.tab = el.dataset.id; ui.selecting = false; ui.selected = new Set(); closeSheet(); render(); window.scrollTo(0, 0); },
     login,
     logout: () => { if (confirm('Sign out?')) signOut(auth); },
     theme: (el) => { prefs.theme = el.dataset.v; applyTheme(); savePrefs(); render(); },
@@ -1062,7 +1272,7 @@ const A = {
         const code = ui.ws;
         try {
             const refs = [];
-            for (const c of ['sessions', 'feedback', 'meta']) (await getDocs(collection(db, 'esoes_workspaces', code, c))).forEach((d) => refs.push(d.ref));
+            for (const c of ['sessions', 'feedback', 'attachments', 'meta']) (await getDocs(collection(db, 'esoes_workspaces', code, c))).forEach((d) => refs.push(d.ref));
             for (let i = 0; i < refs.length; i += 400) {
                 const batch = writeBatch(db);
                 refs.slice(i, i + 400).forEach((r) => batch.delete(r));
@@ -1088,6 +1298,116 @@ const A = {
         if (ui.ctxOpen) document.getElementById('c-entity')?.focus();
     },
     dictate: (el) => startDictation(el),
+
+    // photos
+    'add-photo': (el) => {
+        const scope = el.dataset.scope;
+        pickPhotos((photos) => {
+            if (scope === 'capture') {
+                ui.capture.photos = [...(ui.capture.photos || []), ...photos];
+                render();
+                toast(`${photos.length} photo${photos.length === 1 ? '' : 's'} attached — saved with this feedback`);
+            } else if (ui.draft) {
+                const f = feedback.find((x) => x.id === ui.draft.id);
+                if (!f) return;
+                photos.forEach((p) => savePhoto(f.id, p));
+                f.photos = [...(f.photos || []), ...photos.map(photoMeta)];
+                ui.draft.photos = f.photos;
+                saveFeedback(f);
+                renderSheet(); toast('Photo added');
+            }
+        });
+    },
+    'open-photo': (el) => openLightbox(el.dataset.scope, el.dataset.id),
+    'del-photo': (el) => {
+        const id = el.dataset.id;
+        if (el.dataset.scope === 'capture') { ui.capture.photos = ui.capture.photos.filter((p) => p.id !== id); render(); return; }
+        if (!confirm('Delete this photo?')) return;
+        const f = feedback.find((x) => x.id === ui.draft.id);
+        if (!f) return;
+        f.photos = (f.photos || []).filter((p) => p.id !== id);
+        ui.draft.photos = f.photos;
+        saveFeedback(f);
+        track(deleteDoc(ref('attachments', id)));
+        renderSheet();
+    },
+
+    // "+1 same issue": record that another entity / person raised an existing item
+    'plus-one': (el) => {
+        const f = feedback.find((x) => x.id === el.dataset.id), d = ui.capture;
+        if (!f) return;
+        const at = Date.now();
+        const note = [d.title.trim(), d.details.trim()].filter(Boolean).join(' — ');
+        f.alsoRaised = [...(f.alsoRaised || []), { id: uid(), entity: d.entity.trim(), raisedBy: d.raisedBy.trim(), sessionId: ui.activeSessionId || '', at, by: ui.user.name, note }];
+        f.history = [...(f.history || []), { at, by: ui.user.name, text: `Also raised by ${d.entity.trim() || d.raisedBy.trim() || 'another user'}` }];
+        (d.photos || []).forEach((p) => savePhoto(f.id, p));
+        f.photos = [...(f.photos || []), ...(d.photos || []).map(photoMeta)];
+        saveFeedback(f);
+        if (remember('entities', d.entity)) saveConfig();
+        stopDictation();
+        resetCapture(d);
+        buzz(20);
+        render();
+        toast(`Added to ${f.ref} — raised ${f.alsoRaised.length + 1}×`);
+    },
+    'del-also': (el) => {
+        if (!confirm('Remove this entry?')) return;
+        const f = feedback.find((x) => x.id === ui.draft.id);
+        if (!f) return;
+        f.alsoRaised = (f.alsoRaised || []).filter((a) => a.id !== el.dataset.id);
+        ui.draft.alsoRaised = f.alsoRaised;
+        saveFeedback(f); renderSheet();
+    },
+
+    'share-session': async () => {
+        const s = sessionById(ui.draft.id);
+        if (!s) return;
+        const text = sessionSummary(s);
+        if (navigator.share) {
+            try { await navigator.share({ title: s.title || 'Review session', text }); return; }
+            catch (e) { if (e.name === 'AbortError') return; }
+        }
+        copyText(text, 'Summary copied — paste it into WhatsApp, Teams or email');
+    },
+
+    // bulk triage
+    'toggle-select-mode': () => { ui.selecting = !ui.selecting; ui.selected = new Set(); ui.bulk = { status: '', priority: '', owner: '' }; render(); },
+    'toggle-select': (el) => {
+        const id = el.dataset.id;
+        ui.selected.has(id) ? ui.selected.delete(id) : ui.selected.add(id);
+        buzz(8); render();
+    },
+    'select-all': () => {
+        const ids = filtered().map((f) => f.id);
+        ui.selected = ids.every((id) => ui.selected.has(id)) ? new Set() : new Set(ids);
+        render();
+    },
+    'bulk-apply': async () => {
+        const B = ui.bulk, owner = B.owner.trim();
+        if (!B.status && !B.priority && !owner) { toast('Choose a status, priority or owner to set'); return; }
+        const items = feedback.filter((f) => ui.selected.has(f.id));
+        const at = Date.now(), by = ui.user.name;
+        const writes = [];
+        for (const f of items) {
+            const hist = [...(f.history || [])];
+            if (B.status && f.status !== B.status) { hist.push({ at, by, text: `Status: ${byId(STATUSES, f.status).label} → ${byId(STATUSES, B.status).label}` }); f.status = B.status; }
+            if (B.priority && f.priority !== B.priority) { hist.push({ at, by, text: `Priority: ${byId(PRIORITIES, f.priority).label} → ${byId(PRIORITIES, B.priority).label}` }); f.priority = B.priority; }
+            if (owner && f.owner !== owner) { hist.push({ at, by, text: `Owner: ${owner}` }); f.owner = owner; }
+            if (hist.length === (f.history || []).length) continue;
+            f.history = hist; f.updatedAt = at; f.updatedBy = me();
+            writes.push([ref('feedback', f.id), f]);
+        }
+        if (owner && remember('owners', owner)) saveConfig();
+        ui.selecting = false; ui.selected = new Set(); ui.bulk = { status: '', priority: '', owner: '' };
+        render();
+        if (!writes.length) { toast('Nothing to change'); return; }
+        await track(commitInChunks(writes));
+        toast(`Updated ${writes.length} item${writes.length === 1 ? '' : 's'}`);
+    },
+
+    // what's new
+    'filter-unread': () => { ui.filters.unread = !ui.filters.unread; if (ui.filters.unread) ui.filters.status = ''; render(); },
+    'mark-all-read': () => { seen = { base: Date.now(), items: {} }; storeSeen(); ui.filters.unread = false; render(); toast('All caught up'); },
     'quick-capture': () => { ui.tab = 'capture'; closeSheet(); render(); window.scrollTo(0, 0); },
     'toggle-filters': () => { ui.showFilters = !ui.showFilters; render(); },
     'dict-lang': (el) => { prefs.lang = el.dataset.v; savePrefs(); render(); },
@@ -1095,6 +1415,7 @@ const A = {
     'open-feedback': (el) => {
         const f = feedback.find((x) => x.id === el.dataset.id);
         if (!f) return;
+        if (isUnread(f)) { markSeen(f.id); render(); }
         openSheet({ type: 'feedback' }, { owner: '', due: '', legacy: '', expected: '', details: '', raisedBy: '', comments: [], history: [], ...JSON.parse(JSON.stringify(f)), tagsText: (f.tags || []).join(', ') });
     },
     'save-feedback': saveDraftFeedback,
@@ -1120,8 +1441,10 @@ const A = {
     'del-feedback': () => {
         if (!confirm(`Delete ${ui.draft.ref}? This can’t be undone.`)) return;
         const id = ui.draft.id;
+        const photos = feedback.find((f) => f.id === id)?.photos || [];
         feedback = feedback.filter((f) => f.id !== id);
         track(deleteDoc(ref('feedback', id)));
+        photos.forEach((p) => track(deleteDoc(ref('attachments', p.id))));
         closeSheet(); render(); toast('Deleted');
     },
 
@@ -1194,7 +1517,11 @@ const A = {
         if (scope !== 'filtered') items = items.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
         download(`esoes-feedback-${name}-${todayKey()}.csv`, toCsv(items), 'text/csv;charset=utf-8');
     },
-    'export-json': () => download(`esoes-review-backup-${todayKey()}.json`, JSON.stringify({ config, sessions, feedback }, null, 2), 'application/json'),
+    'export-json': async () => {
+        let attachments = [];
+        try { attachments = (await getDocs(col('attachments'))).docs.map((d) => d.data()); } catch (e) { toast('Photos couldn’t be included — exporting notes only'); }
+        download(`esoes-review-backup-${todayKey()}.json`, JSON.stringify({ config, sessions, feedback, attachments }, null, 2), 'application/json');
+    },
     'import-json': () => {
         const inp = document.createElement('input');
         inp.type = 'file'; inp.accept = '.json,application/json';
@@ -1203,12 +1530,8 @@ const A = {
                 const data = JSON.parse(await inp.files[0].text());
                 if (!Array.isArray(data.feedback) || !Array.isArray(data.sessions)) throw new Error('bad file');
                 if (!confirm(`Restore ${data.feedback.length} feedback items and ${data.sessions.length} sessions? Items with the same ID are overwritten.`)) return;
-                const all = [...data.sessions.map((s) => ['sessions', s]), ...data.feedback.map((f) => ['feedback', f])];
-                for (let i = 0; i < all.length; i += 400) {
-                    const batch = writeBatch(db);
-                    all.slice(i, i + 400).forEach(([c, o]) => batch.set(ref(c, o.id), clean(o)));
-                    await track(batch.commit());
-                }
+                const all = [...data.sessions.map((s) => ['sessions', s]), ...data.feedback.map((f) => ['feedback', f]), ...(data.attachments || []).map((a) => ['attachments', a])];
+                await track(commitInChunks(all.map(([c, o]) => [ref(c, o.id), o])));
                 if (data.config) { config = { ...config, ...data.config }; saveConfig(); }
                 toast('Backup restored');
             } catch (e) { console.error(e); toast('That file isn’t a valid backup'); }
@@ -1217,7 +1540,7 @@ const A = {
     }
 };
 
-const scopeObj = (el) => (el.dataset.scope === 'sheet' ? ui.draft : el.dataset.scope === 'filters' ? ui.filters : ui.capture);
+const scopeObj = (el) => ({ sheet: ui.draft, filters: ui.filters, bulk: ui.bulk }[el.dataset.scope] || ui.capture);
 
 document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-a]');
@@ -1233,7 +1556,7 @@ document.addEventListener('input', (e) => {
     const obj = scopeObj(t);
     if (!obj) return;
     obj[t.dataset.bind] = t.value;
-    if (obj === ui.capture) saveDraft();
+    if (obj === ui.capture) { saveDraft(); if (t.dataset.bind === 'title' || t.dataset.bind === 'details' || t.dataset.bind === 'module') refreshDupes(); }
     if (t.dataset.scope === 'filters') { clearTimeout(searchTimer); searchTimer = setTimeout(render, 120); }
 });
 
@@ -1243,6 +1566,7 @@ document.addEventListener('change', (e) => {
     else if (t.dataset.change === 'join-open') track(updateDoc(wsRef(ui.ws), { joinOpen: t.checked }));
     else if (t.dataset.change === 'copy-personal') { ui.draft.copy = t.checked; }
     else if (t.dataset.change === 'filter') { ui.filters[t.dataset.k] = t.value; render(); }
+    else if (t.dataset.change === 'bulk') { ui.bulk[t.dataset.k] = t.value; }
     else if (t.dataset.bind && t.tagName === 'SELECT') { const obj = scopeObj(t); if (obj) obj[t.dataset.bind] = t.value; }
 });
 
@@ -1254,6 +1578,8 @@ document.addEventListener('keydown', (e) => {
         else if (ui.tab === 'capture' && ui.user) saveCapture();
         return;
     }
+    if (e.key === 'Escape' && document.querySelector('.lightbox')) { document.querySelector('.lightbox').remove(); return; }
+    if (e.key === 'Escape' && ui.selecting) { A['toggle-select-mode'](); return; }
     if (e.key === 'Escape' && ui.sheet) { closeSheet(); return; }
     if (e.key === 'Enter' && e.target.dataset?.enter && A[e.target.dataset.enter]) { e.preventDefault(); A[e.target.dataset.enter](e.target); return; }
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '');
@@ -1262,5 +1588,5 @@ document.addEventListener('keydown', (e) => {
 
 window.addEventListener('beforeunload', (e) => {
     const d = ui.capture;
-    if (d && (d.title.trim() || d.details.trim())) { e.preventDefault(); e.returnValue = ''; }
+    if (d && (d.title.trim() || d.details.trim() || (d.photos || []).length)) { e.preventDefault(); e.returnValue = ''; }
 });
