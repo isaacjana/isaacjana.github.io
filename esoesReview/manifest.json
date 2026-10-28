@@ -1,0 +1,11 @@
+{
+  "name": "eSOEs Review Notes",
+  "short_name": "eSOEs Review",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#f6f7f9",
+  "icons": [{ "src": "assets/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }],
+  "description": "Capture and track user feedback from eSOEs system review sessions."
+}
