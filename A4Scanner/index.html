@@ -146,7 +146,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
         <div class="seg" id="layoutSeg"><button data-v="1">One per page</button><button data-v="2">Side by side</button><button data-v="id">ID front + back</button></div></div>
       <div class="opt"><label for="fname">File name</label><input id="fname" value="scan" autocomplete="off" spellcheck="false"></div>
     </div>
-    <p class="note">“ID front + back” puts the card from scan 1 above the card from scan 2 on a single A4 page, at true size, like a photocopy. “Side by side” shrinks two whole sheets onto one landscape page. “One per page” keeps each sheet as its own page.</p>
+    <p class="note">“ID front + back” puts the card from scan 1 above the card from scan 2 on a single A4 page, straightened and at true size, like a photocopy. “Side by side” shrinks two whole sheets onto one landscape page. “One per page” keeps each sheet as its own page.</p>
   </div>
   <footer>
     <button class="btn danger" id="clearBtn">Clear all</button>
@@ -350,45 +350,47 @@ function warp(srcData, corners) {
   return out;
 }
 // Evens out lighting and shadows so the paper comes out white, like a flatbed scan.
-function enhance(img, gray) {
+function enhance(img, gray, target = 262) {
   const d = img.data, w = img.width, h = img.height;
-  const cs = Math.max(16, Math.round(Math.min(w, h) / 12)), gw = Math.ceil(w / cs), gh = Math.ceil(h / cs);
+  // 1. paper colour: average of the brighter pixels gives the white balance
+  const gh0 = new Uint32Array(256); let total = 0;
+  for (let p = 0; p < d.length; p += 64) { gh0[(d[p] * 77 + d[p + 1] * 151 + d[p + 2] * 28) >> 8]++; total++; }
+  let thr = 255; for (let acc = 0; thr > 0; thr--) { acc += gh0[thr]; if (acc >= total * 0.4) break; }
+  let sr = 0, sg = 0, sb = 0;
+  for (let p = 0; p < d.length; p += 64) if (((d[p] * 77 + d[p + 1] * 151 + d[p + 2] * 28) >> 8) >= thr) { sr += d[p]; sg += d[p + 1]; sb += d[p + 2]; }
+  const clamp = v => Math.min(1.7, Math.max(0.6, v));
+  const avg = (sr + sg + sb) / 3 || 1, kr = clamp(avg / (sr || 1)), kg = clamp(avg / (sg || 1)), kb = clamp(avg / (sb || 1));
+  // 2. brightness of the paper in each small cell; cells that are mostly coloured (a card, a photo) do not count
+  const cs = Math.max(8, Math.round(Math.min(w, h) / 40)), gw = Math.ceil(w / cs), gh = Math.ceil(h / cs);
   let map = new Float32Array(gw * gh);
   const hist = new Uint32Array(256);
-  let sr = 0, sg = 0, sb = 0, sc = 0;
   for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
-    hist.fill(0); let cnt = 0;
+    hist.fill(0); let cnt = 0, neutral = 0;
     const x1 = Math.min(w, (gx + 1) * cs), y1 = Math.min(h, (gy + 1) * cs);
     for (let y = gy * cs; y < y1; y += 2) for (let x = gx * cs; x < x1; x += 2) {
-      const p = (y * w + x) * 4; hist[(d[p] * 77 + d[p + 1] * 151 + d[p + 2] * 28) >> 8]++; cnt++;
+      const p = (y * w + x) * 4, r = d[p] * kr, g = d[p + 1] * kg, b = d[p + 2] * kb, mx = Math.max(r, g, b);
+      cnt++;
+      if (mx - Math.min(r, g, b) < mx * 0.12 + 8) { neutral++; hist[Math.min(255, (r * 77 + g * 151 + b * 28) >> 8)]++; }
     }
-    let acc = 0, v = 255; const need = cnt * 0.15;
+    let acc = 0, v = 255; const need = neutral * 0.3;
     for (; v > 0; v--) { acc += hist[v]; if (acc >= need) break; }
-    // paper is close to neutral; a cell that is mostly coloured is an object, not paper
-    let neutral = 0, n4 = 0;
-    for (let y = gy * cs; y < y1; y += 4) for (let x = gx * cs; x < x1; x += 4) {
-      const p = (y * w + x) * 4, r = d[p], g = d[p + 1], b = d[p + 2], l = (r * 77 + g * 151 + b * 28) >> 8;
-      n4++;
-      if (Math.max(r, g, b) - Math.min(r, g, b) < l * 0.22 + 14) { neutral++; if (l >= v) { sr += r; sg += g; sb += b; sc++; } }
-    }
-    map[gy * gw + gx] = neutral < n4 * 0.5 ? 0 : v;
+    map[gy * gw + gx] = neutral < cnt * 0.6 ? 0 : v;
   }
   const valid = Array.from(map).filter(v => v > 0).sort((a, b) => a - b);
   const ref = valid.length ? valid[valid.length >> 1] : 255;
-  // Lighting changes smoothly, so a cell much darker than its surroundings is covered by an object:
-  // replace it with the local median of its neighbourhood.
-  const raw = map.slice();
-  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
-    const nb = [];
-    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
-      const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
-      const v = raw[yy * gw + xx]; if (v > ref * 0.5) nb.push(v);
-    }
-    nb.sort((a, b) => a - b);
-    const med = nb.length ? nb[(nb.length * 0.6) | 0] : ref, v = raw[y * gw + x];
-    map[y * gw + x] = v < med * 0.93 ? med : v;
+  // 3. cells covered by an object: blend the paper brightness in smoothly from the cells around them
+  const hole = [];
+  for (let i = 0; i < map.length; i++) if (map[i] <= ref * 0.3) { map[i] = 0; hole.push(i); }
+  for (let it = 0; it < 80 && hole.length; it++) for (const i of hole) {
+    const x = i % gw, y = (i / gw) | 0; let sum = 0, c = 0;
+    if (x > 0 && map[i - 1]) { sum += map[i - 1]; c++; }
+    if (x < gw - 1 && map[i + 1]) { sum += map[i + 1]; c++; }
+    if (y > 0 && map[i - gw]) { sum += map[i - gw]; c++; }
+    if (y < gh - 1 && map[i + gw]) { sum += map[i + gw]; c++; }
+    if (c) map[i] = sum / c;
   }
-  for (let pass = 0; pass < 2; pass++) {
+  for (const i of hole) if (!map[i]) map[i] = ref;
+  {
     const m2 = new Float32Array(map.length);
     for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
       let s = 0, c = 0;
@@ -400,15 +402,13 @@ function enhance(img, gray) {
     }
     map = m2;
   }
-  const clamp = v => Math.min(1.3, Math.max(0.77, v));
-  const avg = (sr + sg + sb) / 3 || 1, kr = clamp(avg / (sr || 1)), kg = clamp(avg / (sg || 1)), kb = clamp(avg / (sb || 1));
   const lut = new Uint8ClampedArray(256); for (let i = 0; i < 256; i++) lut[i] = 255 * Math.pow(i / 255, 1.12);
   for (let y = 0, k = 0; y < h; y++) {
     const fy = Math.min(gh - 1, Math.max(0, (y + 0.5) / cs - 0.5)), y0 = fy | 0, y1 = Math.min(gh - 1, y0 + 1), ay = fy - y0;
     for (let x = 0; x < w; x++, k += 4) {
       const fx = Math.min(gw - 1, Math.max(0, (x + 0.5) / cs - 0.5)), x0 = fx | 0, x1 = Math.min(gw - 1, x0 + 1), ax = fx - x0;
       const l = (map[y0 * gw + x0] * (1 - ax) + map[y0 * gw + x1] * ax) * (1 - ay) + (map[y1 * gw + x0] * (1 - ax) + map[y1 * gw + x1] * ax) * ay;
-      const g = 262 / (l || 1);
+      const g = target / (l || 1);
       let r = d[k] * kr * g, gg = d[k + 1] * kg * g, b = d[k + 2] * kb * g;
       r = lut[r > 255 ? 255 : r | 0]; gg = lut[gg > 255 ? 255 : gg | 0]; b = lut[b > 255 ? 255 : b | 0];
       if (gray) r = gg = b = (r * 77 + gg * 151 + b * 28) >> 8;
@@ -417,40 +417,66 @@ function enhance(img, gray) {
   }
 }
 
-// Bounding box (in page pixels) of whatever is lying on the sheet, or null if nothing clear is found.
+// Finds the card (or other coloured / dark object) lying on the sheet and fits a tight, possibly tilted
+// rectangle to it. Soft grey shadows are ignored. Returns {cx, cy, w, h, ang} in page pixels, or null.
 function findObject(img) {
-  const w = 200, k = img.width / w, h = Math.round(img.height / k), n = w * h, s = img.data;
+  const w = 320, k = img.width / w, h = Math.round(img.height / k), n = w * h, s = img.data;
   const small = new ImageData(w, h), d = small.data;
   for (let y = 0, i = 0; y < h; y++) for (let x = 0; x < w; x++, i += 4) {
     const p = (Math.min(img.height - 1, (y + 0.5) * k | 0) * img.width + Math.min(img.width - 1, (x + 0.5) * k | 0)) * 4;
     d[i] = s[p]; d[i + 1] = s[p + 1]; d[i + 2] = s[p + 2]; d[i + 3] = 255;
   }
-  enhance(small, false);
-  const label = new Int32Array(n).fill(-1), m = Math.round(w * 0.035);
+  enhance(small, false, 200);                               // paper lands at ~200 so nothing clips to white
+  const ink = new Uint8Array(n), m = Math.round(w * 0.03);
   for (let y = m; y < h - m; y++) for (let x = m; x < w - m; x++) {
     const i = (y * w + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
-    if (((r * 77 + g * 151 + b * 28) >> 8) < 205 || Math.max(r, g, b) - Math.min(r, g, b) > 45) label[y * w + x] = 0;
+    const mx = Math.max(r, g, b);
+    if (mx - Math.min(r, g, b) > mx * 0.12 + 7 || ((r * 77 + g * 151 + b * 28) >> 8) < 85) ink[y * w + x] = 1;
+  }
+  const label = new Int32Array(n).fill(-1);               // dilate by one pixel to bridge pale gaps in the card
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const p = y * w + x;
+    if (ink[p] || ink[p - 1] || ink[p + 1] || ink[p - w] || ink[p + w]) label[p] = 0;
   }
   const stack = new Int32Array(n);
-  let id = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
+  let id = 0, bestId = 0, bestSize = 0;
   for (let st = 0; st < n; st++) {
     if (label[st] !== 0) continue;
-    let sp = 0, size = 0, ax = w, ay = h, bx = -1, by = -1; id++; stack[sp++] = st; label[st] = id;
+    let sp = 0, size = 0; id++; stack[sp++] = st; label[st] = id;
     while (sp) {
-      const p = stack[--sp], x = p % w, y = (p / w) | 0; size++;
-      if (x < ax) ax = x; if (x > bx) bx = x; if (y < ay) ay = y; if (y > by) by = y;
-      if (x > 0 && label[p - 1] === 0) { label[p - 1] = id; stack[sp++] = p - 1; }
-      if (x < w - 1 && label[p + 1] === 0) { label[p + 1] = id; stack[sp++] = p + 1; }
-      if (p >= w && label[p - w] === 0) { label[p - w] = id; stack[sp++] = p - w; }
-      if (p < n - w && label[p + w] === 0) { label[p + w] = id; stack[sp++] = p + w; }
+      const p = stack[--sp]; size++;
+      if (label[p - 1] === 0) { label[p - 1] = id; stack[sp++] = p - 1; }
+      if (label[p + 1] === 0) { label[p + 1] = id; stack[sp++] = p + 1; }
+      if (label[p - w] === 0) { label[p - w] = id; stack[sp++] = p - w; }
+      if (label[p + w] === 0) { label[p + w] = id; stack[sp++] = p + w; }
     }
-    if (size < n * 0.003) continue;                       // specks
-    x0 = Math.min(x0, ax); y0 = Math.min(y0, ay); x1 = Math.max(x1, bx); y1 = Math.max(y1, by);
+    if (size > bestSize) { bestSize = size; bestId = id; }
   }
-  if (x1 < 0) return null;
-  const pad = 5; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w, x1 + 1 + pad); y1 = Math.min(h, y1 + 1 + pad);
-  if ((x1 - x0) * (y1 - y0) > n * 0.6) return null;
-  return { x: x0 * k, y: y0 * k, w: (x1 - x0) * k, h: (y1 - y0) * k };
+  if (bestSize < n * 0.012) return null;
+  const pts = [];
+  for (let y = 0; y < h; y++) {
+    let l = -1, r = -1; const o = y * w;
+    for (let x = 0; x < w; x++) if (label[o + x] === bestId) { if (l < 0) l = x; r = x; }
+    if (l >= 0) { pts.push({ x: l, y }, { x: r + 1, y }, { x: l, y: y + 1 }, { x: r + 1, y: y + 1 }); }
+  }
+  const hull = convexHull(pts);
+  if (hull.length < 3) return null;
+  let best = null;                                          // smallest enclosing rectangle over all hull edge directions
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i], b = hull[(i + 1) % hull.length], len = dist(a, b); if (len < 1e-6) continue;
+    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const q of hull) { const u = q.x * ux + q.y * uy, v = -q.x * uy + q.y * ux; u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); }
+    const area = (u1 - u0) * (v1 - v0);
+    if (!best || area < best.area) best = { area, ux, uy, u0, u1, v0, v1 };
+  }
+  if (best.area > n * 0.6) return null;
+  const { ux, uy } = best, uc = (best.u0 + best.u1) / 2, vc = (best.v0 + best.v1) / 2;
+  let bw = best.u1 - best.u0, bh = best.v1 - best.v0, ang = Math.atan2(uy, ux);
+  if (bh > bw) { [bw, bh] = [bh, bw]; ang += Math.PI / 2; }  // describe it by its long side
+  while (ang > Math.PI / 2) ang -= Math.PI; while (ang <= -Math.PI / 2) ang += Math.PI;
+  if (Math.abs(ang) < 0.012) ang = 0;
+  return { cx: (uc * ux - vc * uy) * k, cy: (uc * uy + vc * ux) * k, w: bw * k, h: bh * k, ang };
 }
 
 const canvasBlob = (c, q) => new Promise(r => c.toBlob(r, 'image/jpeg', q));
@@ -672,11 +698,14 @@ async function buildPdf() {
     // card from each scan, cropped and kept at true size: first in the top half, second in the bottom half
     for (let i = 0; i < pages.length; i += 2) {
       const items = pages.slice(i, i + 2).map((pg, j) => {
-        const b = pg.box || { x: 0, y: 0, w: pg.w, h: pg.h };
-        let k = (pg.w > pg.h ? PH : PW) / pg.w;
-        k *= Math.min(1, PW * 0.94 / (b.w * k), PH / 2 * 0.94 / (b.h * k));
-        const cx = PW / 2, cy = PH * (j ? 0.25 : 0.75), bw = b.w * k, bh = b.h * k, w = pg.w * k, h = pg.h * k;
-        return { pg, w, h, x: cx - (b.x + b.w / 2) * k, y: cy + (b.y + b.h / 2) * k - h, clip: [cx - bw / 2, cy - bh / 2, bw, bh] };
+        const b = pg.box || { cx: pg.w / 2, cy: pg.h / 2, w: pg.w, h: pg.h, ang: 0 };
+        let k = (pg.w > pg.h ? PH : PW) / pg.w;               // points per pixel at true size
+        const pad = pg.box ? 6 : 0;                           // about 2 mm of paper around the card
+        k *= Math.min(1, (PW * 0.94 - 2 * pad) / (b.w * k), (PH / 2 * 0.94 - 2 * pad) / (b.h * k));
+        const cx = PW / 2, cy = PH * (j ? 0.27 : 0.73), bw = b.w * k + 2 * pad, bh = b.h * k + 2 * pad;
+        const c = Math.cos(b.ang) * k, sn = Math.sin(b.ang) * k;
+        return { pg, clip: [cx - bw / 2, cy - bh / 2, bw, bh],
+          m: [c * pg.w, sn * pg.w, -sn * pg.h, c * pg.h, cx - c * b.cx + sn * (pg.h - b.cy), cy - sn * b.cx - c * (pg.h - b.cy)] };
       });
       sheets.push({ w: PW, h: PH, items });
     }
@@ -700,7 +729,7 @@ async function buildPdf() {
   }
   for (const s of sheets) {
     const f = v => v.toFixed(2);
-    const content = enc.encode(s.items.map((it, j) => `q ${it.clip ? it.clip.map(f).join(' ') + ' re W n ' : ''}${f(it.w)} 0 0 ${f(it.h)} ${f(it.x)} ${f(it.y)} cm /Im${j} Do Q`).join('\n'));
+    const content = enc.encode(s.items.map((it, j) => `q ${it.clip ? it.clip.map(f).join(' ') + ' re W n ' : ''}${(it.m || [it.w, 0, 0, it.h, it.x, it.y]).map(f).join(' ')} cm /Im${j} Do Q`).join('\n'));
     const xo = s.items.map((it, j) => `/Im${j} ${imgNo.get(it.pg)} 0 R`).join(' ');
     obj(n, `<< /Length ${content.length} >>`, content);
     obj(n + 1, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(s.w)} ${f(s.h)}] /Resources << /XObject << ${xo} >> >> /Contents ${n} 0 R >>`);
