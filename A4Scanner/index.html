@@ -267,7 +267,7 @@ const video = $('video'), overlay = $('overlay'), quadEl = $('quad'), hintEl = $
 const pages = [];            // {src:Blob, sw, sh, corners:[{x,y}x4], out:Blob, url, w, h, box, flip}
 let filter = 'enhance', layout = 'id', mode = 'id', auto = true;
 let stream = null, cur = 'home', retakeIdx = null;
-const A4 = 297 / 210, LONG_MAX = 2339, LONG_MIN = 1400;   // 2339px = A4 long side at 200 dpi
+const A4 = 297 / 210, LONG_MAX = 3508, LONG_MIN = 1400;   // 3508px = A4 long side at 300 dpi (never upscaled past the camera's detail)
 
 /* ---------- geometry ---------- */
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -372,12 +372,53 @@ function detect(source, sw, sh, targetW) {
   if (hullArea / qa > 1.12 || bestSize / qa < 0.72) return null;   // not a clean four-sided sheet
   q = orderCorners(q);
   if (!isConvex(q)) return null;
+  // column extremes complete the outline (row extremes alone barely sample near-horizontal edges)
+  for (let x = 0; x < w; x++) {
+    let t = -1, b = -1;
+    for (let y = 0; y < h; y++) if (label[y * w + x] === bestId) { if (t < 0) t = y; b = y; }
+    if (t >= 0) pts.push({ x, y: t }, { x, y: b + 1 });
+  }
+  q = refineQuad(q, pts, Math.hypot(w, h));
   const a = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2, b = (dist(q[1], q[2]) + dist(q[0], q[3])) / 2;
   const ratio = Math.max(a, b) / Math.min(a, b);
   if (ratio < 1.12 || ratio > 1.85) return null;
   const m = Math.max(2, w * 0.012);
   const edge = q.some(p => p.x < m || p.y < m || p.x > w - m || p.y > h - m);
   return { pts: q.map(p => ({ x: p.x / scale, y: p.y / scale })), edge, lum, w, h, scale };
+}
+// Fits a straight line to the outline points along each side and intersects neighbouring lines.
+// This gives sub-pixel corners and ignores rounded, curled or covered corners.
+function refineQuad(q, pts, diag) {
+  const lines = [];
+  for (let i = 0; i < 4; i++) {
+    const a = q[i], b = q[(i + 1) % 4], len = dist(a, b);
+    let px = a.x, py = a.y, ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
+    for (let pass = 0; pass < 3; pass++) {
+      const tol = Math.max(1.2, len * [0.03, 0.015, 0.008][pass]);
+      let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0, syy = 0;
+      for (const p of pts) {
+        const dx = p.x - a.x, dy = p.y - a.y, t = (dx * (b.x - a.x) + dy * (b.y - a.y)) / (len * len);
+        if (t < 0.07 || t > 0.93) continue;                           // stay clear of the corners
+        if (Math.abs((p.x - px) * uy - (p.y - py) * ux) > tol) continue;
+        n++; sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; syy += p.y * p.y;
+      }
+      if (n < 8) break;
+      const mx = sx / n, my = sy / n, cxx = sxx / n - mx * mx, cxy = sxy / n - mx * my, cyy = syy / n - my * my;
+      const th = 0.5 * Math.atan2(2 * cxy, cxx - cyy);              // principal axis of the point cloud
+      px = mx; py = my; ux = Math.cos(th); uy = Math.sin(th);
+    }
+    lines.push({ px, py, ux, uy });
+  }
+  const out = [];
+  for (let i = 0; i < 4; i++) {
+    const l1 = lines[(i + 3) % 4], l2 = lines[i], den = l1.ux * l2.uy - l1.uy * l2.ux;
+    if (Math.abs(den) < 1e-6) return q;
+    const t = ((l2.px - l1.px) * l2.uy - (l2.py - l1.py) * l2.ux) / den;
+    const c = { x: l1.px + t * l1.ux, y: l1.py + t * l1.uy };
+    if (dist(c, q[i]) > diag * 0.04) return q;                         // implausible jump: keep the simple corners
+    out.push(c);
+  }
+  return isConvex(out) ? out : q;
 }
 function convexHull(p) {
   p.sort((a, b) => a.x - b.x || a.y - b.y);
@@ -443,6 +484,15 @@ function warp(srcData, corners) {
     }
   }
   return out;
+}
+// Light sharpening so small print stays crisp after straightening.
+function sharpen(img, amt) {
+  const d = img.data, w = img.width, h = img.height, s = new Uint8ClampedArray(d), row = w * 4, k = 1 + 4 * amt;
+  for (let y = 1; y < h - 1; y++) for (let p = (y * w + 1) * 4, e = (y * w + w - 1) * 4; p < e; p += 4) {
+    d[p] = s[p] * k - amt * (s[p - 4] + s[p + 4] + s[p - row] + s[p + row]);
+    d[p + 1] = s[p + 1] * k - amt * (s[p - 3] + s[p + 5] + s[p + 1 - row] + s[p + 1 + row]);
+    d[p + 2] = s[p + 2] * k - amt * (s[p - 2] + s[p + 6] + s[p + 2 - row] + s[p + 2 + row]);
+  }
 }
 // Evens out lighting and shadows so the paper comes out white, like a flatbed scan.
 function enhance(img, gray, target = 262) {
@@ -586,7 +636,7 @@ async function renderPage(pg, srcCanvas) {
   const sc = srcCanvas || await blobToCanvas(pg.src);
   const img = warp(sc.getContext('2d').getImageData(0, 0, sc.width, sc.height), pg.corners);
   pg.box = findObject(img);
-  if (filter !== 'original') enhance(img, filter === 'gray');
+  if (filter !== 'original') { sharpen(img, 0.3); enhance(img, filter === 'gray'); }
   const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
   c.getContext('2d').putImageData(img, 0, 0);
   pg.out = await canvasBlob(c, 0.88); pg.w = img.width; pg.h = img.height;
@@ -657,6 +707,7 @@ window.addEventListener('popstate', e => {
 });
 
 /* ---------- camera ---------- */
+let bestSharp = 0, waited = 0;
 let prev = null, stable = 0, prevSig = null, lastSig = null, lastShot = 0, smooth = null, lastDet = null, busyShot = false, missed = 0;
 const HOLD = 7, RING = 238.8;
 function resetTracking() { prev = prevSig = smooth = lastDet = null; stable = 0; missed = 0; quadEl.setAttribute('hidden', ''); setRing(0); hintKey = '?'; }
@@ -670,6 +721,8 @@ async function startCamera() {
     video.srcObject = stream; await video.play();
     const track = stream.getVideoTracks()[0], caps = track.getCapabilities ? track.getCapabilities() : {};
     $('torchBtn').hidden = !caps.torch; $('torchBtn').setAttribute('aria-pressed', 'false');
+    if (caps.focusMode && caps.focusMode.includes('continuous')) track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+    stillCam = null; stillOk = !!window.ImageCapture;
     return true;
   } catch (e) {
     stream = null; err.hidden = false;
@@ -678,6 +731,41 @@ async function startCamera() {
       : 'The camera could not be opened here. You can still scan from photos.';
     return false;
   }
+}
+// How crisp the picture is right now, measured on a native-resolution patch around the busiest spot on the sheet.
+const fcan = document.createElement('canvas'); fcan.width = fcan.height = 192;
+const fctx = fcan.getContext('2d', { willReadFrequently: true });
+function sharpnessAt(det, sig) {
+  let k = 0; for (let i = 0; i < sig.length; i++) if (sig[i] < sig[k]) k = i;       // darkest cell = print or the card
+  const H = homography(det.pts), u = (k % SG + 0.5) / SG, v = ((k / SG | 0) + 0.5) / SG, z = H[6] * u + H[7] * v + 1;
+  const cx = (H[0] * u + H[1] * v + H[2]) / z, cy = (H[3] * u + H[4] * v + H[5]) / z;
+  const S = Math.min(video.videoWidth, video.videoHeight) * 0.22;
+  fctx.drawImage(video, cx - S / 2, cy - S / 2, S, S, 0, 0, 192, 192);
+  const d = fctx.getImageData(0, 0, 192, 192).data; let sum = 0;
+  for (let y = 1; y < 191; y++) for (let x = 1; x < 191; x++) {
+    const p = (y * 192 + x) * 4, l = 4 * d[p + 1] - d[p - 3] - d[p + 5] - d[p + 1 - 768] - d[p + 1 + 768];
+    sum += l * l;
+  }
+  return sum / 36100;
+}
+// Full-sensor still where the browser offers it (far more detail than a video frame); otherwise the video frame.
+let stillCam = null, stillOk = false;
+function videoFrame() {
+  const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext('2d').drawImage(video, 0, 0); return c;
+}
+async function grabStill() {
+  if (!stillOk) return null;
+  try {
+    stillCam = stillCam || new ImageCapture(stream.getVideoTracks()[0]);
+    const blob = await Promise.race([stillCam.takePhoto(), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2500))]);
+    const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+    if (bmp.width * bmp.height < video.videoWidth * video.videoHeight * 1.25) { stillOk = false; return null; }   // no gain
+    const k = Math.min(1, 4096 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); bmp.close && bmp.close();
+    return c;
+  } catch (e) { stillOk = false; return null; }
 }
 function stopCamera() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null; } }
 $('torchBtn').onclick = async () => {
@@ -723,6 +811,7 @@ function tick() {
   const moved = prev ? Math.max(...det.pts.map((p, i) => dist(p, prev[i]))) / diag : 1;
   const calm = moved < 0.012 && prevSig && sigDiff(sig, prevSig) < 8;
   stable = calm ? stable + 1 : 0; prev = det.pts; prevSig = sig;
+  if (!stable) { bestSharp = 0; waited = 0; }
   const fresh = !lastSig || sigDiff(sig, lastSig) >= 12;
   quadEl.classList.toggle('hold', stable > 1 && fresh);
   quadEl.classList.toggle('done', !fresh);
@@ -736,16 +825,20 @@ function tick() {
   if (!auto) { setRing(0); setHint('Sheet found. Tap the button to scan', 'good'); return; }
   setRing(stable / HOLD);
   setHint('Hold still…', 'good');
-  if (stable >= HOLD && Date.now() - lastShot > 1200) capture(true);
+  if (stable >= HOLD && Date.now() - lastShot > 1200) {
+    // wait for the crispest moment (focus settled, no hand shake), but never longer than about a second
+    const sh = sharpnessAt(det, sig); bestSharp = Math.max(bestSharp * 0.97, sh);
+    if (sh >= bestSharp * 0.85 || ++waited > 9) capture(true); else setHint('Focusing…', 'good');
+  }
 }
 
 async function capture(isAuto) {
   if (busyShot || !video.videoWidth) return;
   busyShot = true;
   try {
-    const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
-    c.getContext('2d').drawImage(video, 0, 0);
-    const det = detect(c, c.width, c.height, 800) || lastDet;     // re-detect at higher resolution for accurate corners
+    setHint('Scanning…', 'good');
+    let c = await grabStill(), det = c && detect(c, c.width, c.height, 1000);
+    if (!det) { c = videoFrame(); det = detect(c, c.width, c.height, 1000) || lastDet; }   // re-detect at higher resolution for accurate corners
     if (!det && isAuto) return;
     $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go');
     navigator.vibrate && navigator.vibrate(30);
@@ -776,10 +869,10 @@ async function importFiles(files) {
     for (const f of files) {
       let bmp;
       try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) { continue; }
-      const k = Math.min(1, 3200 / Math.max(bmp.width, bmp.height));
+      const k = Math.min(1, 4096 / Math.max(bmp.width, bmp.height));
       const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
       c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-      const det = detect(c, c.width, c.height, 800);
+      const det = detect(c, c.width, c.height, 1000);
       const pg = await addPage(c, det ? insetCorners(det.pts, 0.006) : fullCorners(c.width, c.height));
       if (!det) manual = manual || pg;
     }
@@ -804,7 +897,7 @@ function computeSheets() {
         k *= Math.min(1, (PW * 0.94 - 2 * pad) / (b.w * k), (PH / 2 * 0.94 - 2 * pad) / (b.h * k));
         const cx = PW / 2, cy = PH * (j ? 0.27 : 0.73), bw = b.w * k + 2 * pad, bh = b.h * k + 2 * pad;
         const ang = b.ang + (pg.flip ? Math.PI : 0), c = Math.cos(ang) * k, sn = Math.sin(ang) * k;
-        return { pg, clip: [cx - bw / 2, cy - bh / 2, bw, bh],
+        return { pg, clip: [cx - bw / 2, cy - bh / 2, bw, bh], crop: pg.box && { cx: b.cx, cy: b.cy, ang, w: bw / k, h: bh / k },
           m: [c * pg.w, sn * pg.w, -sn * pg.h, c * pg.h, cx - c * b.cx + sn * (pg.h - b.cy), cy - sn * b.cx - c * (pg.h - b.cy)] };
       });
       sheets.push({ w: PW, h: PH, items });
@@ -834,17 +927,28 @@ async function buildPdf() {
   };
   put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
   const sheets = computeSheets();
-  let n = 3; const kids = [], imgNo = new Map();
-  for (const pg of pages) {
-    const bytes = new Uint8Array(await pg.out.arrayBuffer());
-    imgNo.set(pg, n);
-    obj(n++, `<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>`, bytes);
-  }
+  let n = 3; const kids = [];
+  const image = async (bytes, w, h) => {
+    obj(n, `<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>`, bytes);
+    return n++;
+  };
   for (const s of sheets) {
-    const content = enc.encode(s.items.map((it, j) => `q ${it.clip ? it.clip.map(f).join(' ') + ' re W n ' : ''}${it.m.map(f).join(' ')} cm /Im${j} Do Q`).join('\n'));
-    const xo = s.items.map((it, j) => `/Im${j} ${imgNo.get(it.pg)} 0 R`).join(' ');
+    const draw = [], xo = [];
+    for (const [j, it] of s.items.entries()) {
+      let no, m = it.m, clip = it.clip;
+      if (it.crop) {                      // only the straightened card goes into the file, not the whole sheet
+        const cr = it.crop, cv = document.createElement('canvas'); cv.width = Math.round(cr.w); cv.height = Math.round(cr.h);
+        const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height);
+        x.translate(cv.width / 2, cv.height / 2); x.rotate(-cr.ang); x.drawImage(await pageImg(it.pg), -cr.cx, -cr.cy);
+        no = await image(new Uint8Array(await (await canvasBlob(cv, 0.92)).arrayBuffer()), cv.width, cv.height);
+        m = [clip[2], 0, 0, clip[3], clip[0], clip[1]]; clip = null;
+      } else no = await image(new Uint8Array(await it.pg.out.arrayBuffer()), it.pg.w, it.pg.h);
+      draw.push(`q ${clip ? clip.map(f).join(' ') + ' re W n ' : ''}${m.map(f).join(' ')} cm /Im${j} Do Q`);
+      xo.push(`/Im${j} ${no} 0 R`);
+    }
+    const content = enc.encode(draw.join('\n'));
     obj(n, `<< /Length ${content.length} >>`, content);
-    obj(n + 1, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(s.w)} ${f(s.h)}] /Resources << /XObject << ${xo} >> >> /Contents ${n} 0 R >>`);
+    obj(n + 1, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(s.w)} ${f(s.h)}] /Resources << /XObject << ${xo.join(' ')} >> >> /Contents ${n} 0 R >>`);
     kids.push(n + 1); n += 2;
   }
   obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
