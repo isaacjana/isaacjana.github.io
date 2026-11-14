@@ -4,162 +4,257 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#0b0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>A4 Scanner</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f14'/%3E%3Crect x='9' y='5' width='14' height='20' rx='1.5' fill='%23fff'/%3E%3Crect x='5' y='15' width='22' height='2.5' rx='1' fill='%2334d399'/%3E%3C/svg%3E">
 <style>
 :root{
-  --bg:#0b0f14; --panel:#141a22; --panel2:#1c242e; --line:#2a3440;
-  --text:#e8edf2; --muted:#93a0ae; --accent:#34d399; --accent-ink:#04261a;
+  --bg:#0b0f14; --panel:#151c25; --panel2:#1f2833; --line:#2b3643;
+  --text:#eef2f6; --muted:#9aa7b5; --accent:#34d399; --accent-ink:#04261a;
   --warn:#fbbf24; --danger:#f87171;
+  --st:env(safe-area-inset-top); --sb:env(safe-area-inset-bottom);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
-  font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+  font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;touch-action:manipulation}
+svg{display:block}
 [hidden]{display:none!important}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.ico{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 20px;border-radius:16px;
+  background:var(--panel2);font-weight:650;transition:transform .08s}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45}
 
-#app{position:fixed;inset:0;display:flex;flex-direction:column}
-#top{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
-#top h1{font-size:16px;font-weight:650;margin:0;flex:1;letter-spacing:.01em}
-.toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);user-select:none}
-.toggle i{width:38px;height:22px;border-radius:11px;background:var(--line);position:relative;transition:background .15s}
-.toggle i::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
-.toggle[aria-pressed=true]{color:var(--text)}
-.toggle[aria-pressed=true] i{background:var(--accent)}
-.toggle[aria-pressed=true] i::after{transform:translateX(16px)}
+/* ---------- home ---------- */
+#home{overflow:auto;padding:calc(20px + var(--st)) 20px calc(20px + var(--sb))}
+#home .brand{display:flex;align-items:center;gap:10px;color:var(--muted);font-weight:600;font-size:15px}
+#home .brand svg{width:28px;height:28px}
+#home h1{font-size:28px;line-height:1.15;margin:26px 0 18px;letter-spacing:-.01em}
+.choice{display:flex;align-items:center;gap:16px;width:100%;text-align:left;padding:18px;border-radius:20px;
+  background:var(--panel);border:1px solid var(--line);margin-bottom:12px;transition:transform .08s,border-color .15s}
+.choice:active{transform:scale(.985);border-color:var(--accent)}
+.choice .pic{width:56px;height:56px;border-radius:14px;background:var(--panel2);display:grid;place-items:center;flex:none}
+.choice .pic svg{width:34px;height:34px}
+.choice b{display:block;font-size:18px}
+.choice span{display:block;color:var(--muted);font-size:14.5px;margin-top:2px}
+.choice .ico{margin-left:auto;color:var(--muted)}
+#resume{width:100%;margin-bottom:12px}
+.tips{margin:14px 0 0;padding:16px 18px;border-radius:20px;background:var(--panel);list-style:none}
+.tips h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;font-weight:650}
+.tips li{display:flex;gap:12px;align-items:center;padding:7px 0;font-size:15px}
+.tips li i{width:26px;height:26px;border-radius:50%;background:rgba(52,211,153,.15);color:var(--accent);display:grid;place-items:center;
+  font-style:normal;font-weight:700;font-size:13px;flex:none}
+#homeImport{width:100%;margin-top:14px;color:var(--text);background:none;border:1px solid var(--line)}
+#homeErr{color:var(--warn);font-size:14.5px;margin:14px 2px 0}
+.fine{color:var(--muted);font-size:13px;text-align:center;margin:16px 0 0}
 
-#stage{flex:1;min-height:0;position:relative;background:#000;overflow:hidden}
+/* ---------- camera ---------- */
+#cam{background:#000}
 #video,#overlay{position:absolute;inset:0;width:100%;height:100%}
 #video{object-fit:contain}
 #overlay{pointer-events:none}
-#quad{fill:rgba(52,211,153,.14);stroke:var(--warn);stroke-linejoin:round;transition:stroke .15s}
-#quad.hold{stroke:var(--accent)}
-#quad.done{stroke:#fff;fill:rgba(255,255,255,.1)}
-#hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:calc(100% - 24px);
-  background:rgba(11,15,20,.78);backdrop-filter:blur(8px);padding:7px 14px;border-radius:999px;
-  font-size:13.5px;text-align:center;border:1px solid rgba(255,255,255,.1)}
+#quad{fill:rgba(251,191,36,.10);stroke:var(--warn);stroke-linejoin:round;transition:stroke .15s,fill .15s}
+#quad.hold{stroke:var(--accent);fill:rgba(52,211,153,.16)}
+#quad.done{stroke:rgba(255,255,255,.75);fill:rgba(255,255,255,.06)}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
-#flash.go{animation:flash .35s ease-out}
-@keyframes flash{from{opacity:.75}to{opacity:0}}
+#flash.go{animation:flash .32s ease-out}
+@keyframes flash{from{opacity:.8}to{opacity:0}}
+.camTop{position:relative;z-index:2;display:flex;align-items:center;gap:8px;padding:calc(10px + var(--st)) 12px 26px;
+  background:linear-gradient(rgba(0,0,0,.6),transparent)}
+.round{width:44px;height:44px;border-radius:50%;background:rgba(20,26,34,.6);backdrop-filter:blur(10px);display:grid;place-items:center;flex:none}
+.round[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+#steps{flex:1;display:flex;justify-content:center;gap:6px;min-width:0}
+.step{display:flex;align-items:center;gap:6px;height:36px;padding:0 13px 0 6px;border-radius:18px;font-size:14px;font-weight:650;
+  background:rgba(20,26,34,.6);backdrop-filter:blur(10px);color:rgba(255,255,255,.6);white-space:nowrap}
+.step i{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center;font-style:normal;font-size:12.5px}
+.step.on{background:#fff;color:#0b0f14}
+.step.on i{background:#0b0f14;color:#fff}
+.step.ok i{background:var(--accent);color:var(--accent-ink)}
+#autoBtn{width:auto;padding:0 14px;border-radius:22px;font-size:13.5px;font-weight:700;display:flex;gap:6px;align-items:center}
+#autoBtn::before{content:"";width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4)}
+#autoBtn[aria-pressed=true]::before{background:var(--accent-ink)}
+#hint{position:absolute;z-index:2;left:50%;bottom:calc(150px + var(--sb));transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);
+  background:rgba(11,15,20,.82);backdrop-filter:blur(10px);padding:11px 18px;border-radius:22px;font-size:15.5px;font-weight:600;text-align:center;
+  display:flex;align-items:center;gap:10px;transition:background .2s,color .2s}
+#hint.good{background:var(--accent);color:var(--accent-ink)}
+#hint.flip{background:#fff;color:#0b0f14;font-size:17px;padding:14px 20px}
+#hint .ico{width:22px;height:22px}
+#hint.flip .ico{animation:flipIt 1.6s ease-in-out infinite}
+@keyframes flipIt{0%,20%{transform:rotateY(0)}60%,100%{transform:rotateY(180deg)}}
+.camBottom{position:absolute;z-index:2;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  padding:34px 22px calc(18px + var(--sb));background:linear-gradient(transparent,rgba(0,0,0,.72))}
+.side{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.85);min-width:64px;min-height:64px;justify-content:center}
+#importBtn{justify-self:start}
+#doneBtn{justify-self:end}
+#doneBtn .thumb{width:44px;height:58px;border-radius:7px;background:#fff center/cover;border:2px solid #fff;position:relative;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+#doneBtn .thumb.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+#doneBtn .count{position:absolute;top:-9px;right:-10px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--accent);
+  color:var(--accent-ink);font-size:12.5px;font-weight:800;display:grid;place-items:center}
+#shutter{width:82px;height:82px;position:relative;display:grid;place-items:center}
+#shutter svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+#shutter circle{fill:none;stroke-width:4}
+#shutter .track{stroke:rgba(255,255,255,.9)}
+#ring{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:238.8;stroke-dashoffset:238.8;transition:stroke-dashoffset .12s linear}
+#shutter b{width:64px;height:64px;border-radius:50%;background:#fff;transition:transform .1s}
+#shutter:active b{transform:scale(.88)}
+#toast{position:fixed;z-index:40;left:16px;right:16px;bottom:calc(96px + var(--sb));margin:auto;max-width:420px;display:flex;align-items:center;gap:12px;
+  background:#fff;color:#0b0f14;border-radius:16px;padding:6px 6px 6px 16px;min-height:52px;font-weight:600;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.45);
+  animation:rise .2s ease-out}
+#toast span{flex:1}
+#toast button{min-height:40px;padding:0 14px;border-radius:12px;background:#0b0f14;color:#fff;font-weight:700;font-size:14.5px}
+#cam #toast{bottom:calc(206px + var(--sb))}
+@keyframes rise{from{transform:translateY(12px);opacity:0}}
 
-#start{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:14px;padding:28px;text-align:center;background:var(--bg)}
-#start svg{width:76px;height:76px}
-#start h2{margin:6px 0 0;font-size:21px}
-#start p{margin:0;color:var(--muted);max-width:340px}
-#start .err{color:var(--warn)}
-.btn{padding:12px 20px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-weight:600;min-height:46px}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
-.btn.danger{color:var(--danger)}
-.btn:disabled{opacity:.45;cursor:default}
-.btn:active:not(:disabled){transform:scale(.98)}
+/* ---------- review ---------- */
+.bar{display:flex;align-items:center;gap:6px;padding:calc(8px + var(--st)) 10px 8px}
+.bar h2{flex:1;text-align:center;font-size:17px;margin:0}
+.bar button{min-width:44px;min-height:44px;padding:0 10px;border-radius:12px;font-weight:650;display:flex;align-items:center;gap:2px;font-size:15.5px}
+.bar .muted{color:var(--muted)}
+#review .body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px}
+#sheets{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px 24px 6px;scrollbar-width:none}
+#sheets::-webkit-scrollbar{display:none}
+#sheets .sheetWrap{flex:none;width:100%;display:grid;place-items:center;scroll-snap-align:center}
+#sheets canvas{background:#fff;border-radius:6px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
+#dots{display:flex;justify-content:center;gap:6px;height:18px;align-items:center}
+#dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+#dots i.on{background:var(--text)}
+#pageNote{text-align:center;color:var(--muted);font-size:13.5px;margin:0 20px 4px}
+.label{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:650;margin:18px 20px 8px}
+#scanRow{display:flex;gap:10px;overflow-x:auto;padding:2px 20px;scrollbar-width:none}
+#scanRow::-webkit-scrollbar{display:none}
+.scan{flex:none;width:76px;text-align:center;font-size:13px;font-weight:600;color:var(--muted)}
+.scan .t{width:76px;height:100px;border-radius:10px;background:#fff center/cover;border:1px solid var(--line);margin-bottom:5px;position:relative}
+.scan .t::after{content:"";position:absolute;right:5px;bottom:5px;width:22px;height:22px;border-radius:50%;
+  background:rgba(11,15,20,.8) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Ccircle cx='6' cy='12' r='1.8'/%3E%3Ccircle cx='12' cy='12' r='1.8'/%3E%3Ccircle cx='18' cy='12' r='1.8'/%3E%3C/svg%3E") center/16px no-repeat}
+.scan.add .t{background:none;border:1.5px dashed var(--line);display:grid;place-items:center;color:var(--text)}
+.scan.add .t::after{display:none}
+.seg{display:flex;background:var(--panel);border-radius:14px;padding:4px;margin:0 20px}
+.seg button{flex:1;min-height:42px;border-radius:10px;font-size:14.5px;font-weight:600;color:var(--muted);padding:0 6px}
+.seg button[aria-pressed=true]{background:var(--panel2);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
+#fname{display:block;width:calc(100% - 40px);margin:0 20px;background:var(--panel);border:1px solid transparent;border-radius:14px;color:var(--text);
+  font:inherit;padding:0 14px;height:50px;-webkit-user-select:text;user-select:text}
+#fname:focus{outline:none;border-color:var(--accent)}
+.foot{display:flex;gap:10px;padding:12px 16px calc(12px + var(--sb));border-top:1px solid var(--line);background:var(--bg)}
+.foot .primary{flex:1}
+#downloadBtn{width:52px;padding:0}
 
-#bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
-  padding:14px 22px calc(14px + env(safe-area-inset-bottom));background:var(--bg)}
-#pagesBtn{justify-self:start;display:flex;align-items:center;gap:10px;min-height:56px}
-#pagesBtn .thumb{width:40px;height:56px;border-radius:5px;background:var(--panel2) center/cover;border:1px solid var(--line);position:relative}
-#pagesBtn .count{position:absolute;top:-7px;right:-9px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;
-  background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:700;display:grid;place-items:center}
-#pagesBtn span.lbl{font-size:13px;color:var(--muted)}
-#shutter{width:70px;height:70px;border-radius:50%;border:4px solid #fff;padding:4px}
-#shutter::after{content:"";display:block;width:100%;height:100%;border-radius:50%;background:#fff;transition:transform .1s}
-#shutter:active::after{transform:scale(.88)}
-#shutter:disabled{opacity:.35}
-#importBtn{justify-self:end;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--muted);min-width:56px;min-height:56px;justify-content:center}
-#importBtn svg{width:26px;height:26px;stroke:var(--text)}
+/* ---------- action sheet ---------- */
+#scrim{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;animation:fade .15s}
+@keyframes fade{from{opacity:0}}
+#sheet{width:100%;background:var(--panel);border-radius:22px 22px 0 0;padding:10px 12px calc(12px + var(--sb));animation:rise .2s ease-out}
+#sheet h3{font-size:14px;color:var(--muted);font-weight:650;margin:6px 10px 6px;text-align:center}
+#sheet button{display:flex;align-items:center;gap:14px;width:100%;min-height:54px;padding:0 12px;border-radius:14px;font-size:16.5px;font-weight:550}
+#sheet button:active{background:var(--panel2)}
+#sheet .del{color:var(--danger)}
+#sheet .cancel{justify-content:center;background:var(--panel2);margin-top:6px;font-weight:650}
 
-.sheet{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
-.sheet header{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--line)}
-.sheet header h2{font-size:16px;margin:0;flex:1}
-.sheet header button{padding:8px 12px;border-radius:9px;font-weight:600}
-.sheet header .ok{background:var(--accent);color:var(--accent-ink)}
-.sheet .body{flex:1;overflow:auto;padding:16px;-webkit-overflow-scrolling:touch}
-.sheet footer{padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
-.sheet footer .btn{flex:1}
-
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.card .img{display:block;width:100%;aspect-ratio:210/297;background:#fff center/contain no-repeat;position:relative}
-.card .img b{position:absolute;left:8px;top:8px;background:rgba(11,15,20,.8);color:#fff;border-radius:6px;padding:1px 7px;font-size:12px}
-.card .acts{display:flex;border-top:1px solid var(--line)}
-.card .acts button{flex:1;padding:10px 0;font-size:13px;min-height:42px}
-.card .acts button+button{border-left:1px solid var(--line)}
-.card .acts .del{color:var(--danger)}
-.empty{color:var(--muted);text-align:center;padding:50px 20px}
-.opts{display:grid;gap:14px;margin-top:20px;max-width:560px}
-.opt{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.opt label{color:var(--muted);font-size:13px}
-.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
-.seg button{padding:7px 13px;border-radius:7px;font-size:13px;color:var(--muted);min-height:34px}
-.seg button[aria-pressed=true]{background:var(--panel2);color:var(--text);box-shadow:0 0 0 1px var(--line)}
-.opt input{background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;padding:9px 12px;min-width:0;flex:1;max-width:260px}
-.note{color:var(--muted);font-size:12.5px;margin-top:18px}
-
-#editor .body{padding:0;position:relative;background:#000;overflow:hidden;touch-action:none}
-#edImg,#edSvg{position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px)}
+/* ---------- editor ---------- */
+#editor{z-index:15}
+#edStage{flex:1;position:relative;background:#000;overflow:hidden;touch-action:none}
+#edImg,#edSvg{position:absolute;inset:26px;width:calc(100% - 52px);height:calc(100% - 52px)}
 #edImg{object-fit:contain}
 #edSvg{touch-action:none;overflow:visible}
-#edPoly{fill:rgba(52,211,153,.15);stroke:var(--accent);stroke-linejoin:round}
-#edSvg circle{fill:rgba(52,211,153,.3);stroke:#fff;cursor:grab}
-#busy{position:fixed;inset:0;background:rgba(11,15,20,.7);z-index:30;display:grid;place-items:center;font-weight:600}
+#edPoly{fill:rgba(52,211,153,.14);stroke:var(--accent);stroke-linejoin:round}
+#edSvg circle{fill:rgba(52,211,153,.28);stroke:#fff}
+#loupe{position:absolute;top:12px;left:12px;width:132px;height:132px;border-radius:50%;border:3px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.6);background:#000;pointer-events:none}
+#loupe.right{left:auto;right:12px}
+#edHelp{text-align:center;color:var(--muted);font-size:14px;margin:0;padding:10px 16px 0}
+#busy{position:fixed;inset:0;background:rgba(11,15,20,.72);z-index:50;display:grid;place-items:center;font-weight:650}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:700px){#home{max-width:520px;margin:auto;position:static;height:100%}}
 </style>
 </head>
 <body>
-<div id="app">
-  <div id="top">
-    <h1>A4 Scanner</h1>
-    <button class="toggle" id="autoBtn" aria-pressed="true" title="Capture automatically when the sheet is steady"><span>Auto-snap</span><i></i></button>
-  </div>
 
-  <div id="stage">
-    <video id="video" playsinline muted autoplay></video>
-    <svg id="overlay" preserveAspectRatio="xMidYMid meet"><polygon id="quad" points="" hidden/></svg>
-    <div id="hint" hidden></div>
-    <div id="flash"></div>
-    <div id="start">
-      <svg viewBox="0 0 32 32"><rect x="8" y="3" width="16" height="23" rx="1.5" fill="#fff"/><rect x="11" y="9" width="7" height="5" rx="1" fill="#93a0ae"/><rect x="3" y="15" width="26" height="2.5" rx="1.2" fill="#34d399"/></svg>
-      <h2>Scan on a sheet of A4</h2>
-      <p>Lay a white A4 sheet on a darker surface and put your card or document on it. The scanner finds the sheet, snaps it and straightens it to a true A4 page.</p>
-      <p id="startErr" class="err" hidden></p>
-      <button class="btn primary" id="startBtn">Start camera</button>
-      <button class="btn" id="startImport">Use a photo instead</button>
-      <p style="font-size:12.5px">Everything stays on this device. Nothing is uploaded.</p>
-    </div>
-  </div>
+<div class="screen" id="home">
+  <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#151c25"/><rect x="9" y="5" width="14" height="20" rx="1.5" fill="#fff"/><rect x="5" y="15" width="22" height="2.5" rx="1" fill="#34d399"/></svg>A4 Scanner</div>
+  <h1>What are you scanning?</h1>
+  <button class="btn primary" id="resume" hidden></button>
+  <button class="choice" id="modeId">
+    <div class="pic"><svg viewBox="0 0 34 34" fill="none"><rect x="3" y="8" width="28" height="18" rx="3" stroke="#34d399" stroke-width="2"/><circle cx="11" cy="15.5" r="3" fill="#34d399"/><path d="M6.5 22c.8-2.2 2.5-3.2 4.5-3.2s3.700 1 4.500 3.200M19 14h8M19 18.500h8M19 23h5" stroke="#34d399" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div><b>ID card</b><span>Front and back on one A4 page</span></div>
+    <svg class="ico" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
+  <button class="choice" id="modeDoc">
+    <div class="pic"><svg viewBox="0 0 34 34" fill="none"><path d="M9 4h11l6 6v20H9z" stroke="#34d399" stroke-width="2" stroke-linejoin="round"/><path d="M20 4v6h6M13 16h9M13 20.500h9M13 25h6" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div><b>Document</b><span>One or more pages, straightened to A4</span></div>
+    <svg class="ico" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
+  <p id="homeErr" hidden></p>
+  <ul class="tips">
+    <h2>For a clean scan</h2>
+    <li><i>1</i>Put a white A4 sheet on a darker surface</li>
+    <li><i>2</i>Keep the whole sheet inside the picture</li>
+    <li><i>3</i>Keep the shadow of your phone and hand off the sheet</li>
+  </ul>
+  <button class="btn" id="homeImport"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="9.500" r="1.200"/></svg>Use photos instead</button>
+  <p class="fine">Scans stay on this phone. Nothing is uploaded.</p>
+</div>
 
-  <div id="bar">
-    <button id="pagesBtn"><div class="thumb" id="lastThumb"><div class="count" id="count" hidden>0</div></div><span class="lbl">Pages &amp; PDF</span></button>
-    <button id="shutter" aria-label="Capture" disabled></button>
-    <button id="importBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="9.5" r="1.3"/></svg>Photo</button>
+<div class="screen" id="cam" hidden>
+  <video id="video" playsinline muted autoplay></video>
+  <svg id="overlay" preserveAspectRatio="xMidYMid meet"><polygon id="quad" points="" hidden/></svg>
+  <div id="flash"></div>
+  <div class="camTop">
+    <button class="round" id="camClose" aria-label="Close camera"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div id="steps"></div>
+    <button class="round" id="torchBtn" aria-label="Torch" aria-pressed="false" hidden><svg class="ico" viewBox="0 0 24 24"><path d="M8 3h8v4l-2 3v10a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V10L8 7zM8 7h8"/></svg></button>
+    <button class="round" id="autoBtn" aria-pressed="true" aria-label="Automatic capture">Auto</button>
+  </div>
+  <div id="hint" role="status" aria-live="polite" hidden></div>
+  <div class="camBottom">
+    <button class="side" id="importBtn"><svg class="ico" viewBox="0 0 24 24" style="width:28px;height:28px"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="9.500" r="1.200"/></svg>Photos</button>
+    <button id="shutter" aria-label="Take the scan now"><svg viewBox="0 0 82 82"><circle class="track" cx="41" cy="41" r="38"/><circle id="ring" cx="41" cy="41" r="38"/></svg><b></b></button>
+    <button class="side" id="doneBtn" hidden><div class="thumb" id="lastThumb"><div class="count" id="count">0</div></div>Done</button>
   </div>
 </div>
 
-<div class="sheet" id="pages" hidden>
-  <header><h2>Pages</h2><button id="pagesClose" class="ok">Scan more</button></header>
+<div class="screen" id="review" hidden>
+  <div class="bar">
+    <button id="revBack" aria-label="Back to camera"><svg class="ico" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>Scan</button>
+    <h2>Your PDF</h2>
+    <button id="newBtn" class="muted">Start over</button>
+  </div>
   <div class="body">
-    <div id="grid"></div>
-    <div class="empty" id="empty">No pages yet. Scan a sheet to get started.</div>
-    <div class="opts">
-      <div class="opt"><label>Look</label>
-        <div class="seg" id="filterSeg"><button data-v="enhance">Clean</button><button data-v="original">Original</button><button data-v="gray">Grey</button></div></div>
-      <div class="opt"><label>PDF layout</label>
-        <div class="seg" id="layoutSeg"><button data-v="1">One per page</button><button data-v="2">Side by side</button><button data-v="id">ID front + back</button></div></div>
-      <div class="opt"><label for="fname">File name</label><input id="fname" value="scan" autocomplete="off" spellcheck="false"></div>
-    </div>
-    <p class="note">“ID front + back” puts the card from scan 1 above the card from scan 2 on a single A4 page, straightened and at true size, like a photocopy. “Side by side” shrinks two whole sheets onto one landscape page. “One per page” keeps each sheet as its own page.</p>
+    <div id="sheets"></div>
+    <div id="dots"></div>
+    <p id="pageNote"></p>
+    <div class="label">Scans · tap to fix</div>
+    <div id="scanRow"></div>
+    <div class="label">Layout</div>
+    <div class="seg" id="layoutSeg"><button data-v="id">ID card</button><button data-v="1">Full pages</button><button data-v="2">Two-up</button></div>
+    <div class="label">Look</div>
+    <div class="seg" id="filterSeg"><button data-v="enhance">Clean</button><button data-v="original">Original</button><button data-v="gray">Grey</button></div>
+    <div class="label">File name</div>
+    <input id="fname" value="scan" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="File name">
   </div>
-  <footer>
-    <button class="btn danger" id="clearBtn">Clear all</button>
-    <button class="btn" id="shareBtn" hidden>Share PDF</button>
-    <button class="btn primary" id="exportBtn">Download PDF</button>
-  </footer>
+  <div class="foot">
+    <button class="btn" id="downloadBtn" aria-label="Download PDF" hidden><svg class="ico" viewBox="0 0 24 24"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"/></svg></button>
+    <button class="btn primary" id="saveBtn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 13v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg><span id="saveLbl">Save PDF</span></button>
+  </div>
 </div>
 
-<div class="sheet" id="editor" hidden>
-  <header><button id="edCancel">Cancel</button><h2 style="text-align:center">Adjust corners</h2><button id="edRotate">Rotate</button><button id="edDone" class="ok">Done</button></header>
-  <div class="body"><img id="edImg" alt=""><svg id="edSvg" preserveAspectRatio="xMidYMid meet"><polygon id="edPoly"/></svg></div>
+<div id="scrim" hidden><div id="sheet" role="dialog" aria-modal="true">
+  <h3 id="sheetTitle"></h3>
+  <button data-a="retake"><svg class="ico" viewBox="0 0 24 24"><path d="M4 8h3l1.500-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.200" r="3.200"/></svg>Retake</button>
+  <button data-a="rotate"><svg class="ico" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.700-6M20 4v5h-5"/></svg><span id="rotLbl">Rotate</span></button>
+  <button data-a="adjust"><svg class="ico" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>Adjust corners</button>
+  <button data-a="delete" class="del"><svg class="ico" viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>Delete</button>
+  <button data-a="cancel" class="cancel">Cancel</button>
+</div></div>
+
+<div class="screen" id="editor" hidden>
+  <div class="bar"><button id="edCancel" class="muted">Cancel</button><h2>Adjust corners</h2><button id="edDone" style="color:var(--accent)">Done</button></div>
+  <p id="edHelp">Drag each dot onto a corner of the A4 sheet</p>
+  <div id="edStage"><img id="edImg" alt=""><svg id="edSvg" preserveAspectRatio="xMidYMid meet"><polygon id="edPoly"/></svg><canvas id="loupe" width="264" height="264" hidden></canvas></div>
 </div>
 
+<div id="toast" role="status" hidden><span></span><button></button></div>
 <div id="busy" hidden>Working…</div>
 <input type="file" id="file" accept="image/*" multiple hidden>
 
@@ -169,9 +264,9 @@ const $ = id => document.getElementById(id);
 const video = $('video'), overlay = $('overlay'), quadEl = $('quad'), hintEl = $('hint');
 
 /* ---------- state ---------- */
-const pages = [];            // {src:Blob, sw, sh, corners:[{x,y}x4], out:Blob, url, w, h}
-let filter = 'enhance', layout = '1', auto = true;
-let stream = null, running = false;
+const pages = [];            // {src:Blob, sw, sh, corners:[{x,y}x4], out:Blob, url, w, h, box, flip}
+let filter = 'enhance', layout = 'id', mode = 'id', auto = true;
+let stream = null, cur = 'home', retakeIdx = null;
 const A4 = 297 / 210, LONG_MAX = 2339, LONG_MIN = 1400;   // 2339px = A4 long side at 200 dpi
 
 /* ---------- geometry ---------- */
@@ -512,37 +607,112 @@ async function addPage(srcCanvas, corners) {
   return pg;
 }
 
-/* ---------- camera loop ---------- */
+/* ---------- small helpers ---------- */
+const scanName = i => layout === 'id' || mode === 'id' ? (i % 2 ? 'Back' : 'Front') + (pages.length > 2 || i > 1 ? ' ' + ((i >> 1) + 1) : '') : 'Page ' + (i + 1);
+const ICON = {
+  flip: '<svg class="ico" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.700-6M20 4v5h-5"/></svg>',
+  ok: '<svg class="ico" viewBox="0 0 24 24"><path d="m5 12.500 4.500 4.500L19 7.500"/></svg>'
+};
+let hintKey = '';
+function setHint(text, cls, icon) {
+  const key = text + '|' + cls;
+  if (key === hintKey) return; hintKey = key;
+  hintEl.hidden = !text; hintEl.className = cls || '';
+  hintEl.innerHTML = (icon ? ICON[icon] : '') + '<span></span>'; hintEl.lastChild.textContent = text;
+}
+let toastTimer = 0;
+function toast(text, action, fn, ms) {
+  const t = $('toast'); clearTimeout(toastTimer);
+  t.firstElementChild.textContent = text;
+  const b = t.lastElementChild; b.hidden = !action; b.textContent = action || '';
+  b.onclick = () => { t.hidden = true; fn && fn(); };
+  (cur === 'cam' ? $('cam') : document.body).append(t);
+  t.hidden = false; toastTimer = setTimeout(() => { t.hidden = true; }, ms || 4500);
+}
+const busy = async fn => { $('busy').hidden = false; try { return await fn(); } finally { $('busy').hidden = true; } };
+
+/* ---------- navigation ---------- */
+function show(name, fromPop) {
+  cur = name;
+  for (const s of ['home', 'cam', 'review']) $(s).hidden = s !== name;
+  $('toast').hidden = true;
+  if (!fromPop) history.pushState({ s: name }, '');
+}
+function goHome(fromPop) {
+  stopCamera(); retakeIdx = null; show('home', fromPop);
+  const r = $('resume'); r.hidden = !pages.length;
+  r.textContent = pages.length ? `Continue with ${pages.length} scan${pages.length > 1 ? 's' : ''}` : '';
+}
+async function enterCam(fromPop) {
+  show('cam', fromPop); updateCamUI(); resetTracking();
+  if (!stream && !(await startCamera())) { goHome(true); history.replaceState({ s: 'home' }, ''); return; }
+  video.play().catch(() => {});
+}
+history.replaceState({ s: 'home' }, '');
+window.addEventListener('popstate', e => {
+  if (!$('editor').hidden) closeEditor(true);
+  $('scrim').hidden = true;
+  const s = (e.state && e.state.s) || 'home';
+  if (s === 'cam') enterCam(true); else if (s === 'review' && pages.length) openReview(true); else goHome(true);
+});
+
+/* ---------- camera ---------- */
 let prev = null, stable = 0, prevSig = null, lastSig = null, lastShot = 0, smooth = null, lastDet = null, busyShot = false, missed = 0;
-function setHint(t) { hintEl.hidden = !t; if (t && hintEl.textContent !== t) hintEl.textContent = t; }
+const HOLD = 7, RING = 238.8;
+function resetTracking() { prev = prevSig = smooth = lastDet = null; stable = 0; missed = 0; quadEl.setAttribute('hidden', ''); setRing(0); hintKey = '?'; }
+const setRing = f => { $('ring').style.strokeDashoffset = RING * (1 - Math.min(1, f)); };
 
 async function startCamera() {
-  $('startErr').hidden = true;
+  const err = $('homeErr'); err.hidden = true;
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } } });
     video.srcObject = stream; await video.play();
-    $('start').hidden = true; $('shutter').disabled = false; running = true;
-    setHint('Point the camera at the A4 sheet'); tick();
+    const track = stream.getVideoTracks()[0], caps = track.getCapabilities ? track.getCapabilities() : {};
+    $('torchBtn').hidden = !caps.torch; $('torchBtn').setAttribute('aria-pressed', 'false');
+    return true;
   } catch (e) {
-    const el = $('startErr'); el.hidden = false;
-    el.textContent = e && e.name === 'NotAllowedError' ? 'Camera permission was blocked. Allow it in the browser settings, or use a photo instead.'
-      : 'No camera could be opened here. You can still scan from a photo.';
+    stream = null; err.hidden = false;
+    err.textContent = e && e.name === 'NotAllowedError'
+      ? 'The camera is blocked for this page. Allow it in your browser settings, or use photos instead.'
+      : 'The camera could not be opened here. You can still scan from photos.';
+    return false;
   }
 }
-const paused = () => !running || document.hidden || !$('pages').hidden || !$('editor').hidden;
+function stopCamera() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null; } }
+$('torchBtn').onclick = async () => {
+  const on = $('torchBtn').getAttribute('aria-pressed') !== 'true';
+  try { await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: on }] }); $('torchBtn').setAttribute('aria-pressed', on); } catch (e) {}
+};
 
+function updateCamUI() {
+  const idx = retakeIdx != null ? retakeIdx : pages.length, steps = $('steps');
+  if (mode === 'id') {
+    const side = idx % 2;
+    steps.innerHTML = ['Front', 'Back'].map((n, i) => `<div class="step ${i === side ? 'on' : i < side ? 'ok' : ''}"><i>${i < side ? '✓' : i + 1}</i>${n}</div>`).join('');
+  } else steps.innerHTML = `<div class="step on"><i>${idx + 1}</i>${retakeIdx != null ? 'Retake' : 'Page'}</div>`;
+  const last = pages[pages.length - 1];
+  $('doneBtn').hidden = !pages.length;
+  $('lastThumb').style.backgroundImage = last ? `url(${last.url})` : '';
+  $('count').textContent = pages.length;
+}
+function refreshBar() { if (cur === 'cam') updateCamUI(); }
+
+setInterval(tick, 110);
 function tick() {
-  setTimeout(tick, 110);
-  if (paused() || busyShot || !video.videoWidth) return;
+  if (cur !== 'cam' || document.hidden || !$('editor').hidden || busyShot || !stream || !video.videoWidth) return;
   const vw = video.videoWidth, vh = video.videoHeight;
   overlay.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
-  quadEl.setAttribute('stroke-width', Math.max(vw, vh) / 220);
+  quadEl.setAttribute('stroke-width', Math.max(vw, vh) / 200);
   const det = detect(video, vw, vh, 260);
   lastDet = det;
+  const idx = retakeIdx != null ? retakeIdx : pages.length, back = mode === 'id' && idx % 2 === 1;
   if (!det) {
-    stable = 0; prev = null; prevSig = null;
-    if (++missed > 3) { smooth = null; quadEl.setAttribute('hidden', ''); setHint(pages.length ? 'Looking for the A4 sheet…' : 'Lay a white A4 sheet on a darker surface'); }
+    stable = 0; prev = null; prevSig = null; setRing(0);
+    if (++missed > 3) {
+      smooth = null; quadEl.setAttribute('hidden', '');
+      setHint(mode === 'id' ? `Place the card ${back ? 'back' : 'front'} side up on a white A4 sheet` : 'Point at a white A4 sheet on a darker surface');
+    }
     return;
   }
   missed = 0;
@@ -556,11 +726,17 @@ function tick() {
   const fresh = !lastSig || sigDiff(sig, lastSig) >= 12;
   quadEl.classList.toggle('hold', stable > 1 && fresh);
   quadEl.classList.toggle('done', !fresh);
-  if (det.edge) { stable = 0; setHint('Move back a little so the whole sheet is in view'); return; }
-  if (!fresh) { setHint(`Page ${pages.length} saved. Flip the card or swap the page for the next scan`); return; }
-  if (!auto) { setHint('Sheet found. Tap the button to scan'); return; }
-  setHint(stable > 1 ? 'Hold steady…' : 'Sheet found. Hold still');
-  if (stable >= 7 && Date.now() - lastShot > 1200) capture(true);
+  if (det.edge) { stable = 0; setRing(0); setHint('Move back so the whole sheet is in view'); return; }
+  if (!fresh) {
+    setRing(0);
+    if (back) setHint('Now flip the card over', 'flip', 'flip');
+    else setHint(mode === 'id' ? 'Saved. Place the next card, or tap Done' : 'Saved. Swap in the next page, or tap Done', '', 'ok');
+    return;
+  }
+  if (!auto) { setRing(0); setHint('Sheet found. Tap the button to scan', 'good'); return; }
+  setRing(stable / HOLD);
+  setHint('Hold still…', 'good');
+  if (stable >= HOLD && Date.now() - lastShot > 1200) capture(true);
 }
 
 async function capture(isAuto) {
@@ -569,25 +745,34 @@ async function capture(isAuto) {
   try {
     const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
     c.getContext('2d').drawImage(video, 0, 0);
-    const fine = detect(c, c.width, c.height, 800);        // re-detect at higher resolution for accurate corners
-    const det = fine || lastDet;
+    const det = detect(c, c.width, c.height, 800) || lastDet;     // re-detect at higher resolution for accurate corners
+    if (!det && isAuto) return;
     $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go');
     navigator.vibrate && navigator.vibrate(30);
-    if (det) {
-      await addPage(c, insetCorners(det.pts, 0.006));
-      lastSig = signature(det); lastShot = Date.now(); stable = 0;
-      setHint(`Page ${pages.length} saved. Flip the card or swap the page for the next scan`);
-    } else if (!isAuto) {                                    // no sheet found: let the user mark the corners
-      const pg = await addPage(c, fullCorners(c.width, c.height));
-      openEditor(pg, true);
+    const pg = await addPage(c, det ? insetCorners(det.pts, 0.006) : fullCorners(c.width, c.height));
+    let idx = pages.length - 1;
+    if (retakeIdx != null) {                                       // replace the scan being retaken
+      pages.pop(); pg.flip = pages[retakeIdx].flip; URL.revokeObjectURL(pages[retakeIdx].url);
+      pages[retakeIdx] = pg; idx = retakeIdx;
     }
+    lastSig = det ? signature(det) : null; lastShot = Date.now(); stable = 0; setRing(0);
+    updateCamUI();
+    $('lastThumb').classList.remove('pop'); void $('lastThumb').offsetWidth; $('lastThumb').classList.add('pop');
+    if (!det) { openEditor(pg, retakeIdx == null); retakeIdx = null; return; }   // no sheet found: mark the corners by hand
+    const finished = retakeIdx != null || (mode === 'id' && pages.length % 2 === 0);
+    retakeIdx = null;
+    if (finished) setTimeout(() => cur === 'cam' && openReview(), 450);
+    else toast(`${scanName(idx)} saved`, 'Retake', () => {
+      const i = pages.indexOf(pg); if (i < 0) return;
+      URL.revokeObjectURL(pg.url); pages.splice(i, 1); lastSig = null; updateCamUI();
+    }, 3500);
   } finally { busyShot = false; }
 }
 
 /* ---------- photo import ---------- */
 async function importFiles(files) {
-  $('busy').hidden = false;
-  try {
+  let manual = null;
+  await busy(async () => {
     for (const f of files) {
       let bmp;
       try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) { continue; }
@@ -596,106 +781,21 @@ async function importFiles(files) {
       c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
       const det = detect(c, c.width, c.height, 800);
       const pg = await addPage(c, det ? insetCorners(det.pts, 0.006) : fullCorners(c.width, c.height));
-      if (!det && files.length === 1) { $('busy').hidden = true; openEditor(pg, true); return; }
+      if (!det) manual = manual || pg;
     }
-    openPages();
-  } finally { $('busy').hidden = true; $('file').value = ''; }
-}
-
-/* ---------- pages sheet ---------- */
-function refreshBar() {
-  const last = pages[pages.length - 1];
-  $('lastThumb').style.backgroundImage = last ? `url(${last.url})` : '';
-  $('count').hidden = !pages.length; $('count').textContent = pages.length;
-}
-function renderGrid() {
-  const g = $('grid'); g.textContent = '';
-  $('empty').hidden = !!pages.length;
-  $('exportBtn').disabled = $('clearBtn').disabled = $('shareBtn').disabled = !pages.length;
-  pages.forEach((pg, i) => {
-    const card = document.createElement('div'); card.className = 'card';
-    const img = document.createElement('div'); img.className = 'img'; img.style.backgroundImage = `url(${pg.url})`;
-    const n = document.createElement('b'); n.textContent = i + 1; img.append(n);
-    const acts = document.createElement('div'); acts.className = 'acts';
-    const mk = (t, cls, fn) => { const b = document.createElement('button'); b.textContent = t; b.className = cls; b.onclick = fn; acts.append(b); };
-    mk('Adjust', '', () => openEditor(pg, false));
-    if (i > 0) mk('Move up', '', () => { pages.splice(i - 1, 0, pages.splice(i, 1)[0]); renderGrid(); refreshBar(); });
-    mk('Delete', 'del', () => { URL.revokeObjectURL(pg.url); pages.splice(i, 1); if (!pages.length) lastSig = null; renderGrid(); refreshBar(); });
-    card.append(img, acts); g.append(card);
   });
+  $('file').value = '';
+  if (!pages.length) return;
+  openReview();
+  if (manual) { openEditor(manual, false); toast('No sheet was found in a photo. Mark its corners.'); }
 }
-function openPages() { renderGrid(); $('pages').hidden = false; }
-function seg(el, get, set) {
-  const upd = () => el.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === get()));
-  el.onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.v !== get()) { set(b.dataset.v); upd(); } };
-  upd();
-}
-seg($('filterSeg'), () => filter, async v => {
-  filter = v; $('busy').hidden = false;
-  try { for (const pg of pages) await renderPage(pg); } finally { $('busy').hidden = true; }
-  renderGrid(); refreshBar();
-});
-seg($('layoutSeg'), () => layout, v => { layout = v; });
 
-/* ---------- corner editor ---------- */
-let ed = null;
-function openEditor(pg, isNew) {
-  ed = { pg, isNew, corners: pg.corners.map(p => ({ ...p })), url: URL.createObjectURL(pg.src) };
-  $('edImg').src = ed.url;
-  const svg = $('edSvg'); svg.setAttribute('viewBox', `0 0 ${pg.sw} ${pg.sh}`);
-  svg.querySelectorAll('circle').forEach(c => c.remove());
-  const r = Math.max(pg.sw, pg.sh) * 0.035;
-  $('edPoly').setAttribute('stroke-width', r / 7);
-  ed.corners.forEach((p, i) => {
-    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.setAttribute('r', r); c.setAttribute('stroke-width', r / 8);
-    c.onpointerdown = e => { c.setPointerCapture(e.pointerId); e.preventDefault(); };
-    c.onpointermove = e => {
-      if (!c.hasPointerCapture(e.pointerId)) return;
-      const m = svg.getScreenCTM().inverse(), pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m);
-      p.x = Math.min(pg.sw, Math.max(0, pt.x)); p.y = Math.min(pg.sh, Math.max(0, pt.y)); drawEd();
-    };
-    svg.append(c);
-  });
-  drawEd(); $('editor').hidden = false;
-}
-function drawEd() {
-  $('edPoly').setAttribute('points', ed.corners.map(p => p.x + ',' + p.y).join(' '));
-  $('edSvg').querySelectorAll('circle').forEach((c, i) => { c.setAttribute('cx', ed.corners[i].x); c.setAttribute('cy', ed.corners[i].y); });
-}
-function closeEditor() { URL.revokeObjectURL(ed.url); $('editor').hidden = true; ed = null; }
-$('edCancel').onclick = () => {
-  if (ed.isNew) { const i = pages.indexOf(ed.pg); if (i >= 0) pages.splice(i, 1); refreshBar(); }
-  closeEditor(); if (!$('pages').hidden) renderGrid();
-};
-$('edRotate').onclick = () => { ed.rot = ((ed.rot || 0) + 1) % 4; $('edRotate').textContent = ed.rot ? `Rotate ${ed.rot * 90}°` : 'Rotate'; };
-$('edDone').onclick = async () => {
-  let c = orderCorners(ed.corners);
-  if (!isConvex(c)) { alert('The four corners need to form a simple four-sided shape.'); return; }
-  // keep the page's current "top" corner, then apply any requested quarter turns
-  const top = ed.pg.corners[0]; let k = 0; c.forEach((p, i) => { if (dist(p, top) < dist(c[k], top)) k = i; });
-  k = (k + 4 - (ed.rot || 0)) % 4;
-  ed.pg.corners = [c[k], c[(k + 1) % 4], c[(k + 2) % 4], c[(k + 3) % 4]];
-  $('busy').hidden = false;
-  try { await renderPage(ed.pg); } finally { $('busy').hidden = true; }
-  $('edRotate').textContent = 'Rotate';
-  closeEditor(); refreshBar(); openPages();
-};
-
-/* ---------- PDF ---------- */
-async function buildPdf() {
-  const PW = 595.28, PH = 841.89, enc = new TextEncoder(), parts = [], offs = [];
-  let len = 0;
-  const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
-  const obj = (n, body, stream) => {
-    offs[n] = len; put(`${n} 0 obj\n${body}\n`);
-    if (stream) { put('stream\n'); put(stream); put('\nendstream\n'); }
-    put('endobj\n');
-  };
-  put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
-  const sheets = [];                                  // each: {w,h,items:[{pg,x,y,w,h}]}
+/* ---------- PDF layout (shared by the preview and the file) ---------- */
+const PW = 595.28, PH = 841.89;
+function computeSheets() {
+  const sheets = [];                                  // each: {w, h, items:[{pg, m:[a b c d e f], clip?}]}
   if (layout === 'id') {
-    // card from each scan, cropped and kept at true size: first in the top half, second in the bottom half
+    // card from each scan, cropped, straightened and kept at true size: first on top, second below
     for (let i = 0; i < pages.length; i += 2) {
       const items = pages.slice(i, i + 2).map((pg, j) => {
         const b = pg.box || { cx: pg.w / 2, cy: pg.h / 2, w: pg.w, h: pg.h, ang: 0 };
@@ -703,7 +803,7 @@ async function buildPdf() {
         const pad = pg.box ? 6 : 0;                           // about 2 mm of paper around the card
         k *= Math.min(1, (PW * 0.94 - 2 * pad) / (b.w * k), (PH / 2 * 0.94 - 2 * pad) / (b.h * k));
         const cx = PW / 2, cy = PH * (j ? 0.27 : 0.73), bw = b.w * k + 2 * pad, bh = b.h * k + 2 * pad;
-        const c = Math.cos(b.ang) * k, sn = Math.sin(b.ang) * k;
+        const ang = b.ang + (pg.flip ? Math.PI : 0), c = Math.cos(ang) * k, sn = Math.sin(ang) * k;
         return { pg, clip: [cx - bw / 2, cy - bh / 2, bw, bh],
           m: [c * pg.w, sn * pg.w, -sn * pg.h, c * pg.h, cx - c * b.cx + sn * (pg.h - b.cy), cy - sn * b.cx - c * (pg.h - b.cy)] };
       });
@@ -713,14 +813,27 @@ async function buildPdf() {
     for (let i = 0; i < pages.length; i += 2) {
       const items = pages.slice(i, i + 2).map((pg, j) => {
         const k = Math.min(PH / 2 / pg.w, PW / pg.h), w = pg.w * k, h = pg.h * k;
-        return { pg, x: j * PH / 2 + (PH / 2 - w) / 2, y: (PW - h) / 2, w, h };
+        return { pg, m: [w, 0, 0, h, j * PH / 2 + (PH / 2 - w) / 2, (PW - h) / 2] };
       });
       sheets.push({ w: PH, h: PW, items });
     }
   } else for (const pg of pages) {
     const land = pg.w > pg.h, w = land ? PH : PW, h = land ? PW : PH;
-    sheets.push({ w, h, items: [{ pg, x: 0, y: 0, w, h }] });
+    sheets.push({ w, h, items: [{ pg, m: [w, 0, 0, h, 0, 0] }] });
   }
+  return sheets;
+}
+async function buildPdf() {
+  const enc = new TextEncoder(), parts = [], offs = [], f = v => v.toFixed(2);
+  let len = 0;
+  const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const obj = (n, body, data) => {
+    offs[n] = len; put(`${n} 0 obj\n${body}\n`);
+    if (data) { put('stream\n'); put(data); put('\nendstream\n'); }
+    put('endobj\n');
+  };
+  put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const sheets = computeSheets();
   let n = 3; const kids = [], imgNo = new Map();
   for (const pg of pages) {
     const bytes = new Uint8Array(await pg.out.arrayBuffer());
@@ -728,8 +841,7 @@ async function buildPdf() {
     obj(n++, `<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>`, bytes);
   }
   for (const s of sheets) {
-    const f = v => v.toFixed(2);
-    const content = enc.encode(s.items.map((it, j) => `q ${it.clip ? it.clip.map(f).join(' ') + ' re W n ' : ''}${(it.m || [it.w, 0, 0, it.h, it.x, it.y]).map(f).join(' ')} cm /Im${j} Do Q`).join('\n'));
+    const content = enc.encode(s.items.map((it, j) => `q ${it.clip ? it.clip.map(f).join(' ') + ' re W n ' : ''}${it.m.map(f).join(' ')} cm /Im${j} Do Q`).join('\n'));
     const xo = s.items.map((it, j) => `/Im${j} ${imgNo.get(it.pg)} 0 R`).join(' ');
     obj(n, `<< /Length ${content.length} >>`, content);
     obj(n + 1, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(s.w)} ${f(s.h)}] /Resources << /XObject << ${xo} >> >> /Contents ${n} 0 R >>`);
@@ -743,39 +855,198 @@ async function buildPdf() {
   put(`trailer\n<< /Size ${n} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
   return new Blob(parts, { type: 'application/pdf' });
 }
+
+/* ---------- review ---------- */
+let pdfReady = null, drawGen = 0;
+async function pageImg(pg) {
+  if (pg._imgUrl !== pg.url) {
+    const im = new Image(); im.src = pg.url; await im.decode();
+    pg._img = im; pg._imgUrl = pg.url;
+  }
+  return pg._img;
+}
+async function drawSheet(cv, sheet, cssW) {
+  const s = cssW * Math.min(2, window.devicePixelRatio || 1) / sheet.w;
+  cv.width = Math.round(sheet.w * s); cv.height = Math.round(sheet.h * s);
+  cv.style.width = cssW + 'px'; cv.style.height = cssW * sheet.h / sheet.w + 'px';
+  const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height);
+  for (const it of sheet.items) {
+    const im = await pageImg(it.pg);
+    x.save(); x.setTransform(s, 0, 0, -s, 0, cv.height);            // PDF space: origin bottom-left, y up
+    if (it.clip) { x.beginPath(); x.rect(...it.clip); x.clip(); }
+    x.transform(...it.m); x.transform(1, 0, 0, -1, 0, 1);
+    x.drawImage(im, 0, 0, 1, 1); x.restore();
+  }
+}
+function openReview(fromPop) {
+  if (!pages.length) return goHome(fromPop);
+  if (cur !== 'review') show('review', fromPop);
+  video.pause();
+  refreshReview();
+}
+async function refreshReview() {
+  const gen = ++drawGen, sheets = computeSheets(), box = $('sheets');
+  pdfReady = buildPdf(); pdfReady.catch(() => {});
+  document.querySelectorAll('#layoutSeg button, #filterSeg button').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.v === (b.parentNode.id === 'layoutSeg' ? layout : filter)));
+  const maxH = Math.max(220, window.innerHeight * 0.42), availW = Math.min(window.innerWidth, 560) - 48;
+  box.textContent = ''; $('dots').textContent = '';
+  for (const [i, sh] of sheets.entries()) {
+    const wrap = document.createElement('div'); wrap.className = 'sheetWrap';
+    const cv = document.createElement('canvas'); wrap.append(cv); box.append(wrap);
+    cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', `PDF page ${i + 1} of ${sheets.length}`);
+    drawSheet(cv, sh, Math.min(availW, maxH * sh.w / sh.h)).catch(() => {});
+    if (sheets.length > 1) { const d = document.createElement('i'); if (!i) d.className = 'on'; $('dots').append(d); }
+  }
+  box.scrollLeft = 0;
+  const odd = layout !== '1' && pages.length % 2;
+  $('pageNote').textContent = `${sheets.length} A4 page${sheets.length > 1 ? 's' : ''}` +
+    (layout === 'id' ? odd ? ' · back side not scanned yet' : ' · cards at actual size' : '');
+  const row = $('scanRow'); row.textContent = '';
+  pages.forEach((pg, i) => {
+    const b = document.createElement('button'); b.className = 'scan';
+    b.innerHTML = '<div class="t"></div>'; b.firstChild.style.backgroundImage = `url(${pg.url})`;
+    b.append(scanName(i)); b.onclick = () => openActions(i); row.append(b);
+  });
+  const add = document.createElement('button'); add.className = 'scan add';
+  add.innerHTML = '<div class="t"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>';
+  add.append(layout === 'id' && odd ? 'Add back' : 'Add'); add.onclick = () => enterCam(); row.append(add);
+  if (gen !== drawGen) return;
+}
+$('sheets').onscroll = () => {
+  const box = $('sheets'), i = Math.round(box.scrollLeft / box.clientWidth);
+  [...$('dots').children].forEach((d, j) => d.classList.toggle('on', i === j));
+};
+$('layoutSeg').onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.v !== layout) { layout = b.dataset.v; refreshReview(); } };
+$('filterSeg').onclick = async e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.v === filter) return;
+  filter = b.dataset.v;
+  await busy(async () => { for (const pg of pages) await renderPage(pg); });
+  refreshReview();
+};
+
+/* per-scan actions */
+let actIdx = -1;
+function openActions(i) {
+  actIdx = i; $('sheetTitle').textContent = scanName(i); $('toast').hidden = true;
+  $('rotLbl').textContent = layout === 'id' ? 'Turn card upside down' : 'Rotate a quarter turn';
+  $('scrim').hidden = false;
+}
+$('scrim').onclick = async e => {
+  const b = e.target.closest('button'), i = actIdx, pg = pages[i];
+  if (!b && e.target !== $('scrim')) return;
+  $('scrim').hidden = true;
+  if (!b || !pg) return;
+  const a = b.dataset.a;
+  if (a === 'retake') { retakeIdx = i; lastSig = null; enterCam(); }
+  else if (a === 'adjust') openEditor(pg, false);
+  else if (a === 'rotate') {
+    if (layout === 'id') pg.flip = !pg.flip;
+    else { pg.corners = [pg.corners[3], pg.corners[0], pg.corners[1], pg.corners[2]]; await busy(() => renderPage(pg)); }
+    refreshReview();
+  } else if (a === 'delete') {
+    const name = scanName(i);
+    pages.splice(i, 1); lastSig = null;
+    if (pages.length) refreshReview(); else goHome();
+    toast(`${name} deleted`, 'Undo', () => { pages.splice(Math.min(i, pages.length), 0, pg); cur === 'review' ? refreshReview() : openReview(); });
+  }
+};
+
+/* save / share */
 const pdfName = () => ($('fname').value.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\.pdf$/i, '') || 'scan') + '.pdf';
-$('exportBtn').onclick = async () => {
-  if (!pages.length) return;
-  $('busy').hidden = false;
-  try {
-    const url = URL.createObjectURL(await buildPdf());
-    const a = document.createElement('a'); a.href = url; a.download = pdfName();
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } finally { $('busy').hidden = true; }
+let canShare = false;
+try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([''], 'a.pdf', { type: 'application/pdf' })] })); } catch (e) {}
+// phones get the system share sheet (Save to Files, WhatsApp, Mail, Print); elsewhere it is a plain download
+const useShare = canShare && matchMedia('(pointer:coarse)').matches;
+$('downloadBtn').hidden = !useShare;
+$('saveLbl').textContent = useShare ? 'Save or share PDF' : 'Download PDF';
+function download(blob) {
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = pdfName(); document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  toast('PDF saved to your downloads');
+}
+$('downloadBtn').onclick = async () => download(await pdfReady);
+$('saveBtn').onclick = async () => {
+  const blob = await pdfReady;
+  if (!useShare) return download(blob);
+  try { await navigator.share({ files: [new File([blob], pdfName(), { type: 'application/pdf' })] }); }
+  catch (e) { if (e.name !== 'AbortError') download(blob); }
 };
-$('shareBtn').onclick = async () => {
-  if (!pages.length) return;
-  try {
-    const file = new File([await buildPdf()], pdfName(), { type: 'application/pdf' });
-    await navigator.share({ files: [file], title: file.name });
-  } catch (e) { if (e.name !== 'AbortError') alert('Sharing is not available here. Use Download PDF instead.'); }
+
+/* ---------- corner editor ---------- */
+let ed = null;
+function openEditor(pg, isNew) {
+  ed = { pg, isNew, corners: pg.corners.map(p => ({ ...p })), url: URL.createObjectURL(pg.src) };
+  $('edImg').src = ed.url;
+  const svg = $('edSvg'); svg.setAttribute('viewBox', `0 0 ${pg.sw} ${pg.sh}`);
+  svg.querySelectorAll('circle').forEach(c => c.remove());
+  const r = Math.max(pg.sw, pg.sh) * 0.04;
+  $('edPoly').setAttribute('stroke-width', r / 9);
+  ed.corners.forEach(p => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('r', r); c.setAttribute('stroke-width', r / 9);
+    const move = e => {
+      const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+      p.x = Math.min(pg.sw, Math.max(0, pt.x)); p.y = Math.min(pg.sh, Math.max(0, pt.y)); drawEd(); drawLoupe(p, e);
+    };
+    c.onpointerdown = e => { c.setPointerCapture(e.pointerId); e.preventDefault(); move(e); };
+    c.onpointermove = e => { if (c.hasPointerCapture(e.pointerId)) move(e); };
+    c.onpointerup = c.onpointercancel = () => { $('loupe').hidden = true; };
+    svg.append(c);
+  });
+  drawEd(); $('loupe').hidden = true; $('editor').hidden = false;
+}
+function drawEd() {
+  $('edPoly').setAttribute('points', ed.corners.map(p => p.x + ',' + p.y).join(' '));
+  $('edSvg').querySelectorAll('circle').forEach((c, i) => { c.setAttribute('cx', ed.corners[i].x); c.setAttribute('cy', ed.corners[i].y); });
+}
+function drawLoupe(p, e) {                     // magnified view of what is under the finger
+  const lp = $('loupe'), x = lp.getContext('2d'), im = $('edImg'), S = lp.width;
+  if (!im.naturalWidth) return;
+  const box = $('edStage').getBoundingClientRect();
+  lp.classList.toggle('right', e.clientX - box.left < box.width / 2 && e.clientY - box.top < 190);
+  lp.hidden = false;
+  const R = Math.max(ed.pg.sw, ed.pg.sh) * 0.045, k = im.naturalWidth / ed.pg.sw;
+  x.fillStyle = '#000'; x.fillRect(0, 0, S, S);
+  x.drawImage(im, (p.x - R) * k, (p.y - R) * k, 2 * R * k, 2 * R * k, 0, 0, S, S);
+  x.strokeStyle = '#34d399'; x.lineWidth = 3; x.beginPath();
+  x.moveTo(S / 2, S / 2 - 26); x.lineTo(S / 2, S / 2 + 26); x.moveTo(S / 2 - 26, S / 2); x.lineTo(S / 2 + 26, S / 2); x.stroke();
+}
+function closeEditor(cancel) {
+  if (cancel && ed.isNew) { const i = pages.indexOf(ed.pg); if (i >= 0) pages.splice(i, 1); updateCamUI(); }
+  URL.revokeObjectURL(ed.url); $('editor').hidden = true; ed = null;
+}
+$('edCancel').onclick = () => { closeEditor(true); if (cur === 'review') refreshReview(); };
+$('edDone').onclick = async () => {
+  const c = orderCorners(ed.corners);
+  if (!isConvex(c)) { toast('The four dots need to form a four-sided shape'); return; }
+  const top = ed.pg.corners[0]; let k = 0; c.forEach((p, i) => { if (dist(p, top) < dist(c[k], top)) k = i; });   // keep the page's current top
+  const pg = ed.pg; pg.corners = [c[k], c[(k + 1) % 4], c[(k + 2) % 4], c[(k + 3) % 4]];
+  await busy(() => renderPage(pg));
+  closeEditor(false); openReview();
 };
-try { $('shareBtn').hidden = !(navigator.canShare && navigator.canShare({ files: [new File([''], 'a.pdf', { type: 'application/pdf' })] })); } catch (e) {}
 
 /* ---------- wiring ---------- */
 $('fname').value = 'scan-' + new Date().toLocaleDateString('en-CA');
-$('startBtn').onclick = startCamera;
-$('startImport').onclick = $('importBtn').onclick = () => $('file').click();
+$('fname').onkeydown = e => { if (e.key === 'Enter') e.target.blur(); };
+$('modeId').onclick = () => { mode = 'id'; layout = 'id'; enterCam(); };
+$('modeDoc').onclick = () => { mode = 'doc'; layout = '1'; enterCam(); };
+$('resume').onclick = () => openReview();
+$('homeImport').onclick = $('importBtn').onclick = () => $('file').click();
 $('file').onchange = e => e.target.files.length && importFiles([...e.target.files]);
 $('shutter').onclick = () => capture(false);
-$('autoBtn').onclick = () => { auto = !auto; $('autoBtn').setAttribute('aria-pressed', auto); stable = 0; };
-$('pagesBtn').onclick = openPages;
-$('pagesClose').onclick = () => { $('pages').hidden = true; stable = 0; };
-$('clearBtn').onclick = () => {
-  if (!pages.length || !confirm('Remove all scanned pages?')) return;
-  pages.forEach(p => URL.revokeObjectURL(p.url)); pages.length = 0; lastSig = null; renderGrid(); refreshBar();
+$('autoBtn').onclick = () => { auto = !auto; $('autoBtn').setAttribute('aria-pressed', auto); stable = 0; setRing(0); };
+$('doneBtn').onclick = () => openReview();
+$('camClose').onclick = () => { retakeIdx = null; pages.length ? openReview() : goHome(); };
+$('revBack').onclick = () => enterCam();
+$('newBtn').onclick = () => {
+  if (!confirm('Delete these scans and start over?')) return;
+  pages.forEach(p => URL.revokeObjectURL(p.url)); pages.length = 0; lastSig = null; goHome();
 };
+document.addEventListener('visibilitychange', () => { if (!document.hidden && cur === 'cam' && stream) video.play().catch(() => {}); });
+let lastW = window.innerWidth;
+window.addEventListener('resize', () => { if (window.innerWidth !== lastW) { lastW = window.innerWidth; if (cur === 'review') refreshReview(); } });
 window.addEventListener('beforeunload', e => { if (pages.length) { e.preventDefault(); e.returnValue = ''; } });
 </script>
 </body>
