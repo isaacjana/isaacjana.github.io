@@ -1,6 +1,6 @@
 /* Playroom service worker: caches every file so the app works offline.
    Bump VERSION whenever you change any file so devices pick up the update. */
-const VERSION = 'playroom-v2';
+const VERSION = 'playroom-v3';
 const FILES = [
   './',
   './index.html',
