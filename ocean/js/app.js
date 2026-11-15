@@ -9,27 +9,30 @@ import { store, isDemo, DEMO_USERS } from './store.js';
 import { DEFAULT_DEPOT } from './config.js';
 import {
     STATUS, STEPS, ACTIVE, PAYMENT, rm, round2, itemQty, itemPrice, calcTotals, normaliseOrder, normaliseInvoice,
-    summariseItems, trackingFromOrder, supplierFromSettings, timeAgo, fmtDateTime, fmtSlot, isToday
+    summariseItems, trackingFromOrder, supplierFromSettings, timeAgo, fmtDateTime, fmtSlot, isToday, dayKey
 } from './model.js';
 import { makeMap, pin, route, geocode, getPosition, navLink } from './geo.js';
 import {
-    esc, $, toast, fail, openSheet, refreshSheets, closeAllSheets, ask, readForm, field, area, select, share
+    esc, $, toast, fail, openSheet, refreshSheets, closeAllSheets, ask, readForm, field, area, select, share, pickImage
 } from './ui.js';
 import * as flow from './flow.js';
 import { tracker } from './flow.js';
 import { createTrackView } from './trackview.js';
+import * as extras from './extras.js';
+import { LANGS, getLang, setLang, startI18n } from './i18n.js';
 
 const SETTINGS_KEY = 'ocean_settings_local';
-const DEFAULT_SETTINGS = { name: 'Ocean', tin: '', msic: '', sstNo: '', phone: '', address: '', depot: DEFAULT_DEPOT, sstRate: 0, deliveryFee: 0 };
+const DEFAULT_SETTINGS = { name: 'Ocean', tin: '', msic: '', sstNo: '', phone: '', address: '', depot: DEFAULT_DEPOT, sstRate: 0, deliveryFee: 0, cutoff: '', qr: '' };
 
 const S = {
     user: null, profile: null, role: 'client', tab: '',
-    products: [], orders: [], users: [], invoices: [], prices: {},
+    products: [], orders: [], users: [], invoices: [], prices: {}, stockLog: [], plan: [],
     settings: { ...DEFAULT_SETTINGS, ...readLocal(SETTINGS_KEY) },
     cart: {}, q: '', orderFilter: 'active', invFilter: 'all',
     acting: null, actingPrices: {}        // supplier entering an order for a customer
 };
 flow.bindFlow(S);
+extras.bindExtras(S, { render: () => render(), loadPdf: () => loadPdf(), trackUrl: (o) => trackUrl(o), priceList: (uid) => loadPrices(uid) });
 
 const TABS = {
     admin: [['today', '🏠', 'Today'], ['orders', '📋', 'Orders'], ['stock', '🐟', 'Stock'], ['invoices', '🧾', 'Invoices'], ['more', '☰', 'More']],
@@ -66,6 +69,7 @@ async function boot() {
 async function onUser(user) {
     unsubs.forEach((u) => u()); unsubs = [];
     tracker.stop();
+    extras.resetAlerts(); planKey = ''; S.ordersReady = false;
     closeAllSheets();
     S.user = user;
     if (!user) { S.profile = null; $('#app').hidden = true; $('#gate').hidden = false; return drawGate(); }
@@ -82,7 +86,7 @@ async function onUser(user) {
         console.error(e);
         return drawGate('Signed in, but your Ocean profile could not be loaded. The database rules may not allow it yet.');
     }
-    $('#gate').hidden = true; $('#app').hidden = false;
+    $('#gate').hidden = true; $('#gate-box').innerHTML = ''; $('#app').hidden = false;
     S.tab = TABS[S.role][0][0];
     subscribe();
     render();
@@ -98,10 +102,10 @@ function setProfile(p) {
 
 function subscribe() {
     const uid = S.user.uid;
-    const on = (path, where, apply) => unsubs.push(store.watch(path, (rows, err) => {
+    const on = (path, where, apply, optional) => unsubs.push(store.watch(path, (rows, err) => {
         if (err) {
             console.error(path, err);
-            if (!warnedDenied) { warnedDenied = true; toast(`Some data could not be loaded (${path}). The database rules may need updating.`, true); }
+            if (!warnedDenied && !optional) { warnedDenied = true; toast(`Some data could not be loaded (${path}). The database rules may need updating.`, true); }
         }
         apply(rows);
         afterData();
@@ -120,16 +124,19 @@ function subscribe() {
     }));
     on('products', null, (rows) => { S.products = rows.sort((a, b) => String(a.name).localeCompare(String(b.name))); });
 
-    const orders = { a: [], b: [] };
+    const orders = { a: null, b: null };
     const setOrders = () => {
         const seen = new Map();
-        [...orders.a, ...orders.b].forEach((o) => seen.set(o.id, normaliseOrder(o)));
+        [...(orders.a || []), ...(orders.b || [])].forEach((o) => seen.set(o.id, normaliseOrder(o)));
+        // Alerts only start once every order query has answered, so existing orders are not announced as new
+        S.ordersReady = !!orders.a && (S.role !== 'driver' || !!orders.b);
         S.orders = [...seen.values()].sort((x, y) => y.createdAt - x.createdAt);
     };
     if (isAdmin()) {
         on('orders', null, (rows) => { orders.a = rows; setOrders(); });
         on('users', null, (rows) => { S.users = rows.filter((u) => TABS[String(u.role || '').toLowerCase()]).map((u) => ({ ...u, role: String(u.role).toLowerCase() })); });
         on('invoices', null, (rows) => { S.invoices = rows.map(normaliseInvoice).sort((x, y) => y.createdAt - x.createdAt); });
+        on('ocean_stock_log', null, (rows) => { S.stockLog = rows.sort((x, y) => y.at - x.at); }, true);
     } else if (S.role === 'client') {
         on('orders', ['clientId', '==', uid], (rows) => { orders.a = rows; setOrders(); });
         on('invoices', ['clientId', '==', uid], (rows) => { S.invoices = rows.map(normaliseInvoice); });
@@ -144,11 +151,28 @@ function subscribe() {
 function afterData() {
     if (isAdmin()) flow.reconcileInvoices(S.orders, S.invoices);
     if (S.role === 'driver') {
-        // Pick location sharing back up after a reload, and stop it when the delivery is over
-        const live = S.orders.find((o) => o.status === 'delivering' && o.driverId === S.user.uid);
-        if (live) tracker.start(live); else if (tracker.order) tracker.stop();
+        // Share location for everything on board. This also picks sharing back up after a reload.
+        const live = S.orders.filter((o) => o.status === 'delivering' && o.driverId === S.user.uid);
+        tracker.sync(live);
+        planRun(live);
+    }
+    extras.checkAlerts();
+    if (S.products.length) {
+        if (isAdmin()) extras.runStanding(S.users.filter((u) => u.role === 'client'));
+        else if (S.role === 'client') extras.runStanding([{ ...S.profile, id: S.user.uid }]);
     }
     render();
+}
+
+/** Order the driver's stops (nearest next) whenever the set of deliveries on board changes. */
+let planKey = '';
+function planRun(live) {
+    const key = live.map((o) => o.id).sort().join();
+    if (key === planKey) return;
+    planKey = key;
+    const planned = flow.planStops(tracker.last || depot(), live);
+    S.plan = planned.map((o) => o.id);
+    flow.saveStopOrder(planned);
 }
 
 function drawGate(error) {
@@ -164,8 +188,11 @@ function drawGate(error) {
             <button class="btn white" data-act="leaveDemo">Use my real account</button>` : `
             <button class="btn white" data-act="signIn">Sign in with Google</button>
             <button class="btn line" data-act="enterDemo">Try the demo (no account)</button>`}
-        <a class="btn line" href="track.html">📍 Track a delivery</a>`;
+        <a class="btn line" href="track.html">📍 Track a delivery</a>
+        ${langPicker('line')}`;
 }
+
+const langPicker = (cls = 'ghost') => `<label class="btn ${cls} block" style="gap:10px">🌐 <select data-lang aria-label="Language" style="background:none;border:0;font-weight:700;color:inherit">${LANGS.map(([id, name]) => `<option value="${id}" ${getLang() === id ? 'selected' : ''} style="color:#000">${name}</option>`).join('')}</select></label>`;
 
 /* ================================================================== */
 /* Rendering                                                           */
@@ -202,6 +229,7 @@ function render() {
 
 function drawGpsChip() {
     const el = $('#gps-chip');
+    if (!navigator.onLine) { el.innerHTML = '<span class="chip off">Offline</span>'; return; }
     if (S.role !== 'driver' || tracker.state === 'off') { el.innerHTML = ''; return; }
     el.innerHTML = tracker.state === 'on' ? '<span class="chip live">Sharing location</span>'
         : tracker.state === 'starting' ? '<span class="chip">Finding GPS…</span>'
@@ -267,7 +295,7 @@ const VIEWS = {
     stock() {
         const reserved = reservedStock();
         return `
-            <div class="head"><h1>Live stock</h1><button class="btn sm" data-act="product" data-id="">＋ Add</button></div>
+            <div class="head"><h1>Live stock</h1><div class="row"><button class="btn sm ghost" data-act="stockLog">History</button><button class="btn sm" data-act="product" data-id="">＋ Add</button></div></div>
             <p class="small mute">Stock leaves the tank when an order is packed. "Reserved" is promised to confirmed orders that are not packed yet.</p>
             <div class="list">${S.products.length ? S.products.map((p) => {
             const qty = Number(p.quantity) || 0, res = reserved[p.id] || 0;
@@ -283,7 +311,7 @@ const VIEWS = {
         const list = S.invoices.filter((v) => f === 'all' || v.status === f);
         const owed = S.invoices.filter((v) => v.status === 'unpaid').reduce((s, v) => s + v.grandTotal, 0);
         return `
-            <div class="head"><h1>Invoices</h1><button class="btn sm soft" data-act="blankInvoice">＋ Blank invoice</button></div>
+            <div class="head"><h1>Invoices</h1><div class="row"><button class="btn sm ghost" data-act="statement">Statement</button><button class="btn sm soft" data-act="blankInvoice">＋ Blank</button></div></div>
             <div class="card row"><div class="grow"><div class="small mute">Outstanding</div><b class="num" style="font-size:22px">${rm(owed)}</b></div><div class="small mute right">An invoice is issued<br>when an order is packed</div></div>
             <div class="seg">${[['all', 'All'], ['unpaid', 'Unpaid'], ['paid', 'Paid'], ['void', 'Void']].map(([id, label]) => `<button class="${f === id ? 'on' : ''}" data-act="invFilter" data-id="${id}">${label}</button>`).join('')}</div>
             <div class="list">${list.length ? list.map((v) => `
@@ -301,9 +329,12 @@ const VIEWS = {
             <div class="list">
                 ${item('people', '👥', 'Customers and team', `${people} ${people === 1 ? 'person' : 'people'}: set prices, drivers and roles`)}
                 ${item('settings', '🏢', 'Business details', 'Name, TIN, SST, delivery fee and depot pin (printed on invoices)')}
+                ${item('reports', '📈', 'Sales report', 'Revenue, top products, top customers and wastage')}
+                ${item('statement', '📑', 'Monthly statements', 'One PDF per customer showing what is paid and owed')}
                 ${item('liveMap', '🗺️', 'Live map', 'See every delivery that is on the road')}
                 ${item('openInvoiceApp', '🧾', 'Invoice app', 'Write a one-off invoice with your business details filled in')}
                 ${item('profile', '👤', 'My profile', esc(S.profile.name || S.user.email))}
+                ${isDemo() ? '' : item('importLiveCatch', '📥', 'Import from Live Catch', 'One-time copy of the old stock list and delivery clients')}
             </div>
             ${accountFooter()}`;
     },
@@ -316,6 +347,7 @@ const VIEWS = {
         return `
             ${S.acting ? `<div class="notice row"><span class="grow">Entering an order for <b>${esc(S.acting.storeName || S.acting.name || 'a walk-in customer')}</b></span><button class="btn sm ghost" data-act="stopActing">Cancel</button></div>`
             : `<div><h1>Today's live catch</h1><p class="mute small">Live seafood is weighed when packed. You approve the final price before it ships.</p></div>`}
+            ${!S.acting && S.settings.cutoff ? `<div class="notice ${pastCutoff() ? 'warn' : ''}">${pastCutoff() ? `Same-day orders closed at ${fmtTime(S.settings.cutoff)}. Orders placed now are delivered from tomorrow.` : `Order before ${fmtTime(S.settings.cutoff)} for delivery today.`}</div>` : ''}
             ${needsProfile ? `<div class="notice warn row"><span class="grow">Add your delivery address before ordering.</span><button class="btn sm" data-act="profile">Add</button></div>` : ''}
             <input class="input" id="q" type="search" placeholder="Search seafood" value="${esc(S.q)}" data-input="search" autocomplete="off">
             <div class="products">${list.length ? list.map(productCard).join('') : ''}</div>
@@ -347,17 +379,21 @@ const VIEWS = {
                 <button class="btn soft block" data-act="profile">Edit details</button>
             </div>
             ${S.role === 'client' && !p.loc ? '<div class="notice warn">Set your map pin so the driver finds you and you get an accurate arrival time.</div>' : ''}
+            ${S.role === 'client' ? extras.standingCards() + '<button class="btn ghost block" data-act="statement">📑 Monthly statement</button>' : ''}
             ${accountFooter()}`;
     },
 
     /* ---------------- Driver ---------------- */
     jobs() {
         const uid = S.user.uid;
-        const mine = S.orders.filter((o) => o.driverId === uid && ['ready', 'delivering'].includes(o.status)).sort((a, b) => (a.status === 'delivering' ? -1 : 1) - (b.status === 'delivering' ? -1 : 1));
+        const rank = (o) => (o.status === 'delivering' ? (S.plan.indexOf(o.id) + 1 || 50) : 100);
+        const mine = S.orders.filter((o) => o.driverId === uid && ['ready', 'delivering'].includes(o.status)).sort((a, b) => rank(a) - rank(b));
+        const packed = mine.filter((o) => o.status === 'ready');
+        const onBoard = mine.filter((o) => o.status === 'delivering');
         const open = S.orders.filter((o) => o.status === 'ready' && !o.driverId);
         const job = (o, action) => `
             <div class="card stack tight ${o.status === 'delivering' ? 'flag' : ''}">
-                <div class="head"><b class="clip">${esc(o.storeName)}</b>${pill(o.status)}</div>
+                <div class="head"><b class="clip">${o.status === 'delivering' && onBoard.length > 1 ? `<span>Stop ${onBoard.indexOf(o) + 1}: </span>` : ''}${esc(o.storeName)}</b>${pill(o.status)}</div>
                 <div class="small">📍 ${esc(o.deliveryAddress || 'Address not set')}</div>
                 <div class="small mute">${esc(fmtSlot(o.slot))} · ${esc(summariseItems(o.items))}</div>
                 ${o.payment.method === 'cod' && o.payment.status !== 'paid' ? `<div class="small bold">Collect ${rm(o.total)} cash</div>` : ''}
@@ -368,7 +404,8 @@ const VIEWS = {
         return `
             <h1>Jobs</h1>
             ${gps}
-            <h2>My deliveries</h2>
+            <div class="head"><h2>My deliveries</h2>${packed.length > 1 ? `<button class="btn sm" data-act="startAll">Start all ${packed.length}</button>` : ''}</div>
+            ${onBoard.length > 1 ? '<p class="small mute">Stops are listed nearest first. Each customer sees how many stops come before theirs.</p>' : ''}
             <div class="list">${mine.length ? mine.map((o) => job(o, `<button class="btn block" data-act="delivery" data-id="${o.id}">${o.status === 'delivering' ? 'Continue delivery' : 'Open job'}</button>`)).join('') : empty('🚚', 'Nothing assigned to you yet.')}</div>
             <h2>Waiting for a driver</h2>
             <div class="list">${open.length ? open.map((o) => job(o, `<button class="btn soft block" data-act="claim" data-id="${o.id}">Take this job</button>`)).join('') : empty('👍', 'No open jobs right now.')}</div>`;
@@ -390,6 +427,8 @@ const VIEWS = {
 function accountFooter() {
     return `
         <div class="stack">
+            <button class="btn ghost block" data-act="alerts">${extras.alertsOn() ? '🔔 Alerts are on: tap to turn off' : '🔕 Turn on alerts'}</button>
+            ${langPicker()}
             ${isDemo() ? `<button class="btn soft block" data-act="signOut">Switch demo role</button><button class="btn ghost block" data-act="resetDemo">Reset demo data</button>` : ''}
             <a class="btn ghost block" href="track.html">📍 Track a delivery by code</a>
             <button class="btn bad block" data-act="signOut">Sign out</button>
@@ -458,8 +497,10 @@ function openCheckout() {
     if (!S.acting && !cust.address) { toast('Add your delivery address first'); return openProfile(); }
     const fee = Number(S.settings.deliveryFee) || 0;
     const t = calcTotals(lines, fee, S.settings.sstRate);
-    const late = new Date().getHours() >= 15;
-    const day = new Date(Date.now() + (late ? 86400000 : 0)).toISOString().slice(0, 10);
+    const today = dayKey(Date.now()), tomorrow = dayKey(Date.now() + 86400000);
+    // Customers cannot book today after the cut-off; the supplier can always override
+    const closed = !S.acting && pastCutoff();
+    const day = closed || (!S.settings.cutoff && new Date().getHours() >= 15) ? tomorrow : today;
     let walkLoc = null;
     const sheet = openSheet({
         title: S.acting ? 'New order' : 'Review your order', form: true,
@@ -471,11 +512,12 @@ function openCheckout() {
                     ${t.tax ? `<div><span>SST ${S.settings.sstRate}%</span><span class="num">${rm(t.tax)}</span></div>` : ''}
                     <div class="total"><span>Estimated total</span><span class="num">${rm(t.total)}</span></div>
                 </div>
+                ${closed ? `<div class="notice warn">Same-day orders closed at ${fmtTime(S.settings.cutoff)}, so the earliest delivery is tomorrow.</div>` : ''}
                 ${S.acting ? '' : '<div class="notice">Live seafood is sold by actual weight. We weigh your order, send the final price, and only pack once you accept.</div>'}
                 ${walkIn ? field('Customer name', 'name', '', 'required placeholder="e.g. Kedai Makan Ah Hock"') + field('Phone', 'phone', '', 'type="tel" inputmode="tel"') + area('Delivery address', 'address') + '<button class="btn ghost block" type="button" data-pin>📍 <span data-pin-label>Set map pin (for live tracking)</span></button>' : `
                 <div class="card small"><span class="mute">Deliver to</span><br><b>${esc(cust.storeName || cust.name)}</b><br>${esc(cust.address || 'No address on file')}${cust.loc ? '' : '<br><span style="color:var(--warn)">No map pin: arrival time will not be shown.</span>'}</div>`}
                 <div class="grid2">
-                    ${field('Delivery day', 'date', day, `type="date" min="${new Date().toISOString().slice(0, 10)}"`)}
+                    ${field('Delivery day', 'date', day, `type="date" min="${closed ? tomorrow : today}"`)}
                     ${select('Time', 'window', WINDOWS.map((w) => [w === WINDOWS[0] ? '' : w, w]), '')}
                 </div>
                 ${select('Payment', 'method', Object.entries(PAYMENT), 'cod')}
@@ -492,6 +534,7 @@ function openCheckout() {
         {
             const f = readForm(el);
             if (walkIn && !f.name) return toast('Enter the customer name', true);
+            if (!f.date || f.date < (closed ? tomorrow : today)) return toast(closed ? `Same-day orders closed at ${fmtTime(S.settings.cutoff)}. Pick tomorrow or later.` : 'Pick a delivery day', true);
             e.target.disabled = true;
             try {
                 const customer = walkIn ? { id: '', name: f.name, storeName: f.name, phone: f.phone, address: f.address, loc: walkLoc } : cust;
@@ -548,11 +591,39 @@ function openOrder(id) {
                     </div>
                     ${o.driverId ? `<div class="card row"><div class="thumb">🚚</div><div class="grow"><b class="clip">${esc(o.driverName)}</b><div class="small mute clip">${esc(o.vehicle || 'Driver')}</div></div>${o.driverPhone && S.role !== 'driver' ? `<a class="btn sm soft" href="${telHref(o.driverPhone)}">📞</a>` : ''}</div>` : ''}
                     ${['ready', 'delivering'].includes(o.status) && S.role !== 'driver' ? `<div class="card row"><div class="grow small"><b>${o.status === 'delivering' ? 'Driver is on the way' : 'Tracking link is ready'}</b><div class="mute">Anyone with the link can follow this delivery.</div></div><button class="btn sm ghost" data-act="shareTrack" data-id="${o.id}">Share</button></div>` : ''}
+                    ${orderExtras(o)}
                     ${inv || o.invoiceNo ? `<div class="card tap row" data-act="invoice" data-id="${o.invoiceId}"><div class="thumb">🧾</div><div class="grow"><b>Invoice ${esc(o.invoiceNo)}</b><div class="small mute">Tap to view, download or share</div></div><span class="mute">›</span></div>` : ''}
                     <div class="card stack tight"><h3>History</h3><div class="timeline">${(o.timeline || []).map((e) => `<div><span><b>${(STATUS[e.status] || STATUS.requested).label}</b> <span class="mute">· ${fmtDateTime(e.at)}${e.by ? ' · ' + esc(e.by) : ''}</span></span></div>`).join('') || '<span class="mute small">No history recorded.</span>'}</div></div>`,
                 foot: orderActions(o)
             };
         }
+    });
+}
+
+/** Secondary actions on an order: message the other side, pay by QR, see the delivery photo, repeat weekly. */
+function orderExtras(o) {
+    const out = [];
+    if (isAdmin() && o.phone) out.push(`<a class="btn sm soft" href="${waHref(o.phone, extras.customerMessage(o))}" target="_blank" rel="noopener">💬 Update customer on WhatsApp</a>`);
+    if (S.role === 'client' && S.settings.phone) out.push(`<a class="btn sm soft" href="${waHref(S.settings.phone, extras.supplierMessage(o))}" target="_blank" rel="noopener">💬 Message supplier</a>`);
+    if (S.role === 'client' && S.settings.qr && o.payment.status !== 'paid' && ['confirmed', 'ready', 'delivering', 'delivered'].includes(o.status)) out.push(`<button class="btn sm soft" data-act="payQr" data-id="${o.id}">Pay by QR</button>`);
+    if (o.pod && o.pod.hasPhoto && S.role !== 'driver') out.push(`<button class="btn sm soft" data-act="podPhoto" data-id="${o.id}">📷 Delivery photo</button>`);
+    if (S.role === 'client' && o.status !== 'cancelled') out.push(`<button class="btn sm ghost" data-act="repeat" data-id="${o.id}">🔁 Repeat weekly</button>`);
+    return out.length ? `<div class="row wrap">${out.join('')}</div>` : '';
+}
+
+const pastCutoff = () => !!S.settings.cutoff && new Date().toTimeString().slice(0, 5) >= S.settings.cutoff;
+const fmtTime = (hhmm) => new Date(`2000-01-01T${hhmm}`).toLocaleTimeString('en-MY', { hour: 'numeric', minute: '2-digit' });
+
+function openQr(o) {
+    openSheet({
+        title: 'Pay by QR', form: true,
+        render: () => ({
+            body: `<div class="card stack" style="justify-items:center;text-align:center">
+                <img src="${S.settings.qr}" alt="Payment QR code" style="width:min(260px,70vw);border-radius:12px;background:#fff">
+                <div><div class="small mute">Amount</div><b class="num" style="font-size:26px">${rm(o.total)}</b></div>
+                <div class="small">Reference: <b>${esc(o.invoiceNo || o.orderNo)}</b></div>
+                <p class="small mute">Scan with your banking or e-wallet app. ${esc(S.settings.name)} marks the invoice as paid once the money arrives.</p></div>`
+        })
     });
 }
 
@@ -676,24 +747,36 @@ function openAssign(o) {
 
 function openComplete(o) {
     const cod = o.payment.status !== 'paid';
+    let photo = null;
     const sheet = openSheet({
         title: 'Confirm delivery', form: true,
         render: () => ({
             body: `
                 ${field('Received by', 'recipient', '', 'placeholder="Name of the person who took the goods" autocomplete="off"')}
-                ${cod ? `<div class="card stack tight"><label class="check"><input type="checkbox" name="paid" ${o.payment.method === 'cod' ? 'checked' : ''}><span>Payment collected: <b>${rm(o.total)}</b></span></label>${select('Paid by', 'method', [['cod', 'Cash'], ['transfer', 'Bank transfer / QR']], o.payment.method === 'transfer' ? 'transfer' : 'cod')}</div>` : '<div class="notice ok">Already paid. Nothing to collect.</div>'}`,
+                ${cod ? `<div class="card stack tight"><label class="check"><input type="checkbox" name="paid" ${o.payment.method === 'cod' ? 'checked' : ''}><span>Payment collected: <b>${rm(o.total)}</b></span></label>${select('Paid by', 'method', [['cod', 'Cash'], ['transfer', 'Bank transfer / QR']], o.payment.method === 'transfer' ? 'transfer' : 'cod')}
+                    ${S.settings.qr ? `<div data-qr ${o.payment.method === 'transfer' ? '' : 'hidden'} style="text-align:center"><img src="${S.settings.qr}" alt="Payment QR code" style="width:min(220px,60vw);border-radius:12px;background:#fff"><div class="small mute">Let the customer scan this to pay</div></div>` : ''}</div>` : '<div class="notice ok">Already paid. Nothing to collect.</div>'}
+                <div class="card stack tight"><button class="btn ghost block" type="button" data-photo>📷 <span>Add a delivery photo</span></button><img data-preview hidden alt="Delivery photo" style="width:100%;border-radius:12px"><p class="tiny mute">A photo of the goods at the door settles any later question about the delivery.</p></div>`,
             foot: `<button class="btn ok block" data-go>Delivered</button>`
         }),
-        onMount: (el) => $('[data-go]', el).addEventListener('click', async (e) => {
-            const f = readForm(el);
-            e.target.disabled = true;
-            try {
-                await flow.completeDelivery(o, { recipient: f.recipient, paid: !!f.paid, method: f.method });
-                if (tracker.order && tracker.order.id === o.id) tracker.stop();
-                closeAllSheets();
-                toast('Delivery completed');
-            } catch (err) { e.target.disabled = false; fail(err, 'complete the delivery'); }
-        })
+        onMount: (el) => {
+            el.addEventListener('change', (e) => { const qr = $('[data-qr]', el); if (e.target.name === 'method' && qr) qr.hidden = e.target.value !== 'transfer'; });
+            $('[data-photo]', el).addEventListener('click', async () => {
+                const shot = await pickImage();
+                if (!shot) return;
+                photo = shot;
+                const img = $('[data-preview]', el); img.src = shot; img.hidden = false;
+                $('[data-photo] span', el).textContent = 'Retake photo';
+            });
+            $('[data-go]', el).addEventListener('click', async (e) => {
+                const f = readForm(el);
+                e.target.disabled = true;
+                try {
+                    const saved = await flow.completeDelivery(o, { recipient: f.recipient, paid: !!f.paid, method: f.method, photo });
+                    closeAllSheets();
+                    toast(saved ? 'Delivery completed' : 'Delivery completed, but the photo could not be saved', !saved);
+                } catch (err) { e.target.disabled = false; fail(err, 'complete the delivery'); }
+            });
+        }
     });
 }
 
@@ -756,7 +839,7 @@ function openDelivery(id) {
         if (!o || !view) return;
         if (!['ready', 'delivering'].includes(o.status)) return sheet.close();
         // Show this phone's own position straight away rather than waiting for the round trip
-        const mine = tracker.order && tracker.order.id === id && tracker.last ? { ...tracker.last } : o.driverLoc;
+        const mine = tracker.has(id) && tracker.last ? { ...tracker.last } : o.driverLoc;
         view.update(trackingFromOrder({ ...o, driverLoc: mine }, S.settings));
     };
     sheet.onData();
@@ -857,7 +940,7 @@ function loadPdf() {
 }
 
 /** Invoices issued before the business details were filled in pick them up now. */
-const printable = (v) => ({ ...v, supplier: v.supplier && v.supplier.name ? v.supplier : supplierFromSettings(S.settings) });
+const printable = (v) => ({ ...v, supplier: v.supplier && v.supplier.name ? v.supplier : supplierFromSettings(S.settings), paymentQr: v.status === 'unpaid' ? S.settings.qr || '' : '' });
 
 function openInvoice(id) {
     openSheet({
@@ -899,12 +982,13 @@ function openProduct(id) {
         title: id ? 'Edit product' : 'Add product', form: true,
         render: () => ({
             body: `
-                ${id ? `<div class="card stack tight"><h3>Receive stock</h3><div class="row"><input class="input grow" type="number" inputmode="decimal" step="0.1" min="0" placeholder="${esc(p.unit)} received" data-recv><button class="btn" data-receive>Add</button></div><p class="small mute">Now: <b>${p.quantity} ${esc(p.unit)}</b></p></div>` : ''}
+                ${id ? `<div class="card stack tight"><h3>Receive stock</h3><div class="row"><input class="input grow" type="number" inputmode="decimal" step="0.1" min="0" placeholder="${esc(p.unit)} received" data-recv><button class="btn" data-receive>Add</button></div><div class="head"><p class="small mute">Now: <b>${p.quantity} ${esc(p.unit)}</b></p><button class="btn sm bad" data-waste>Write off instead</button></div><p class="tiny mute">Write off stock that died or was damaged. It is counted as wastage in the sales report.</p></div>` : ''}
                 ${field('Name', 'name', p.name, 'required')}
                 <div class="grid2">${field('Price (RM)', 'price', p.price, 'type="number" inputmode="decimal" step="0.01" min="0"')}${select('Sold by', 'unit', [['kg', 'kg'], ['pcs', 'piece'], ['box', 'box'], ['tail', 'tail']], p.unit)}</div>
                 <div class="grid2">${field('In stock', 'quantity', p.quantity, 'type="number" inputmode="decimal" step="0.1"')}${field('Warn when below', 'lowAt', p.lowAt ?? 5, 'type="number" inputmode="decimal" step="0.1" min="0"')}</div>
                 <div class="grid2">${field('Icon (emoji)', 'icon', p.icon || '🐟', 'maxlength="4"')}${field('Photo link (optional)', 'image', p.image || '', 'type="url" placeholder="https://…"')}</div>
-                <label class="check"><input type="checkbox" name="active" ${p.active !== false ? 'checked' : ''}><span>Show to customers</span></label>`,
+                <label class="check"><input type="checkbox" name="active" ${p.active !== false ? 'checked' : ''}><span>Show to customers</span></label>
+                ${id ? `<details class="card"><summary class="bold">Stock history</summary><div style="margin-top:8px">${extras.stockLogRows(id, 30)}</div></details>` : ''}`,
             foot: `${id ? '<button class="btn bad" data-del>Delete</button>' : ''}<button class="btn" data-save>Save</button>`
         }),
         onMount: (el) => el.addEventListener('click', async (e) => {
@@ -913,12 +997,25 @@ function openProduct(id) {
                     const n = Number($('[data-recv]', el).value);
                     if (!(n > 0)) return toast('Enter how much arrived', true);
                     await store.inc('products', id, 'quantity', n);
+                    flow.logStock(p, n, 'received');
                     sheet.close(); toast(`Added ${n} ${p.unit} of ${p.name}`);
+                } else if (e.target.hasAttribute('data-waste')) {
+                    const n = Number($('[data-recv]', el).value);
+                    if (!(n > 0)) return toast('Enter how much to write off in the box first', true);
+                    await store.inc('products', id, 'quantity', -n);
+                    flow.logStock(p, -n, 'wastage');
+                    sheet.close(); toast(`Wrote off ${n} ${p.unit} of ${p.name}`);
                 } else if (e.target.hasAttribute('data-save')) {
                     const f = readForm(el);
                     if (!f.name) return toast('Give the product a name', true);
                     const data = { ...f, price: f.price || 0, quantity: f.quantity || 0, lowAt: f.lowAt ?? 0, updatedAt: Date.now() };
-                    if (id) await store.update('products', id, data); else await store.add('products', data);
+                    if (id) {
+                        await store.update('products', id, data);
+                        flow.logStock({ ...p, ...data }, data.quantity - (Number(p.quantity) || 0), 'correction');
+                    } else {
+                        const newId = await store.add('products', data);
+                        flow.logStock({ ...data, id: newId }, data.quantity, 'received');
+                    }
                     sheet.close(); toast('Saved');
                 } else if (e.target.hasAttribute('data-del')) {
                     if (!(await ask({ title: 'Delete product?', text: `${p.name} will be removed from the catch list. Past orders keep their record.`, yes: 'Delete', danger: true }))) return;
@@ -1077,6 +1174,7 @@ function openNewOrder() {
 function openSettings() {
     const s = S.settings;
     let pinLoc = s.depot || null;
+    let qr = s.qr || '';
     const sheet = openSheet({
         title: 'Business details', form: true, full: true,
         render: () => ({
@@ -1087,15 +1185,22 @@ function openSettings() {
                 <div class="grid2">${field('SST registration no.', 'sstNo', s.sstNo)}${field('Phone', 'phone', s.phone, 'type="tel"')}</div>
                 ${area('Registered address', 'address', s.address)}
                 <div class="grid2">${field('SST rate on goods (%)', 'sstRate', s.sstRate, 'type="number" inputmode="decimal" step="0.5" min="0"')}${field('Delivery fee (RM)', 'deliveryFee', s.deliveryFee, 'type="number" inputmode="decimal" step="0.5" min="0"')}</div>
+                <label class="field"><span>Same-day order cut-off (leave empty for none)</span><input class="input" type="time" name="cutoff" value="${esc(s.cutoff || '')}"></label>
+                <div class="card stack tight"><h3>Payment QR (DuitNow)</h3><p class="small mute">Shown to customers, on the driver's hand-over screen and on unpaid invoices.</p>
+                    <img data-qr-img src="${qr}" ${qr ? '' : 'hidden'} alt="Payment QR code" style="width:160px;border-radius:12px;background:#fff">
+                    <div class="row"><button class="btn sm soft" type="button" data-qr-pick>Choose picture</button><button class="btn sm bad" type="button" data-qr-clear ${qr ? '' : 'hidden'}>Remove</button></div></div>
                 <button class="btn ghost block" type="button" data-pin>🏭 <span data-pin-label>Depot pin: ${pinLoc ? 'set, tap to change' : 'not set'}</span></button>
                 <p class="tiny mute">Set the SST rate to 0 if your goods are not taxable. Ask your accountant if unsure.</p>`,
             foot: `<button class="btn block" data-save>Save</button>`
         }),
         onMount: (el) => {
             $('[data-pin]', el).addEventListener('click', () => pickLocation(pinLoc, $('[name=address]', el).value, (loc) => { pinLoc = loc; $('[data-pin-label]', el).textContent = 'Depot pin: set, tap to change'; }));
+            const showQr = () => { const img = $('[data-qr-img]', el); img.src = qr; img.hidden = !qr; $('[data-qr-clear]', el).hidden = !qr; };
+            $('[data-qr-pick]', el).addEventListener('click', async () => { const shot = await pickImage({ maxSide: 600, quality: 0.8, camera: false }); if (shot) { qr = shot; showQr(); } });
+            $('[data-qr-clear]', el).addEventListener('click', () => { qr = ''; showQr(); });
             $('[data-save]', el).addEventListener('click', async () => {
                 const f = readForm(el);
-                const data = { ...f, sstRate: f.sstRate || 0, deliveryFee: f.deliveryFee || 0, depot: pinLoc || DEFAULT_DEPOT };
+                const data = { ...f, sstRate: f.sstRate || 0, deliveryFee: f.deliveryFee || 0, depot: pinLoc || DEFAULT_DEPOT, qr };
                 S.settings = { ...S.settings, ...data };
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(S.settings));
                 try { await store.set('ocean_settings', 'business', data); toast('Saved'); }
@@ -1174,14 +1279,15 @@ const ACTIONS = {
     release: guard('give the job back', async (d) => { await flow.assignDriver(order(d.id), null); closeAllSheets(); toast('Job returned to the board'); }),
     delivery: (d) => { closeAllSheets(); openDelivery(d.id); },
     start: guard('start the delivery', async (d) => {
-        const o = order(d.id);
-        const busy = S.orders.find((x) => x.status === 'delivering' && x.driverId === S.user.uid);
-        if (busy) return toast(`Finish the delivery to ${busy.storeName} first`, true);
-        await flow.startDelivery(o);
-        tracker.start({ ...o, status: 'delivering' });
+        await flow.startDelivery(order(d.id));
         toast('Delivery started. Sharing your location.');
     }),
-    retryGps(d) { const o = order(d.id); tracker.stop(); if (o) tracker.start(o); },
+    startAll: guard('start the run', async () => {
+        const packed = S.orders.filter((o) => o.status === 'ready' && o.driverId === S.user.uid);
+        for (const o of packed) await flow.startDelivery(o);
+        toast(`Run started with ${packed.length} stops. Sharing your location.`);
+    }),
+    retryGps: () => tracker.retry(),
     complete: (d) => openComplete(order(d.id)),
     simulate: guard('simulate the drive', async (d) => {
         const o = order(d.id);
@@ -1190,6 +1296,21 @@ const ACTIONS = {
         const r = await route(from, o.dest);
         tracker.simulate(r.path.length > 2 ? r.path : densify(r.path));
         toast('Simulating the drive…');
+    }),
+
+    // Extras
+    alerts: async () => { await extras.toggleAlerts(); render(); },
+    reports: () => extras.openReports(),
+    stockLog: () => extras.openStockLog(),
+    statement: () => extras.openStatement(''),
+    importLiveCatch: () => extras.importLiveCatch(),
+    repeat: (d) => extras.openRepeat(order(d.id)),
+    stopRepeat: (d) => extras.stopRepeat(d.id),
+    payQr: (d) => openQr(order(d.id)),
+    podPhoto: guard('load the photo', async (d) => {
+        const pod = await store.get('ocean_pod', d.id);
+        if (!pod || !pod.photo) return toast('The photo is not available', true);
+        openSheet({ title: 'Delivery photo', form: true, render: () => ({ body: `<img src="${pod.photo}" alt="Delivery photo" style="width:100%;border-radius:12px"><p class="small mute">Taken by ${esc(pod.by || 'the driver')} · ${fmtDateTime(pod.at)}</p>` }) });
     }),
 
     // Stock, people, settings
@@ -1251,9 +1372,17 @@ document.addEventListener('input', (e) => {
     }
 });
 
+document.addEventListener('change', (e) => {
+    if (e.target.hasAttribute('data-lang')) { setLang(e.target.value); if (S.profile) render(); else drawGate(); }
+});
+window.addEventListener('online', () => { drawGpsChip(); toast('Back online'); });
+window.addEventListener('offline', () => { drawGpsChip(); toast('No connection. Changes are kept and sent when you are back online.', true); });
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
+
 // When the customer leaves a quantity box, show the amount actually in the cart (it may have been capped to stock)
 document.addEventListener('change', (e) => {
     if (e.target.dataset.input === 'qty') e.target.value = S.cart[e.target.dataset.id] || '';
 });
 
+startI18n();
 boot();

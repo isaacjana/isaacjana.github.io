@@ -104,6 +104,7 @@ export function trackingFromOrder(o, supplier) {
         items: (o.items || []).map((i) => ({ name: i.name, qty: itemQty(i), unit: i.unit })),
         driver: o.driverId ? { name: o.driverName || 'Driver', phone: o.driverPhone || '', vehicle: o.vehicle || '' } : null,
         loc: o.driverLoc || null,
+        stopsAhead: o.stopsAhead || 0,
         startedAt: o.startedAt || null,
         deliveredAt: o.deliveredAt || null,
         receivedBy: (o.pod && o.pod.recipient) || '',
@@ -188,3 +189,5 @@ export function fmtSlot(slot) {
 }
 
 export const isToday = (t) => new Date(ms(t)).toDateString() === new Date().toDateString();
+
+export const dayKey = (t) => { const d = new Date(ms(t)); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };

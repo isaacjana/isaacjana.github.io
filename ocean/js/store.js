@@ -35,8 +35,16 @@ async function loadFirebase() {
         import(SDK + 'firebase-auth.js')
     ]);
     const app = appMod.initializeApp(firebaseConfig);
-    const db = fs.initializeFirestore(app, { ignoreUndefinedProperties: true });
-    fb = { fs, au, db, auth: au.getAuth(app) };
+    let db;
+    try {
+        // Keep a copy on the device: the app opens without signal, and changes made
+        // offline (such as the driver's positions) are sent when the connection returns
+        db = fs.initializeFirestore(app, { ignoreUndefinedProperties: true, localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() }) });
+    } catch (e) {
+        console.warn('Offline storage unavailable, continuing online only', e);
+        try { db = fs.initializeFirestore(app, { ignoreUndefinedProperties: true }); } catch (e2) { db = fs.getFirestore(app); }
+    }
+    fb = { fs, au, db, app, auth: au.getAuth(app) };
     return fb;
 }
 
@@ -202,6 +210,18 @@ export const store = {
             console.warn('Invoice counter unavailable, using a time-based number', e);
             return `INV-${year}-T${Date.now().toString(36).toUpperCase()}`;
         }
+    },
+    /**
+     * One-time read of what the old Live Catch app stored: its stock list
+     * (Realtime Database) and its delivery clients (Firestore).
+     */
+    async readLiveCatch() {
+        if (isDemo()) throw new Error('Not available in demo mode');
+        const rtdb = await import(SDK + 'firebase-database.js');
+        const snap = await rtdb.get(rtdb.ref(rtdb.getDatabase(fb.app), 'seafood_stock'));
+        const stock = Object.values(snap.val() || {});
+        const clients = (await fb.fs.getDocs(fb.fs.collection(fb.db, 'clients'))).docs.map((d) => d.data());
+        return { stock, clients };
     },
     setMode(mode) { localStorage.setItem(MODE_KEY, mode); },
     resetDemo() { localStorage.removeItem(DEMO_DB); sessionStorage.removeItem(DEMO_USER); }

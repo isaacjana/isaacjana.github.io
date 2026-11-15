@@ -70,6 +70,18 @@ service cloud.firestore {
       allow write: if signedIn();
     }
 
+    // Delivery photos: added by the driver, seen by the supplier and that customer
+    match /ocean_pod/{orderId} {
+      allow read: if isAdmin() || isDriver() || (signedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isAdmin() || isDriver();
+    }
+
+    // Stock history: written by the supplier's app, never edited afterwards
+    match /ocean_stock_log/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
     // Business details and the invoice number counter
     match /ocean_settings/{docId} {
       allow read: if signedIn();

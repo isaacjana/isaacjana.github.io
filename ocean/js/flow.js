@@ -25,7 +25,10 @@ let mirrorWarned = false;
 /** Keep the public tracking record in step with the order. Never blocks the order itself. */
 export function mirror(order) {
     if (!order.trackCode) return;
-    store.set('tracking', order.trackCode, trackingFromOrder(order, ctx.settings)).catch((e) => {
+    const record = trackingFromOrder(order, ctx.settings);
+    // The stop count is kept up to date by saveStopOrder; sending an older copy here would undo it
+    if (order.status === 'delivering') delete record.stopsAhead;
+    store.set('tracking', order.trackCode, record).catch((e) => {
         if (!mirrorWarned) console.warn('Public tracking record could not be written (check the "tracking" database rule).', e);
         mirrorWarned = true;
     });
@@ -45,7 +48,7 @@ const driverFields = (d) => d
     : { driverId: null, driverName: '', driverPhone: '', vehicle: '' };
 
 /** Create an order. Customers create "requested" orders; the supplier can enter a confirmed one directly. */
-export async function createOrder({ customer, items, slot, notes, method, deliveryFee, confirmed }) {
+export async function createOrder({ customer, items, slot, notes, method, deliveryFee, confirmed, id, standing }) {
     const now = Date.now();
     const status = confirmed ? 'confirmed' : 'requested';
     const order = {
@@ -54,11 +57,11 @@ export async function createOrder({ customer, items, slot, notes, method, delive
         phone: customer.phone || '', tin: customer.tin || '', deliveryAddress: customer.address || '', dest: customer.loc || null,
         items, deliveryFee: Number(deliveryFee) || 0, sstRate: Number(ctx.settings.sstRate) || 0,
         slot, notes: notes || '', payment: { method: method || 'cod', status: 'unpaid' },
-        driverId: null, createdBy: ctx.user.uid,
+        driverId: null, createdBy: ctx.user.uid, standing: !!standing,
         timeline: [{ status, at: now, by: me() }], createdAt: now, updatedAt: now
     };
     Object.assign(order, calcTotals(items, order.deliveryFee, order.sstRate));
-    order.id = await store.add('orders', order);
+    if (id) { await store.set('orders', id, order); order.id = id; } else order.id = await store.add('orders', order);
     mirror(order);
     return order;
 }
@@ -73,13 +76,20 @@ export function saveQuote(order, items, deliveryFee, nextStatus) {
 export const confirmOrder = (order) => move(order, 'confirmed');
 export const acceptQuote = (order) => move(order, 'confirmed');
 
+/** Record a stock movement so a wrong count can be traced later. Never blocks the action itself. */
+export function logStock(item, delta, reason, ref = '') {
+    if (!delta) return;
+    store.add('ocean_stock_log', { productId: item.id || '', name: item.name || '', unit: item.unit || '', delta: Math.round(delta * 100) / 100, reason, ref, by: me(), at: Date.now() })
+        .catch((e) => console.warn('Stock log not written', e));
+}
+
 /** Pack the order: take the stock out of the tanks, issue the invoice, hand it to a driver. */
 export async function packOrder(order, driver) {
     const invoiceNo = await store.nextInvoiceNo();
     const invoice = invoiceFromOrder(order, ctx.settings, invoiceNo);
     const invoiceId = await store.add('invoices', invoice);
     await Promise.all(order.items.filter((i) => i.id && itemQty(i) > 0).map((i) =>
-        store.inc('products', i.id, 'quantity', -itemQty(i)).catch((e) => console.warn('Stock not adjusted for', i.name, e))));
+        store.inc('products', i.id, 'quantity', -itemQty(i)).then(() => logStock(i, -itemQty(i), 'packed', order.orderNo)).catch((e) => console.warn('Stock not adjusted for', i.name, e))));
     await move(order, 'ready', {
         invoiceId, invoiceNo, stockTaken: true, packedAt: Date.now(),
         trackCode: order.trackCode || newTrackCode(), ...driverFields(driver)
@@ -97,18 +107,25 @@ export async function startDelivery(order) {
     await move(order, 'delivering', { startedAt: Date.now(), driverLoc: null });
 }
 
-export async function completeDelivery(order, { recipient, paid, method }) {
+export async function completeDelivery(order, { recipient, paid, method, photo }) {
+    let hasPhoto = false;
+    if (photo) {
+        // Kept in its own record so order lists stay light
+        try { await store.set('ocean_pod', order.id, { photo, at: Date.now(), by: me(), orderNo: order.orderNo, clientId: order.clientId || '' }); hasPhoto = true; }
+        catch (e) { console.warn('Delivery photo not saved', e); }
+    }
     const payment = paid
         ? { method: method || order.payment.method, status: 'paid', paidAt: Date.now(), collectedBy: me() }
         : order.payment;
-    await move(order, 'delivered', { deliveredAt: Date.now(), pod: { recipient: recipient || '', by: me() }, payment });
+    await move(order, 'delivered', { deliveredAt: Date.now(), pod: { recipient: recipient || '', by: me(), hasPhoto }, payment, stopsAhead: 0 });
+    return hasPhoto || !photo;
 }
 
 /** Cancel. If the order was already packed, the stock goes back and the invoice is voided. */
 export async function cancelOrder(order, reason) {
     if (order.stockTaken) {
         await Promise.all(order.items.filter((i) => i.id && itemQty(i) > 0).map((i) =>
-            store.inc('products', i.id, 'quantity', itemQty(i)).catch(() => { })));
+            store.inc('products', i.id, 'quantity', itemQty(i)).then(() => logStock(i, itemQty(i), 'returned', order.orderNo)).catch(() => { })));
         if (order.invoiceId) await store.update('invoices', order.invoiceId, { status: 'void' }).catch(() => { });
     }
     await move(order, 'cancelled', { cancelReason: reason || '', stockTaken: false });
@@ -144,14 +161,14 @@ const HEARTBEAT_MS = 20000;     // write at least this often, even when parked
 const MIN_MOVE_KM = 0.008;      // ignore GPS jitter under ~8 m
 
 export const tracker = {
-    order: null, state: 'off', error: '', last: null, onChange: null,
+    orders: [], state: 'off', error: '', last: null, onChange: null,
     _watch: null, _sentAt: 0, _sentPos: null, _lock: null, _sim: null,
 
-    /** Start sharing this device's position for an order that is out for delivery. */
-    start(order) {
-        if (this.order && this.order.id === order.id && this.state !== 'off') { this.order = order; return; }
-        this.stop();
-        this.order = order;
+    /** Share this device's position for every order the driver has on board. An empty list stops sharing. */
+    sync(orders) {
+        this.orders = orders;
+        if (!orders.length) { if (this.state !== 'off') this.stop(); return; }
+        if (this.state !== 'off') return;
         this._sentAt = 0; this._sentPos = null;
         if (!navigator.geolocation) return this._set('error', 'This device does not support location.');
         this._set('starting');
@@ -162,13 +179,17 @@ export const tracker = {
         this._keepAwake();
     },
 
+    has(id) { return this.orders.some((o) => o.id === id); },
+
     stop() {
         if (this._watch !== null && navigator.geolocation) navigator.geolocation.clearWatch(this._watch);
         clearInterval(this._sim);
         if (this._lock) { this._lock.release().catch(() => { }); this._lock = null; }
-        this._watch = null; this._sim = null; this.order = null; this.last = null;
+        this._watch = null; this._sim = null; this.orders = []; this.last = null;
         this._set('off');
     },
+
+    retry() { const list = this.orders; this.stop(); this.sync(list); },
 
     /** Demo only: drive along a route so tracking can be shown without leaving the desk. */
     simulate(path) {
@@ -185,7 +206,7 @@ export const tracker = {
     },
 
     _got(pos) {
-        if (!this.order) return;
+        if (!this.orders.length) return;
         this.last = { ...pos, ts: Date.now() };
         this._set('on');
         const since = Date.now() - this._sentAt;
@@ -193,10 +214,12 @@ export const tracker = {
         if (since < SEND_EVERY_MS || (moved < MIN_MOVE_KM && since < HEARTBEAT_MS)) return;
         this._sentAt = Date.now(); this._sentPos = pos;
         const loc = { lat: pos.lat, lng: pos.lng, acc: Math.round(pos.acc || 0), heading: pos.heading ?? null, speed: pos.speed ?? null, ts: Date.now() };
-        const { id, trackCode } = this.order;
-        store.update('orders', id, { driverLoc: loc }).catch((e) => this._set('error', 'Position could not be sent: ' + (e.message || 'no connection')));
-        // Position only: the order's status is mirrored separately, so a late GPS fix can never undo "delivered"
-        if (trackCode) store.set('tracking', trackCode, { loc, updatedAt: Date.now() }).catch(() => { });
+        this.orders.forEach(({ id, trackCode }) => {
+            // With no signal these writes wait on the phone and are sent when it reconnects
+            store.update('orders', id, { driverLoc: loc }).catch((e) => this._set('error', 'Position could not be sent: ' + (e.message || 'no connection')));
+            // Position only: the order's status is mirrored separately, so a late GPS fix can never undo "delivered"
+            if (trackCode) store.set('tracking', trackCode, { loc, updatedAt: Date.now() }).catch(() => { });
+        });
     },
 
     _set(state, error = '') {
@@ -212,6 +235,32 @@ export const tracker = {
     }
 };
 
+/**
+ * Put a driver's stops in a sensible order: always go to the nearest
+ * remaining stop next. Stops without a map pin go last.
+ */
+export function planStops(from, orders) {
+    const todo = orders.filter((o) => o.dest), rest = orders.filter((o) => !o.dest);
+    const out = [];
+    let at = from;
+    while (todo.length) {
+        let best = 0;
+        todo.forEach((o, i) => { if (haversineKm(at, o.dest) < haversineKm(at, todo[best].dest)) best = i; });
+        const [next] = todo.splice(best, 1);
+        out.push(next); at = next.dest;
+    }
+    return [...out, ...rest];
+}
+
+/** Tell each customer how many stops come before theirs. */
+export function saveStopOrder(planned) {
+    planned.forEach((o, i) => {
+        if (o.stopsAhead === i) return;
+        store.update('orders', o.id, { stopsAhead: i }).catch(() => { });
+        if (o.trackCode) store.set('tracking', o.trackCode, { stopsAhead: i, updatedAt: Date.now() }).catch(() => { });
+    });
+}
+
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && tracker.order && tracker.state !== 'off') tracker._keepAwake();
+    if (document.visibilityState === 'visible' && tracker.orders.length && tracker.state !== 'off') tracker._keepAwake();
 });

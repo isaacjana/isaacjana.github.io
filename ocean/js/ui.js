@@ -134,3 +134,38 @@ export async function share(title, text, url) {
     }
     toast((await copyText(url)) ? 'Link copied' : url);
 }
+
+/**
+ * Let the user take or choose a photo and shrink it to a small JPEG.
+ * Resolves with a data URL, or null if they backed out.
+ */
+export function pickImage({ maxSide = 900, quality = 0.6, camera = true } = {}) {
+    return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/*';
+        if (camera) input.capture = 'environment';
+        input.onchange = () => {
+            const file = input.files[0];
+            if (!file) return resolve(null);
+            const img = new Image();
+            img.onload = () => {
+                const k = Math.min(1, maxSide / Math.max(img.width, img.height));
+                const c = document.createElement('canvas');
+                c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                URL.revokeObjectURL(img.src);
+                resolve(c.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(null);
+            img.src = URL.createObjectURL(file);
+        };
+        input.click();
+    });
+}
+
+export function downloadText(name, text, type = 'text/csv') {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}

@@ -75,6 +75,7 @@ export function createTrackView(root, { depot, extra }) {
                     <div class="eta">
                         ${t.dest ? `<div><b class="num">${eta ? eta.min : '–'}</b> <span class="mute">min</span></div>` : '<div class="thumb">🚚</div>'}
                         <div class="grow small">
+                            ${t.stopsAhead > 0 ? `<div class="small mute">${t.stopsAhead === 1 ? '1 stop before yours' : t.stopsAhead + ' stops before yours'}</div>` : ''}
                             <div class="bold">${eta ? `About ${eta.km.toFixed(1)} km away${eta.exact ? '' : ' (estimate)'}` : (t.dest ? 'Working out the route…' : 'Driver is on the way')}</div>
                             <div class="${stale ? '' : 'dot-live '}mute row" style="gap:6px">${stale ? '⚠️ Signal lost · last seen ' : 'Live · updated '}${timeAgo(t.loc.ts)}</div>
                         </div>

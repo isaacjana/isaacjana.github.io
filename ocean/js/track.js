@@ -8,6 +8,7 @@ import { store, isDemo } from './store.js';
 import { DEFAULT_DEPOT } from './config.js';
 import { normaliseOrder, trackingFromOrder } from './model.js';
 import { createTrackView } from './trackview.js';
+import { LANGS, getLang, setLang, startI18n } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const code = (new URLSearchParams(location.search).get('c') || '').trim().toUpperCase();
@@ -46,7 +47,10 @@ async function start() {
         const c = $('code').value.trim().toUpperCase();
         if (c) location.href = `track.html?c=${encodeURIComponent(c)}${isDemo() ? '&demo=1' : ''}`;
     });
-    if (isDemo()) $('top-note').textContent = 'Demo tracking';
+    startI18n();
+    const pick = $('lang');
+    pick.innerHTML = LANGS.map(([id, name]) => `<option value="${id}"${getLang() === id ? ' selected' : ''}>${name}</option>`).join('');
+    pick.addEventListener('change', () => setLang(pick.value));
     if (!code) return askForCode();
 
     try {

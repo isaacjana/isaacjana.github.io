@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mysarawak-invoice-v3';
+const CACHE_NAME = 'mysarawak-invoice-v4';
 const ASSETS = [
     'index.html',
     'style.css',

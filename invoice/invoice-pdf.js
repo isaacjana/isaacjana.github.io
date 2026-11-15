@@ -141,11 +141,94 @@
             doc.text(doc.splitTextToSize(`Notes: ${data.notes}`, 110), 15, y);
         }
 
+        drawPaymentQr(doc, data.paymentQr, y + 26);
+        footer(doc);
+        return doc;
+    }
+
+    function footer(doc) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text('Generated via MySarawak Invoice - LHDN Phase 4 Compliant.', 105, 285, { align: 'center' });
+    }
+
+    /** Optional "scan to pay" code (a DuitNow QR picture supplied by the business). */
+    function drawPaymentQr(doc, qr, y) {
+        if (!qr) return;
+        if (y > 225) { doc.addPage(); y = 25; }
+        try {
+            doc.addImage(qr, /png/i.test(qr.slice(0, 30)) ? 'PNG' : 'JPEG', 15, y, 42, 42);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(50, 50, 50);
+            doc.text('Scan to pay', 62, y + 8);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(90, 90, 90);
+            doc.text(['Use your banking or e-wallet app.', 'Quote the invoice number as the reference.'], 62, y + 14);
+        } catch (e) { /* an unreadable picture must not stop the invoice */ }
+    }
+
+    /**
+     * Statement of account: every invoice for one customer over a period.
+     * { supplier, buyer, period, rows: [{ date, invoiceNo, reference, amount, status }], paymentQr }
+     */
+    function buildStatement(data) {
+        if (!global.jspdf) throw new Error('PDF library has not loaded yet');
+        const { jsPDF } = global.jspdf;
+        const doc = new jsPDF();
+        const supplier = data.supplier || {}, buyer = data.buyer || {};
+        doc.setFillColor(...GREEN);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('STATEMENT OF ACCOUNT', 15, 25);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...YELLOW);
+        doc.text(data.period || '', 15, 32);
+        doc.setTextColor(50, 50, 50);
+        doc.setFont('helvetica', 'bold');
+        doc.text(supplier.name || '', 15, 52);
+        doc.text(`To: ${buyer.name || 'Customer'}`, 115, 52);
+        doc.setFont('helvetica', 'normal');
+        doc.text(doc.splitTextToSize([supplier.tin && `TIN: ${supplier.tin}`, supplier.phone, supplier.address].filter(Boolean).join('\n'), 85), 15, 57);
+        doc.text(doc.splitTextToSize([buyer.tin && `TIN: ${buyer.tin}`, buyer.phone, buyer.address].filter(Boolean).join('\n'), 85), 115, 57);
+
+        const live = (data.rows || []).filter((r) => r.status !== 'void');
+        const billed = live.reduce((t, r) => t + num(r.amount), 0);
+        const paid = live.filter((r) => r.status === 'paid').reduce((t, r) => t + num(r.amount), 0);
+        doc.autoTable({
+            startY: 85,
+            head: [['Date', 'Invoice', 'Order', 'Status', 'Amount (RM)']],
+            body: (data.rows || []).map((r) => [r.date, r.invoiceNo, r.reference || '', String(r.status || '').toUpperCase(), money(r.amount)]),
+            headStyles: { fillColor: GREEN, textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            columnStyles: { 4: { halign: 'right' } },
+            margin: { left: 15, right: 15 }
+        });
+        let y = doc.lastAutoTable.finalY + 10;
+        if (y > 250) { doc.addPage(); y = 25; }
+        doc.setFontSize(10);
+        doc.text('Total invoiced:', 140, y, { align: 'right' });
+        doc.text(`RM ${money(billed)}`, 195, y, { align: 'right' });
+        doc.text('Paid:', 140, y + 7, { align: 'right' });
+        doc.text(`RM ${money(paid)}`, 195, y + 7, { align: 'right' });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('BALANCE DUE:', 140, y + 17, { align: 'right' });
+        doc.setTextColor(...GREEN);
+        doc.text(`RM ${money(billed - paid)}`, 195, y + 17, { align: 'right' });
+        drawPaymentQr(doc, data.paymentQr, y + 26);
+        footer(doc);
         return doc;
+    }
+
+    function downloadStatement(data) {
+        const name = `Statement_${data.buyer && data.buyer.name || 'customer'}_${data.period || ''}`.replace(/[^\w.-]+/g, '_');
+        buildStatement(data).save(`${name}.pdf`);
     }
 
     function download(data) {
@@ -194,5 +277,5 @@
         try { return JSON.parse(raw); } catch (e) { return null; }
     }
 
-    global.MSInvoice = { totals, buildPDF, download, whatsappText, whatsappUrl, sendToEditor, takeImport };
+    global.MSInvoice = { totals, buildPDF, download, buildStatement, downloadStatement, whatsappText, whatsappUrl, sendToEditor, takeImport };
 })(window);
