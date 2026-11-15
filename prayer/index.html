@@ -19,6 +19,21 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Clipboard helper with a fallback for browsers/contexts where the async API is blocked.
+        window.copyText = function (text) {
+            const fallback = () => new Promise((resolve, reject) => {
+                const ta = document.createElement('textarea');
+                ta.value = text; ta.setAttribute('readonly', '');
+                ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+                document.body.appendChild(ta); ta.select();
+                let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+                ta.remove(); ok ? resolve() : reject(new Error('copy failed'));
+            });
+            if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).catch(fallback);
+            return fallback();
+        };
+    </script>
+    <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -840,7 +855,7 @@
         // Copy Text
         $('copyBtn').addEventListener('click', () => {
             if (!state.currentPrayerText) return;
-            navigator.clipboard.writeText(state.currentPrayerText).then(() => showToast('Prayer copied to clipboard ✓'));
+            window.copyText(state.currentPrayerText).then(() => showToast('Prayer copied to clipboard ✓')).catch(() => showToast('Could not copy — please select the text manually'));
         });
 
         // -------------------------------------------------------------
@@ -931,7 +946,7 @@
                 const textToUse = state.libLangMode === 'Latin' && item.latinText ? item.latinText : item.text;
 
                 card.querySelector('.copy-static-btn').addEventListener('click', () => {
-                    navigator.clipboard.writeText(textToUse).then(() => showToast(`Copied "${item.title}" ✓`));
+                    window.copyText(textToUse).then(() => showToast(`Copied "${item.title}" ✓`)).catch(() => showToast('Could not copy — please select the text manually'));
                 });
 
                 card.querySelector('.listen-static-btn').addEventListener('click', () => {
@@ -1072,7 +1087,7 @@
                 `;
 
                 card.querySelector('.journal-copy-btn').addEventListener('click', () => {
-                    navigator.clipboard.writeText(item.text).then(() => showToast("Copied to clipboard ✓"));
+                    window.copyText(item.text).then(() => showToast("Copied to clipboard ✓")).catch(() => showToast('Could not copy — please select the text manually'));
                 });
 
                 card.querySelector('.journal-listen-btn').addEventListener('click', () => {

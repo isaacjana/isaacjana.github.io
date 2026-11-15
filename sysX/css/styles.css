@@ -742,3 +742,48 @@ body {
     #component-sidebar { width: 200px; }
     #properties-sidebar { width: 260px; }
 }
+
+/* ================================
+   MOBILE LAYOUT (phones / small tablets)
+   ================================ */
+.mobile-only { display: none !important; }
+#mobile-drawer-backdrop { display: none; }
+
+@media (max-width: 767px) {
+    .mobile-only { display: inline-flex !important; }
+    body { height: 100dvh; }
+    #workspace { height: calc(100dvh - 3rem); }
+
+    /* Navbar: icon-only buttons, scroll sideways instead of overflowing */
+    #top-navbar { overflow-x: auto; overflow-y: hidden; gap: .5rem; padding: 0 .5rem; scrollbar-width: none; }
+    #top-navbar::-webkit-scrollbar { display: none; }
+    #top-navbar > div { flex-shrink: 0; }
+    #top-navbar .nav-btn span, #top-navbar .nav-btn-accent span { display: none; }
+    #top-navbar .nav-btn, #top-navbar .nav-btn-accent { min-width: 36px; min-height: 36px; justify-content: center; }
+
+    /* Side panels become slide-in drawers */
+    #component-sidebar, #properties-sidebar {
+        position: fixed; top: 3rem; bottom: 0; z-index: 70;
+        width: min(85vw, 320px);
+        background: rgba(17, 17, 27, 0.97);
+        transition: transform .25s ease;
+    }
+    #component-sidebar { left: 0; transform: translateX(-105%); }
+    #properties-sidebar { right: 0; transform: translateX(105%); }
+    body.drawer-components #component-sidebar,
+    body.drawer-properties #properties-sidebar { transform: translateX(0); }
+    body.drawer-components #mobile-drawer-backdrop,
+    body.drawer-properties #mobile-drawer-backdrop {
+        display: block; position: fixed; inset: 3rem 0 0 0; z-index: 65; background: rgba(0,0,0,.5);
+    }
+
+    /* Canvas: less padding, scroll inside */
+    #canvas-wrapper { padding: .5rem; }
+    main > .h-9 { overflow-x: auto; gap: .5rem; }
+    main > .h-9 > div { flex-shrink: 0; }
+
+    /* Bigger touch targets in the palette */
+    .draggable-component { min-height: 40px; }
+
+    .dropped-component .resize-handle { display: none; }
+}

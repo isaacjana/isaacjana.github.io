@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mandarin-flow-v1';
+const CACHE_NAME = 'mandarin-flow-v2';
 const ASSETS = [
     './',
     './index.html',
@@ -25,5 +25,14 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
         })
+    );
+});
+
+// Remove caches from older versions so updated files are served
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys()
+            .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+            .then(() => self.clients.claim())
     );
 });

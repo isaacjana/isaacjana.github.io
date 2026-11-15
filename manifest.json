@@ -1,0 +1,13 @@
+{
+  "name": "Isaac's Apps",
+  "short_name": "Apps",
+  "description": "A launcher for all of Isaac Jana's web apps.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f2",
+  "theme_color": "#f6f5f2",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

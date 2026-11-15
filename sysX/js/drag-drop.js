@@ -20,6 +20,8 @@ const SysXDragDrop = {
         const self = this;
 
         $(document).on('mousedown', '.draggable-component', function (e) {
+            // On phones the palette is a drawer: components are added with a tap instead (see mobile.js)
+            if (window.SysXMobile && SysXMobile.isMobile()) return;
             e.preventDefault();
             const compType = $(this).data('component');
             const compName = $(this).find('span').text();
