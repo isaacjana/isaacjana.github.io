@@ -224,6 +224,20 @@
        <path d="${wrect(60, 104, 24, 36, 7, 3)}" fill="${C('paper')}" ${st()}/><path d="${wrect(65, 106, 14, 16, 5, 4)}" fill="${C('coral')}" ${st()}/>
        <circle cx="128" cy="84" r="20" fill="${C('sky')}" ${st()}/><path d="M128 84 L128 68" ${st()}/>
        <circle cx="128" cy="130" r="13" fill="${C('pink')}" ${st()}/>`),
+    wheel: () => {
+      const cols = ['pink', 'mint', 'butter', 'sky', 'peach', 'lilac', 'teal', 'coral'];
+      let w = '';
+      cols.forEach((c, i) => {
+        const a0 = (i / 8) * Math.PI * 2 - Math.PI / 2, a1 = a0 + Math.PI / 4;
+        const x0 = 100 + 58 * Math.cos(a0), y0 = 108 + 58 * Math.sin(a0);
+        const x1 = 100 + 58 * Math.cos(a1), y1 = 108 + 58 * Math.sin(a1);
+        w += `<path d="M100 108 L${x0.toFixed(1)} ${y0.toFixed(1)} A58 58 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}Z" fill="${C(c)}" stroke="${ink()}" stroke-width="4" stroke-linejoin="round"/>`;
+      });
+      return tile('butter', 25,
+        `<circle cx="100" cy="108" r="64" fill="${C('paper')}" ${st()}/>${w}
+         <circle cx="100" cy="108" r="12" fill="${C('butter')}" ${st()}/>
+         <path d="M88 34 Q100 24 112 34 L100 56Z" fill="${C('coral')}" ${st()}/>`);
+    },
     marbles: () => tile('teal', 16,
       `<path d="${wrect(30, 62, 96, 14, 7, 2)}" transform="rotate(14 78 69)" fill="${C('wood')}" ${st()}/>
        <path d="${wrect(76, 112, 96, 14, 7, 3)}" transform="rotate(-14 124 119)" fill="${C('wood')}" ${st()}/>
