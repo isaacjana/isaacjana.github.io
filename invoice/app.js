@@ -5,8 +5,6 @@
  */
 
 $(document).ready(function () {
-    const { jsPDF } = window.jspdf;
-
     // --- INITIALIZATION ---
     initApp();
 
@@ -60,7 +58,17 @@ $(document).ready(function () {
      * Initialize App with defaults or saved data
      */
     function initApp() {
-        const savedData = localStorage.getItem('msi_current_invoice');
+        let savedData = localStorage.getItem('msi_current_invoice');
+
+        // An invoice handed over from another app (e.g. an Ocean order)
+        const incoming = location.hash === '#import' ? MSInvoice.takeImport() : null;
+        if (incoming && incoming.data) {
+            if (savedData) localStorage.setItem('msi_prev_invoice', savedData);
+            savedData = JSON.stringify(normaliseInvoice(incoming.data));
+            localStorage.setItem('msi_current_invoice', savedData);
+            history.replaceState(null, '', location.pathname);
+            showImportBanner(incoming);
+        }
 
         if (savedData) {
             loadFromData(JSON.parse(savedData));
@@ -74,6 +82,47 @@ $(document).ready(function () {
     }
 
     /**
+     * Fill in anything an imported invoice left out
+     */
+    function normaliseInvoice(d) {
+        return {
+            invoiceNo: d.invoiceNo || 'INV-' + Date.now().toString().slice(-6),
+            date: d.date || new Date().toISOString().split('T')[0],
+            isConsolidated: !!d.isConsolidated,
+            supplier: Object.assign({ name: '', tin: '', msic: '', phone: '', address: '' }, d.supplier),
+            buyer: Object.assign({ name: '', tin: '', phone: '', address: '' }, d.buyer),
+            items: (d.items || []).map(i => ({
+                description: (i.description || '') + (i.unit ? ` (${i.unit})` : ''),
+                qty: parseFloat(i.qty) || 0,
+                unitPrice: parseFloat(i.unitPrice) || 0,
+                taxRate: parseFloat(i.taxRate) || 0
+            }))
+        };
+    }
+
+    function showImportBanner(incoming) {
+        const hasPrev = !!localStorage.getItem('msi_prev_invoice');
+        const $b = $(`
+            <div id="importBanner" class="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm flex items-start gap-3">
+                <i class="fa-solid fa-file-import text-sarawak-green mt-1"></i>
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800"></p>
+                    <p class="text-gray-500 text-xs">Check the details, then save the PDF or share it.</p>
+                    ${hasPrev ? '<button id="restorePrev" class="mt-2 text-xs font-bold text-sarawak-green underline">Bring back my previous draft</button>' : ''}
+                </div>
+                <button id="closeBanner" class="text-gray-400 p-1" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
+            </div>`);
+        $b.find('p').first().text(`Invoice ${incoming.data.invoiceNo || ''} imported${incoming.source ? ' from ' + incoming.source : ''}.`);
+        $('main').prepend($b);
+        $b.on('click', '#closeBanner', () => $b.remove());
+        $b.on('click', '#restorePrev', () => {
+            localStorage.setItem('msi_current_invoice', localStorage.getItem('msi_prev_invoice'));
+            localStorage.removeItem('msi_prev_invoice');
+            location.reload();
+        });
+    }
+
+    /**
      * Add a new item row
      */
     function addNewItem(data = null) {
@@ -82,9 +131,9 @@ $(document).ready(function () {
                 <div class="flex justify-between items-start gap-4">
                     <div class="flex-1 space-y-1">
                         <label class="text-[10px] font-bold text-gray-400 uppercase">Description</label>
-                        <input type="text" class="item-desc w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green" placeholder="Item/Service Name" value="${data ? data.description : ''}">
+                        <input type="text" class="item-desc w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green" placeholder="Item/Service Name" value="${data ? String(data.description).replace(/&/g, '&amp;').replace(/"/g, '&quot;') : ''}">
                     </div>
-                    <button class="remove-item text-red-500 p-2 mt-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="remove-item text-red-500 p-2 mt-5" aria-label="Remove item">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
@@ -92,7 +141,7 @@ $(document).ready(function () {
                 <div class="grid grid-cols-3 gap-3">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-gray-400 uppercase">Qty</label>
-                        <input type="number" class="item-qty w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green text-center" value="${data ? data.qty : '1'}" min="1">
+                        <input type="number" class="item-qty w-full bg-gray-50 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-sarawak-green text-center" value="${data ? data.qty : '1'}" min="0" step="any">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-gray-400 uppercase">Price (RM)</label>
@@ -215,132 +264,21 @@ $(document).ready(function () {
     }
 
     /**
-     * Generate PDF using jsPDF
+     * Generate PDF (drawing lives in invoice-pdf.js, shared with Ocean)
      */
     function generateInvoicePDF() {
-        const data = collectData();
-        const doc = new jsPDF();
-
-        // Colors
-        const primaryColor = [0, 80, 53]; // Sarawak Green
-        const accentColor = [255, 206, 0]; // Sarawak Yellow
-
-        // Header
-        doc.setFillColor(...primaryColor);
-        doc.rect(0, 0, 210, 40, 'F');
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold');
-        doc.text('TAX INVOICE', 15, 25);
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...accentColor);
-        doc.text(data.isConsolidated ? 'CONSOLIDATED E-INVOICE' : 'LHDN COMPLIANT INVOICE', 15, 32);
-
-        // Invoice Meta
-        doc.setTextColor(255, 255, 255);
-        doc.text(`No: ${data.invoiceNo}`, 195, 20, { align: 'right' });
-        doc.text(`Date: ${data.date}`, 195, 28, { align: 'right' });
-
-        // Supplier & Buyer Info
-        doc.setTextColor(50, 50, 50);
-        doc.setFontSize(10);
-
-        // Supplier
-        doc.setFont('helvetica', 'bold');
-        doc.text('FROM (SUPPLIER)', 15, 55);
-        doc.setFont('helvetica', 'normal');
-        doc.text(data.supplier.name || '---', 15, 60);
-        doc.text(`TIN: ${data.supplier.tin || '---'}`, 15, 65);
-        if (data.supplier.msic) doc.text(`MSIC: ${data.supplier.msic}`, 15, 70);
-        doc.text(`Phone: ${data.supplier.phone || '---'}`, 15, 75);
-
-        const supplierAddr = doc.splitTextToSize(data.supplier.address || '---', 80);
-        doc.text(supplierAddr, 15, 80);
-
-        // Buyer
-        doc.setFont('helvetica', 'bold');
-        doc.text('TO (BUYER)', 115, 55);
-        doc.setFont('helvetica', 'normal');
-        doc.text(data.buyer.name || 'Walk-in Customer', 115, 60);
-        doc.text(`TIN: ${data.buyer.tin || '---'}`, 115, 65);
-        doc.text(`Phone: ${data.buyer.phone || '---'}`, 115, 70);
-
-        const buyerAddr = doc.splitTextToSize(data.buyer.address || '', 80);
-        doc.text(buyerAddr, 115, 75);
-
-        // Items Table
-        const tableBody = data.items.map((item, index) => [
-            index + 1,
-            item.description,
-            item.qty,
-            item.unitPrice.toFixed(2),
-            `${item.taxRate}%`,
-            (item.qty * item.unitPrice).toFixed(2)
-        ]);
-
-        doc.autoTable({
-            startY: 100,
-            head: [['#', 'Description', 'Qty', 'Unit Price (RM)', 'SST %', 'Amount (RM)']],
-            body: tableBody,
-            headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-            margin: { left: 15, right: 15 }
-        });
-
-        // Totals
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.setFont('helvetica', 'normal');
-        doc.text('Subtotal (Excl. Tax):', 140, finalY, { align: 'right' });
-        doc.text(`RM ${data.subtotal.toFixed(2)}`, 195, finalY, { align: 'right' });
-
-        doc.text('Total SST:', 140, finalY + 7, { align: 'right' });
-        doc.text(`RM ${data.totalTax.toFixed(2)}`, 195, finalY + 7, { align: 'right' });
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.text('GRAND TOTAL:', 140, finalY + 17, { align: 'right' });
-        doc.setTextColor(...primaryColor);
-        doc.text(`RM ${data.grandTotal.toFixed(2)}`, 195, finalY + 17, { align: 'right' });
-
-        // Footer
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text('Generated via MySarawak Invoice - LHDN Phase 4 Compliant.', 105, 285, { align: 'center' });
-
-        // Save
-        doc.save(`${data.invoiceNo}_MySarawak.pdf`);
+        try {
+            MSInvoice.download(collectData());
+        } catch (e) {
+            alert('Could not create the PDF: ' + e.message);
+        }
     }
 
     /**
      * Share via WhatsApp
      */
     function shareToWhatsApp() {
-        const data = collectData();
-
-        let message = `*MySarawak Invoice Summary*\n`;
-        message += `----------------------------\n`;
-        message += `*Inv No:* ${data.invoiceNo}\n`;
-        message += `*Date:* ${data.date}\n`;
-        message += `*From:* ${data.supplier.name}\n`;
-        message += `*To:* ${data.buyer.name || 'Customer'}\n`;
-        message += `----------------------------\n`;
-
-        data.items.forEach(item => {
-            message += `• ${item.description} (x${item.qty}) - RM ${(item.qty * item.unitPrice).toFixed(2)}\n`;
-        });
-
-        message += `----------------------------\n`;
-        message += `*SST:* RM ${data.totalTax.toFixed(2)}\n`;
-        message += `*Total:* RM ${data.grandTotal.toFixed(2)}\n`;
-        message += `\n_Generated by MySarawak Invoice_`;
-
-        const encodedMsg = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/${data.buyer.phone.replace(/\D/g, '')}?text=${encodedMsg}`;
-
-        window.open(whatsappUrl, '_blank');
+        window.open(MSInvoice.whatsappUrl(collectData()), '_blank');
     }
 
 });
