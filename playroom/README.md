@@ -18,7 +18,8 @@ Live (once Pages is on): `https://isaacjana.github.io/playroom/`
 | Marble Run | Drag ramps / bells / bouncy pads out of the tray, tap a ramp to turn it, tap anywhere to drop a marble |
 
 **Grown-ups:** press and hold the faint dots in the top-right corner of the playroom floor for 3 seconds.
-There you can mute sound, view / download / delete drawings, clear all data, and read tips on
+There you can mute sound, turn the Baby lock on/off (on by default: traps Back, re-enters full screen,
+ignores the keyboard, warns before closing), view / download / delete drawings, clear all data, and read tips on
 Guided Access (iOS) and App Pinning (Android).
 
 ## Files

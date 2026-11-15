@@ -280,6 +280,7 @@
 
   function openGrown() {
     $('soundToggle').checked = !PR.audio.isMuted();
+    $('lockToggle').checked = PR.lock.on;
     renderGallery();
     grown.hidden = false;
   }
@@ -328,6 +329,12 @@
       document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
     document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
     document.addEventListener('keydown', e => {
+      if (inGrown(e)) { if (e.key === 'Escape') grown.hidden = true; return; }
+      if (PR.lock.on) {
+        // Keyboard mashing: swallow every key (reload, back, close-tab shortcuts...)
+        e.preventDefault();
+        return;
+      }
       if (e.key === 'Escape') { if (!grown.hidden) grown.hidden = true; else close(); }
     });
     // Sound needs a user gesture before it can start
@@ -340,6 +347,57 @@
     window.addEventListener('pagehide', saveCurrent);
   }
 
+  // ---------- Baby lock: make it hard to leave by accident ----------
+  // A web page can't block the OS Home gesture (that needs Guided Access /
+  // App pinning), but it can trap Back, re-enter full screen and warn on close.
+  PR.lock = {
+    on: true,
+    armed: false,
+    set(on) {
+      this.on = !!on;
+      PR.store.set('lock', this.on);
+      if (this.on) this.arm();
+    },
+    // Keep a spare history entry so Back lands on it instead of leaving.
+    // Browsers ignore entries added without a tap, so re-arm on taps too.
+    arm() {
+      if (!this.on || this.armed) return;
+      try { history.pushState({ prLock: 1 }, ''); this.armed = true; } catch (e) { /* ignore */ }
+    }
+  };
+
+  function setupLock() {
+    const L = PR.lock;
+    L.on = PR.store.get('lock', true) !== false;
+    const grownOpen = () => grown && !grown.hidden;
+
+    window.addEventListener('popstate', () => {
+      if (!L.on) return;
+      L.armed = false;
+      // Back inside a toy just means "go to the floor"
+      if (current) close();
+      L.arm();
+    });
+
+    // Every tap: re-arm the Back trap and climb back into full screen
+    document.addEventListener('pointerdown', () => {
+      if (!L.on) return;
+      L.arm();
+      if (!grownOpen()) goFullscreen();
+    }, true);
+
+    window.addEventListener('beforeunload', e => {
+      if (!L.on || grownOpen()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+
+    const toggle = $('lockToggle');
+    toggle.addEventListener('change', () => L.set(toggle.checked));
+
+    L.arm();
+  }
+
   function boot() {
     home = $('home'); tilesEl = $('tiles'); stage = $('stage'); toyEl = $('toy');
     homeBtn = $('homeBtn'); grownBtn = $('grownBtn'); grown = $('grown');
@@ -349,6 +407,7 @@
     homeBtn.addEventListener('click', close);
     buildFloor();
     setupGrown();
+    setupLock();
     guardRails();
 
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
