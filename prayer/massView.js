@@ -271,7 +271,7 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
             const act = btn.dataset.act;
             if (act.endsWith('-prayer')) {
                 const p = massPrayers[btn.dataset.prayer];
-                if (act === 'copy-prayer') navigator.clipboard.writeText(p.text).then(() => showToast(`Copied "${p.title}" ✓`));
+                if (act === 'copy-prayer') window.copyText(p.text).then(() => showToast(`Copied "${p.title}" ✓`)).catch(() => showToast('Could not copy — please select the text manually'));
                 if (act === 'listen-prayer') { ttsCompanion.speak(p.text); showToast(`Reading "${p.title}" 🔊`); }
                 if (act === 'save-prayer') {
                     journalEngine.save({ title: p.title, text: p.text, category: 'mass' });
@@ -285,7 +285,7 @@ export function initMassView({ ttsCompanion, journalEngine, showToast, updateJou
             const en = partText(part, 'English', lines);
             const la = lines.some(l => l.la) ? partText(part, 'Latin', lines) : '';
             const shown = state.lang === 'Latin' && la ? la : en;
-            if (act === 'copy') navigator.clipboard.writeText(shown).then(() => showToast(`Copied "${part.title}" ✓`));
+            if (act === 'copy') window.copyText(shown).then(() => showToast(`Copied "${part.title}" ✓`)).catch(() => showToast('Could not copy — please select the text manually'));
             if (act === 'listen') { ttsCompanion.speak(shown); showToast(`Reading "${part.title}" 🔊`); }
             if (act === 'save') {
                 journalEngine.save({ title: part.title, text: en, latinText: la, category: 'mass' });

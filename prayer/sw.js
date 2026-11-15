@@ -1,5 +1,5 @@
 // Oratio service worker: app shell works offline (handy in a church with no signal).
-const CACHE = 'oratio-v1';
+const CACHE = 'oratio-v2';
 const SHELL = ['./', 'index.html', 'prayerData.js', 'prayerEngine.js', 'massData.js', 'massEngine.js', 'massView.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', e => {

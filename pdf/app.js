@@ -1298,7 +1298,8 @@ $(function () {
     // ── Smooth scroll for anchor links ──────────────────────────
     $('a[href^="#"]').on('click', function (e) {
         e.preventDefault();
-        const target = $($(this).attr('href'));
+        const href = $(this).attr('href');
+        const target = href && href.length > 1 ? $(document.getElementById(href.slice(1))) : $();
         if (target.length) {
             $('html, body').animate({ scrollTop: target.offset().top - 80 }, 600, 'swing');
         }

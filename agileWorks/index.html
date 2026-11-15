@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>AgileWorks Enterprise</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -615,6 +618,43 @@
                 $('#new-sprint-start').val(s.startDate);
                 $('#new-sprint-end').val(s.endDate);
                 $('#modal-sprint').removeClass('hidden');
+                this.calcSprintDays(s.capacity || {});
+            }
+
+            // Working days (Mon–Fri) in the sprint + per-member capacity inputs
+            calcSprintDays(existing) {
+                const start = $('#new-sprint-start').val(), end = $('#new-sprint-end').val();
+                const $box = $('#sprint-capacity-inputs');
+                const prev = Object.assign({}, existing || {});
+                if (!existing) $box.find('.cap-input').each(function () { prev[$(this).data('uid')] = $(this).val(); });
+                $box.empty();
+                let days = 0;
+                if (start && end) {
+                    const d = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+                    if (e < d) { $box.append('<p class="text-sm text-red-500 mb-2">End date is before the start date.</p>'); return; }
+                    for (; d <= e; d.setDate(d.getDate() + 1)) { const w = d.getDay(); if (w !== 0 && w !== 6) days++; }
+                    $box.append(`<p class="text-sm text-slate-500 mb-2">${days} working day${days === 1 ? '' : 's'} in this sprint</p>`);
+                }
+                (this.state.projectUsers || []).forEach(u => {
+                    const v = prev[u.uid] != null ? prev[u.uid] : '';
+                    $box.append(`<label class="flex items-center justify-between gap-2 mb-2 text-sm"><span class="truncate">${$('<span>').text(u.displayName || u.email || 'Member').html()}</span><input type="number" min="0" inputmode="numeric" class="cap-input border p-1.5 rounded w-24 dark:bg-darkbg dark:border-slate-700" data-uid="${u.uid}" value="${v}" placeholder="pts"></label>`);
+                });
+            }
+
+            getSprintCapacity() {
+                const cap = {};
+                $('#sprint-capacity-inputs .cap-input').each(function () { const v = parseInt($(this).val()); if (!isNaN(v)) cap[$(this).data('uid')] = v; });
+                return cap;
+            }
+
+            async markAllRead() {
+                if (!this.state.user) return;
+                const snap = await db.collection('notifications').where('recipientId', '==', this.state.user.uid).where('read', '==', false).get();
+                if (snap.empty) return;
+                const batch = db.batch();
+                snap.forEach(d => batch.update(d.ref, { read: true }));
+                await batch.commit();
+                Utils.showToast('All notifications marked as read', 'success');
             }
 
             renderBoard() {
@@ -639,7 +679,7 @@
                 tasks.forEach(t => load += (parseInt(t.points) || 0));
 
                 $('#capacity-text').text(`${load} / ${cap} pts`);
-                $('#capacity-bar').css('width', `${Math.min((load / cap) * 100, 100)}%`);
+                $('#capacity-bar').css('width', `${cap ? Math.min((load / cap) * 100, 100) : 0}%`);
 
                 if (view === 'standard') {
                     const cols = { todo: [], doing: [], done: [] };
@@ -986,7 +1026,7 @@
         $('#btn-logout').click(() => App.logout());
         $('#btn-confirm-dod').click(() => { App.updateStatus(App.state.pendingItem, 'done'); App.closeModal('modal-dod'); confetti({ particleCount: 100, origin: { y: 0.6 } }); });
         $('.dod-check').change(() => $('#btn-confirm-dod').prop('disabled', $('.dod-check:checked').length !== 3).toggleClass('opacity-50', $('.dod-check:checked').length !== 3));
-        $('#btn-new-sprint-modal').click(() => { $('#modal-sprint').removeClass('hidden'); $('#new-sprint-start').val(''); $('#new-sprint-end').val(''); $('#edit-sprint-id').val(''); });
+        $('#btn-new-sprint-modal').click(() => { $('#modal-sprint').removeClass('hidden'); $('#new-sprint-start').val(''); $('#new-sprint-end').val(''); $('#edit-sprint-id').val(''); $('#new-sprint-name').val(''); $('#new-sprint-goal').val(''); $('#sprint-capacity-inputs').empty(); App.calcSprintDays({}); });
 
         $('#btn-create-sprint').click(async () => {
             Utils.setLoading('#btn-create-sprint', true);
@@ -995,7 +1035,8 @@
                 name: $('#new-sprint-name').val(),
                 goal: $('#new-sprint-goal').val(),
                 startDate: $('#new-sprint-start').val(),
-                endDate: $('#new-sprint-end').val()
+                endDate: $('#new-sprint-end').val(),
+                capacity: App.getSprintCapacity()
             };
             if (id) {
                 await db.collection('sprints').doc(id).update(data);

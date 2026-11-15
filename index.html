@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Isaac's Apps</title>
+    <meta name="description" content="A launcher for all of Isaac Jana's web apps: productivity, money, family, learning and play.">
+    <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Apps">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <style>
+        :root {
+            --bg: #f6f5f2;
+            --surface: #ffffff;
+            --surface-2: #efede8;
+            --text: #1b1b1f;
+            --muted: #6b6b73;
+            --border: #e4e2dc;
+            --accent: #2f5bea;
+            --accent-text: #ffffff;
+            --shadow: 0 1px 2px rgba(20, 20, 30, .05), 0 4px 16px rgba(20, 20, 30, .04);
+            --radius: 18px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #111214;
+                --surface: #1a1b1f;
+                --surface-2: #24252a;
+                --text: #f1f1f3;
+                --muted: #9a9aa3;
+                --border: #2c2d33;
+                --accent: #7c9cff;
+                --accent-text: #0d1020;
+                --shadow: none;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg: #111214;
+            --surface: #1a1b1f;
+            --surface-2: #24252a;
+            --text: #f1f1f3;
+            --muted: #9a9aa3;
+            --border: #2c2d33;
+            --accent: #7c9cff;
+            --accent-text: #0d1020;
+            --shadow: none;
+        }
+
+        * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: calc(20px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        }
+
+        header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 8px 0 20px; }
+        h1 { font-size: clamp(28px, 7vw, 40px); line-height: 1.1; margin: 0; letter-spacing: -.02em; }
+        .sub { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+        .theme-btn {
+            flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
+            border: 1px solid var(--border); background: var(--surface); color: var(--text);
+            display: grid; place-items: center; cursor: pointer;
+        }
+        .theme-btn svg { width: 20px; height: 20px; }
+
+        .controls {
+            position: sticky; top: 0; z-index: 5;
+            background: var(--bg);
+            margin: 0 -16px; padding: 10px 16px 12px;
+        }
+        .search {
+            width: 100%; height: 48px; border-radius: 14px;
+            border: 1px solid var(--border); background: var(--surface); color: var(--text);
+            padding: 0 16px 0 44px; font-size: 16px; outline: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%239a9aa3' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: 14px center;
+        }
+        .search:focus { border-color: var(--accent); }
+        .chips { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; padding-bottom: 2px; scrollbar-width: none; }
+        .chips::-webkit-scrollbar { display: none; }
+        .chip {
+            flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 999px;
+            border: 1px solid var(--border); background: var(--surface); color: var(--text);
+            font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap;
+        }
+        .chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+        section { margin-top: 22px; }
+        section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px 4px; font-weight: 600; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        @media (min-width: 600px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+        .card {
+            display: flex; gap: 14px; align-items: flex-start;
+            padding: 14px; border-radius: var(--radius);
+            background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+            color: inherit; text-decoration: none; min-height: 84px;
+            transition: transform .12s ease, border-color .12s ease;
+        }
+        a.card:active { transform: scale(.985); }
+        @media (hover: hover) { a.card:hover { border-color: var(--accent); } }
+        .icon {
+            flex-shrink: 0; width: 52px; height: 52px; border-radius: 14px;
+            display: grid; place-items: center; font-size: 26px; line-height: 1;
+            background: var(--surface-2);
+        }
+        .body { min-width: 0; flex: 1; }
+        .name { font-weight: 650; font-size: 16px; margin: 2px 0 2px; }
+        .desc { color: var(--muted); font-size: 14px; margin: 0; }
+        .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .links a {
+            font-size: 13px; padding: 6px 12px; border-radius: 999px; text-decoration: none;
+            background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+        }
+        .links a.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+        .card.multi { cursor: default; }
+
+        .empty { color: var(--muted); text-align: center; padding: 40px 0; display: none; }
+        footer { margin-top: 36px; color: var(--muted); font-size: 13px; text-align: center; }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div>
+                <h1>Apps</h1>
+                <p class="sub" id="count">Everything I've built, in one place.</p>
+            </div>
+            <button class="theme-btn" id="theme" aria-label="Toggle dark mode">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            </button>
+        </header>
+
+        <div class="controls">
+            <label for="q" class="sr">Search apps</label>
+            <input id="q" class="search" type="search" placeholder="Search apps" autocomplete="off" enterkeyhint="search">
+            <div class="chips" id="chips" role="toolbar" aria-label="Filter by category"></div>
+        </div>
+
+        <main id="list"></main>
+        <p class="empty" id="empty">No apps match that search.</p>
+
+        <footer>isaacjana.github.io</footer>
+    </div>
+
+    <script>
+        const CATEGORIES = [
+            { id: 'work', label: 'Work & productivity' },
+            { id: 'money', label: 'Money & business' },
+            { id: 'life', label: 'Health & family' },
+            { id: 'learn', label: 'Learning & play' },
+            { id: 'tools', label: 'Tools' },
+        ];
+
+        // Each app: name, icon, description, category, and one or more links (the first is the main one)
+        const APPS = [
+            { name: 'AgileWorks', icon: '🗂️', cat: 'work', desc: 'Scrum and Kanban boards with sprints, backlog and retros.', links: [['Open', 'agileWorks/']] },
+            { name: 'FlowState', icon: '🌊', cat: 'work', desc: 'Simple, focused task lists with drag-to-reorder.', links: [['Open', 'flowstate/']] },
+            { name: 'eSOEs Review Notes', icon: '📝', cat: 'work', desc: 'Capture and track feedback from system review sessions.', links: [['Open', 'esoesReview/']] },
+            { name: 'SysX', icon: '🧩', cat: 'work', desc: 'Low-code UI builder with wireframes, flowcharts and HTML export.', links: [['Open', 'sysX/']] },
+            { name: 'Performance Budget', icon: '⚡', cat: 'work', desc: 'Plan page weight and see the impact on load time.', links: [['Open', 'budget/']] },
+
+            { name: 'PennyWise', icon: '💰', cat: 'money', desc: 'Personal budget built around bank envelopes and commitments.', links: [['Open', 'pennyWise/']] },
+            { name: 'MySarawak Invoice', icon: '🧾', cat: 'money', desc: 'LHDN-ready e-invoices as PDF, shareable on WhatsApp.', links: [['Open', 'invoice/']] },
+            { name: 'Ocean', icon: '🦀', cat: 'money', desc: 'Live seafood sales, inventory, orders and delivery.', links: [['Sign in', 'ocean/'], ['Dashboard', 'ocean/dashboard.html'], ['Billing setup', 'bill-setup/']] },
+            { name: 'Ocean Ecosystem', icon: '🐟', cat: 'money', desc: 'Live-catch marketplace and client order tracking.', links: [['Open', 'live-catch/'], ['Track an order', 'live-catch/client.html']] },
+            { name: 'Q-Next', icon: '🎟️', cat: 'money', desc: 'Digital queue: a kiosk for the counter and tickets for customers.', links: [['Kiosk', 'qNext/host.html'], ['Get a ticket', 'qNext/client.html']] },
+            { name: 'Wedding RSVP', icon: '💍', cat: 'money', desc: 'Wedding invitations and RSVP tracking. Guests open their own invitation link.', links: [['Admin', 'weddingRvsp/admin.html']] },
+
+            { name: 'Life', icon: '✅', cat: 'life', desc: 'Habits, routines and goals with streaks and insights.', links: [['Open', 'life/']] },
+            { name: 'DailyBurn', icon: '🔥', cat: 'life', desc: 'Guided home workouts with voice coaching.', links: [['Open', 'workout/'], ['Iridium edition', 'workout-out/']] },
+            { name: 'Munch', icon: '🥗', cat: 'life', desc: 'Meal log, recipe vault and shopping lists.', links: [['Open', 'munch/']] },
+            { name: 'MamaJourney', icon: '🤱', cat: 'life', desc: 'Planning, pregnancy and newborn care for families in Sarawak.', links: [['Open', 'mumCare/']] },
+            { name: 'TinySteps', icon: '👣', cat: 'life', desc: 'Early-years activity plans for your child.', links: [['Open', 'tinySteps/']] },
+            { name: 'Oratio', icon: '🙏', cat: 'life', desc: 'Catholic prayers, the Rosary, Sunday Mass and a journal.', links: [['Open', 'prayer/']] },
+
+            { name: 'MandarinFlow', icon: '🀄', cat: 'learn', desc: 'Learn Hanzi with writing practice, tones and streaks.', links: [['Open', 'mandarin/']] },
+            { name: 'TypeWarrior', icon: '⌨️', cat: 'learn', desc: 'Typing test with themes, modes and stats.', links: [['Open', 'typeWarrior/']] },
+            { name: 'Cozy Tales', icon: '📚', cat: 'learn', desc: 'Read-along picture books for little ones.', links: [['Open', 'storybook/']] },
+            { name: 'Playroom', icon: '🧸', cat: 'learn', desc: 'Calm, wordless toys for toddlers. Best held sideways.', links: [['Open', 'playroom/']] },
+            { name: 'Munch Karaoke', icon: '🎤', cat: 'learn', desc: 'Karaoke rooms with a shared song queue.', links: [['Open', 'karaoke/'], ['Quick queue', 'karaoke/index2.html']] },
+
+            { name: 'PDF Tools', icon: '📄', cat: 'tools', desc: 'Merge, split, compress and convert PDFs in your browser.', links: [['Open', 'pdf/']] },
+            { name: 'A4 Scanner', icon: '📷', cat: 'tools', desc: 'Scan ID cards and documents to a true-size A4 PDF.', links: [['Open', 'A4Scanner/']] },
+            { name: 'DevToys', icon: '🧰', cat: 'tools', desc: '55+ developer tools: encoders, formatters, generators.', links: [['Open', 'devToys/']] },
+            { name: 'Icon Resizer', icon: '🖼️', cat: 'tools', desc: 'Make 192 and 512 px app icons from any image.', links: [['Open', 'resizer.html']] },
+        ];
+
+        const $ = (s) => document.querySelector(s);
+        const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        let activeCat = 'all';
+
+        function card(app) {
+            if (app.links.length === 1) {
+                return `<a class="card" href="${esc(app.links[0][1])}">
+                    <div class="icon" aria-hidden="true">${app.icon}</div>
+                    <div class="body"><p class="name">${esc(app.name)}</p><p class="desc">${esc(app.desc)}</p></div>
+                </a>`;
+            }
+            const links = app.links.map(([label, href], i) => `<a href="${esc(href)}" class="${i === 0 ? 'primary' : ''}">${esc(label)}</a>`).join('');
+            return `<div class="card multi">
+                <div class="icon" aria-hidden="true">${app.icon}</div>
+                <div class="body"><p class="name">${esc(app.name)}</p><p class="desc">${esc(app.desc)}</p><div class="links">${links}</div></div>
+            </div>`;
+        }
+
+        function render() {
+            const q = $('#q').value.trim().toLowerCase();
+            const match = (a) => (activeCat === 'all' || a.cat === activeCat) &&
+                (!q || (a.name + ' ' + a.desc).toLowerCase().includes(q));
+            let html = '', shown = 0;
+            CATEGORIES.forEach((c) => {
+                const apps = APPS.filter((a) => a.cat === c.id && match(a));
+                if (!apps.length) return;
+                shown += apps.length;
+                html += `<section><h2>${esc(c.label)}</h2><div class="grid">${apps.map(card).join('')}</div></section>`;
+            });
+            $('#list').innerHTML = html;
+            $('#empty').style.display = shown ? 'none' : 'block';
+        }
+
+        $('#chips').innerHTML = [{ id: 'all', label: 'All' }, ...CATEGORIES]
+            .map((c) => `<button class="chip" data-cat="${c.id}" aria-pressed="${c.id === 'all'}">${esc(c.id === 'all' ? 'All' : c.label.split(' & ')[0])}</button>`).join('');
+        $('#chips').addEventListener('click', (e) => {
+            const b = e.target.closest('.chip'); if (!b) return;
+            activeCat = b.dataset.cat;
+            document.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', c === b));
+            render();
+        });
+        $('#q').addEventListener('input', render);
+        $('#count').textContent = `${APPS.length} apps I've built, in one place.`;
+
+        // Theme toggle (remembered per device)
+        const root = document.documentElement;
+        try { const t = localStorage.getItem('launcher-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+        $('#theme').addEventListener('click', () => {
+            const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+            root.dataset.theme = dark ? 'light' : 'dark';
+            try { localStorage.setItem('launcher-theme', root.dataset.theme); } catch (e) {}
+        });
+
+        render();
+    </script>
+</body>
+</html>
