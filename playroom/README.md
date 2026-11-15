@@ -15,6 +15,7 @@ Live (once Pages is on): `https://isaacjana.github.io/playroom/`
 | Sound Blobs | Drag blobs onto the 8-step loop. Higher = higher note (pentatonic), color = voice. Drag off to remove |
 | Tiny Town | Drag sideways to explore. Tap doors, windows, cars, people, the dog, duck, clouds, flowers, swing, chimney, sun/moon |
 | Busy Board | Switches + lights, knobs, sliders, push buttons, spinner, peekaboo door, sliding beads |
+| Spin Wheel | Tap anywhere or fling the wheel; it clicks over the pegs, slows down, and the animal it lands on pops out and says hello |
 | Marble Run | Drag ramps / bells / bouncy pads out of the tray, tap a ramp to turn it, tap anywhere to drop a marble |
 
 **Grown-ups:** press and hold the faint dots in the top-right corner of the playroom floor for 3 seconds.
@@ -29,7 +30,7 @@ css/style.css          all styles; palette as CSS variables in :root
 js/app.js              storage, navigation, zoom transition, home button, parent gate, PWA
 js/audio.js            Web Audio synth (soft sine/triangle tones, no audio files)
 js/physics.js          tiny 2D rigid-body engine used by Blocks and Marble Run
-js/toys/*.js           one file per toy (blocks, doodle, blobs, town, busyboard, marbles, bubbles, animals, twinkle, piano; bubbles/animals/twinkle suit babies): PR.toys.<name> = { init(container), destroy(), save() }
+js/toys/*.js           one file per toy (blocks, doodle, blobs, town, busyboard, marbles, bubbles, animals, twinkle, piano, wheel; bubbles/animals/twinkle suit babies): PR.toys.<name> = { init(container), destroy(), save() }
 assets/art.js          inline SVG art: wobbly shapes, diverse characters, tiles
 assets/icon*.svg/png   app icons
 manifest.json, sw.js   installable PWA, works offline

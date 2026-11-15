@@ -91,9 +91,10 @@
     { id: 'doodle',  bg: 'lilac', x: 38, y: 21, rot: 4,  bob: 6.1 },
     { id: 'blobs',   bg: 'mint',  x: 62, y: 25, rot: -3, bob: 5.6 },
     { id: 'bubbles', bg: 'sky',   x: 86, y: 22, rot: 5,  bob: 6.0 },
-    { id: 'animals', bg: 'butter', x: 26, y: 50, rot: 3, bob: 5.4 },
-    { id: 'town',    bg: 'sky',   x: 50, y: 52, rot: -4, bob: 6.4 },
-    { id: 'busy',    bg: 'peach', x: 74, y: 49, rot: 5,  bob: 5.0, toy: 'busyboard' },
+    { id: 'animals', bg: 'butter', x: 14, y: 50, rot: 3, bob: 5.4 },
+    { id: 'town',    bg: 'sky',   x: 38, y: 52, rot: -4, bob: 6.4 },
+    { id: 'busy',    bg: 'peach', x: 62, y: 49, rot: 5,  bob: 5.0, toy: 'busyboard' },
+    { id: 'wheel',   bg: 'pink',  x: 86, y: 51, rot: -4, bob: 5.7 },
     { id: 'marbles', bg: 'teal',  x: 20, y: 78, rot: -3, bob: 5.8 },
     { id: 'twinkle', bg: 'night', x: 50, y: 80, rot: 4,  bob: 6.6 },
     { id: 'piano',   bg: 'coral', x: 80, y: 77, rot: -5, bob: 5.3 }
