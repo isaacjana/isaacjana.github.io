@@ -1,46 +1,91 @@
+// Ocean - Firestore rules.
+//
+// The Firebase project is shared with other apps, so do NOT replace the whole
+// rules file with this one. Copy the functions and the "match" blocks below
+// into the existing rules, inside:
+//
+//   service cloud.firestore { match /databases/{database}/documents { ... } }
+//
+// If the project already has a /users/{userId} block for the other apps, merge
+// the two carefully: the other apps also store each person's data under users.
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isAdmin() {
-      let role = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-      return role == 'admin' || role == 'Admin';
-    }
 
-    // User Profiles
+    function signedIn() { return request.auth != null; }
+    function oceanRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '');
+    }
+    function isAdmin() { return signedIn() && oceanRole() in ['admin', 'Admin']; }
+    function isDriver() { return signedIn() && oceanRole() == 'driver'; }
+
+    // Profiles. People may edit their own details but cannot promote themselves:
+    // a new profile starts as "client" and only the supplier changes roles.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        || (request.auth.uid == userId && request.resource.data.get('role', 'client') == 'client');
+      allow update: if isAdmin()
+        || (request.auth.uid == userId
+            && (request.resource.data.get('role', '') == resource.data.get('role', '')
+                || (!('role' in resource.data) && request.resource.data.role == 'client')));
+      allow delete: if isAdmin() || request.auth.uid == userId;
+
       match /customPrices/{productId} {
-         allow read: if request.auth != null;
-         allow write: if request.auth != null && isAdmin();
+        allow read: if signedIn();
+        allow write: if isAdmin();
       }
     }
 
-    // Products (Stocks)
+    // Live stock
     match /products/{productId} {
-      allow read: if request.auth != null; // Everyone can see stock
-      allow write: if request.auth != null && isAdmin();
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
 
-    // Orders
+    // Orders: customers see and place their own; they can accept, decline or
+    // cancel only before the order is confirmed. Drivers and the supplier see all.
     match /orders/{orderId} {
-      // Clients see their own, Admins see all, Drivers see all (simplification for MVP)
-      allow read: if request.auth != null; 
-      allow create: if request.auth != null; // Clients create orders
-      allow update: if request.auth != null; // Status updates by admin/driver
+      allow read: if isAdmin() || isDriver() || (signedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isAdmin() || (signedIn() && request.resource.data.clientId == request.auth.uid);
+      allow update: if isAdmin() || isDriver()
+        || (signedIn() && resource.data.clientId == request.auth.uid
+            && resource.data.status in ['requested', 'quoted']
+            && request.resource.data.status in ['requested', 'confirmed', 'cancelled']);
+      allow delete: if isAdmin();
     }
 
-    // Invoices
+    // Invoices: issued by the supplier, readable by the customer they belong to
     match /invoices/{invoiceId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && isAdmin();
+      allow read: if isAdmin() || (signedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isAdmin();
     }
 
-    // Quick Transactions (POS)
-    match /quick_transactions/{txId} {
-      allow read, write: if request.auth != null && isAdmin();
+    // Public delivery tracking: anyone holding the link can read that one
+    // record (no listing), so recipients do not need an account.
+    match /tracking/{code} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if signedIn();
+    }
+
+    // Delivery photos: added by the driver, seen by the supplier and that customer
+    match /ocean_pod/{orderId} {
+      allow read: if isAdmin() || isDriver() || (signedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isAdmin() || isDriver();
+    }
+
+    // Stock history: written by the supplier's app, never edited afterwards
+    match /ocean_stock_log/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Business details and the invoice number counter
+    match /ocean_settings/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
   }
 }

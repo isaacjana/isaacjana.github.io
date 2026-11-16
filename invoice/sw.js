@@ -1,8 +1,9 @@
-const CACHE_NAME = 'mysarawak-invoice-v2';
+const CACHE_NAME = 'mysarawak-invoice-v4';
 const ASSETS = [
     'index.html',
     'style.css',
     'app.js',
+    'invoice-pdf.js',
     'manifest.json',
     'logo.png',
     'https://cdn.tailwindcss.com',

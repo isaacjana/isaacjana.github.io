@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Follow your Ocean seafood delivery live on the map">
+    <meta name="theme-color" content="#0f2847">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Track your delivery - Ocean</title>
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="stylesheet" href="css/app.css">
+    <style>
+        #track { max-width: 760px; margin: 0 auto; }
+        #track .map { height: 46dvh; min-height: 260px; border-radius: 0; }
+        @media (min-width: 800px) { #track .map { border-radius: 0 0 16px 16px; } }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <span class="logo">🌊 OCEAN</span>
+        <span class="who small" id="top-note">Delivery tracking</span>
+        <select id="lang" aria-label="Language" style="background:none;border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;padding:4px 6px;font-size:13px"></select>
+    </header>
+
+    <!-- Enter a code -->
+    <main id="ask" hidden style="max-width:440px;margin:0 auto;padding:28px 16px" class="stack">
+        <div><h1>Track your delivery</h1>
+            <p class="mute">Enter the tracking code from your supplier, or open the link they sent you.</p></div>
+        <div id="ask-error" class="notice bad" hidden></div>
+        <form id="ask-form" class="stack">
+            <input class="input" id="code" placeholder="Tracking code" autocapitalize="characters" autocomplete="off" spellcheck="false"
+                style="text-align:center;font-size:20px;letter-spacing:.15em;font-weight:700;text-transform:uppercase" maxlength="16">
+            <button class="btn block">Track</button>
+        </form>
+        <button class="btn ghost block" id="signin" hidden>Sign in with Google to view</button>
+        <a class="btn ghost block" href="./">Open Ocean</a>
+    </main>
+
+    <main id="track" hidden></main>
+    <div id="toasts"></div>
+
+    <script type="module" src="js/track.js"></script>
+</body>
+
+</html>
